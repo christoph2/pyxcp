@@ -35,9 +35,13 @@ import sys
 import time
 
 import construct
-from construct import Struct, If, Const, Adapter, FlagsEnum, Enum, String, Array, Padding, HexDump, Tell, Union
+if construct.version < (2, 8):
+    print("pyXCP requires at least construct 2.8")
+    exit(1)
+
+from construct import Struct, If, Const, Adapter, FlagsEnum, Enum, String, Array, Padding, Tell, Union, HexDump
 from construct import Probe, CString, IfThenElse, Pass, Float64l, Int8ul, Construct, this, GreedyBytes, Switch
-from construct import OnDemandPointer, Pointer, Byte, GreedyRange, Bytes, Int16ul, Int16sl, Int32ul, Int64ul
+from construct import OnDemandPointer, Pointer, Byte, GreedyRange, Bytes, Int16ul, Int16sl, Int32ul, Int32sl, Int64ul
 from construct import BitStruct, BitsInteger
 import six
 
@@ -53,6 +57,9 @@ formatter = logging.Formatter(fmt)
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
+
+def hexDump(arr):
+    return "[{}]".format(' '.join(["{:02x}".format(x) for x in arr]))
 
 class Command(enum.IntEnum):
 
@@ -262,16 +269,12 @@ class UdpTransport(object):
 
     def __init__(self, ipAddress, port = DEFAULT_XCP_PORT):
         self.parent = None
-
         #self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.logger = logging.getLogger("pyXCP")
         self.counter = 0
-
         self._address = None
         self._addressExtension = None
-
-
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if hasattr(self.sock, "SO_REUSEPORT"):
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
@@ -283,9 +286,7 @@ class UdpTransport(object):
 
     def send(self, canID, b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, b7 = 0):
         self.message = CANMessageObject(canID, 8, bytearray((b0, b1, b2, b3, b4, b5, b6, b7)))
-        #print("Sending: {}".format(self.message))
         print("Sending: {}".format(self.message.data))
-        #data = [].extend(self.message.data)
         hdr = struct.pack("<HH", 8, 0)
         print(hdr)
         self.sock.send(hdr)
@@ -294,16 +295,15 @@ class UdpTransport(object):
         print(result)
 
     def request(self, canID, cmd, *data):
+        print(cmd.name)
         header = struct.pack("<HH", len(data) + 1, self.counter)
         frame = header + bytearray([cmd, *data])
-        print("FRAME:",  frame)
+        print("-> {}".format(hexDump(frame)))
         self.sock.send(frame)
         length = struct.unpack("<H", self.sock.recv(2))[0]
         response = self.sock.recv(length + 2)
-        print(length, response)
+        print("<- {}\n".format(hexDump(response)))
         return response[ 2 : ]
-        #result = ConnectResponse.response(data[ 2 : ])
-
 
     def receive(self, canID, b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, b7 = 0):
         self.message = CANMessageObject(canID, 8, bytearray((b0, b1, b2, b3, b4, b5, b6, b7)))
@@ -454,6 +454,25 @@ SetRequestMode = BitStruct(
     "storeCalReq" / BitsInteger(1),
 )
 
+BuildChecksumResponse = Struct(
+    "checksumType" / Enum(Int8ul,
+        XCP_ADD_11 = 0x01,
+        XCP_ADD_12 = 0x02,
+        XCP_ADD_14 = 0x03,
+        XCP_ADD_22 = 0x04,
+        XCP_ADD_24 = 0x05,
+        XCP_ADD_44 = 0x06,
+
+        XCP_CRC_16 = 0x07,
+        XCP_CRC_16 = 0x08,
+        XCP_CRC_32 = 0x09,
+
+        XCP_USER_DEFINED = 0xFF,
+    ),
+    "reserved" / Int16ul,
+    "checksum" / Int32ul,
+)
+
 class XCPClient(object):
 
     def __init__(self, transport):
@@ -492,6 +511,7 @@ class XCPClient(object):
         response = self.transport.request(canID, Command.GET_COMM_MODE_INFO)
         result = GetCommModeInfoResponse.parse(response)
         print(result)
+        return result
 
     def getID(self, canID, mode):
         class XcpIdType(enum.IntEnum):
@@ -502,15 +522,19 @@ class XCPClient(object):
             FILE_TO_UPLOAD = 4
         response = self.transport.request(canID, Command.GET_ID, mode)
         result = GetIDResponse.parse(response)
-        print(result)
+        print(result.length)
+        result.length = struct.unpack("<I", response[4:8])[0]
         return result
 
     def setRequest(self, canID, mode, sessionConfigurationId):
-
         response = self.transport.request(canID, Command.SET_REQUEST, mode, sessionConfigurationId >> 8, sessionConfigurationId & 0xff)
 
     def upload(self, canID, length):
         response = self.transport.request(canID, Command.UPLOAD, length)
+        return response[1 : ]
+
+    def shortUpload(self, canID, length):
+        response = self.transport.request(canID, Command.SHORT_UPLOAD, length)
         return response[1 : ]
 
     def setMta(self, canID, address):
@@ -520,7 +544,7 @@ class XCPClient(object):
 
     def getSeed(self, canID, first, resource):
         response = self.transport.request(canID, Command.GET_SEED, first, resource)
-        #return result
+        return response
 
     def fetch(self, canID, length):
         max_dto = 8
@@ -536,8 +560,15 @@ class XCPClient(object):
             result.extend(data)
         return result
 
-CALRAM_ADDR  = 0x00E3200C
-CALRAM_SIZE  = 0x000001C1
+    def buildChecksum(self, canID, blocksize):
+        bs = struct.pack("<I", blocksize)
+        response = self.transport.request(canID, Command.BUILD_CHECKSUM, 0, 0, 0, *bs)
+        return BuildChecksumResponse.parse(response)
+
+#CALRAM_ADDR  = 0x00E3200C
+CALRAM_ADDR  = 0x00E1058
+#CALRAM_SIZE  = 0x000001C1
+CALRAM_SIZE  = 0x00000E9D
 
 def test():
     xcpClient = XCPClient(UdpTransport('localhost'))
@@ -545,13 +576,17 @@ def test():
     xcpClient.getStatus(0x7ba)
     xcpClient.synch(0x7ba)
     xcpClient.getCommModeInfo(0x7ba)
+
     result = xcpClient.getID(0x7ba, 0x01)
+    xcpClient.upload(0x7ba, result.length)
     #result = xcpClient.getSeed(0x7ba, 0, 1)
 
     #  name = xcpClient.fetch(0x7ba, result.length)
     #  print(name)
     #xcpClient.setRequest(0x7ba, 0x08, 0x1010)
-    #xcpClient.setMta(0x7ba, CALRAM_ADDR)
+
+#    xcpClient.setMta(0x7ba, CALRAM_ADDR)
+#    xcpClient.buildChecksum(0x7ba, CALRAM_SIZE)
     #xcpClient.fetch(0x7ba, CALRAM_SIZE)
 
     xcpClient.disconnect(0x7ba)
@@ -559,4 +594,5 @@ def test():
 
 if __name__=='__main__':
     test()
+
 
