@@ -462,11 +462,9 @@ BuildChecksumResponse = Struct(
         XCP_ADD_22 = 0x04,
         XCP_ADD_24 = 0x05,
         XCP_ADD_44 = 0x06,
-
         XCP_CRC_16 = 0x07,
-        XCP_CRC_16 = 0x08,
+        XCP_CRC_16_CITT = 0x08,
         XCP_CRC_32 = 0x09,
-
         XCP_USER_DEFINED = 0xFF,
     ),
     "reserved" / Int16ul,
@@ -541,7 +539,6 @@ class XCPClient(object):
         addr = struct.pack("<I", address)
         response = self.transport.request(canID, Command.SET_MTA, 0, 0, 0, *addr)
 
-
     def getSeed(self, canID, first, resource):
         response = self.transport.request(canID, Command.GET_SEED, first, resource)
         return response
@@ -565,6 +562,42 @@ class XCPClient(object):
         response = self.transport.request(canID, Command.BUILD_CHECKSUM, 0, 0, 0, *bs)
         return BuildChecksumResponse.parse(response)
 
+    def transportLayerCommand(self, canID, subCommand, *data):
+        response = self.transport.request(canID, Command.TRANSPORT_LAYER_CMD, subCommand, *data)
+        return response
+
+    def userCommand(self, canID, subCommand, *data):
+        response = self.transport.request(canID, Command.USER_CMD, subCommand, *data)
+        return response
+
+    def download(self, canID, *data):
+        length = len(data)
+        response = self.transport.request(canID, Command.DOWNLOAD, length, *data)
+        return response
+
+    def downloadNext(self, canID, *data):
+        length = len(data)
+        response = self.transport.request(canID, Command.DOWNLOAD_NEXT, length, *data)
+        return response
+
+    def downloadMax(self, canID, *data):
+        response = self.transport.request(canID, Command.DOWNLOAD_MAX, *data)
+        return response
+
+    def shortDownload(self, canID, address, addressExt, *data):
+        length = len(data)
+        addr = struct.pack("<I", address)
+        response = self.transport.request(canID, Command.SHORT_DOWNLOAD, length, 0, addressExt, *addr, *data)
+        return response
+
+    def modifyBits(self, canID, shiftValue, andMask, xorMask):
+        # A = ( (A) & ((~((dword)(((word)~MA)<<S))) )^((dword)(MX<<S)) )
+        am = struct.pack("<H", andMask)
+        xm = struct.pack("<H", xorMask)
+        response = self.transport.request(canID, Command.MODIFY_BITS, shiftValue, am, xm)
+        return response
+
+
 #CALRAM_ADDR  = 0x00E3200C
 CALRAM_ADDR  = 0x00E1058
 #CALRAM_SIZE  = 0x000001C1
@@ -585,9 +618,11 @@ def test():
     #  print(name)
     #xcpClient.setRequest(0x7ba, 0x08, 0x1010)
 
-#    xcpClient.setMta(0x7ba, CALRAM_ADDR)
+    xcpClient.setMta(0x7ba, CALRAM_ADDR)
 #    xcpClient.buildChecksum(0x7ba, CALRAM_SIZE)
     #xcpClient.fetch(0x7ba, CALRAM_SIZE)
+
+    #xcpClient.download(0x11, 0x22, 0x33, 0x44, 0x55)
 
     xcpClient.disconnect(0x7ba)
     xcpClient.close()
