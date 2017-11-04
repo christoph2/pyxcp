@@ -24,6 +24,7 @@ __copyright__="""
 """
 
 
+import asyncio
 import array
 import enum
 import logging
@@ -34,16 +35,9 @@ import struct
 import sys
 import time
 
-import construct
-if construct.version < (2, 8):
-    print("pyXCP requires at least construct 2.8")
-    exit(1)
-
-from construct import Struct, If, Const, Adapter, FlagsEnum, Enum, String, Array, Padding, Tell, Union, HexDump
-from construct import Probe, CString, IfThenElse, Pass, Float64l, Int8ul, Construct, this, GreedyBytes, Switch
-from construct import OnDemandPointer, Pointer, Byte, GreedyRange, Bytes, Int16ul, Int16sl, Int32ul, Int32sl, Int64ul
-from construct import BitStruct, BitsInteger
 import six
+
+from pyxcp import types
 
 
 ## Setup Logger.
@@ -57,109 +51,11 @@ formatter = logging.Formatter(fmt)
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
+class FrameSizeError(Exception): pass
+class XcpResponseError(Exception): pass
 
 def hexDump(arr):
     return "[{}]".format(' '.join(["{:02x}".format(x) for x in arr]))
-
-class Command(enum.IntEnum):
-
-# class STD(Command):
-    ##
-    ## Mandantory Commnands.
-    ##
-    CONNECT                 = 0xFF
-    DISCONNECT              = 0xFE
-    GET_STATUS              = 0xFD
-    SYNCH                   = 0xFC
-    ##
-    ## Optional Commands.
-    ##
-    GET_COMM_MODE_INFO      = 0xFB
-    GET_ID                  = 0xFA
-    SET_REQUEST             = 0xF9
-    GET_SEED                = 0xF8
-    UNLOCK                  = 0xF7
-    SET_MTA                 = 0xF6
-    UPLOAD                  = 0xF5
-    SHORT_UPLOAD            = 0xF4
-    BUILD_CHECKSUM          = 0xF3
-
-    TRANSPORT_LAYER_CMD     = 0xF2
-    USER_CMD                = 0xF1
-
-#class CAL:
-    ##
-    ## Mandantory Commnands.
-    ##
-    DOWNLOAD                = 0xF0
-    ##
-    ## Optional Commands.
-    ##
-    DOWNLOAD_NEXT           = 0xEF
-    DOWNLOAD_MAX            = 0xEE
-    SHORT_DOWNLOAD          = 0xED
-    MODIFY_BITS             = 0xEC
-
-#class PAG:
-    ##
-    ## Mandantory Commnands.
-    ##
-    SET_CAL_PAGE            = 0xEB
-    GET_CAL_PAGE            = 0xEA
-    ##
-    ## Optional Commands.
-    ##
-    GET_PAG_PROCESSOR_INFO  = 0xE9
-    GET_SEGMENT_INFO        = 0xE8
-    GET_PAGE_INFO           = 0xE7
-    SET_SEGMENT_MODE        = 0xE6
-    GET_SEGMENT_MODE        = 0xE5
-    COPY_CAL_PAGE           = 0xE4
-
-#class DAQ:
-    ##
-    ## Mandantory Commnands.
-    ##
-    CLEAR_DAQ_LIST          = 0xE3
-    SET_DAQ_PTR             = 0xE2
-    WRITE_DAQ               = 0xE1
-    SET_DAQ_LIST_MODE       = 0xE0
-    GET_DAQ_LIST_MODE       = 0xDF
-    START_STOP_DAQ_LIST     = 0xDE
-    START_STOP_SYNCH        = 0xDD
-    ##
-    ## Optional Commands.
-    ##
-    GET_DAQ_CLOCK           = 0xDC
-    READ_DAQ                = 0xDB
-    GET_DAQ_PROCESSOR_INFO  = 0xDA
-    GET_DAQ_RESOLUTION_INFO = 0xD9
-    GET_DAQ_LIST_INFO       = 0xD8
-    GET_DAQ_EVENT_INFO      = 0xD7
-    FREE_DAQ                = 0xD6
-    ALLOC_DAQ               = 0xD5
-    ALLOC_ODT               = 0xD4
-    ALLOC_ODT_ENTRY         = 0xD3
-
-#class PGM:
-    ##
-    ## Mandantory Commnands.
-    ##
-    PROGRAM_START           = 0xD2
-    PROGRAM_CLEAR           = 0xD1
-    PROGRAM                 = 0xD0
-    PROGRAM_RESET           = 0xCF
-    ##
-    ## Optional Commands.
-    ##
-    GET_PGM_PROCESSOR_INFO  = 0xCE
-    GET_SECTOR_INFO         = 0xCD
-    PROGRAM_PREPARE         = 0xCC
-    PROGRAM_FORMAT          = 0xCB
-    PROGRAM_NEXT            = 0xCA
-    PROGRAM_MAX             = 0xC9
-    PROGRAM_VERIFY          = 0xC8
-
 
 
 ##
@@ -265,13 +161,18 @@ class MockTransport(object):
 
 
 
-class UdpTransport(object):
+class EthTransport(object):
 
-    def __init__(self, ipAddress, port = DEFAULT_XCP_PORT):
+    MAX_DATAGRAM_SIZE = 512
+    HEADER = "<HH"
+    HEADER_SIZE = struct.calcsize(HEADER)
+
+    def __init__(self, ipAddress, port = DEFAULT_XCP_PORT, connected = True):
         self.parent = None
         #self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM if connected else socket.SOCK_DGRAM)
         self.logger = logging.getLogger("pyXCP")
+        self.connected = connected
         self.counter = 0
         self._address = None
         self._addressExtension = None
@@ -284,26 +185,35 @@ class UdpTransport(object):
     def close(self):
         self.sock.close()
 
-    def send(self, canID, b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, b7 = 0):
-        self.message = CANMessageObject(canID, 8, bytearray((b0, b1, b2, b3, b4, b5, b6, b7)))
-        print("Sending: {}".format(self.message.data))
-        hdr = struct.pack("<HH", 8, 0)
-        print(hdr)
-        self.sock.send(hdr)
-        self.sock.send(self.message.data)
-        result = self.sock.recv(2)
-        print(result)
-
     def request(self, canID, cmd, *data):
-        print(cmd.name)
+        print(cmd.name, flush = True)
         header = struct.pack("<HH", len(data) + 1, self.counter)
         frame = header + bytearray([cmd, *data])
-        print("-> {}".format(hexDump(frame)))
+        print("-> {}".format(hexDump(frame)), flush = True)
         self.sock.send(frame)
-        length = struct.unpack("<H", self.sock.recv(2))[0]
-        response = self.sock.recv(length + 2)
-        print("<- {}\n".format(hexDump(response)))
-        return response[ 2 : ]
+
+        if self.connected:
+            length = struct.unpack("<H", self.sock.recv(2))[0]
+            response = self.sock.recv(length + 2)
+        else:
+            response, server = self.sock.recvfrom(EthTransport.MAX_DATAGRAM_SIZE)
+
+        if len(response) < self.HEADER_SIZE:
+            raise FrameSizeError("Frame too short.")
+        print("<- {}\n".format(hexDump(response)), flush = True)
+        self.packetLen, self.seqNo = struct.unpack(EthTransport.HEADER, response[ : 4])
+        self.xcpPDU = response[4 : ]
+        if len(self.xcpPDU) != self.packetLen:
+            raise FrameSizeError("Size mismatch.")
+
+        pid = types.Response.parse(self.xcpPDU).type
+        if pid != 'OK' and pid == 'ERR':
+            if cmd.name != 'SYNCH':
+                err=XcpError.parse(self.xcpPDU[1 : ])
+                raise XcpResponseError(err)
+        else:
+            pass    # Und nu??
+        return self.xcpPDU[1 : ]
 
     def receive(self, canID, b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, b7 = 0):
         self.message = CANMessageObject(canID, 8, bytearray((b0, b1, b2, b3, b4, b5, b6, b7)))
@@ -315,168 +225,15 @@ class UdpTransport(object):
     __repr__ = __str__
 
 
-XcpError = Enum(Int8ul,
-    ERR_CMD_SYNCH           = 0x00, # Command processor synchronization.                            S0
-
-    ERR_CMD_BUSY            = 0x10, # Command was not executed.                                     S2
-    ERR_DAQ_ACTIVE          = 0x11, # Command rejected because DAQ is running.                      S2
-    ERR_PGM_ACTIVE          = 0x12, # Command rejected because PGM is running.                      S2
-
-    ERR_CMD_UNKNOWN         = 0x20, # Unknown command or not implemented optional command.          S2
-    ERR_CMD_SYNTAX          = 0x21, # Command syntax invalid                                        S2
-    ERR_OUT_OF_RANGE        = 0x22, # Command syntax valid but command parameter(s) out of range.   S2
-    ERR_WRITE_PROTECTED     = 0x23, # The memory location is write protected.                       S2
-    ERR_ACCESS_DENIED       = 0x24, # The memory location is not accessible.                        S2
-    ERR_ACCESS_LOCKED       = 0x25, # Access denied, Seed & Key is required                         S2
-    ERR_PAGE_NOT_VALID      = 0x26, # Selected page not available                                   S2
-    ERR_MODE_NOT_VALID      = 0x27, # Selected page mode not available                              S2
-    ERR_SEGMENT_NOT_VALID   = 0x28, # Selected segment not valid                                    S2
-    ERR_SEQUENCE            = 0x29, # Sequence error                                                S2
-    ERR_DAQ_CONFIG          = 0x2A, # DAQ configuration not valid                                   S2
-
-    ERR_MEMORY_OVERFLOW     = 0x30, # Memory overflow error                                         S2
-    ERR_GENERIC             = 0x31, # Generic error.                                                S2
-    ERR_VERIFY              = 0x32, # The slave internal program verify routine detects an error.   S3
-)
-
-Response = Struct(
-    "type" / Enum(Int8ul,
-        OK = 0xff,
-        ERR = 0xfe,
-        EV = 0xfd,
-        SERV = 0xfc,
-    ),
-
-)
-
-#st = Struct(
-#    "type" / Enum(Byte, INT1=1, INT2=2, INT4=3, STRING=4),
-#    "data" / Switch(this.type, {
-#        "INT1" : Int8ub,
-#        "INT2" : Int16ub,
-#        "INT4" : Int32ub,
-#        "STRING" : String(10),
-#    }),
-#)
-
-Resource = BitStruct (
-    Padding(3),
-    "pgm" / BitsInteger(1),
-    "stim" / BitsInteger(1),
-    "daq" / BitsInteger(1),
-    Padding(1),
-    "calpag" / BitsInteger(1),
-)
-
-CommModeBasic = BitStruct (
-    "optional" / BitsInteger(1),    # The OPTIONAL flag indicates whether additional information on supported types
-                                    # of Communication mode is available. The master can get that additional
-                                    # information with GET_COMM_MODE_INFO
-    "slaveBlockMode" / BitsInteger(1),
-    Padding(3),
-    "addressGranularity" / Enum(BitsInteger(2),
-        BYTE = 0,
-        WORD = 1,
-        DWORD = 2,
-        RESERVED = 3,
-    ),
-    "byteOrder" / Enum(BitsInteger(1),
-        INTEL = 0,
-        MOTOROLA = 1,
-    )
-)
-
-ConnectResponse = Struct(
-    Const(b'\xff'),
-    "resource" / Resource,
-    "commModeBasic" / CommModeBasic,
-    "maxCto" / Int8ul,
-    "maxDto" / Int16ul,
-    "protocolLayerVersion" / Int8ul,
-    "transportLayerVersion" / Int8ul
-)
-
-SessionStatus = BitStruct(
-    "resume" / BitsInteger(1),
-    "daqRunning" / BitsInteger(1),
-    Padding(2),
-    "clearDaqRequest" / BitsInteger(1),
-    "storeDaqRequest" / BitsInteger(1),
-    Padding(1),
-    "storeCalRequest" / BitsInteger(1),
-)
-
-ResourceProtectionStatus = BitStruct(
-    Padding(3),
-    "pgm" / BitsInteger(1),
-    "stim" / BitsInteger(1),
-    "daq" / BitsInteger(1),
-    Padding(1),
-    "calpag" / BitsInteger(1),
-)
-
-GetStatusResponse = Struct(
-    Const(b'\xff'),
-    "sessionStatus" / SessionStatus,
-    "resourceProtectionStatus" / ResourceProtectionStatus,
-    "reserved" / Int8ul,
-    "sessionConfiguration" / Int16ul,
-)
-
-CommModeOptional = BitStruct(
-    Padding(6),
-    "interleavedMode" / BitsInteger(1),
-    "masterBlockMode" / BitsInteger(1),
-)
-
-GetCommModeInfoResponse = Struct(
-    Const(b'\xff'),
-    "reserved" / Int8ul,
-    "commModeOptional" / CommModeOptional,
-    Int8ul,
-    "maxbs" / Int8ul,
-    "minSt" / Int8ul,
-    "queueSize" / Int8ul,
-    "xcpDriverVersionNumber" / Int8ul,
-)
-
-GetIDResponse = Struct(
-    "mode" / Int8ul,
-    "reserved" / Int16ul,
-    "length" / Int32ul,
-)
-
-SetRequestMode = BitStruct(
-    Padding(4),
-    "clearDaqReq" / BitsInteger(1),
-    "storeDaqReq" / BitsInteger(1),
-    Padding(1),
-    "storeCalReq" / BitsInteger(1),
-)
-
-BuildChecksumResponse = Struct(
-    "checksumType" / Enum(Int8ul,
-        XCP_ADD_11 = 0x01,
-        XCP_ADD_12 = 0x02,
-        XCP_ADD_14 = 0x03,
-        XCP_ADD_22 = 0x04,
-        XCP_ADD_24 = 0x05,
-        XCP_ADD_44 = 0x06,
-        XCP_CRC_16 = 0x07,
-        XCP_CRC_16_CITT = 0x08,
-        XCP_CRC_32 = 0x09,
-        XCP_USER_DEFINED = 0xFF,
-    ),
-    "reserved" / Int16ul,
-    "checksum" / Int32ul,
-)
 
 class XCPClient(object):
 
-    def __init__(self, transport):
+    def __init__(self, transport, asyncLoop):
         self.ctr = 0
         self.logger = logging.getLogger("pyXCP")
         self.transport = transport
+        self.asyncLoop = asyncLoop
+        print("loop style: {}".format(asyncLoop))
 
     def close(self):
         self.transport.close()
@@ -490,25 +247,34 @@ class XCPClient(object):
     ## Mandatory Commands.
     ##
     def connect(self, canID):
-        response = self.transport.request(canID, Command.CONNECT, 0x00)
-        result = ConnectResponse.parse(response)
-        print(result)
+        response = self.transport.request(canID, types.Command.CONNECT, 0x00)
+        result = types.ConnectResponse.parse(response)
+        self.maxCto = result.maxCto
+        self.maxDto = result.maxDto
+
+        self.supportsPgm = True if result.resource.pgm == 1 else False
+        self.supportsStim = True if result.resource.stim == 1 else False
+        self.supportsDaq = True if result.resource.daq == 1 else False
+        self.supportsCalpag = True if result.resource.calpag == 1 else False
+
+        print(result, flush = True)
 
     def disconnect(self, canID):
-        response = self.transport.request(canID, Command.DISCONNECT)
+        response = self.transport.request(canID, types.Command.DISCONNECT)
+        self.asyncLoop.stop()
 
     def getStatus(self, canID):
-        response = self.transport.request(canID, Command.GET_STATUS)
-        result = GetStatusResponse.parse(response)
-        print(result)
+        response = self.transport.request(canID, types.Command.GET_STATUS)
+        result = types.GetStatusResponse.parse(response)
+        print(result, flush = True)
 
     def synch(self, canID):
-        response = self.transport.request(canID, Command.SYNCH)
+        response = self.transport.request(canID, types.Command.SYNCH)
 
     def getCommModeInfo(self, canID):
-        response = self.transport.request(canID, Command.GET_COMM_MODE_INFO)
-        result = GetCommModeInfoResponse.parse(response)
-        print(result)
+        response = self.transport.request(canID, types.Command.GET_COMM_MODE_INFO)
+        result = types.GetCommModeInfoResponse.parse(response)
+        print(result, flush = True)
         return result
 
     def getID(self, canID, mode):
@@ -518,34 +284,32 @@ class XCPClient(object):
             FILE_AND_PATH = 2
             URL = 3
             FILE_TO_UPLOAD = 4
-        response = self.transport.request(canID, Command.GET_ID, mode)
-        result = GetIDResponse.parse(response)
-        print(result.length)
-        result.length = struct.unpack("<I", response[4:8])[0]
+        response = self.transport.request(canID, types.Command.GET_ID, mode)
+        result = types.GetIDResponse.parse(response)
+        result.length = struct.unpack("<I", response[3 : 7])[0]
         return result
 
     def setRequest(self, canID, mode, sessionConfigurationId):
-        response = self.transport.request(canID, Command.SET_REQUEST, mode, sessionConfigurationId >> 8, sessionConfigurationId & 0xff)
+        response = self.transport.request(canID, types.Command.SET_REQUEST, mode, sessionConfigurationId >> 8, sessionConfigurationId & 0xff)
 
     def upload(self, canID, length):
-        response = self.transport.request(canID, Command.UPLOAD, length)
+        response = self.transport.request(canID, types.Command.UPLOAD, length)
         return response[1 : ]
 
     def shortUpload(self, canID, length):
-        response = self.transport.request(canID, Command.SHORT_UPLOAD, length)
+        response = self.transport.request(canID, types.Command.SHORT_UPLOAD, length)
         return response[1 : ]
 
     def setMta(self, canID, address):
         addr = struct.pack("<I", address)
-        response = self.transport.request(canID, Command.SET_MTA, 0, 0, 0, *addr)
+        response = self.transport.request(canID, types.Command.SET_MTA, 0, 0, 0, *addr)
 
     def getSeed(self, canID, first, resource):
-        response = self.transport.request(canID, Command.GET_SEED, first, resource)
-        return response
+        response = self.transport.request(canID, types.Command.GET_SEED, first, resource)
+        return response[2 : ]
 
-    def fetch(self, canID, length):
-        max_dto = 8
-        chunkSize = max_dto - 1
+    def fetch(self, canID, length): ## TODO: pull
+        chunkSize = self.maxDto - 1
         chunks = range(length // chunkSize)
         remaining = length % chunkSize
         result = []
@@ -559,60 +323,128 @@ class XCPClient(object):
 
     def buildChecksum(self, canID, blocksize):
         bs = struct.pack("<I", blocksize)
-        response = self.transport.request(canID, Command.BUILD_CHECKSUM, 0, 0, 0, *bs)
-        return BuildChecksumResponse.parse(response)
+        response = self.transport.request(canID, types.Command.BUILD_CHECKSUM, 0, 0, 0, *bs)
+        return types.BuildChecksumResponse.parse(response)
 
     def transportLayerCommand(self, canID, subCommand, *data):
-        response = self.transport.request(canID, Command.TRANSPORT_LAYER_CMD, subCommand, *data)
+        response = self.transport.request(canID, types.Command.TRANSPORT_LAYER_CMD, subCommand, *data)
         return response
 
     def userCommand(self, canID, subCommand, *data):
-        response = self.transport.request(canID, Command.USER_CMD, subCommand, *data)
+        response = self.transport.request(canID, types.Command.USER_CMD, subCommand, *data)
         return response
 
     def download(self, canID, *data):
         length = len(data)
-        response = self.transport.request(canID, Command.DOWNLOAD, length, *data)
+        response = self.transport.request(canID, types.Command.DOWNLOAD, length, *data)
         return response
 
     def downloadNext(self, canID, *data):
         length = len(data)
-        response = self.transport.request(canID, Command.DOWNLOAD_NEXT, length, *data)
+        response = self.transport.request(canID, types.Command.DOWNLOAD_NEXT, length, *data)
         return response
 
     def downloadMax(self, canID, *data):
-        response = self.transport.request(canID, Command.DOWNLOAD_MAX, *data)
+        response = self.transport.request(canID, types.Command.DOWNLOAD_MAX, *data)
         return response
 
     def shortDownload(self, canID, address, addressExt, *data):
         length = len(data)
         addr = struct.pack("<I", address)
-        response = self.transport.request(canID, Command.SHORT_DOWNLOAD, length, 0, addressExt, *addr, *data)
+        response = self.transport.request(canID, types.Command.SHORT_DOWNLOAD, length, 0, addressExt, *addr, *data)
         return response
 
     def modifyBits(self, canID, shiftValue, andMask, xorMask):
         # A = ( (A) & ((~((dword)(((word)~MA)<<S))) )^((dword)(MX<<S)) )
         am = struct.pack("<H", andMask)
         xm = struct.pack("<H", xorMask)
-        response = self.transport.request(canID, Command.MODIFY_BITS, shiftValue, am, xm)
+        response = self.transport.request(canID, types.Command.MODIFY_BITS, shiftValue, *am, *xm)
         return response
 
+    ##
+    ## Page Switching Commands (PAG)
+    ##
+    def setCalPage(self, canID, mode, logicalDataSegment, logicalDataPage):
+        response = self.transport.request(canID, types.Command.SET_CAL_PAGE, mode, logicalDataSegment, logicalDataPage)
+        return response
+
+    def getCalPage(self, canID, mode, logicalDataSegment):
+        response = self.transport.request(canID, types.Command.GET_CAL_PAGE, mode, logicalDataSegment)
+        return response
+
+    def getPagProcessorInfo(self, canID):
+        response = self.transport.request(canID, types.Command.GET_PAG_PROCESSOR_INFO)
+        return types.GetPagProcessorInfoResponse.parse(response)
+
+    def getSegmentInfo(self, canID, mode, segmentNumber, segmentInfo, mappingIndex):
+        response = self.transport.request(canID, types.Command.GET_SEGMENT_INFO, mode, segmentNumber, segmentInfo, mappingIndex)
+        if mode == 0:
+            return types.GetSegmentInfoMode0Response.parse(response)
+        elif mode == 1:
+            return types.GetSegmentInfoMode1Response.parse(response)
+        elif mode == 2:
+            return types.GetSegmentInfoMode2Response.parse(response)
+
+    def getPageInfo(self, canID, segmentNumber, pageNumber):
+        response = self.transport.request(canID, types.Command.GET_PAGE_INFO, 0, pageNumber)
+        return (types.PageProperties.parse(response[1]), response[2])
+
+    def setSegmentMode(self, canID, mode, segmentNumber):
+        response = self.transport.request(canID, types.Command.SET_SEGMENT_MODE, mode, segmentNumber)
+        return response
+
+    def getSegmentMode(self, canID, segmentNumber):
+        response = self.transport.request(canID, types.Command.GET_SEGMENT_MODE, 0, segmentNumber)
+        return response[2]
+
+    def copyCalPage(self, canID, srcSegment, srcPage, dstSegment, dstPage):
+        response = self.transport.request(canID, types.Command.COPY_CAL_PAGE, srcSegment, srcPage, dstSegment, dstPage)
+        return response
+
+    def clearDaqList(self, canID, daqListNumber):
+        daqList = struct.pack("<H", daqListNumber)
+        response = self.transport.request(canID, types.Command.CLEAR_DAQ_LIST, 0, *daqList)
+        return response
+
+    def setDaqPtr(self, canID, daqListNumber, odtNumber, odtEntryNumber):
+        daqList = struct.pack("<H", daqListNumber)
+        response = self.transport.request(canID, types.Command.SET_DAQ_PTR, 0, *daqList, odtNumber, odtEntryNumber)
+        return response
+
+#    WRITE_DAQ
 
 #CALRAM_ADDR  = 0x00E3200C
 CALRAM_ADDR  = 0x00E1058
 #CALRAM_SIZE  = 0x000001C1
 CALRAM_SIZE  = 0x00000E9D
 
-def test():
-    xcpClient = XCPClient(UdpTransport('localhost'))
+
+#if sys.platform == 'win32':
+#    loop = asyncio.ProactorEventLoop()
+#    asyncio.set_event_loop(loop)
+
+
+def test(loop):
+    xcpClient = XCPClient(EthTransport('localhost', connected = False), loop)
     xcpClient.connect(0x7ba)
+
+    print("calpag ?", xcpClient.supportsCalpag)
+    print("daq ?", xcpClient.supportsDaq)
+    print("pgm ?", xcpClient.supportsPgm)
+    print("stim ?", xcpClient.supportsStim)
+
+
     xcpClient.getStatus(0x7ba)
     xcpClient.synch(0x7ba)
     xcpClient.getCommModeInfo(0x7ba)
 
     result = xcpClient.getID(0x7ba, 0x01)
     xcpClient.upload(0x7ba, result.length)
-    #result = xcpClient.getSeed(0x7ba, 0, 1)
+
+    result = xcpClient.getSeed(0x7ba, 0, 4)
+    print(hexDump(result), flush = True)
+
+    #result = xcpClient.getSeed(0x7ba, 1, 4)
 
     #  name = xcpClient.fetch(0x7ba, result.length)
     #  print(name)
@@ -622,12 +454,269 @@ def test():
 #    xcpClient.buildChecksum(0x7ba, CALRAM_SIZE)
     #xcpClient.fetch(0x7ba, CALRAM_SIZE)
 
+    #xcpClient.getPagProcessorInfo(0x7ba)
+
     #xcpClient.download(0x11, 0x22, 0x33, 0x44, 0x55)
+
 
     xcpClient.disconnect(0x7ba)
     xcpClient.close()
 
 if __name__=='__main__':
-    test()
+    loop = asyncio.get_event_loop()
+    test(loop)
+    loop.run_forever()
+#    loop.close()
 
+    # CreateNamedPipe = ctypes.windll.kernel32.CreateNamedPipeA
+    # CreateNamedPipe(ctypes.c_char_p(br"\\.\pipe\hello"), 3, 7, 255, 1024, 1024, 0, 0)
 
+# "..\_Simulators\XCPSim\XCPsim.exe" -cro1 -dto2 -t1 -gaXCPSIM.A2L
+
+"""
+Time    ID  Name    Dir DLC Data    Interpretation  Event Type  Comment
+80.427775   1   CMD Tx  2   FF 00   CONNECT mode=0  XCP Frame
+80.443270   2   RES Rx  8   FF 1D C0 08 08 00 01 01 Ok:CONNECT resource=1Dh commMode=C0h ctoSize=8 dtoSize=8 protVer=1 transVer=1   XCP Frame
+80.443349   1   CMD Tx  1   FB  GET_COMM_MODE_INFO  XCP Frame
+80.451251   2   RES Rx  8   FF 1D 01 08 2B 00 00 19 Ok:GET_COMM_MODE_INFO commModeOptional=01h maxBs=43 minSt=0 queueSize=0 driverVersion=25    XCP Frame
+80.451370   1   CMD Tx  1   FD  GET_STATUS  XCP Frame
+80.451877   2   RES Rx  6   FF 00 1D 08 00 00   Ok:GET_STATUS sessionStatus=00h protectionStatus=1Dh configurationID=0000h  XCP Frame
+80.529628   1   CMD Tx  3   F8 00 04    GET_SEED mode=0 res=04h XCP Frame
+80.530392   2   RES Rx  8   FF 0A 9B 23 83 58 74 EF Ok:GET_SEED length=10 data=9Bh 23h 83h 58h 74h EFh  XCP Frame
+80.530444   1   CMD Tx  3   F8 01 04    GET_SEED mode=1 res=04h XCP Frame
+80.531132   2   RES Rx  6   FF 04 3D 50 BF FD   Ok:GET_SEED length=4 data=3Dh 50h BFh FDh   XCP Frame
+80.536909   1   CMD Tx  8   F7 09 A5 B6 5F 88 00 00 UNLOCK length=09h key=A5h B6h 5Fh 88h 00h 00h   XCP Frame
+80.541223   2   RES Rx  2   FF 1D   Ok:UNLOCK status=1Dh    XCP Frame
+80.541504   1   CMD Tx  5   F7 03 00 00 00  UNLOCK length=03h key=00h 00h 00h   XCP Frame
+80.547825   2   RES Rx  2   FF 19   Ok:UNLOCK status=19h    XCP Frame
+80.549740   1   CMD Tx  1   DA  GET_DAQ_PROCESSOR_INFO  XCP Frame
+80.551853   2   RES Rx  8   FF 57 00 00 06 00 00 40 Ok:GET_DAQ_PROCESSOR_INFO prop=57h maxDAQlists=0 evtChan=6 predefDAQlists=0 key=40h XCP Frame
+80.551935   1   CMD Tx  1   D9  GET_DAQ_RESOLUTION_INFO XCP Frame
+80.554764   2   RES Rx  8   FF 01 06 01 06 44 0A 00 Ok:GET_DAQ_RESOLUTION_INFO granularityODTEntryDAQ=1 maxSizeODTEntryDAQ=6 granularityODTEntrySTIM=1 maxSizeODTEntrySTIM=6 timestampMode=44h timestampTicks=10    XCP Frame
+80.557471   1   CMD Tx  4   D7 00 00 00 GET_DAQ_EVENT_INFO eventChannel=0   XCP Frame
+80.560827   2   RES Rx  7   FF 04 01 05 00 06 00    Ok:GET_DAQ_EVENT_INFO eventProp=04h maxDAQLists=1 length=5 timeCycle=0 timeUnit=6 priority=00h  XCP Frame
+80.560950   1   CMD Tx  2   F5 05   UPLOAD size=5   XCP Frame
+80.565015   2   RES Rx  6   FF 4B 65 79 20 54   Ok:UPLOAD data=4Bh 65h 79h 20h 54h  XCP Frame
+80.565122   1   CMD Tx  4   D7 00 01 00 GET_DAQ_EVENT_INFO eventChannel=1   XCP Frame
+80.568230   2   RES Rx  7   FF 0C 01 05 0A 06 01    Ok:GET_DAQ_EVENT_INFO eventProp=0Ch maxDAQLists=1 length=5 timeCycle=10 timeUnit=6 priority=01h XCP Frame
+80.568314   1   CMD Tx  2   F5 05   UPLOAD size=5   XCP Frame
+80.582963   2   RES Rx  6   FF 31 30 20 6D 73   Ok:UPLOAD data=31h 30h 20h 6Dh 73h  XCP Frame
+80.583556   1   CMD Tx  4   D7 00 02 00 GET_DAQ_EVENT_INFO eventChannel=2   XCP Frame
+80.585039   2   RES Rx  7   FF 0C 01 05 64 06 02    Ok:GET_DAQ_EVENT_INFO eventProp=0Ch maxDAQLists=1 length=5 timeCycle=100 timeUnit=6 priority=02h    XCP Frame
+80.585099   1   CMD Tx  2   F5 05   UPLOAD size=5   XCP Frame
+80.591058   2   RES Rx  6   FF 31 30 30 6D 73   Ok:UPLOAD data=31h 30h 30h 6Dh 73h  XCP Frame
+80.591262   1   CMD Tx  4   D7 00 03 00 GET_DAQ_EVENT_INFO eventChannel=3   XCP Frame
+80.595005   2   RES Rx  7   FF 0C 01 03 01 06 03    Ok:GET_DAQ_EVENT_INFO eventProp=0Ch maxDAQLists=1 length=3 timeCycle=1 timeUnit=6 priority=03h  XCP Frame
+80.595102   1   CMD Tx  2   F5 03   UPLOAD size=3   XCP Frame
+80.599369   2   RES Rx  4   FF 31 6D 73 Ok:UPLOAD data=31h 6Dh 73h  XCP Frame
+80.599460   1   CMD Tx  4   D7 00 04 00 GET_DAQ_EVENT_INFO eventChannel=4   XCP Frame
+80.602631   2   RES Rx  7   FF 0C 01 0F 0A 06 04    Ok:GET_DAQ_EVENT_INFO eventProp=0Ch maxDAQLists=1 length=15 timeCycle=10 timeUnit=6 priority=04h    XCP Frame
+80.602706   1   CMD Tx  2   F5 0F   UPLOAD size=15  XCP Frame
+80.609165   2   RES Rx  8   FF 46 69 6C 74 65 72 42 Ok:UPLOAD data=46h 69h 6Ch 74h 65h 72h 42h  XCP Frame
+80.613593   2   RES Rx  8   FF 79 70 61 73 73 44 61 Ok:UPLOAD data=79h 70h 61h 73h 73h 44h 61h  XCP Frame
+80.618701   2   RES Rx  2   FF 71   Ok:UPLOAD data=71h  XCP Frame
+80.618823   1   CMD Tx  4   D7 00 05 00 GET_DAQ_EVENT_INFO eventChannel=5   XCP Frame
+80.621267   2   RES Rx  7   FF 08 01 10 0A 06 05    Ok:GET_DAQ_EVENT_INFO eventProp=08h maxDAQLists=1 length=16 timeCycle=10 timeUnit=6 priority=05h    XCP Frame
+80.621340   1   CMD Tx  2   F5 10   UPLOAD size=16  XCP Frame
+80.628657   2   RES Rx  8   FF 46 69 6C 74 65 72 42 Ok:UPLOAD data=46h 69h 6Ch 74h 65h 72h 42h  XCP Frame
+80.633416   2   RES Rx  8   FF 79 70 61 73 73 53 74 Ok:UPLOAD data=79h 70h 61h 73h 73h 53h 74h  XCP Frame
+80.637298   2   RES Rx  3   FF 69 6D    Ok:UPLOAD data=69h 6Dh  XCP Frame
+80.679744   1   CMD Tx  3   F8 00 01    GET_SEED mode=0 res=01h XCP Frame
+80.682607   2   RES Rx  8   FF 0A E1 D5 70 94 6F 93 Ok:GET_SEED length=10 data=E1h D5h 70h 94h 6Fh 93h  XCP Frame
+80.682701   1   CMD Tx  3   F8 01 01    GET_SEED mode=1 res=01h XCP Frame
+80.685035   2   RES Rx  6   FF 04 18 C9 60 D4   Ok:GET_SEED length=4 data=18h C9h 60h D4h   XCP Frame
+80.691321   1   CMD Tx  8   F7 09 A8 B7 7B 96 00 00 UNLOCK length=09h key=A8h B7h 7Bh 96h 00h 00h   XCP Frame
+80.693500   2   RES Rx  2   FF 19   Ok:UNLOCK status=19h    XCP Frame
+80.693608   1   CMD Tx  5   F7 03 00 00 00  UNLOCK length=03h key=00h 00h 00h   XCP Frame
+80.696823   2   RES Rx  2   FF 18   Ok:UNLOCK status=18h    XCP Frame
+80.696895   1   CMD Tx  4   EB 83 00 00 SET_CAL_PAGE mode=83h segment=0 page=0  XCP Frame
+80.711278   2   RES Rx  1   FF  Ok:SET_CAL_PAGE XCP Frame
+80.711538   1   CMD Tx  8   F6 00 00 00 00 00 1C 00 SET_MTA addrext=0 addr=001C0000h    XCP Frame
+80.716912   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+80.717065   1   CMD Tx  8   F3 00 00 00 86 12 00 00 BUILD_CHECKSUM size=4742    XCP Frame
+80.915503   2   RES Rx  8   FF 08 18 C9 CC E6 00 00 Ok:BUILD_CHECKSUM type=8 result=0000E6CCh   XCP Frame
+94.490923   1   CMD Tx  8   F6 00 00 00 00 00 1C 00 SET_MTA addrext=0 addr=001C0000h    XCP Frame
+94.493553   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.493664   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.497106   2   RES Rx  8   FF 08 18 C9 6F C2 00 00 Ok:BUILD_CHECKSUM type=8 result=0000C26Fh   XCP Frame
+94.497211   1   CMD Tx  8   F6 00 00 00 00 00 1C 00 SET_MTA addrext=0 addr=001C0000h    XCP Frame
+94.497623   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.497686   1   CMD Tx  2   F5 80   UPLOAD size=128 XCP Frame
+94.505427   2   RES Rx  8   FF AA AA 00 00 44 65 66 Ok:UPLOAD data=AAh AAh 00h 00h 44h 65h 66h  XCP Frame
+94.506844   2   RES Rx  8   FF 61 75 6C 74 00 00 00 Ok:UPLOAD data=61h 75h 6Ch 74h 00h 00h 00h  XCP Frame
+94.509524   2   RES Rx  8   FF 00 00 00 00 00 00 00 Ok:UPLOAD data=00h 00h 00h 00h 00h 00h 00h  XCP Frame
+94.510829   2   RES Rx  8   FF 00 00 00 00 00 00 00 Ok:UPLOAD data=00h 00h 00h 00h 00h 00h 00h  XCP Frame
+94.512098   2   RES Rx  8   FF 00 00 00 00 00 00 00 Ok:UPLOAD data=00h 00h 00h 00h 00h 00h 00h  XCP Frame
+94.513352   2   RES Rx  8   FF 00 00 00 80 3F 00 00 Ok:UPLOAD data=00h 00h 00h 80h 3Fh 00h 00h  XCP Frame
+94.514605   2   RES Rx  8   FF A0 40 00 00 C0 40 00 Ok:UPLOAD data=A0h 40h 00h 00h C0h 40h 00h  XCP Frame
+94.515919   2   RES Rx  8   FF 00 C8 42 00 00 00 00 Ok:UPLOAD data=00h C8h 42h 00h 00h 00h 00h  XCP Frame
+94.517728   2   RES Rx  8   FF 00 00 00 00 00 00 32 Ok:UPLOAD data=00h 00h 00h 00h 00h 00h 32h  XCP Frame
+94.519077   2   RES Rx  8   FF 01 00 00 20 41 00 00 Ok:UPLOAD data=01h 00h 00h 20h 41h 00h 00h  XCP Frame
+94.520330   2   RES Rx  8   FF C0 40 00 00 C8 42 00 Ok:UPLOAD data=C0h 40h 00h 00h C8h 42h 00h  XCP Frame
+94.521588   2   RES Rx  8   FF 00 20 41 00 00 20 41 Ok:UPLOAD data=00h 20h 41h 00h 00h 20h 41h  XCP Frame
+94.522855   2   RES Rx  8   FF 01 00 02 03 00 00 00 Ok:UPLOAD data=01h 00h 02h 03h 00h 00h 00h  XCP Frame
+94.531281   2   RES Rx  8   FF 00 00 00 14 40 00 00 Ok:UPLOAD data=00h 00h 00h 14h 40h 00h 00h  XCP Frame
+94.532637   2   RES Rx  8   FF 00 00 00 00 18 40 00 Ok:UPLOAD data=00h 00h 00h 00h 18h 40h 00h  XCP Frame
+94.533944   2   RES Rx  8   FF 00 00 00 00 00 F0 3F Ok:UPLOAD data=00h 00h 00h 00h 00h F0h 3Fh  XCP Frame
+94.535210   2   RES Rx  8   FF 00 00 00 00 00 00 F0 Ok:UPLOAD data=00h 00h 00h 00h 00h 00h F0h  XCP Frame
+94.536500   2   RES Rx  8   FF 3F 00 00 00 00 00 00 Ok:UPLOAD data=3Fh 00h 00h 00h 00h 00h 00h  XCP Frame
+94.537683   2   RES Rx  3   FF F0 3F    Ok:UPLOAD data=F0h 3Fh  XCP Frame
+94.537829   1   CMD Tx  8   F6 00 00 00 80 00 1C 00 SET_MTA addrext=0 addr=001C0080h    XCP Frame
+94.538228   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.538272   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.547640   2   RES Rx  8   FF 08 3F 00 3A 8F 00 00 Ok:BUILD_CHECKSUM type=8 result=00008F3Ah   XCP Frame
+94.547800   1   CMD Tx  8   F6 00 00 00 00 01 1C 00 SET_MTA addrext=0 addr=001C0100h    XCP Frame
+94.548224   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.548253   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.561704   2   RES Rx  8   FF 08 3F 00 73 12 00 00 Ok:BUILD_CHECKSUM type=8 result=00001273h   XCP Frame
+94.561833   1   CMD Tx  8   F6 00 00 00 80 01 1C 00 SET_MTA addrext=0 addr=001C0180h    XCP Frame
+94.565248   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.565299   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.567562   2   RES Rx  8   FF 08 3F 00 C0 36 00 00 Ok:BUILD_CHECKSUM type=8 result=000036C0h   XCP Frame
+94.567699   1   CMD Tx  8   F6 00 00 00 00 02 1C 00 SET_MTA addrext=0 addr=001C0200h    XCP Frame
+94.568108   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.568153   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.577686   2   RES Rx  8   FF 08 3F 00 30 81 00 00 Ok:BUILD_CHECKSUM type=8 result=00008130h   XCP Frame
+94.577826   1   CMD Tx  8   F6 00 00 00 80 02 1C 00 SET_MTA addrext=0 addr=001C0280h    XCP Frame
+94.578271   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.578316   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.590687   2   RES Rx  8   FF 08 3F 00 C2 5D 00 00 Ok:BUILD_CHECKSUM type=8 result=00005DC2h   XCP Frame
+94.590887   1   CMD Tx  8   F6 00 00 00 00 03 1C 00 SET_MTA addrext=0 addr=001C0300h    XCP Frame
+94.605686   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.605768   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.627682   2   RES Rx  8   FF 08 3F 00 B0 2C 00 00 Ok:BUILD_CHECKSUM type=8 result=00002CB0h   XCP Frame
+94.627812   1   CMD Tx  8   F6 00 00 00 80 03 1C 00 SET_MTA addrext=0 addr=001C0380h    XCP Frame
+94.637004   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.637150   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.648400   2   RES Rx  8   FF 08 3F 00 CA C5 00 00 Ok:BUILD_CHECKSUM type=8 result=0000C5CAh   XCP Frame
+94.648534   1   CMD Tx  8   F6 00 00 00 00 04 1C 00 SET_MTA addrext=0 addr=001C0400h    XCP Frame
+94.653078   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.653144   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.661472   2   RES Rx  8   FF 08 3F 00 84 AB 00 00 Ok:BUILD_CHECKSUM type=8 result=0000AB84h   XCP Frame
+94.661628   1   CMD Tx  8   F6 00 00 00 80 04 1C 00 SET_MTA addrext=0 addr=001C0480h    XCP Frame
+94.678797   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.678912   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.687986   2   RES Rx  8   FF 08 3F 00 53 23 00 00 Ok:BUILD_CHECKSUM type=8 result=00002353h   XCP Frame
+94.688126   1   CMD Tx  8   F6 00 00 00 00 05 1C 00 SET_MTA addrext=0 addr=001C0500h    XCP Frame
+94.690081   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.690153   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.698210   2   RES Rx  8   FF 08 3F 00 84 AB 00 00 Ok:BUILD_CHECKSUM type=8 result=0000AB84h   XCP Frame
+94.698373   1   CMD Tx  8   F6 00 00 00 80 05 1C 00 SET_MTA addrext=0 addr=001C0580h    XCP Frame
+94.700151   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.700222   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.716032   2   RES Rx  8   FF 08 3F 00 0C 20 00 00 Ok:BUILD_CHECKSUM type=8 result=0000200Ch   XCP Frame
+94.716242   1   CMD Tx  8   F6 00 00 00 00 06 1C 00 SET_MTA addrext=0 addr=001C0600h    XCP Frame
+94.733790   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.733873   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.749732   2   RES Rx  8   FF 08 3F 00 7D 4A 00 00 Ok:BUILD_CHECKSUM type=8 result=00004A7Dh   XCP Frame
+94.750311   1   CMD Tx  8   F6 00 00 00 80 06 1C 00 SET_MTA addrext=0 addr=001C0680h    XCP Frame
+94.767756   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.767836   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.801964   2   RES Rx  8   FF 08 3F 00 07 E4 00 00 Ok:BUILD_CHECKSUM type=8 result=0000E407h   XCP Frame
+94.802090   1   CMD Tx  8   F6 00 00 00 00 07 1C 00 SET_MTA addrext=0 addr=001C0700h    XCP Frame
+94.804479   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.804645   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.807107   2   RES Rx  8   FF 08 3F 00 BF 38 00 00 Ok:BUILD_CHECKSUM type=8 result=000038BFh   XCP Frame
+94.807234   1   CMD Tx  8   F6 00 00 00 80 07 1C 00 SET_MTA addrext=0 addr=001C0780h    XCP Frame
+94.809185   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.809354   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.817128   2   RES Rx  8   FF 08 3F 00 DF 35 00 00 Ok:BUILD_CHECKSUM type=8 result=000035DFh   XCP Frame
+94.817242   1   CMD Tx  8   F6 00 00 00 00 08 1C 00 SET_MTA addrext=0 addr=001C0800h    XCP Frame
+94.819506   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.819569   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.828096   2   RES Rx  8   FF 08 3F 00 31 DB 00 00 Ok:BUILD_CHECKSUM type=8 result=0000DB31h   XCP Frame
+94.828238   1   CMD Tx  8   F6 00 00 00 80 08 1C 00 SET_MTA addrext=0 addr=001C0880h    XCP Frame
+94.830450   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.830542   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.837975   2   RES Rx  8   FF 08 3F 00 1D 5C 00 00 Ok:BUILD_CHECKSUM type=8 result=00005C1Dh   XCP Frame
+94.838097   1   CMD Tx  8   F6 00 00 00 00 09 1C 00 SET_MTA addrext=0 addr=001C0900h    XCP Frame
+94.844189   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.844297   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.847699   2   RES Rx  8   FF 08 3F 00 49 D1 00 00 Ok:BUILD_CHECKSUM type=8 result=0000D149h   XCP Frame
+94.848319   1   CMD Tx  8   F6 00 00 00 80 09 1C 00 SET_MTA addrext=0 addr=001C0980h    XCP Frame
+94.855940   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.856015   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.867760   2   RES Rx  8   FF 08 3F 00 7D 6E 00 00 Ok:BUILD_CHECKSUM type=8 result=00006E7Dh   XCP Frame
+94.867876   1   CMD Tx  8   F6 00 00 00 00 0A 1C 00 SET_MTA addrext=0 addr=001C0A00h    XCP Frame
+94.869460   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.869508   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.878900   2   RES Rx  8   FF 08 3F 00 AB 45 00 00 Ok:BUILD_CHECKSUM type=8 result=000045ABh   XCP Frame
+94.879022   1   CMD Tx  8   F6 00 00 00 80 0A 1C 00 SET_MTA addrext=0 addr=001C0A80h    XCP Frame
+94.880903   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.880965   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.887839   2   RES Rx  8   FF 08 3F 00 3E 7C 00 00 Ok:BUILD_CHECKSUM type=8 result=00007C3Eh   XCP Frame
+94.887958   1   CMD Tx  8   F6 00 00 00 00 0B 1C 00 SET_MTA addrext=0 addr=001C0B00h    XCP Frame
+94.889887   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.889947   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.897142   2   RES Rx  8   FF 08 3F 00 BD 71 00 00 Ok:BUILD_CHECKSUM type=8 result=000071BDh   XCP Frame
+94.897258   1   CMD Tx  8   F6 00 00 00 80 0B 1C 00 SET_MTA addrext=0 addr=001C0B80h    XCP Frame
+94.899279   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.899327   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.907093   2   RES Rx  8   FF 08 3F 00 89 3E 00 00 Ok:BUILD_CHECKSUM type=8 result=00003E89h   XCP Frame
+94.907201   1   CMD Tx  8   F6 00 00 00 00 0C 1C 00 SET_MTA addrext=0 addr=001C0C00h    XCP Frame
+94.910320   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.910392   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.921748   2   RES Rx  8   FF 08 3F 00 DE DB 00 00 Ok:BUILD_CHECKSUM type=8 result=0000DBDEh   XCP Frame
+94.921907   1   CMD Tx  8   F6 00 00 00 80 0C 1C 00 SET_MTA addrext=0 addr=001C0C80h    XCP Frame
+94.923349   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.923403   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.927162   2   RES Rx  8   FF 08 3F 00 53 82 00 00 Ok:BUILD_CHECKSUM type=8 result=00008253h   XCP Frame
+94.927312   1   CMD Tx  8   F6 00 00 00 00 0D 1C 00 SET_MTA addrext=0 addr=001C0D00h    XCP Frame
+94.927989   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.928276   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.938146   2   RES Rx  8   FF 08 3F 00 0A F0 00 00 Ok:BUILD_CHECKSUM type=8 result=0000F00Ah   XCP Frame
+94.938272   1   CMD Tx  8   F6 00 00 00 80 0D 1C 00 SET_MTA addrext=0 addr=001C0D80h    XCP Frame
+94.941094   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.941189   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.948152   2   RES Rx  8   FF 08 3F 00 0A F0 00 00 Ok:BUILD_CHECKSUM type=8 result=0000F00Ah   XCP Frame
+94.948280   1   CMD Tx  8   F6 00 00 00 00 0E 1C 00 SET_MTA addrext=0 addr=001C0E00h    XCP Frame
+94.949697   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.949761   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.957303   2   RES Rx  8   FF 08 3F 00 0A F0 00 00 Ok:BUILD_CHECKSUM type=8 result=0000F00Ah   XCP Frame
+94.957445   1   CMD Tx  8   F6 00 00 00 80 0E 1C 00 SET_MTA addrext=0 addr=001C0E80h    XCP Frame
+94.961016   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.961096   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.967153   2   RES Rx  8   FF 08 3F 00 0A F0 00 00 Ok:BUILD_CHECKSUM type=8 result=0000F00Ah   XCP Frame
+94.967266   1   CMD Tx  8   F6 00 00 00 00 0F 1C 00 SET_MTA addrext=0 addr=001C0F00h    XCP Frame
+94.969422   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.969479   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.979220   2   RES Rx  8   FF 08 3F 00 0A F0 00 00 Ok:BUILD_CHECKSUM type=8 result=0000F00Ah   XCP Frame
+94.979371   1   CMD Tx  8   F6 00 00 00 80 0F 1C 00 SET_MTA addrext=0 addr=001C0F80h    XCP Frame
+94.984152   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.984228   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.987319   2   RES Rx  8   FF 08 3F 00 0A F0 00 00 Ok:BUILD_CHECKSUM type=8 result=0000F00Ah   XCP Frame
+94.987454   1   CMD Tx  8   F6 00 00 00 00 10 1C 00 SET_MTA addrext=0 addr=001C1000h    XCP Frame
+94.989255   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+94.989311   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+94.999112   2   RES Rx  8   FF 08 3F 00 F8 3E 00 00 Ok:BUILD_CHECKSUM type=8 result=00003EF8h   XCP Frame
+94.999242   1   CMD Tx  8   F6 00 00 00 80 10 1C 00 SET_MTA addrext=0 addr=001C1080h    XCP Frame
+95.001965   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+95.002042   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+95.007490   2   RES Rx  8   FF 08 3F 00 80 AC 00 00 Ok:BUILD_CHECKSUM type=8 result=0000AC80h   XCP Frame
+95.007624   1   CMD Tx  8   F6 00 00 00 00 11 1C 00 SET_MTA addrext=0 addr=001C1100h    XCP Frame
+95.011071   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+95.011155   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+95.017704   2   RES Rx  8   FF 08 3F 00 90 D4 00 00 Ok:BUILD_CHECKSUM type=8 result=0000D490h   XCP Frame
+95.018032   1   CMD Tx  8   F6 00 00 00 80 11 1C 00 SET_MTA addrext=0 addr=001C1180h    XCP Frame
+95.020768   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+95.020863   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+95.028312   2   RES Rx  8   FF 08 3F 00 C3 BD 00 00 Ok:BUILD_CHECKSUM type=8 result=0000BDC3h   XCP Frame
+95.028500   1   CMD Tx  8   F6 00 00 00 00 12 1C 00 SET_MTA addrext=0 addr=001C1200h    XCP Frame
+95.029943   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+95.030008   1   CMD Tx  8   F3 00 00 00 80 00 00 00 BUILD_CHECKSUM size=128 XCP Frame
+95.037310   2   RES Rx  8   FF 08 3F 00 D1 F2 00 00 Ok:BUILD_CHECKSUM type=8 result=0000F2D1h   XCP Frame
+95.037425   1   CMD Tx  8   F6 00 00 00 80 12 1C 00 SET_MTA addrext=0 addr=001C1280h    XCP Frame
+95.039459   2   RES Rx  1   FF  Ok:SET_MTA  XCP Frame
+95.039521   1   CMD Tx  8   F3 00 00 00 06 00 00 00 BUILD_CHECKSUM size=6   XCP Frame
+95.049285   2   RES Rx  8   FF 08 3F 00 05 E8 00 00 Ok:BUILD_CHECKSUM type=8 result=0000E805h   XCP Frame
+237.809619  2   DAQ Rx  8   FF 00 00 00 00 00 00 00     XCP Frame
+238.813643  2   EV  Rx  2   FD 00   EV event=00h    XCP Frame
+238.818669  2   EV  Rx  6   FD FE 01 02 03 04   EV event=FEh code=0201h XCP Frame
+251.178669  2   EV  Rx  2   FD 01   EV event=01h    XCP Frame
+251.180475  2   EV  Rx  6   FD FE 01 02 03 04   EV event=FEh code=0201h XCP Frame
+251.181134  2   SERV    Rx  8   FC 01 54 68 69 73 20 69 SERV Service request=54h    XCP Frame
+251.181157  2       Rx  0       SERV Service request=00h    XCP Frame
+255.747712  2   SERV    Rx  8   FC 01 54 68 69 73 20 69 SERV Service request=54h    XCP Frame
+255.747742  2       Rx  0       SERV Service request=00h    XCP Frame
+
+"""
