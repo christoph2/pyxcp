@@ -23,7 +23,6 @@ __copyright__="""
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-
 import asyncio
 import array
 import enum
@@ -38,7 +37,7 @@ import time
 import six
 
 from pyxcp import types
-
+from pyxcp import skloader
 
 ## Setup Logger.
 level = logging.DEBUG
@@ -306,7 +305,11 @@ class XCPClient(object):
 
     def getSeed(self, canID, first, resource):
         response = self.transport.request(canID, types.Command.GET_SEED, first, resource)
-        return response[2 : ]
+        return response[1], response[1 : ]
+
+    def unlock(self, canID, length, key):
+        response = self.transport.request(canID, types.Command.UNLOCK, length, *key)
+        return types.ResourceProtectionStatus.parse(response)
 
     def fetch(self, canID, length): ## TODO: pull
         chunkSize = self.maxDto - 1
@@ -441,8 +444,11 @@ def test(loop):
     result = xcpClient.getID(0x7ba, 0x01)
     xcpClient.upload(0x7ba, result.length)
 
-    result = xcpClient.getSeed(0x7ba, 0, 4)
-    print(hexDump(result), flush = True)
+    length, seed = xcpClient.getSeed(0x7ba, 0, 4)
+    print("SEED: ", hexDump(seed), flush = True)
+    _, kee = skloader.getKey(b"SeedNKeyXcp.dll", 4, seed)
+    print("KEE:", kee)
+    print(xcpClient.unlock(0x7a, len(kee), kee))
 
     #result = xcpClient.getSeed(0x7ba, 1, 4)
 
