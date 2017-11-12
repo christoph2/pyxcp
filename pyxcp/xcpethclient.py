@@ -208,7 +208,7 @@ class EthTransport(object):
         pid = types.Response.parse(self.xcpPDU).type
         if pid != 'OK' and pid == 'ERR':
             if cmd.name != 'SYNCH':
-                err=XcpError.parse(self.xcpPDU[1 : ])
+                err = types.XcpError.parse(self.xcpPDU[1 : ])
                 raise XcpResponseError(err)
         else:
             pass    # Und nu??
@@ -404,6 +404,9 @@ class XCPClient(object):
         response = self.transport.request(canID, types.Command.COPY_CAL_PAGE, srcSegment, srcPage, dstSegment, dstPage)
         return response
 
+    ##
+    ## DAQ
+    ##
     def clearDaqList(self, canID, daqListNumber):
         daqList = struct.pack("<H", daqListNumber)
         response = self.transport.request(canID, types.Command.CLEAR_DAQ_LIST, 0, *daqList)
@@ -413,6 +416,60 @@ class XCPClient(object):
         daqList = struct.pack("<H", daqListNumber)
         response = self.transport.request(canID, types.Command.SET_DAQ_PTR, 0, *daqList, odtNumber, odtEntryNumber)
         return response
+
+    def writeDaq(self, canID, bitOffset, entrySize, addressExt, address):
+        addr = struct.pack("<I", address)
+        response = self.transport.request(canID, types.Command.WRITE_DAQ, 0, bitOffset, entrySize, addressExt, *addr)
+        return response
+
+    def setDaqListMode(self, canID, mode, daqListNumber, eventChannelNumber, prescaler, priority):
+        dln = struct.pack("<I", daqListNumber)
+        ecn = struct.pack("<I", eventChannelNumber)
+        response = self.transport.request(canID, types.Command.SET_DAQ_LIST_MODE, mode, *dln, *ecn, prescaler, priority)
+        return response
+
+    def getDaqListMode(self, canID, daqListNumber):
+        dln = struct.pack("<I", daqListNumber)
+        response = self.transport.request(canID, types.Command.GET_DAQ_LIST_MODE, 0, *dln)
+        return types.GetDaqListModeResponse.parse(response)
+
+    def startStopDaqList(self, canID, mode, daqListNumber):
+        dln = struct.pack("<I", daqListNumber)
+        response = self.transport.request(canID, types.Command.START_STOP_DAQ_LIST, mode, *dln)
+        return response
+
+    def startStopSynch(self, canID, mode):
+        response = self.transport.request(canID, types.Command.START_STOP_SYNCH, mode)
+        return response
+
+    ## optional.
+    def getDaqClock(self, canID):
+        response = self.transport.request(canID, types.Command.GET_DAQ_CLOCK)
+        return types.GetDaqClockResponse.parse(response).timestamp
+
+    def readDaq(self, canID):
+        response = self.transport.request(canID, types.Command.READ_DAQ)
+        return types.ReadDaqResponse.parse(response)
+
+    def getDaqProcessorInfo(self, canID):
+        response = self.transport.request(canID, types.Command.GET_DAQ_PROCESSOR_INFO)
+        return types.GetDaqProcessorInfoResponse.parse(response)
+
+    def getDaqResolutionInfo(self, canID):
+        response = self.transport.request(canID, types.Command.GET_DAQ_RESOLUTION_INFO)
+        return types.GetDaqResolutionInfoResponse.parse(response)
+
+    def getDaqListInfo(self, canID, daqListNumber):
+        dln = struct.pack("<I", daqListNumber)
+        response = self.transport.request(canID, types.Command.GET_DAQ_LIST_INFO, 0, *dln)
+        return types.GetDaqListInfoResponse.parse(response)
+
+    def getEventChannelInfo(self, canID, eventChannelNumber):
+        ecn = struct.pack("<I", eventChannelNumber)
+        response = self.transport.request(canID, types.Command.GET_DAQ_EVENT_INFO, 0, *ecn)
+        return types.GetEventChannelInfoResponse.parse(response)
+
+
 
 #    WRITE_DAQ
 
@@ -450,20 +507,21 @@ def test(loop):
     print("KEE:", kee)
     print(xcpClient.unlock(0x7a, len(kee), kee))
 
-    #result = xcpClient.getSeed(0x7ba, 1, 4)
 
-    #  name = xcpClient.fetch(0x7ba, result.length)
-    #  print(name)
-    #xcpClient.setRequest(0x7ba, 0x08, 0x1010)
+    print("DAQ_PROC_INFO: ", xcpClient.getDaqProcessorInfo(0x7ba))
 
-    xcpClient.setMta(0x7ba, CALRAM_ADDR)
-#    xcpClient.buildChecksum(0x7ba, CALRAM_SIZE)
-    #xcpClient.fetch(0x7ba, CALRAM_SIZE)
+    print("TIMESTAMP: {:04X}".format(xcpClient.getDaqClock(0x7ba)))
 
-    #xcpClient.getPagProcessorInfo(0x7ba)
+    #print("readDAQ:", xcpClient.readDaq(0x7ba))
 
-    #xcpClient.download(0x11, 0x22, 0x33, 0x44, 0x55)
+    print("daqResolutionInfo", xcpClient.getDaqResolutionInfo(0x7ba))
 
+    dpi = xcpClient.getDaqProcessorInfo(0x7ba)
+
+    for ecn in range(dpi.maxEventChannel):
+        print(xcpClient.getEventChannelInfo(0x7ba, ecn))
+
+    #print("GetDAQListInfo", xcpClient.getDaqListInfo(0x7ba, 0))
 
     xcpClient.disconnect(0x7ba)
     xcpClient.close()

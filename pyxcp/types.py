@@ -4,7 +4,7 @@
 __copyright__="""
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2016 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2017 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -327,5 +327,100 @@ PageProperties = BitStruct(
     "xcpReadAccessWithoutEcu" / BitsInteger(1),
     "ecuAccessWithXcp" / BitsInteger(1),
     "ecuAccessWithoutXcp" / BitsInteger(1),
+)
+
+###
+DaqProperties = BitStruct(
+    "overloadEvent" / BitsInteger(1),
+    "overloadMsb" / BitsInteger(1),
+    "pidOffSupported" / BitsInteger(1),
+    "timestampSupported" / BitsInteger(1),
+    "bitStimSupported" / BitsInteger(1),
+    "resumeSupported" / BitsInteger(1),
+    "prescalerSupported" / BitsInteger(1),
+    "daqConfigType" / BitsInteger(1),
+)
+
+#2,3 WORD MAX_DAQ Total number of available DAQ lists
+#4,5 WORD MAX_EVENT_CHANNEL Total number of available event channels
+#6   BYTE MIN_DAQ Total number of predefined DAQ lists
+#7   BYTE DAQ_KEY_BYTE
+
+GetDaqProcessorInfoResponse = Struct(
+    "daqProperties" / DaqProperties,
+    "maxDaq" / Int16ul,
+    "maxEventChannel" / Int16ul,
+    "minDaq" / Int8ul,
+    "daqKeyByte" / Int8ul,
+)
+
+CurrentMode = BitStruct(
+    "resume" / BitsInteger(1),
+    "running" / BitsInteger(1),
+    "pid_off" / BitsInteger(1),
+    "timestamp" / BitsInteger(1),
+    Padding(2),
+    "direction" / BitsInteger(1),
+    "selected" / BitsInteger(1),
+)
+
+GetDaqListModeResponse = Struct(
+    "currentMode" / CurrentMode,
+    Padding(2),
+    "currentEventChannel" / Int16ul,
+    "currentPrescaler" / Int8ul,
+    "currentPriority" / Int8ul,
+)
+
+GetDaqClockResponse = Struct(
+    Padding(3),
+    "timestamp" / Int32ul,
+)
+
+ReadDaqResponse = Struct(
+    "bitOffset" / Int8ul,
+    "sizeofDaqElement" / Int8ul,
+    "adressExtension" / Int8ul,
+    "address" / Int32ul,
+)
+
+GetDaqResolutionInfoResponse = Struct(
+    "granularityOdtEntrySizeDaq" / Int8ul,
+    "maxOdtEntrySizeDaq" / Int8ul,
+    "granularityOdtEntrySizeStim" / Int8ul,
+    "maxOdtEntrySizeStim" / Int8ul,
+    "timeStampMode" / Int8ul,
+    "timestampTicks" / Int16ul,
+)
+
+DaqListProperties = BitStruct(
+    Padding(4),
+    "stim" / BitsInteger(1),
+    "daq" / BitsInteger(1),
+    "eventFixed" / BitsInteger(1),
+    "predefined" / BitsInteger(1),
+)
+
+GetDaqListInfoResponse = Struct(
+    "daqListProperties" / DaqListProperties,
+    "maxOdt" / Int8ul,
+    "maxOdtEntries" / Int8ul,
+    "fixedEvent" / Int16ul,
+)
+
+DaqEventProperties = BitStruct(
+    Padding(4),
+    "stim" / BitsInteger(1),
+    "daq" / BitsInteger(1),
+    Padding(2)
+)
+
+GetEventChannelInfoResponse = Struct(
+    "daqEventProperties" / DaqEventProperties,
+    "maxDaqList" / Int8ul,
+    "eventChannelNameLength" / Int8ul,
+    "eventChannelTimeCycle" / Int8ul,
+    "eventChannelTimeUnit" / Int8ul,
+    "eventChannelPriority" / Int8ul,
 )
 
