@@ -16,6 +16,7 @@
 #define ERR_COULD_NOT_LOAD_FUNC     (17)
 
 #define GET_KEY                     (0x20)
+#define QUIT                        (0x30)
 
 uint8_t buffer[NP_BUFSIZE];
 DWORD nRead;
@@ -100,66 +101,69 @@ int main()
 
 //  return 1;
 */
-
-    HANDLE hPipe = CreateNamedPipe("\\\\.\\pipe\\XcpSendNKey", PIPE_ACCESS_DUPLEX , PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
+    for (;;) {
+        HANDLE hPipe = CreateNamedPipe("\\\\.\\pipe\\XcpSendNKey", PIPE_ACCESS_DUPLEX , PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
                                    /* PIPE_UNLIMITED_INSTANCES */1, 1024, 1024, NMPWAIT_USE_DEFAULT_WAIT, NULL
                                   );
+        if (hPipe != INVALID_HANDLE_VALUE) {
+    //        printf("hModule: %p hPipe: %p\n", hModule, hPipe);
 
-    if (hPipe != INVALID_HANDLE_VALUE) {
-//        printf("hModule: %p hPipe: %p\n", hModule, hPipe);
+            if (ConnectNamedPipe(hPipe, NULL)) {
+                //printf("OK, connected.\n");
+                if (!ReadFile(hPipe, buffer, NP_BUFSIZE, &nRead, NULL)) {
+                    dwError = GetLastError();
+                    printf("ReadFile failed with [%ld]\n", dwError);
+                } else {
+                    printf("Received: ");
+                    hexdump(buffer, nRead);
+                    cmd = buffer[0];
+                    if (cmd == GET_KEY) {
+                        keylen = KEY_BUFSIZE;
+                        privilege = buffer[1];
+                        lenSeed = buffer[2];
+                        nameOffset = lenSeed + 3;
+                        nameLen = nRead - nameOffset;
+                        printf("privilege: %u - seed-len: %u - offs: %u - slen: %u\n", buffer[1], buffer[2], nameOffset, nameLen);
+                        CopyMemory(nameBuffer, &buffer[nameOffset], nameLen);
+                        nameBuffer[nameLen] = '\x00';
+                        CopyMemory(seedBuffer, &buffer[3], lenSeed);
+                        ZeroMemory(buffer, NP_BUFSIZE);
+                        printf("dllname: ");
+                        printf("%s\n", nameBuffer);
 
-        if (ConnectNamedPipe(hPipe, NULL)) {
-            //printf("OK, connected.\n");
-            if (!ReadFile(hPipe, buffer, NP_BUFSIZE, &nRead, NULL)) {
-                dwError = GetLastError();
-                printf("ReadFile failed with [%ld]\n", dwError);
-            } else {
-                printf("Received: ");
-                hexdump(buffer, nRead);
-                cmd = buffer[0];
-                if (cmd == GET_KEY) {
-                    keylen = KEY_BUFSIZE;
-                    privilege = buffer[1];
-                    lenSeed = buffer[2];
-                    nameOffset = lenSeed + 3;
-                    nameLen = nRead - nameOffset;
-                    printf("privilege: %u - seed-len: %u - offs: %u - slen: %u\n", buffer[1], buffer[2], nameOffset, nameLen);
-                    CopyMemory(nameBuffer, &buffer[nameOffset], nameLen);
-                    nameBuffer[nameLen] = '\x00';
-                    CopyMemory(seedBuffer, &buffer[3], lenSeed);
-                    ZeroMemory(buffer, NP_BUFSIZE);
-                    printf("dllname: ");
-                    printf("%s\n", nameBuffer);
+                        res = GetKey((char *)&nameBuffer, privilege, lenSeed, (BYTE *)&seedBuffer, &keylen, (BYTE *)&keyBuffer);
+                        //res = XCP_ComputeKeyFromSeed(privilege, lenSeed, (BYTE*)&seedBuffer, &keylen, (BYTE*)&keyBuffer);
 
-                    res = GetKey((char *)&nameBuffer, privilege, lenSeed, (BYTE *)&seedBuffer, &keylen, (BYTE *)&keyBuffer);
-                    //res = XCP_ComputeKeyFromSeed(privilege, lenSeed, (BYTE*)&seedBuffer, &keylen, (BYTE*)&keyBuffer);
+                        printf("GetKey() returnd: %lu kl: %u\n", res, keylen);  // 1C F8 05 DF 00 00 00 00 00
+                        hexdump(keyBuffer, keylen);
+                        buffer[0] = LOWORD(LOBYTE(res));
+                        buffer[1] = LOWORD(HIBYTE(res));
+                        buffer[2] = HIWORD(LOBYTE(res));
+                        buffer[3] = HIWORD(HIBYTE(res));
 
-                    printf("GetKey() returnd: %lu kl: %u\n", res, keylen);  // 1C F8 05 DF 00 00 00 00 00
-                    hexdump(keyBuffer, keylen);
-                    buffer[0] = LOWORD(LOBYTE(res));
-                    buffer[1] = LOWORD(HIBYTE(res));
-                    buffer[2] = HIWORD(LOBYTE(res));
-                    buffer[3] = HIWORD(HIBYTE(res));
+                        if (res == ERR_OK) {
+                            //buffer[0] = 0x55;
+                            bytesToWrite = 4 + keylen;
+                            CopyMemory(buffer + 4, keyBuffer, keylen);
+                        } else {
+                            bytesToWrite = 4;
+                        }
+                        if (!WriteFile(hPipe, buffer, bytesToWrite, &bytesWritten, NULL)) {
 
-                    if (res == ERR_OK) {
-                        //buffer[0] = 0x55;
-                        bytesToWrite = 4 + keylen;
-                        CopyMemory(buffer + 4, keyBuffer, keylen);
-                    } else {
-                        bytesToWrite = 4;
-                    }
-                    if (!WriteFile(hPipe, buffer, bytesToWrite, &bytesWritten, NULL)) {
-
+                        }
+                    } else if (cmd == QUIT) {
+                        CloseHandle(hPipe);
+                        printf("Finished.\n");
+                        return 0;
                     }
                 }
+                //DisconnectNamedPipe(hPipe);
+            } else {
+                printf("could not connect to NamedPipe. [%ld]\n", GetLastError());
+
             }
-            //DisconnectNamedPipe(hPipe);
-        } else {
-            printf("could not connect to NamedPipe. [%ld]\n", GetLastError());
-
+            CloseHandle(hPipe);
         }
-
-        CloseHandle(hPipe);
     }
     printf("Finished.\n");
 }
