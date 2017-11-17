@@ -142,7 +142,6 @@ int main()
                         buffer[3] = HIWORD(HIBYTE(res));
 
                         if (res == ERR_OK) {
-                            //buffer[0] = 0x55;
                             bytesToWrite = 4 + keylen;
                             CopyMemory(buffer + 4, keyBuffer, keylen);
                         } else {
@@ -152,8 +151,16 @@ int main()
 
                         }
                     } else if (cmd == QUIT) {
+                        buffer[0] = 0x00;
+                        buffer[1] = 0x00;
+                        buffer[2] = 0x00;
+                        buffer[3] = 0x00;
+                        bytesToWrite = 4;
+                        if (!WriteFile(hPipe, buffer, bytesToWrite, &bytesWritten, NULL)) {
+
+                        }
                         CloseHandle(hPipe);
-                        printf("Finished.\n");
+                        printf("SKLOADER Finished #1.\n");
                         return 0;
                     }
                 }
@@ -165,6 +172,6 @@ int main()
             CloseHandle(hPipe);
         }
     }
-    printf("Finished.\n");
+    printf("SKLOADER Finished #2.\n");
 }
 
