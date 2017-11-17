@@ -204,4 +204,4 @@ def check(frame, algo):
     if fun:
         return fun(frame)
     else:
-        pass
+        raise NotImplementedError("Invalid algorithm '{}'.".format(algo))
