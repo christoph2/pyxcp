@@ -31,6 +31,7 @@ import sys
 
 
 CMD_GET_KEY = 0x20
+CMD_QUIT    = 0x30
 
 ACK                         = 0 # o.k.
 ERR_PRIVILEGE_NOT_AVAILABLE = 1 # the requested privilege can not be unlocked with this DLL
@@ -58,6 +59,25 @@ if sys.platform == 'win32' and bwidth == '64bit':
         fmt = "BBB{}B{}s".format(len(seed), len(dllName))
         res = struct.pack(fmt, cmd, privilege, len(seed), *seed, dllName)
         return res
+
+
+    #string/buffer = TransactNamedPipe(pipeName, writeData , buffer/bufSize , overlapped )
+
+    def quit():
+
+        try:
+            handle = win32file.CreateFile(r"\\.\pipe\XcpSendNKey", win32file.GENERIC_READ | win32file.GENERIC_WRITE,
+                0, None, win32file.OPEN_EXISTING, 0, None
+            )
+        except Exception as e:
+            print("{} failed with [{}] - '{}' ".format(e.funcname, e.winerror, e.strerror))
+            key = dstatus = None
+        else:
+            win32pipe.SetNamedPipeHandleState(handle, win32pipe.PIPE_READMODE_MESSAGE, None, None)
+
+            #hr, got = win32pipe.TransactNamedPipe(hpipe, str2bytes("foo\0bar"), 1024, None)
+            hr, got = win32pipe.TransactNamedPipe(handle, bytes([CMD_QUIT]), 1024, None)
+            win32file.CloseHandle(handle)
 
     def getKey(dllName, privilege, seed):
         try:
