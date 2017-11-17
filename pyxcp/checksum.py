@@ -24,19 +24,20 @@ __copyright__="""
 """
 
 import enum
+import struct
 import zlib
 
 
 class Algorithm(enum.IntEnum):
-    XCP_ADD_11      = 0
-    XCP_ADD_12      = 1
-    XCP_ADD_14      = 2
-    XCP_ADD_22      = 3
-    XCP_ADD_24      = 4
-    XCP_ADD_44      = 5
-    XCP_CRC_16      = 6
-    XCP_CRC_16_CITT = 7
-    XCP_CRC_32      = 8
+    XCP_ADD_11      = 1
+    XCP_ADD_12      = 2
+    XCP_ADD_14      = 3
+    XCP_ADD_22      = 4
+    XCP_ADD_24      = 5
+    XCP_ADD_44      = 6
+    XCP_CRC_16      = 7
+    XCP_CRC_16_CITT = 8
+    XCP_CRC_32      = 9
 
 
 CRC16 = (
@@ -124,17 +125,17 @@ class Crc16:
         remainder = self.initalRemainder
         for ch in frame:
             if self.reflectData:
-                data = (reflect(ch, 8) ^ (remainder >> (WIDTH - 8))) & 0xff
+                data = (self.reflect(ch, 8) ^ (remainder >> (self.WIDTH - 8))) & 0xff
             else:
-                data = (ch ^ (remainder >> (WIDTH - 8))) & 0xff
+                data = (ch ^ (remainder >> (self.WIDTH - 8))) & 0xff
             remainder = (self.table[data] ^ (remainder << 8)) & 0xffff
         if self.reflectRemainder:
-            result =  (reflect(remainder, 16) ^ self.finalXorValue)
+            result =  (self.reflect(remainder, 16) ^ self.finalXorValue)
         else:
             result = remainder ^ self.finalXorValue
         return result
 
-    def reflect(data, nBits):
+    def reflect(self, data, nBits):
         reflection = 0x00000000
         for bit in range(nBits):
             if (data & 0x01):
@@ -143,41 +144,64 @@ class Crc16:
         return reflection
 
 
-TEST = (
-    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
-    0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF, 0x00,
-)
-
-print(hex(sum(TEST)))
-
 """
-XCP_ADD_11          0x10        0x10
-XCP_ADD_12          0x0F10      0x0F10
-XCP_ADD_14          0x00000F10  0x00000F10
-XCP_ADD_22          0x1800      0x0710
-XCP_ADD_24          0x00071800  0x00080710
-XCP_ADD_44          0x140C03F8  0xFC040B10
+0x01  XCP_ADD_11  Add BYTE into a BYTE checksum, ignore overflows 
+0x02  XCP_ADD_12  Add BYTE into a WORD checksum, ignore overflows 
+0x03  XCP_ADD_14  Add BYTE into a DWORD checksum, ignore overflows 
 
-XCP_CRC_16          0xC76A      0xC76A
-XCP_CRC_16_CITT     0x9D50      0x9D50
-XCP_CRC_32          0x89CD97CE  0x89CD97CE
+0x04  XCP_ADD_22  Add WORD into a WORD checksum, ignore overflows,  blocksize must be modulo 2 
+0x05  XCP_ADD_24  Add WORD into a DWORD checksum, ignore  overflows, blocksize must be modulo 2 
+0x06  XCP_ADD_44  Add DWORD into DWORD, ignore overflows, blocksize  must be modulo 4 
 """
 
-## hex(zlib.crc32(bytes(TEST)) & 0xffffffff)
+def adder(modulus):
+    def add(frame):
+        return sum(frame) % modulus
+    return add
+
+def missing(x):
+    raise NotImplementedError("Checksum method 'XCP_USER_DEFINED' not supported yet.")
+
+def wordSum(modulus, step):
+    def add(frame):
+        if step == 2:
+            mask = "<H"
+        elif step == 4:
+            mask = "<I"
+        else:
+            raise ErrorNotImplemented("Only WORDs or DWORDs are supported.")
+        x = [struct.unpack(mask, frame[x : x + step])[0] for x in range(0, len(frame), step)]
+        return sum(x) % modulus
+    return add
+
+
+add11 = adder(2**8)
+add12 = adder(2**16)
+add14 = adder(2**32)
+add22 = wordSum(2**16, 2)
+add24 = wordSum(2**32, 2)
+add44 = wordSum(2**32, 4)
+crc16 = Crc16(CRC16, 0x0000, 0x0000, True, True)
+crc16_ccitt = Crc16(CRC16_CCITT, 0xffff, 0x0000, False, False)
+crc32 = lambda x: zlib.crc32(x) & 0xffffffff
+
+
+ALGO = {
+    "XCP_ADD_11":       add11,
+    "XCP_ADD_12":       add12,
+    "XCP_ADD_14":       add14,
+    "XCP_ADD_22":       add22,
+    "XCP_ADD_24":       add24,
+    "XCP_ADD_44":       add44,
+    "XCP_CRC_16":       crc16,
+    "XCP_CRC_16_CITT":  crc16_ccitt,
+    "XCP_CRC_32":       crc32,
+    "XCP_USER_DEFINED": missing,
+}
 
 def check(frame, algo):
-    pass
-
-def main():
-    crc = Crc16(CRC16, 0x0000, 0x0000, True, True)
-    res = crc(TEST)
-    print(hex(res))
-
-    crc = Crc16(CRC16_CCITT, 0xffff, 0x0000, False, False)
-    res = crc(TEST)
-    print(hex(res))
-
-
-if __name__ == '__main__':
-    main()
-
+    fun = ALGO.get(algo)
+    if fun:
+        return fun(frame)
+    else:
+        pass
