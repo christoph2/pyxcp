@@ -36,6 +36,7 @@ import time
 
 import six
 
+from pyxcp import checksum
 from pyxcp import types
 from pyxcp import skloader
 
@@ -293,7 +294,7 @@ class XCPClient(object):
 
     def upload(self, canID, length):
         response = self.transport.request(canID, types.Command.UPLOAD, length)
-        return response[1 : ]
+        return response
 
     def shortUpload(self, canID, length):
         response = self.transport.request(canID, types.Command.SHORT_UPLOAD, length)
@@ -469,19 +470,68 @@ class XCPClient(object):
         response = self.transport.request(canID, types.Command.GET_DAQ_EVENT_INFO, 0, *ecn)
         return types.GetEventChannelInfoResponse.parse(response)
 
+    # dynamic
+    def freeDaq(self, canID):
+        response = self.transport.request(canID, types.Command.FREE_DAQ)
+        return response
+
+    def allocDaq(self, canID, daqCount):
+        dq = struct.pack("<I", daqCount)
+        response = self.transport.request(canID, types.Command.ALLOC_DAQ, 0, *dq)
+        return response
+
+    def allocOdt(self, canID, daqListNumber, odtCount):
+        dln = struct.pack("<I", daqListNumber)
+        response = self.transport.request(canID, types.Command.ALLOC_ODT, 0, *dln, odtCount)
+        return response
+
+    def allocOdtEntry(self, canID, daqListNumber, odtNumber, odtEntriesCount):
+        dln = struct.pack("<I", daqListNumber)
+        response = self.transport.request(canID, types.Command.ALLOC_ODT_ENTRY, 0, *dln, odtNumber, odtEntriesCount)
+        return response
+
+    ##
+    ## PGM
+    ##
+    def programStart(self, canID):
+        response = self.transport.request(canID, types.Command.PROGRAM_START)
+        return types.ProgramStartResponse.parse(response)
+
+    def programClear(self, canID, mode, clearRange):
+        cr = struct.pack("<I", clearRange)
+        response = self.transport.request(canID, types.Command.PROGRAM_CLEAR, mode, 0, 0, *cr)
+        # ERR_ACCESS_LOCKED
+        return response
+
+    def program(self, canID):
+        """
+        PROGRAM
+        Position Type Description
+        0 BYTE Command Code = 0xD0
+        1 BYTE Number of data elements [AG] [1..(MAX_CTO-2)/AG]
+        2..AG-1 BYTE Used for alignment, only if AG >2
+            AG=1: 2..MAX_CTO-2
+            AG>1: AG MAX_CTO-AG
+        ELEMENT Data elements
+        """
 
 
-#    WRITE_DAQ
+def unlock(client, privilege):
+    length, seed = client.getSeed(0x7ba, 0, privilege)
+    print("SEED: ", hexDump(seed), flush = True)
+    _, kee = skloader.getKey(b"SeedNKeyXcp.dll", privilege, seed)
+    print("KEE:", kee)
+    print(client.unlock(0x7a, len(kee), kee))
 
-#CALRAM_ADDR  = 0x00E3200C
-CALRAM_ADDR  = 0x00E1058
-#CALRAM_SIZE  = 0x000001C1
-CALRAM_SIZE  = 0x00000E9D
 
-
-#if sys.platform == 'win32':
-#    loop = asyncio.ProactorEventLoop()
-#    asyncio.set_event_loop(loop)
+def verify(client, addr, length):
+    client.setMta(0x7ba, addr)
+    cs = client.buildChecksum(0x7ba, length)
+    print("CS: {:08X}".format(cs.checksum))
+    client.setMta(0x7ba, addr)
+    data = client.upload(0x7ba, length)
+    cc = checksum.check(data, cs.checksumType)
+    print("CS: {:08X}".format(cc))
 
 
 def test(loop):
@@ -501,11 +551,12 @@ def test(loop):
     result = xcpClient.getID(0x7ba, 0x01)
     xcpClient.upload(0x7ba, result.length)
 
-    length, seed = xcpClient.getSeed(0x7ba, 0, 4)
-    print("SEED: ", hexDump(seed), flush = True)
-    _, kee = skloader.getKey(b"SeedNKeyXcp.dll", 4, seed)
-    print("KEE:", kee)
-    print(xcpClient.unlock(0x7a, len(kee), kee))
+    unlock(xcpClient, 4)
+    #length, seed = xcpClient.getSeed(0x7ba, 0, 4)
+    #print("SEED: ", hexDump(seed), flush = True)
+    #_, kee = skloader.getKey(b"SeedNKeyXcp.dll", 4, seed)
+    #print("KEE:", kee)
+    #print(xcpClient.unlock(0x7a, len(kee), kee))
 
 
     print("DAQ_PROC_INFO: ", xcpClient.getDaqProcessorInfo(0x7ba))
@@ -519,12 +570,28 @@ def test(loop):
     dpi = xcpClient.getDaqProcessorInfo(0x7ba)
 
     for ecn in range(dpi.maxEventChannel):
-        print(xcpClient.getEventChannelInfo(0x7ba, ecn))
+        eci = xcpClient.getEventChannelInfo(0x7ba, ecn)
+        print(eci)
+        data = xcpClient.upload(0x7ba, eci.eventChannelNameLength)
+        print("EventChannelName:", data.decode("latin1"))
 
     #print("GetDAQListInfo", xcpClient.getDaqListInfo(0x7ba, 0))
+    xcpClient.freeDaq(0x7ba)
+    print("AllocDAQ:", xcpClient.allocDaq(0x7ba, 2))
+
+    xcpClient.setMta(0x7ba, 0x1C0000)
+    print("CS:", xcpClient.buildChecksum(0x7ba, 4742))
+
+    unlock(xcpClient, 1)
+    verify(xcpClient, 0x1C0000, 128)
+
+    #print("PS:", xcpClient.programStart(0x7ba)) # ERR_ACCESS_LOCKED
+
 
     xcpClient.disconnect(0x7ba)
     xcpClient.close()
+
+    skloader.quit()
 
 if __name__=='__main__':
     loop = asyncio.get_event_loop()
