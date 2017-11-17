@@ -46,7 +46,7 @@ class TestChecksums(unittest.TestCase):
         self.assertEqual(checksum.check(TEST, "XCP_CRC_16"), 0xC76A)
 
     def testCrc16Ccitt(self):
-        self.assertEqual(checksum.check(TEST, "XCP_CRC_16_CCITT"), 0x9D50)
+        self.assertEqual(checksum.check(TEST, "XCP_CRC_16_CITT"), 0x9D50)
 
     def testCrc32(self):
         self.assertEqual(checksum.check(TEST, "XCP_CRC_32"), 0x89CD97CE)
