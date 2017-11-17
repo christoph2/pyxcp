@@ -341,11 +341,6 @@ DaqProperties = BitStruct(
     "daqConfigType" / BitsInteger(1),
 )
 
-#2,3 WORD MAX_DAQ Total number of available DAQ lists
-#4,5 WORD MAX_EVENT_CHANNEL Total number of available event channels
-#6   BYTE MIN_DAQ Total number of predefined DAQ lists
-#7   BYTE DAQ_KEY_BYTE
-
 GetDaqProcessorInfoResponse = Struct(
     "daqProperties" / DaqProperties,
     "maxDaq" / Int16ul,
@@ -423,4 +418,23 @@ GetEventChannelInfoResponse = Struct(
     "eventChannelTimeUnit" / Int8ul,
     "eventChannelPriority" / Int8ul,
 )
+
+CommModePgm = BitStruct(
+    Padding(1),
+    "slaveBlockMode" / BitsInteger(1),
+    Padding(4),
+    "interleavedMode" / BitsInteger(1),
+    "masterBlockMode" / BitsInteger(1),
+)
+
+ProgramStartResponse = Struct(
+    Padding(1),
+    "commModePgm" / CommModePgm,
+    "maxCtoPgm" / Int8ul,
+    "maxBsPgm" / Int8ul,
+    "minStPgm" / Int8ul,
+    "queueSizePgm" / Int8ul,
+)
+
+
 
