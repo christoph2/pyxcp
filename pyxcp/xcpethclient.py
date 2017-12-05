@@ -179,7 +179,7 @@ class EthTransport(object):
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if hasattr(self.sock, "SO_REUSEPORT"):
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        self.sock.settimeout(5.0)
+        self.sock.settimeout(0.5)
         self.sock.connect((ipAddress, port))
 
     def close(self):
@@ -256,8 +256,9 @@ class XCPClient(object):
         self.supportsStim = True if result.resource.stim == 1 else False
         self.supportsDaq = True if result.resource.daq == 1 else False
         self.supportsCalpag = True if result.resource.calpag == 1 else False
+        return result
 
-        print(result, flush = True)
+#        print(result, flush = True)
 
     def disconnect(self, canID):
         response = self.transport.request(canID, types.Command.DISCONNECT)
@@ -593,9 +594,41 @@ def test(loop):
 
     skloader.quit()
 
+
+def cstest(loop):
+    xcpClient = XCPClient(EthTransport('localhost', connected = False), loop)
+    conn = xcpClient.connect(0x7ba)
+    print(conn, flush = True)
+
+    print("calpag ?", xcpClient.supportsCalpag)
+    print("daq ?", xcpClient.supportsDaq)
+    print("pgm ?", xcpClient.supportsPgm)
+    print("stim ?", xcpClient.supportsStim)
+
+
+    xcpClient.getStatus(0x7ba)
+    xcpClient.synch(0x7ba)
+
+    if conn.commModeBasic.optional:
+        xcpClient.getCommModeInfo(0x7ba)
+    else:
+        print("No details on connection.")
+
+    result = xcpClient.getID(0x7ba, 0x01)
+    result = xcpClient.upload(0x7ba, result.length)
+    print("ID: '{}'".format(result.decode("utf8")))
+
+
+    xcpClient.disconnect(0x7ba)
+    xcpClient.close()
+
+    skloader.quit()
+
+
 if __name__=='__main__':
     loop = asyncio.get_event_loop()
-    test(loop)
+    #test(loop)
+    cstest(loop)
     loop.run_forever()
 #    loop.close()
 
