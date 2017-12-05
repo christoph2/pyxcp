@@ -145,13 +145,13 @@ class Crc16:
 
 
 """
-0x01  XCP_ADD_11  Add BYTE into a BYTE checksum, ignore overflows 
-0x02  XCP_ADD_12  Add BYTE into a WORD checksum, ignore overflows 
-0x03  XCP_ADD_14  Add BYTE into a DWORD checksum, ignore overflows 
+0x01  XCP_ADD_11  Add BYTE into a BYTE checksum, ignore overflows
+0x02  XCP_ADD_12  Add BYTE into a WORD checksum, ignore overflows
+0x03  XCP_ADD_14  Add BYTE into a DWORD checksum, ignore overflows
 
-0x04  XCP_ADD_22  Add WORD into a WORD checksum, ignore overflows,  blocksize must be modulo 2 
-0x05  XCP_ADD_24  Add WORD into a DWORD checksum, ignore  overflows, blocksize must be modulo 2 
-0x06  XCP_ADD_44  Add DWORD into DWORD, ignore overflows, blocksize  must be modulo 4 
+0x04  XCP_ADD_22  Add WORD into a WORD checksum, ignore overflows,  blocksize must be modulo 2
+0x05  XCP_ADD_24  Add WORD into a DWORD checksum, ignore  overflows, blocksize must be modulo 2
+0x06  XCP_ADD_44  Add DWORD into DWORD, ignore overflows, blocksize  must be modulo 4
 """
 
 def adder(modulus):
@@ -205,3 +205,4 @@ def check(frame, algo):
         return fun(frame)
     else:
         raise NotImplementedError("Invalid algorithm '{}'.".format(algo))
+
