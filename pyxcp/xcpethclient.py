@@ -29,12 +29,10 @@ import enum
 import logging
 import os
 import select
-import socket
 import struct
 import sys
 import time
 
-import serial
 import six
 
 from pyxcp import checksum
@@ -42,23 +40,9 @@ from pyxcp import types
 from pyxcp import transport
 from pyxcp import skloader
 
-## Setup Logger.
-level = logging.DEBUG
-logger = logging.getLogger("pyXCP")
-logger.setLevel(level)
-ch = logging.StreamHandler()
-ch.setLevel(level)
-fmt = '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
-formatter = logging.Formatter(fmt)
-ch.setFormatter(formatter)
-logger.addHandler(ch)
 
 class FrameSizeError(Exception): pass
 class XcpResponseError(Exception): pass
-
-def hexDump(arr):
-    return "[{}]".format(' '.join(["{:02x}".format(x) for x in arr]))
-
 
 ##
 ##  todo: Meta-Programming wg. Persistenz/ Speicherung
@@ -124,7 +108,6 @@ class XCPHeaderOnEthernet(XCPHeader):
     """
     pass
 
-DEFAULT_XCP_PORT = 5555
 
 class CANMessageObject(object):
 
@@ -161,73 +144,6 @@ class MockTransport(object):
         return "[Current Message]: {}".format(self.message)
 
     __repr__ = __str__
-
-
-
-class EthTransport(object):
-
-    MAX_DATAGRAM_SIZE = 512
-    HEADER = "<HH"
-    HEADER_SIZE = struct.calcsize(HEADER)
-
-    def __init__(self, ipAddress, port = DEFAULT_XCP_PORT, connected = True):
-        self.parent = None
-        #self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM if connected else socket.SOCK_DGRAM)
-        self.logger = logging.getLogger("pyXCP")
-        self.connected = connected
-        self.counter = 0
-        self._address = None
-        self._addressExtension = None
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        if hasattr(self.sock, "SO_REUSEPORT"):
-            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        self.sock.settimeout(0.5)
-        self.sock.connect((ipAddress, port))
-
-    def close(self):
-        self.sock.close()
-
-    def request(self, cmd, *data):
-        print(cmd.name, flush = True)
-        header = struct.pack("<HH", len(data) + 1, self.counter)
-        frame = header + bytearray([cmd, *data])
-        print("-> {}".format(hexDump(frame)), flush = True)
-        self.sock.send(frame)
-
-        if self.connected:
-            length = struct.unpack("<H", self.sock.recv(2))[0]
-            response = self.sock.recv(length + 2)
-        else:
-            response, server = self.sock.recvfrom(EthTransport.MAX_DATAGRAM_SIZE)
-
-        if len(response) < self.HEADER_SIZE:
-            raise FrameSizeError("Frame too short.")
-        print("<- {}\n".format(hexDump(response)), flush = True)
-        self.packetLen, self.seqNo = struct.unpack(EthTransport.HEADER, response[ : 4])
-        self.xcpPDU = response[4 : ]
-        if len(self.xcpPDU) != self.packetLen:
-            raise FrameSizeError("Size mismatch.")
-
-        pid = types.Response.parse(self.xcpPDU).type
-        if pid != 'OK' and pid == 'ERR':
-            if cmd.name != 'SYNCH':
-                err = types.XcpError.parse(self.xcpPDU[1 : ])
-                raise XcpResponseError(err)
-        else:
-            pass    # Und nu??
-        return self.xcpPDU[1 : ]
-
-    #def receive(self, canID, b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, b7 = 0):
-    #    self.message = CANMessageObject(canID, 8, bytearray((b0, b1, b2, b3, b4, b5, b6, b7)))
-    #    self.parent.receive(self.message)
-
-    def __str__(self):
-        return "[Current Message]: {}".format(self.message)
-
-    __repr__ = __str__
-
-
 
 
 class XCPClient(object):
@@ -541,7 +457,7 @@ def verify(client, addr, length):
 
 
 def test(loop):
-    xcpClient = XCPClient(EthTransport('localhost', connected = False), loop)
+    xcpClient = XCPClient(transport.Eth('localhost', connected = False), loop)
     xcpClient.connect()
 
     print("calpag ?", xcpClient.supportsCalpag)
@@ -620,7 +536,7 @@ def timecode(ticks, mode):
 
 
 def cstest(loop):
-    xcpClient = XCPClient(EthTransport('localhost', connected = False), loop)
+    xcpClient = XCPClient(transport.Eth('localhost', connected = False), loop)
     conn = xcpClient.connect()
     print(conn, flush = True)
 
