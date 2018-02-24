@@ -28,6 +28,11 @@ import os
 import sys
 import threading
 
+
+def hexDump(arr):
+    return "[{}]".format(' '.join(["{:02x}".format(x) for x in arr]))
+
+
 def slicer(iterable, sliceLength, converter = None):
     if converter is None:
         converter = type(iterable)
