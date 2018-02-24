@@ -4,7 +4,7 @@
 __copyright__="""
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2017 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -34,6 +34,7 @@ import struct
 import sys
 import time
 
+import serial
 import six
 
 from pyxcp import checksum
@@ -225,6 +226,58 @@ class EthTransport(object):
 
     __repr__ = __str__
 
+
+
+class SxITransport(object):
+
+    MAX_DATAGRAM_SIZE = 512
+    HEADER = "<HH"
+    HEADER_SIZE = struct.calcsize(HEADER)
+
+    def __init__(self, portName, baudrate = 9600, bytesize = serial.EIGHTBITS,
+                 parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE, timeout = 0.5):
+        self.parent = None
+        self._portName = portName
+        self._port = None
+        self._baudrate = baudrate
+        self._bytesize = bytesize
+        self._parity = parity
+        self._stopbits = stopbits
+        self._timeout = timeout
+        self._logger = logger
+        self.connected = False
+        self.connect()
+
+    def connect(self):
+        #SerialPort.counter += 1
+        self._logger.debug("Trying to open serial port %s.", self._portName)
+        try:
+            self._port = serial.Serial(self._portName, self._baudrate , self._bytesize, self._parity,
+                self._stopbits, self._timeout
+            )
+        except serial.SerialException as e:
+            self._logger.error("%s", e)
+            raise
+        self._logger.info("Serial port openend as '%s' @ %d Bits/Sec.", self._port.portstr, self._port.baudrate)
+        self.connected = True
+        return True
+
+    def output(self, enable):
+        if enable:
+            self._port.rts = False
+            self._port.dtr = False
+        else:
+            self._port.rts = True
+            self._port.dtr = True
+
+    def flush(self):
+        self._port.flush()
+
+    def disconnect(self):
+        if self._port.isOpen() == True:
+            self._port.close()
+
+    close = disconnect
 
 
 class XCPClient(object):
@@ -448,7 +501,8 @@ class XCPClient(object):
     ## optional.
     def getDaqClock(self):
         response = self.transport.request(types.Command.GET_DAQ_CLOCK)
-        return types.GetDaqClockResponse.parse(response).timestamp
+        result = types.GetDaqClockResponse.parse(response)
+        return result.timestamp
 
     def readDaq(self):
         response = self.transport.request(types.Command.READ_DAQ)
@@ -596,6 +650,25 @@ def test(loop):
     skloader.quit()
 
 
+def timecode(ticks, mode):
+    units = {
+        "DAQ_TIMESTAMP_UNIT_1PS"  : -12,
+        "DAQ_TIMESTAMP_UNIT_10PS" : -11,
+        "DAQ_TIMESTAMP_UNIT_100PS": -10,
+        "DAQ_TIMESTAMP_UNIT_1NS"  : -9,
+        "DAQ_TIMESTAMP_UNIT_10NS" : -8,
+        "DAQ_TIMESTAMP_UNIT_100NS": -7,
+        "DAQ_TIMESTAMP_UNIT_1US"  : -6,
+        "DAQ_TIMESTAMP_UNIT_10US" : -5,
+        "DAQ_TIMESTAMP_UNIT_100US": -4,
+        "DAQ_TIMESTAMP_UNIT_1MS"  : -3,
+        "DAQ_TIMESTAMP_UNIT_10MS" : -2,
+        "DAQ_TIMESTAMP_UNIT_100MS": -1,
+        "DAQ_TIMESTAMP_UNIT_1S"   : 0,
+    }
+    return (10 ** units[mode.timestampMode.unit]) * mode.timestampTicks * ticks
+
+
 def cstest(loop):
     xcpClient = XCPClient(EthTransport('localhost', connected = False), loop)
     conn = xcpClient.connect()
@@ -605,7 +678,6 @@ def cstest(loop):
     print("daq ?", xcpClient.supportsDaq)
     print("pgm ?", xcpClient.supportsPgm)
     print("stim ?", xcpClient.supportsStim)
-
 
     xcpClient.getStatus()
     xcpClient.synch()
@@ -619,7 +691,22 @@ def cstest(loop):
     result = xcpClient.upload(result.length)
     print("ID: '{}'".format(result.decode("utf8")))
 
+    resInfo = xcpClient.getDaqResolutionInfo()
+    print(resInfo)
+    #xcpClient.getDaqProcessorInfo()
+
 #    print("CS:", xcpClient.buildChecksum(4711))
+
+    start = xcpClient.getDaqClock()
+    print("Timestamp / Start: {}".format(start))
+
+##
+##    for _ in range(10):
+##        time.sleep(0.250)
+##        stop = xcpClient.getDaqClock()
+##        print("trueValue: {}".format(timecode(stop - start, resInfo)))
+##        print("Timestamp / Diff: {}".format(stop - start))
+##
 
     xcpClient.setMta(0x1C0000)
     xcpClient.disconnect()
@@ -629,6 +716,9 @@ def cstest(loop):
 
 
 if __name__=='__main__':
+    sxi = SxITransport("COM27", 115200)
+    print(sxi._port)
+    sxi.disconnect()
     loop = asyncio.get_event_loop()
     #test(loop)
     cstest(loop)
