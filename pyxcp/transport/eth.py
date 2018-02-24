@@ -87,10 +87,6 @@ class Eth(object):
             pass    # Und nu??
         return self.xcpPDU[1 : ]
 
-    #def receive(self, canID, b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, b7 = 0):
-    #    self.message = CANMessageObject(canID, 8, bytearray((b0, b1, b2, b3, b4, b5, b6, b7)))
-    #    self.parent.receive(self.message)
-
     def __str__(self):
         return "[Current Message]: {}".format(self.message)
 
