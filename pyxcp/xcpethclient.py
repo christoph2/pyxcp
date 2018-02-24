@@ -39,6 +39,7 @@ import six
 
 from pyxcp import checksum
 from pyxcp import types
+from pyxcp import transport
 from pyxcp import skloader
 
 ## Setup Logger.
@@ -227,57 +228,6 @@ class EthTransport(object):
     __repr__ = __str__
 
 
-
-class SxITransport(object):
-
-    MAX_DATAGRAM_SIZE = 512
-    HEADER = "<HH"
-    HEADER_SIZE = struct.calcsize(HEADER)
-
-    def __init__(self, portName, baudrate = 9600, bytesize = serial.EIGHTBITS,
-                 parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE, timeout = 0.5):
-        self.parent = None
-        self._portName = portName
-        self._port = None
-        self._baudrate = baudrate
-        self._bytesize = bytesize
-        self._parity = parity
-        self._stopbits = stopbits
-        self._timeout = timeout
-        self._logger = logger
-        self.connected = False
-        self.connect()
-
-    def connect(self):
-        #SerialPort.counter += 1
-        self._logger.debug("Trying to open serial port %s.", self._portName)
-        try:
-            self._port = serial.Serial(self._portName, self._baudrate , self._bytesize, self._parity,
-                self._stopbits, self._timeout
-            )
-        except serial.SerialException as e:
-            self._logger.error("%s", e)
-            raise
-        self._logger.info("Serial port openend as '%s' @ %d Bits/Sec.", self._port.portstr, self._port.baudrate)
-        self.connected = True
-        return True
-
-    def output(self, enable):
-        if enable:
-            self._port.rts = False
-            self._port.dtr = False
-        else:
-            self._port.rts = True
-            self._port.dtr = True
-
-    def flush(self):
-        self._port.flush()
-
-    def disconnect(self):
-        if self._port.isOpen() == True:
-            self._port.close()
-
-    close = disconnect
 
 
 class XCPClient(object):
@@ -716,7 +666,7 @@ def cstest(loop):
 
 
 if __name__=='__main__':
-    sxi = SxITransport("COM27", 115200)
+    sxi = transport.SxI("COM27", 115200, loglevel = "DEBUG")
     print(sxi._port)
     sxi.disconnect()
     loop = asyncio.get_event_loop()
