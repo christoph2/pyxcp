@@ -51,7 +51,7 @@ class SxI(object):
         self._parity = parity
         self._stopbits = stopbits
         self._timeout = timeout
-        self.logger = Logger("pycxp::SxI")
+        self.logger = Logger("transport.SxI")
         self.logger.setLevel(loglevel)
         self.connected = False
         self.connect()
