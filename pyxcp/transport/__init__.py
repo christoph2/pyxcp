@@ -23,7 +23,7 @@ __copyright__="""
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-#.can
-#.eth
-
+#from .can import Can
+from .eth import Eth
 from .sxi import SxI
+
