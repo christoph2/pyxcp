@@ -99,7 +99,6 @@ class SxI(object):
         length = struct.unpack("<H", rawLength)[0]
         response = self.port.read(length + 2)
         response = rawLength + response
-        print("RES => {}".format(hexDump(response)))
 
         if len(response) < self.HEADER_SIZE:
             raise types.FrameSizeError("Frame too short.")

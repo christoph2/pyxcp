@@ -555,14 +555,14 @@ def cstest(loop):
     result = xcpClient.upload(result.length)
     print("ID: '{}'".format(result.decode("utf8")))
 
-    resInfo = xcpClient.getDaqResolutionInfo()
-    print(resInfo)
+#    resInfo = xcpClient.getDaqResolutionInfo()
+#    print(resInfo)
     #xcpClient.getDaqProcessorInfo()
 
 #    print("CS:", xcpClient.buildChecksum(4711))
 
-    start = xcpClient.getDaqClock()
-    print("Timestamp / Start: {}".format(start))
+#    start = xcpClient.getDaqClock()
+#    print("Timestamp / Start: {}".format(start))
 
 ##
 ##    for _ in range(10):
