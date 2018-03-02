@@ -95,8 +95,10 @@ class SxI(object):
         print("-> {}".format(hexDump(frame)), flush = True)
         self.port.write(frame)
 
-        length = struct.unpack("<H", self.port.read(2))[0]
+        rawLength = self.port.read(2)
+        length = struct.unpack("<H", rawLength)[0]
         response = self.port.read(length + 2)
+        response = rawLength + response
         print("RES => {}".format(hexDump(response)))
 
         if len(response) < self.HEADER_SIZE:
