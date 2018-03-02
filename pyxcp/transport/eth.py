@@ -71,18 +71,18 @@ class Eth(object):
             response, server = self.sock.recvfrom(Eth.MAX_DATAGRAM_SIZE)
 
         if len(response) < self.HEADER_SIZE:
-            raise FrameSizeError("Frame too short.")
+            raise types.FrameSizeError("Frame too short.")
         print("<- {}\n".format(hexDump(response)), flush = True)
         self.packetLen, self.seqNo = struct.unpack(Eth.HEADER, response[ : 4])
         self.xcpPDU = response[4 : ]
         if len(self.xcpPDU) != self.packetLen:
-            raise FrameSizeError("Size mismatch.")
+            raise types.FrameSizeError("Size mismatch.")
 
         pid = types.Response.parse(self.xcpPDU).type
         if pid != 'OK' and pid == 'ERR':
             if cmd.name != 'SYNCH':
                 err = types.XcpError.parse(self.xcpPDU[1 : ])
-                raise XcpResponseError(err)
+                raise types.XcpResponseError(err)
         else:
             pass    # Und nu??
         return self.xcpPDU[1 : ]

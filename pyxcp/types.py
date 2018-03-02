@@ -4,7 +4,7 @@
 __copyright__="""
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2017 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -32,9 +32,12 @@ if construct.version < (2, 8):
 
 from construct import Struct, If, Const, Adapter, FlagsEnum, Enum, String, Array, Padding, Tell, Union, HexDump
 from construct import Probe, CString, IfThenElse, Pass, Float64l, Int8ul, Construct, this, GreedyBytes, Switch
-from construct import OnDemandPointer, Pointer, Byte, GreedyRange, Bytes, Int16ul, Int16sl, Int32ul, Int32sl, Int64ul
+from construct import Pointer, Byte, GreedyRange, Bytes, Int16ul, Int16sl, Int32ul, Int32sl, Int64ul
 from construct import BitStruct, BitsInteger
 
+
+class FrameSizeError(Exception): pass
+class XcpResponseError(Exception): pass
 
 class Command(enum.IntEnum):
 

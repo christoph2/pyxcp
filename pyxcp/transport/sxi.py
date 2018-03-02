@@ -34,6 +34,8 @@ import struct
 import serial
 
 from ..logger import Logger
+from ..utils import hexDump
+import pyxcp.types as types
 
 class SxI(object):
 
@@ -41,11 +43,10 @@ class SxI(object):
     HEADER = "<HH"
     HEADER_SIZE = struct.calcsize(HEADER)
 
-    def __init__(self, portName, baudrate = 9600, bytesize = serial.EIGHTBITS,
-                 parity = serial.PARITY_NONE, stopbits = serial.STOPBITS_ONE, timeout = 0.5, loglevel = "WARN"):
+    def __init__(self, portName, baudrate = 9600, bytesize = 8, parity = 'N', stopbits = 1, timeout = 0.5, loglevel = "WARN"):
         self.parent = None
-        self._portName = portName
-        self._port = None
+        self.portName = portName
+        self.port = None
         self._baudrate = baudrate
         self._bytesize = bytesize
         self._parity = parity
@@ -53,37 +54,67 @@ class SxI(object):
         self._timeout = timeout
         self.logger = Logger("transport.SxI")
         self.logger.setLevel(loglevel)
-        self.connected = False
+        self.counter = 0
         self.connect()
+
+    def __del__(self):
+        self.disconnect()
 
     def connect(self):
         #SerialPort.counter += 1
-        self.logger.debug("Trying to open serial port {}.".format(self._portName))
+        self.logger.debug("Trying to open serial port {}.".format(self.portName))
         try:
-            self._port = serial.Serial(self._portName, self._baudrate , self._bytesize, self._parity,
-                self._stopbits, self._timeout
-            )
+            #self.port = serial.Serial(self.portName, self._baudrate , self._bytesize, self._parity,
+            #    self._stopbits, self._timeout
+            #)
+            self.port = serial.Serial(self.portName, self._baudrate, timeout = self._timeout)
         except serial.SerialException as e:
             self.logger.error("{}".format(e))
             raise
-        self.logger.info("Serial port openend as '{}' @ {} Bits/Sec.".format(self._port.portstr, self._port.baudrate))
-        self.connected = True
-        return True
+        self.logger.info("Serial port openend as '{}' @ {} Bits/Sec.".format(self.port.portstr, self.port.baudrate))
 
     def output(self, enable):
         if enable:
-            self._port.rts = False
-            self._port.dtr = False
+            self.port.rts = False
+            self.port.dtr = False
         else:
-            self._port.rts = True
-            self._port.dtr = True
+            self.port.rts = True
+            self.port.dtr = True
 
     def flush(self):
-        self._port.flush()
+        self.port.flush()
 
     def disconnect(self):
-        if self._port.isOpen() == True:
-            self._port.close()
+        if self.port and self.port.isOpen() == True:
+            self.port.close()
+
+    def request(self, cmd, *data):
+        print(cmd.name, flush = True)
+        header = struct.pack("<HH", len(data) + 1, self.counter)
+        frame = header + bytearray([cmd, *data])
+        print("-> {}".format(hexDump(frame)), flush = True)
+        self.port.write(frame)
+
+        length = struct.unpack("<H", self.port.read(2))[0]
+        response = self.port.read(length + 2)
+        print("RES => {}".format(hexDump(response)))
+
+        if len(response) < self.HEADER_SIZE:
+            raise types.FrameSizeError("Frame too short.")
+        print("<- {}\n".format(hexDump(response)), flush = True)
+        self.packetLen, self.seqNo = struct.unpack(SxI.HEADER, response[ : 4])
+        self.xcpPDU = response[4 : ]
+        if len(self.xcpPDU) != self.packetLen:
+            raise types.FrameSizeError("Size mismatch.")
+
+        pid = types.Response.parse(self.xcpPDU).type
+        if pid != 'OK' and pid == 'ERR':
+            if cmd.name != 'SYNCH':
+                err = types.XcpError.parse(self.xcpPDU[1 : ])
+                raise types.XcpResponseError(err)
+        else:
+            pass    # Und nu??
+        return self.xcpPDU[1 : ]
 
     close = disconnect
 

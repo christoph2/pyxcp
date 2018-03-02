@@ -40,10 +40,6 @@ from pyxcp import types
 from pyxcp import transport
 from pyxcp import skloader
 
-
-class FrameSizeError(Exception): pass
-class XcpResponseError(Exception): pass
-
 ##
 ##  todo: Meta-Programming wg. Persistenz/ Speicherung
 ##        als XML-File.
@@ -536,7 +532,9 @@ def timecode(ticks, mode):
 
 
 def cstest(loop):
-    xcpClient = XCPClient(transport.Eth('localhost', connected = False), loop)
+    #xcpClient = XCPClient(transport.Eth('localhost', connected = False), loop)
+
+    xcpClient = XCPClient(transport.SxI("COM27", 115200, loglevel = "DEBUG"), loop)
     conn = xcpClient.connect()
     print(conn, flush = True)
 
@@ -582,9 +580,9 @@ def cstest(loop):
 
 
 if __name__=='__main__':
-    sxi = transport.SxI("COM27", 115200, loglevel = "DEBUG")
-    print(sxi._port)
-    sxi.disconnect()
+    #sxi = transport.SxI("COM27", 115200, loglevel = "DEBUG")
+    #print(sxi._port)
+    #sxi.disconnect()
     loop = asyncio.get_event_loop()
     #test(loop)
     cstest(loop)
