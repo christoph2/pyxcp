@@ -30,6 +30,8 @@ from ..logger import Logger
 from ..utils import hexDump
 import pyxcp.types as types
 
+from ..timing import Timing
+
 DEFAULT_XCP_PORT = 5555
 
 
@@ -53,6 +55,7 @@ class Eth(object):
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.sock.settimeout(0.5)
         self.sock.connect((ipAddress, port))
+        self.timing = Timing()
 
     def close(self):
         self.sock.close()
@@ -62,6 +65,7 @@ class Eth(object):
         header = struct.pack("<HH", len(data) + 1, self.counter)
         frame = header + bytearray([cmd, *data])
         print("-> {}".format(hexDump(frame)), flush = True)
+        self.timing.start()
         self.sock.send(frame)
 
         if self.connected:
@@ -69,6 +73,7 @@ class Eth(object):
             response = self.sock.recv(length + 2)
         else:
             response, server = self.sock.recvfrom(Eth.MAX_DATAGRAM_SIZE)
+        self.timing.stop()
 
         if len(response) < self.HEADER_SIZE:
             raise types.FrameSizeError("Frame too short.")

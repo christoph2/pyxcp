@@ -23,19 +23,15 @@ __copyright__="""
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-"""
-Name    Type        Representation  Range of value
-MAX_CTO Parameter   BYTE        0x08 – 0xFF
-MAX_DTO Parameter   WORD        0x0008 – 0xFFFF
-"""
-
 import struct
 
 import serial
 
 from ..logger import Logger
 from ..utils import hexDump
+from ..timing import Timing
 import pyxcp.types as types
+
 
 class SxI(object):
 
@@ -43,7 +39,7 @@ class SxI(object):
     HEADER = "<HH"
     HEADER_SIZE = struct.calcsize(HEADER)
 
-    def __init__(self, portName, baudrate = 9600, bytesize = 8, parity = 'N', stopbits = 1, timeout = 0.5, loglevel = "WARN"):
+    def __init__(self, portName, baudrate = 9600, bytesize = 8, parity = 'N', stopbits = 1, timeout = 0.75, loglevel = "WARN"):
         self.parent = None
         self.portName = portName
         self.port = None
@@ -55,6 +51,7 @@ class SxI(object):
         self.logger = Logger("transport.SxI")
         self.logger.setLevel(loglevel)
         self.counter = 0
+        self.timing = Timing()
         self.connect()
 
     def __del__(self):
@@ -93,11 +90,13 @@ class SxI(object):
         header = struct.pack("<HH", len(data) + 1, self.counter)
         frame = header + bytearray([cmd, *data])
         print("-> {}".format(hexDump(frame)), flush = True)
+        self.timing.start()
         self.port.write(frame)
 
         rawLength = self.port.read(2)
         length = struct.unpack("<H", rawLength)[0]
         response = self.port.read(length + 2)
+        self.timing.stop()
         response = rawLength + response
 
         if len(response) < self.HEADER_SIZE:
