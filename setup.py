@@ -16,7 +16,7 @@ setup(
     author_email = 'cpu12.gems@googlemail.com',
     url = 'http://github.com/pySART/pyxcp',
     packages = packagez('pyxcp'),
-    install_requires = ['enum34', 'construct >= 2.8', 'mako'],
+    install_requires = ['enum34', 'construct >= 2.8', 'mako', 'pyserial'],
     package_dir = {'tests': 'pyxcp/tests'},
     test_suite = "pyxcp.tests"
 )
