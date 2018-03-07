@@ -86,7 +86,7 @@ class SxI(object):
             self.port.close()
 
     def request(self, cmd, *data):
-        print(cmd.name, flush = True)
+        self.logger.debug(cmd.name)
         header = struct.pack("<HH", len(data) + 1, self.counter)
         frame = header + bytearray([cmd, *data])
         self.logger.debug("-> {}".format(hexDump(frame)))

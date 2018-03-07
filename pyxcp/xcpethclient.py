@@ -534,8 +534,8 @@ def timecode(ticks, mode):
 
 
 def cstest(loop):
-    #tr = transport.Eth('localhost', connected = False)
-    tr = transport.SxI("COM27", 115200, loglevel = "DEBUG")
+    tr = transport.Eth('localhost', connected = False, loglevel = "WARN")
+    #tr = transport.SxI("COM27", 115200, loglevel = "DEBUG")
     xcpClient = XCPClient(tr, loop)
 
     tm = Timing()
@@ -569,14 +569,27 @@ def cstest(loop):
     start = xcpClient.getDaqClock()
     print("Timestamp / Start: {}".format(start))
 
+    xcpClient.freeDaq()
+    print("AllocDAQ:", xcpClient.allocDaq(2))
 
-    for _ in range(10):
-        tm.start()
-        time.sleep(0.250)
-        tm.stop()
-        stop = xcpClient.getDaqClock()
-        print("trueValue: {}".format(timecode(stop - start, resInfo)))
-        print("Timestamp / Diff: {}".format(stop - start))
+    print("allocOdt", xcpClient.allocOdt(1, 5))
+    print("allocOdt", xcpClient.allocOdt(0, 4))
+    print("allocOdt", xcpClient.allocOdt(1, 3))
+
+    print("allocOdt", xcpClient.allocOdtEntry(1, 3, 5))
+    print("allocOdt", xcpClient.allocOdtEntry(0, 1, 2))
+    print("allocOdt", xcpClient.allocOdtEntry(0, 3, 6))
+    print("allocOdt", xcpClient.allocOdtEntry(1, 1, 5))
+
+    xcpClient.freeDaq()
+
+#    for _ in range(10):
+#        tm.start()
+#        time.sleep(0.250)
+#        tm.stop()
+#        stop = xcpClient.getDaqClock()
+#        print("trueValue: {}".format(timecode(stop - start, resInfo)))
+#        print("Timestamp / Diff: {}".format(stop - start))
 
     print("Timer")
     print("=====")
