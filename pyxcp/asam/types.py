@@ -32,7 +32,7 @@ class AsamBaseType(object):
     return struct.pack("{}{}".format(self.byteorder, self.FMT), value)
     
   def decode(self, value):
-    return struct.unpack("{}{}".format(self.byteorder, self.FMT), value)[0]
+    return struct.unpack("{}{}".format(self.byteorder, self.FMT), bytes(value))[0]
     
     
 class A_Uint8(AsamBaseType):
