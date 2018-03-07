@@ -49,6 +49,7 @@ class A_Uint32(AsamBaseType):
 
 class A_Uint64(AsamBaseType):    
   FMT = "Q"
+
   
 class A_Int8(AsamBaseType):
   FMT = "b"
@@ -64,7 +65,12 @@ class A_Int32(AsamBaseType):
 
 class A_Int64(AsamBaseType):    
   FMT = "q"
-  
-  
 
-print(A_Uint16(INTEL).decode(b"\x04\x00"))
+  
+class A_Float32(AsamBaseType):
+  FMT = "f"
+
+  
+class A_Float64(AsamBaseType):
+  FMT = "d"
+  
