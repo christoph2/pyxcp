@@ -25,9 +25,9 @@ __copyright__="""
 
 import logging
 
-from pyxcp.utils import SingletonBase
+logging.basicConfig()
 
-class Logger(SingletonBase):
+class Logger(object):
 
     LOGGER_BASE_NAME = 'pyxcp'
     FORMAT = "[%(levelname)s (%(name)s)]: %(message)s"
