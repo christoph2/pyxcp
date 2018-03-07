@@ -41,11 +41,12 @@ class Eth(object):
     HEADER = "<HH"
     HEADER_SIZE = struct.calcsize(HEADER)
 
-    def __init__(self, ipAddress, port = DEFAULT_XCP_PORT, connected = True):
+    def __init__(self, ipAddress, port = DEFAULT_XCP_PORT, connected = True, loglevel = "WARN"):
         self.parent = None
         #self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM if connected else socket.SOCK_DGRAM)
         self.logger = Logger("transport.Eth")
+        self.logger.setLevel(loglevel)
         self.connected = connected
         self.counter = 0
         self._address = None
