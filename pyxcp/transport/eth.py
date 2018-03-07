@@ -65,7 +65,7 @@ class Eth(object):
         print(cmd.name, flush = True)
         header = struct.pack("<HH", len(data) + 1, self.counter)
         frame = header + bytearray([cmd, *data])
-        print("-> {}".format(hexDump(frame)), flush = True)
+        self.logger.debug("-> {}".format(hexDump(frame)))
         self.timing.start()
         self.sock.send(frame)
 
@@ -78,7 +78,7 @@ class Eth(object):
 
         if len(response) < self.HEADER_SIZE:
             raise types.FrameSizeError("Frame too short.")
-        print("<- {}\n".format(hexDump(response)), flush = True)
+        self.logger.debug("<- {}\n".format(hexDump(response)))
         self.packetLen, self.seqNo = struct.unpack(Eth.HEADER, response[ : 4])
         self.xcpPDU = response[4 : ]
         if len(self.xcpPDU) != self.packetLen:
