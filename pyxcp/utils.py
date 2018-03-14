@@ -206,3 +206,38 @@ def memoryMap(filename, writeable = False):
     fd = os.open(filename, os.O_RDWR if writeable else os.O_RDONLY)
     return mmap.mmap(fd, size, access = mmap.ACCESS_WRITE if writeable else mmap.ACCESS_READ)
 
+
+if sys.platform == "win32":
+
+    ##
+    ## Code snippet taken from http://code.activestate.com/recipes/496767-set-process-priority-in-windows/
+    ## Licenced under PSF.
+    ##
+    import ctypes, win32api,win32process,win32con
+
+    def setpriority(pid = None, priority = 1):
+        """ Set The Priority of a Windows Process.  Priority is a value between 0-5 where
+            2 is normal priority.  Default sets the priority of the current
+            python process but can take any valid process ID. """
+        priorityclasses = [win32process.IDLE_PRIORITY_CLASS,
+                           win32process.BELOW_NORMAL_PRIORITY_CLASS,
+                           win32process.NORMAL_PRIORITY_CLASS,
+                           win32process.ABOVE_NORMAL_PRIORITY_CLASS,
+                           win32process.HIGH_PRIORITY_CLASS,
+                           win32process.REALTIME_PRIORITY_CLASS]
+        if pid == None:
+            #pid = win32api.GetCurrentProcessId()
+            pid = ctypes.windll.kernel32.GetCurrentProcessId()
+        handle=ctypes.windll.kernel32.OpenProcess(win32con.PROCESS_ALL_ACCESS, True, pid)
+        win32process.SetPriorityClass(handle, priorityclasses[priority])
+        ## Chris
+        win32process.SetProcessPriorityBoost(handle, False)
+        ct = ctypes.windll.kernel32.GetCurrentThread()
+        gle = win32api.GetLastError()
+        print("gct", win32api.FormatMessage(gle))
+        ctypes.windll.kernel32.SetThreadPriority(ct, win32con.THREAD_BASE_PRIORITY_LOWRT)
+else:
+    def setpriority(pid = None, priority = 1):
+        pass
+
+
