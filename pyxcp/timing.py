@@ -65,6 +65,10 @@ class Timing:
 
     def __str__(self):
         unitName = Timing.UNIT_MAP.get(self.unit, "??")
+        self.min = 0 if self.min is None else self.min
+        self.max = 0 if self.max is None else self.max
+        self.avg = 0 if self.avg is None else self.avg
+        self._previous = 0 if self._previous is None else self._previous
         return Timing.FMT.format(self.min * self.unit, self.max * self.unit, self.avg * self.unit, self._previous * self.unit, unitName)
 
     __repr__ = __str__
