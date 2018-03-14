@@ -49,15 +49,18 @@ class BaseTransport(metaclass = abc.ABCMeta):
         self.evQueue = queue.Queue()
         self.servQueue = queue.Queue()
         self.listener = threading.Thread(target = self.listen, args = (), kwargs = {})
-        self.listener.start()
 
     def __del__(self):
         self.finishListener()
+        self.closeConnection()
 
     def close(self):
         self.finishListener()
         self.listener.join()
         self.closeConnection()
+
+    def startListener(self):
+        self.listener.start()
 
     def finishListener(self):
         self.closeEvent.set()

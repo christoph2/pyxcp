@@ -24,6 +24,7 @@ __copyright__="""
 """
 
 import struct
+import time
 
 import serial
 
@@ -31,16 +32,15 @@ from ..logger import Logger
 from ..utils import hexDump
 from ..timing import Timing
 import pyxcp.types as types
+from  pyxcp.transport.base import BaseTransport
 
-
-class SxI(object):
+class SxI(BaseTransport):
 
     MAX_DATAGRAM_SIZE = 512
     HEADER = "<HH"
     HEADER_SIZE = struct.calcsize(HEADER)
 
     def __init__(self, portName, baudrate = 9600, bytesize = 8, parity = 'N', stopbits = 1, timeout = 0.75, config = {}, loglevel = "WARN"):
-        self.parent = None
         self.portName = portName
         self.port = None
         self._baudrate = baudrate
@@ -48,14 +48,12 @@ class SxI(object):
         self._parity = parity
         self._stopbits = stopbits
         self._timeout = timeout
-        self.logger = Logger("transport.SxI")
-        self.logger.setLevel(loglevel)
-        self.counter = 0
-        self.timing = Timing()
+        super(SxI, self).__init__(config, loglevel)
         self.connect()
+        self.startListener()
 
     def __del__(self):
-        self.disconnect()
+        self.closeConnection()
 
     def connect(self):
         #SerialPort.counter += 1
@@ -81,40 +79,31 @@ class SxI(object):
     def flush(self):
         self.port.flush()
 
-    def disconnect(self):
-        if self.port and self.port.isOpen() == True:
-            self.port.close()
+    def listen(self):
+        while True:
+            if self.closeEvent.isSet():
+                return
+            if not self.port.inWaiting():
+                continue
+            rawLength = self.port.read(2)
+            length = struct.unpack("<H", rawLength)[0]
+            response = self.port.read(length + 2)
+            self.timing.stop()
+            response = rawLength + response
 
-    def request(self, cmd, *data):
-        self.logger.debug(cmd.name)
-        header = struct.pack("<HH", len(data) + 1, self.counter)
-        frame = header + bytearray([cmd, *data])
-        self.logger.debug("-> {}".format(hexDump(frame)))
-        self.timing.start()
+            if len(response) < self.HEADER_SIZE:
+                raise types.FrameSizeError("Frame too short.")
+            self.logger.debug("<- {}\n".format(hexDump(response)))
+            packetLen, seqNo = struct.unpack(SxI.HEADER, response[ : 4])
+            xcpPDU = response[4 : ]
+            if len(xcpPDU) != packetLen:
+                raise types.FrameSizeError("Size mismatch.")
+            self.resQueue.put(xcpPDU)
+
+    def send(self, frame):
         self.port.write(frame)
 
-        rawLength = self.port.read(2)
-        length = struct.unpack("<H", rawLength)[0]
-        response = self.port.read(length + 2)
-        self.timing.stop()
-        response = rawLength + response
-
-        if len(response) < self.HEADER_SIZE:
-            raise types.FrameSizeError("Frame too short.")
-        self.logger.debug("<- {}\n".format(hexDump(response)))
-        self.packetLen, self.seqNo = struct.unpack(SxI.HEADER, response[ : 4])
-        self.xcpPDU = response[4 : ]
-        if len(self.xcpPDU) != self.packetLen:
-            raise types.FrameSizeError("Size mismatch.")
-
-        pid = types.Response.parse(self.xcpPDU).type
-        if pid != 'OK' and pid == 'ERR':
-            if cmd.name != 'SYNCH':
-                err = types.XcpError.parse(self.xcpPDU[1 : ])
-                raise types.XcpResponseError(err)
-        else:
-            pass    # Und nu??
-        return self.xcpPDU[1 : ]
-
-    close = disconnect
+    def closeConnection(self):
+        if self.port and self.port.isOpen() == True:
+            self.port.close()
 

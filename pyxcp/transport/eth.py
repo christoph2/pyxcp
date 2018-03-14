@@ -54,6 +54,7 @@ class Eth(BaseTransport):
         self.sock.settimeout(0.5)
         self.sock.connect((ipAddress, port))
         super(Eth, self).__init__(config, loglevel)
+        self.startListener()
 
     def listen(self):
         while True:
@@ -67,6 +68,7 @@ class Eth(BaseTransport):
                         response = self.sock.recv(length + 2)
                     else:
                         response, server = self.sock.recvfrom(Eth.MAX_DATAGRAM_SIZE)
+
                     if len(response) < self.HEADER_SIZE:
                         raise types.FrameSizeError("Frame too short.")
                     self.logger.debug("<- {}\n".format(hexDump(response)))
