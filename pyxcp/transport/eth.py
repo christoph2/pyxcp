@@ -23,8 +23,11 @@ __copyright__="""
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
+import queue
+import selectors
 import socket
 import struct
+import threading
 
 from ..logger import Logger
 from ..utils import hexDump
@@ -41,10 +44,13 @@ class Eth(object):
     HEADER = "<HH"
     HEADER_SIZE = struct.calcsize(HEADER)
 
-    def __init__(self, ipAddress, port = DEFAULT_XCP_PORT, connected = True, loglevel = "WARN"):
+    def __init__(self, ipAddress, port = DEFAULT_XCP_PORT, config = {}, connected = True, loglevel = "WARN"):
         self.parent = None
         #self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM if connected else socket.SOCK_DGRAM)
+        self.selector = selectors.DefaultSelector()
+        self.selector.register(self.sock, selectors.EVENT_READ)
+        self.closeEvent = threading.Event()
         self.logger = Logger("transport.Eth")
         self.logger.setLevel(loglevel)
         self.connected = connected
@@ -57,9 +63,23 @@ class Eth(object):
         self.sock.settimeout(0.5)
         self.sock.connect((ipAddress, port))
         self.timing = Timing()
+        self.resQueue = queue.Queue()
+        self.daqQueue = queue.Queue()
+        self.evQueue = queue.Queue()
+        self.servQueue = queue.Queue()
+        self.listener = threading.Thread(target = self.listen, args=(), kwargs={})
+        self.listener.start()
+
+    def __del__(self):
+        self.finishListener()
 
     def close(self):
         self.sock.close()
+        self.finishListener()
+        self.listener.join()
+
+    def finishListener(self):
+        self.closeEvent.set()
 
     def request(self, cmd, *data):
         self.logger.debug(cmd.name)
@@ -69,29 +89,40 @@ class Eth(object):
         self.timing.start()
         self.sock.send(frame)
 
-        if self.connected:
-            length = struct.unpack("<H", self.sock.recv(2))[0]
-            response = self.sock.recv(length + 2)
-        else:
-            response, server = self.sock.recvfrom(Eth.MAX_DATAGRAM_SIZE)
+        xcpPDU = self.resQueue.get(timeout = 0.3)
+        self.resQueue.task_done()
         self.timing.stop()
 
-        if len(response) < self.HEADER_SIZE:
-            raise types.FrameSizeError("Frame too short.")
-        self.logger.debug("<- {}\n".format(hexDump(response)))
-        self.packetLen, self.seqNo = struct.unpack(Eth.HEADER, response[ : 4])
-        self.xcpPDU = response[4 : ]
-        if len(self.xcpPDU) != self.packetLen:
-            raise types.FrameSizeError("Size mismatch.")
-
-        pid = types.Response.parse(self.xcpPDU).type
+        pid = types.Response.parse(xcpPDU).type
         if pid != 'OK' and pid == 'ERR':
             if cmd.name != 'SYNCH':
-                err = types.XcpError.parse(self.xcpPDU[1 : ])
+                err = types.XcpError.parse(xcpPDU[1 : ])
                 raise types.XcpResponseError(err)
         else:
             pass    # Und nu??
-        return self.xcpPDU[1 : ]
+        return xcpPDU[1 : ]
+
+    def listen(self):
+        while True:
+            if self.closeEvent.isSet() or self.sock.fileno() == -1:
+                return
+            sel  = self.selector.select(0.1)
+            for key, events in sel:
+                if events & selectors.EVENT_READ:
+                    if self.connected:
+                        length = struct.unpack("<H", self.sock.recv(2))[0]
+                        response = self.sock.recv(length + 2)
+                    else:
+                        response, server = self.sock.recvfrom(Eth.MAX_DATAGRAM_SIZE)
+                    if len(response) < self.HEADER_SIZE:
+                        raise types.FrameSizeError("Frame too short.")
+                    self.logger.debug("<- {}\n".format(hexDump(response)))
+                    packetLen, seqNo = struct.unpack(Eth.HEADER, response[ : 4])
+                    xcpPDU = response[4 : ]
+                    if len(xcpPDU) != packetLen:
+                        raise types.FrameSizeError("Size mismatch.")
+                    self.resQueue.put(xcpPDU)
+
 
     def __str__(self):
         return "[Current Message]: {}".format(self.message)

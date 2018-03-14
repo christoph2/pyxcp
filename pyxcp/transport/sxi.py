@@ -39,7 +39,7 @@ class SxI(object):
     HEADER = "<HH"
     HEADER_SIZE = struct.calcsize(HEADER)
 
-    def __init__(self, portName, baudrate = 9600, bytesize = 8, parity = 'N', stopbits = 1, timeout = 0.75, loglevel = "WARN"):
+    def __init__(self, portName, baudrate = 9600, bytesize = 8, parity = 'N', stopbits = 1, timeout = 0.75, config = {}, loglevel = "WARN"):
         self.parent = None
         self.portName = portName
         self.port = None
