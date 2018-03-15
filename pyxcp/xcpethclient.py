@@ -23,7 +23,6 @@ __copyright__="""
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-import asyncio
 import array
 import enum
 import logging
@@ -38,9 +37,10 @@ import six
 from pyxcp import checksum
 from pyxcp import types
 from pyxcp import transport
-from pyxcp import skloader
 
+from pyxcp.dllif import getKey
 from pyxcp.timing import Timing
+from pyxcp.utils import setpriority
 
 ##rename to api?
 
@@ -147,12 +147,10 @@ class MockTransport(object):
 
 class XCPClient(object):
 
-    def __init__(self, transport, asyncLoop):
+    def __init__(self, transport):
         self.ctr = 0
         self.logger = logging.getLogger("pyXCP")
         self.transport = transport
-        self.asyncLoop = asyncLoop
-        print("loop style: {}".format(asyncLoop))
 
     def close(self):
         self.transport.close()
@@ -181,7 +179,6 @@ class XCPClient(object):
 
     def disconnect(self):
         response = self.transport.request(types.Command.DISCONNECT)
-        self.asyncLoop.stop()
 
     def getStatus(self):
         response = self.transport.request(types.Command.GET_STATUS)
@@ -438,10 +435,11 @@ class XCPClient(object):
 
 def unlock(client, privilege):
     length, seed = client.getSeed(0, privilege)
-    print("SEED: ", hexDump(seed), flush = True)
-    _, kee = skloader.getKey(b"SeedNKeyXcp.dll", privilege, seed)
+    #print("SEED: ", hexDump(seed), flush = True)
+    _, kee = dllif.getKey(b"SeedNKeyXcp.dll", privilege, seed)
     print("KEE:", kee)
-    print(client.unlock(len(kee), kee))
+#    res = client.unlock(len(kee), kee)
+    #print(res)
 
 
 def verify(client, addr, length):
@@ -454,8 +452,8 @@ def verify(client, addr, length):
     print("CS: {:08X}".format(cc))
 
 
-def test(loop):
-    xcpClient = XCPClient(transport.Eth('localhost', connected = False), loop)
+def test():
+    xcpClient = XCPClient(transport.Eth('localhost', connected = False))
     xcpClient.connect()
 
     print("calpag ?", xcpClient.supportsCalpag)
@@ -507,11 +505,8 @@ def test(loop):
 
     #print("PS:", xcpClient.programStart()) # ERR_ACCESS_LOCKED
 
-
     xcpClient.disconnect()
     xcpClient.close()
-
-    skloader.quit()
 
 
 def timecode(ticks, mode):
@@ -533,10 +528,10 @@ def timecode(ticks, mode):
     return (10 ** units[mode.timestampMode.unit]) * mode.timestampTicks * ticks
 
 
-def cstest(loop):
-    tr = transport.Eth('localhost', connected = False, loglevel = "WARN")
-    #tr = transport.SxI("COM27", 115200, loglevel = "DEBUG")
-    xcpClient = XCPClient(tr, loop)
+def cstest():
+    tr = transport.Eth('localhost', connected = False, loglevel = "DEBUG")
+    #tr = transport.SxI("COM27", 115200, loglevel = "WARN")
+    xcpClient = XCPClient(tr)
 
     tm = Timing()
 
@@ -569,19 +564,29 @@ def cstest(loop):
     start = xcpClient.getDaqClock()
     print("Timestamp / Start: {}".format(start))
 
-    xcpClient.freeDaq()
-    print("AllocDAQ:", xcpClient.allocDaq(2))
+    length, seed = xcpClient.getSeed(0, 4)
+    #print(seed)
+    #print("SEED: ", hexDump(seed))
+    #unlock(xcpClient, 1)
+    _, kee = getKey("SeedNKeyXcp.dll", "1", seed) # b'\xa9\xe0\x7fSm;\xa3-;M')
+    res = xcpClient.unlock(len(kee), kee)
+    print(res)
 
-    print("allocOdt", xcpClient.allocOdt(1, 5))
-    print("allocOdt", xcpClient.allocOdt(0, 4))
-    print("allocOdt", xcpClient.allocOdt(1, 3))
+##
+##    xcpClient.freeDaq()
+##    print("AllocDAQ:", xcpClient.allocDaq(2))
+##
+##    print("allocOdt", xcpClient.allocOdt(1, 5))
+##    print("allocOdt", xcpClient.allocOdt(0, 4))
+##    print("allocOdt", xcpClient.allocOdt(1, 3))
+##
+##    print("allocOdt", xcpClient.allocOdtEntry(1, 3, 5))
+##    print("allocOdt", xcpClient.allocOdtEntry(0, 1, 2))
+##    print("allocOdt", xcpClient.allocOdtEntry(0, 3, 6))
+##    print("allocOdt", xcpClient.allocOdtEntry(1, 1, 5))
+##
 
-    print("allocOdt", xcpClient.allocOdtEntry(1, 3, 5))
-    print("allocOdt", xcpClient.allocOdtEntry(0, 1, 2))
-    print("allocOdt", xcpClient.allocOdtEntry(0, 3, 6))
-    print("allocOdt", xcpClient.allocOdtEntry(1, 1, 5))
-
-    xcpClient.freeDaq()
+    #xcpClient.freeDaq()
 
 #    for _ in range(10):
 #        tm.start()
@@ -606,12 +611,9 @@ def cstest(loop):
 
 
 if __name__=='__main__':
+    #setpriority(priority = 4)
     #sxi = transport.SxI("COM27", 115200, loglevel = "DEBUG")
     #print(sxi._port)
     #sxi.disconnect()
-    loop = asyncio.get_event_loop()
-    #test(loop)
-    cstest(loop)
-    loop.run_forever()
-#    loop.close()
+    cstest()
 
