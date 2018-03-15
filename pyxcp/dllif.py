@@ -49,7 +49,7 @@ if sys.platform == 'win32' and bwidth == '64bit':
     pass
 
 def getKey(dllName, privilege, seed):
-    p0 = subprocess.run(["rdll", dllName, privilege, binascii.hexlify(seed).decode("ascii")], stdout=subprocess.PIPE, shell = True)
+    p0 = subprocess.run(["asamkeydll", dllName, privilege, binascii.hexlify(seed).decode("ascii")], stdout=subprocess.PIPE, shell = True)
     res = re.split(b"\r?\n", p0.stdout)
     if len(res) < 2:
         raise TypeError("Malformed answer.")
