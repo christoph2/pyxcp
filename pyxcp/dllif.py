@@ -42,7 +42,6 @@ ERR_UNSUFFICIENT_KEY_LENGTH = 3 # the space for the key is too small
 ERR_COULD_NOT_LOAD_DLL      = 16
 ERR_COULD_NOT_LOAD_FUNC     = 17
 
-
 bwidth, _ = platform.architecture()
 
 if sys.platform == 'win32' and bwidth == '64bit':
@@ -51,9 +50,9 @@ if sys.platform == 'win32' and bwidth == '64bit':
 def getKey(dllName, privilege, seed):
     p0 = subprocess.run(["asamkeydll", dllName, privilege, binascii.hexlify(seed).decode("ascii")], stdout=subprocess.PIPE, shell = True)
     res = re.split(b"\r?\n", p0.stdout)
-    if len(res) < 2:
-        raise TypeError("Malformed answer.")
     returnCode = int(res[0])
+    if len(res) < 2:
+        return (returnCode, None)
     key = binascii.unhexlify(res[1])
     return (returnCode, key)
 
