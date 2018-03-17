@@ -39,6 +39,7 @@ from pyxcp import types
 from pyxcp import transport
 from pyxcp.dllif import getKey
 from pyxcp.client import Client
+from pyxcp.utils import hexDump
 
 def test():
     xcpClient = Client(transport.Eth('localhost', connected = False))
@@ -119,80 +120,80 @@ def timecode(ticks, mode):
 def cstest():
     tr = transport.Eth('localhost', connected = False, loglevel = "DEBUG")
     #tr = transport.SxI("COM27", 115200, loglevel = "WARN")
-    xcpClient = Client(tr)
+    with Client(tr) as xcpClient:
+    #    tm = Timing()
 
-#    tm = Timing()
+        conn = xcpClient.connect()
+        print(conn, flush = True)
 
-    conn = xcpClient.connect()
-    print(conn, flush = True)
+        print("calpag ?", xcpClient.supportsCalpag)
+        print("daq ?", xcpClient.supportsDaq)
+        print("pgm ?", xcpClient.supportsPgm)
+        print("stim ?", xcpClient.supportsStim)
 
-    print("calpag ?", xcpClient.supportsCalpag)
-    print("daq ?", xcpClient.supportsDaq)
-    print("pgm ?", xcpClient.supportsPgm)
-    print("stim ?", xcpClient.supportsStim)
+        xcpClient.getStatus()
+        xcpClient.synch()
 
-    xcpClient.getStatus()
-    xcpClient.synch()
+        if conn.commModeBasic.optional:
+            xcpClient.getCommModeInfo()
+        else:
+            print("No details on connection.")
 
-    if conn.commModeBasic.optional:
-        xcpClient.getCommModeInfo()
-    else:
-        print("No details on connection.")
+        result = xcpClient.getID(0x01)
+        result = xcpClient.upload(result.length)
+        print("ID: '{}'".format(result.decode("utf8")))
 
-    result = xcpClient.getID(0x01)
-    result = xcpClient.upload(result.length)
-    print("ID: '{}'".format(result.decode("utf8")))
+        resInfo = xcpClient.getDaqResolutionInfo()
+        print(resInfo)
+        #xcpClient.getDaqProcessorInfo()
 
-    resInfo = xcpClient.getDaqResolutionInfo()
-    print(resInfo)
-    #xcpClient.getDaqProcessorInfo()
+    #    print("CS:", xcpClient.buildChecksum(4711))
 
-#    print("CS:", xcpClient.buildChecksum(4711))
+        start = xcpClient.getDaqClock()
+        print("Timestamp / Start: {}".format(start))
 
-    start = xcpClient.getDaqClock()
-    print("Timestamp / Start: {}".format(start))
+        length, seed = xcpClient.getSeed(0, 0xff)
+        #print(seed)
+        print("SEED: ", hexDump(seed))
+        #unlock(xcpClient, 1)
+        resultCode, kee = getKey("SeedNKeyXcp.dll", 1, seed)
+        if resultCode == 0:
+            res = xcpClient.unlock(len(kee), kee)
+            print(res)
 
-    length, seed = xcpClient.getSeed(0, 4)
-    #print(seed)
-    #print("SEED: ", hexDump(seed))
-    #unlock(xcpClient, 1)
-    _, kee = getKey("SeedNKeyXcp.dll", "1", seed) # b'\xa9\xe0\x7fSm;\xa3-;M')
-    #res = xcpClient.unlock(len(kee), kee)
-    #print(res)
+    ##
+    ##    xcpClient.freeDaq()
+    ##    print("AllocDAQ:", xcpClient.allocDaq(2))
+    ##
+    ##    print("allocOdt", xcpClient.allocOdt(1, 5))
+    ##    print("allocOdt", xcpClient.allocOdt(0, 4))
+    ##    print("allocOdt", xcpClient.allocOdt(1, 3))
+    ##
+    ##    print("allocOdt", xcpClient.allocOdtEntry(1, 3, 5))
+    ##    print("allocOdt", xcpClient.allocOdtEntry(0, 1, 2))
+    ##    print("allocOdt", xcpClient.allocOdtEntry(0, 3, 6))
+    ##    print("allocOdt", xcpClient.allocOdtEntry(1, 1, 5))
+    ##
 
-##
-##    xcpClient.freeDaq()
-##    print("AllocDAQ:", xcpClient.allocDaq(2))
-##
-##    print("allocOdt", xcpClient.allocOdt(1, 5))
-##    print("allocOdt", xcpClient.allocOdt(0, 4))
-##    print("allocOdt", xcpClient.allocOdt(1, 3))
-##
-##    print("allocOdt", xcpClient.allocOdtEntry(1, 3, 5))
-##    print("allocOdt", xcpClient.allocOdtEntry(0, 1, 2))
-##    print("allocOdt", xcpClient.allocOdtEntry(0, 3, 6))
-##    print("allocOdt", xcpClient.allocOdtEntry(1, 1, 5))
-##
+        #xcpClient.freeDaq()
 
-    #xcpClient.freeDaq()
+    #    for _ in range(10):
+    #        tm.start()
+    #        time.sleep(0.250)
+    #        tm.stop()
+    #        stop = xcpClient.getDaqClock()
+    #        print("trueValue: {}".format(timecode(stop - start, resInfo)))
+    #        print("Timestamp / Diff: {}".format(stop - start))
 
-#    for _ in range(10):
-#        tm.start()
-#        time.sleep(0.250)
-#        tm.stop()
-#        stop = xcpClient.getDaqClock()
-#        print("trueValue: {}".format(timecode(stop - start, resInfo)))
-#        print("Timestamp / Diff: {}".format(stop - start))
+        print("Timer")
+        print("=====")
+    #    print(tm)
 
-    print("Timer")
-    print("=====")
-#    print(tm)
-
-    xcpClient.setMta(0x1C0000)
-    xcpClient.disconnect()
-    xcpClient.close()
-    print("XCP roundtrip timing")
-    print("=" * 20)
+        xcpClient.setMta(0x1C0000)
+        xcpClient.disconnect()
+        #xcpClient.close()
+        print("XCP roundtrip timing")
+        print("=" * 20)
  #   print(tr.timing)
 
     #skloader.quit()
