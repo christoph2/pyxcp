@@ -347,7 +347,7 @@ class Client(object):
 
     def writeDaq(self, bitOffset, entrySize, addressExt, address):
         addr = struct.pack("<I", address)
-        response = self.transport.request(types.Command.WRITE_DAQ, 0, bitOffset, entrySize, addressExt, *addr)
+        response = self.transport.request(types.Command.WRITE_DAQ, bitOffset, entrySize, addressExt, *addr)
         return response
 
     def setDaqListMode(self, mode, daqListNumber, eventChannelNumber, prescaler, priority):
