@@ -48,7 +48,7 @@ if sys.platform == 'win32' and bwidth == '64bit':
     pass
 
 def getKey(dllName, privilege, seed):
-    p0 = subprocess.run(["asamkeydll", dllName, privilege, binascii.hexlify(seed).decode("ascii")], stdout=subprocess.PIPE, shell = True)
+    p0 = subprocess.run(["asamkeydll", dllName, str(privilege), binascii.hexlify(seed).decode("ascii")], stdout=subprocess.PIPE, shell = True)
     res = re.split(b"\r?\n", p0.stdout)
     returnCode = int(res[0])
     if len(res) < 2:
