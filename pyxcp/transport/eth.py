@@ -65,10 +65,17 @@ class Eth(BaseTransport):
                 if events & selectors.EVENT_READ:
                     if self.connected:
                         length = struct.unpack("<H", self.sock.recv(2))[0]
-                        response = self.sock.recv(length + 2)
+                        try:
+                            response = self.sock.recv(length + 2)
+                        except  Exception as e:
+                            self.logger.error(str(e))
+                            continue
                     else:
-                        response, server = self.sock.recvfrom(Eth.MAX_DATAGRAM_SIZE)
-
+                        try:
+                            response, server = self.sock.recvfrom(Eth.MAX_DATAGRAM_SIZE)
+                        except  Exception as e:
+                            self.logger.error(str(e))
+                            continue
                     if len(response) < self.HEADER_SIZE:
                         raise types.FrameSizeError("Frame too short.")
                     self.logger.debug("<- {}\n".format(hexDump(response)))
