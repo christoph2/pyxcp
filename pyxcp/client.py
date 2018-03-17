@@ -31,6 +31,7 @@ import select
 import struct
 import sys
 import time
+import traceback
 
 import six
 
@@ -41,8 +42,6 @@ from pyxcp import transport
 from pyxcp.dllif import getKey
 from pyxcp.timing import Timing
 from pyxcp.utils import setpriority
-
-##rename to api?
 
 ##
 ##  todo: Meta-Programming wg. Persistenz/ Speicherung
@@ -151,6 +150,18 @@ class Client(object):
         self.ctr = 0
         self.logger = logging.getLogger("pyXCP")
         self.transport = transport
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        if exc_tb:
+            print("=" * 79)
+            print("Exception while in Context-Manager:\n")
+            print(traceback.print_exception(exc_type, exc_val, exc_tb))
+            print("=" * 79)
+        return True
 
     def close(self):
         self.transport.close()
