@@ -148,6 +148,7 @@ class Client(object):
 
     def __init__(self, transport):
         self.ctr = 0
+        self.succeeded = True
         self.logger = logging.getLogger("pyXCP")
         self.transport = transport
 
@@ -157,10 +158,11 @@ class Client(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
         if exc_tb:
-            print("=" * 79)
-            print("Exception while in Context-Manager:\n")
-            print(traceback.print_exception(exc_type, exc_val, exc_tb))
-            print("=" * 79)
+            self.succeeded = False
+            #print("=" * 79)
+            #print("Exception while in Context-Manager:\n")
+            self.logger.error(''.join(traceback.format_exception(exc_type, exc_val, exc_tb)))
+            #print("=" * 79)
         return True
 
     def close(self):
