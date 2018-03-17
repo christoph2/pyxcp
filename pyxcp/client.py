@@ -351,18 +351,18 @@ class Client(object):
         return response
 
     def setDaqListMode(self, mode, daqListNumber, eventChannelNumber, prescaler, priority):
-        dln = struct.pack("<I", daqListNumber)
-        ecn = struct.pack("<I", eventChannelNumber)
+        dln = struct.pack("<H", daqListNumber)
+        ecn = struct.pack("<H", eventChannelNumber)
         response = self.transport.request(types.Command.SET_DAQ_LIST_MODE, mode, *dln, *ecn, prescaler, priority)
         return response
 
     def getDaqListMode(self, daqListNumber):
-        dln = struct.pack("<I", daqListNumber)
+        dln = struct.pack("<H", daqListNumber)
         response = self.transport.request(types.Command.GET_DAQ_LIST_MODE, 0, *dln)
         return types.GetDaqListModeResponse.parse(response)
 
     def startStopDaqList(self, mode, daqListNumber):
-        dln = struct.pack("<I", daqListNumber)
+        dln = struct.pack("<H", daqListNumber)
         response = self.transport.request(types.Command.START_STOP_DAQ_LIST, mode, *dln)
         return response
 
@@ -389,12 +389,12 @@ class Client(object):
         return types.GetDaqResolutionInfoResponse.parse(response)
 
     def getDaqListInfo(self, daqListNumber):
-        dln = struct.pack("<I", daqListNumber)
+        dln = struct.pack("<H", daqListNumber)
         response = self.transport.request(types.Command.GET_DAQ_LIST_INFO, 0, *dln)
         return types.GetDaqListInfoResponse.parse(response)
 
     def getEventChannelInfo(self, eventChannelNumber):
-        ecn = struct.pack("<I", eventChannelNumber)
+        ecn = struct.pack("<H", eventChannelNumber)
         response = self.transport.request(types.Command.GET_DAQ_EVENT_INFO, 0, *ecn)
         return types.GetEventChannelInfoResponse.parse(response)
 
@@ -404,17 +404,17 @@ class Client(object):
         return response
 
     def allocDaq(self, daqCount):
-        dq = struct.pack("<I", daqCount)
+        dq = struct.pack("<H", daqCount)
         response = self.transport.request(types.Command.ALLOC_DAQ, 0, *dq)
         return response
 
     def allocOdt(self, daqListNumber, odtCount):
-        dln = struct.pack("<I", daqListNumber)
+        dln = struct.pack("<H", daqListNumber)
         response = self.transport.request(types.Command.ALLOC_ODT, 0, *dln, odtCount)
         return response
 
     def allocOdtEntry(self, daqListNumber, odtNumber, odtEntriesCount):
-        dln = struct.pack("<I", daqListNumber)
+        dln = struct.pack("<H", daqListNumber)
         response = self.transport.request(types.Command.ALLOC_ODT_ENTRY, 0, *dln, odtNumber, odtEntriesCount)
         return response
 
