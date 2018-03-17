@@ -67,13 +67,13 @@ class Eth(BaseTransport):
                         length = struct.unpack("<H", self.sock.recv(2))[0]
                         try:
                             response = self.sock.recv(length + 2)
-                        except  Exception as e:
+                        except Exception as e:
                             self.logger.error(str(e))
                             continue
                     else:
                         try:
                             response, server = self.sock.recvfrom(Eth.MAX_DATAGRAM_SIZE)
-                        except  Exception as e:
+                        except Exception as e:
                             self.logger.error(str(e))
                             continue
                     if len(response) < self.HEADER_SIZE:

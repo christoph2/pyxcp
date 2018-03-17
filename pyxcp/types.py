@@ -38,6 +38,7 @@ from construct import BitStruct, BitsInteger, Flag
 
 class FrameSizeError(Exception): pass
 class XcpResponseError(Exception): pass
+class XcpTimeoutError(Exception): pass
 
 class Command(enum.IntEnum):
 

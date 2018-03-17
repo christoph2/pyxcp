@@ -29,7 +29,7 @@ import struct
 import threading
 
 from ..logger import Logger
-from ..utils import hexDump
+from ..utils import hexDump, PYTHON_VERSION
 import pyxcp.types as types
 
 from ..timing import Timing
@@ -73,7 +73,13 @@ class BaseTransport(metaclass = abc.ABCMeta):
         self.timing.start()
         self.send(frame)
 
-        xcpPDU = self.resQueue.get(timeout = 0.3)
+        try:
+            xcpPDU = self.resQueue.get(timeout = 0.3)
+        except queue.Empty as e:
+            if PYTHON_VERSION >= (3, 3):
+                raise types.XcpTimeoutError("Response timed out.") from None
+            else:
+                raise types.XcpTimeoutError("Response timed out.")
         self.resQueue.task_done()
         self.timing.stop()
 
