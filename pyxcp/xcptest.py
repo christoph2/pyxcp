@@ -24,6 +24,7 @@ __copyright__="""
 """
 
 import array
+from collections import namedtuple
 import enum
 import logging
 import os
@@ -38,64 +39,64 @@ from pyxcp import checksum
 from pyxcp import types
 from pyxcp import transport
 from pyxcp.dllif import getKey
-from pyxcp.client import Client
+from pyxcp.master import Master
 from pyxcp.utils import hexDump
 
 def test():
-    xcpClient = Client(transport.Eth('localhost', connected = False))
-    xcpClient.connect()
+    xm = Master(transport.Eth('localhost', connected = False))
+    xm.connect()
 
-    print("calpag ?", xcpClient.supportsCalpag)
-    print("daq ?", xcpClient.supportsDaq)
-    print("pgm ?", xcpClient.supportsPgm)
-    print("stim ?", xcpClient.supportsStim)
+    print("calpag ?", xm.supportsCalpag)
+    print("daq ?", xm.supportsDaq)
+    print("pgm ?", xm.supportsPgm)
+    print("stim ?", xm.supportsStim)
 
 
-    xcpClient.getStatus()
-    xcpClient.synch()
-    xcpClient.getCommModeInfo()
+    xm.getStatus()
+    xm.synch()
+    xm.getCommModeInfo()
 
-    result = xcpClient.getID(0x01)
-    xcpClient.upload(result.length)
+    result = xm.getID(0x01)
+    xm.upload(result.length)
 
-    unlock(xcpClient, 4)
-    #length, seed = xcpClient.getSeed(0x7ba, 0, 4)
+    unlock(xm, 4)
+    #length, seed = xm.getSeed(0x7ba, 0, 4)
     #print("SEED: ", hexDump(seed), flush = True)
     #_, kee = skloader.getKey(b"SeedNKeyXcp.dll", 4, seed)
     #print("KEE:", kee)
-    #print(xcpClient.unlock(0x7a, len(kee), kee))
+    #print(xm.unlock(0x7a, len(kee), kee))
 
 
-    print("DAQ_PROC_INFO: ", xcpClient.getDaqProcessorInfo())
+    print("DAQ_PROC_INFO: ", xm.getDaqProcessorInfo())
 
-    print("TIMESTAMP: {:04X}".format(xcpClient.getDaqClock()))
+    print("TIMESTAMP: {:04X}".format(xm.getDaqClock()))
 
-    #print("readDAQ:", xcpClient.readDaq())
+    #print("readDAQ:", xm.readDaq())
 
-    print("daqResolutionInfo", xcpClient.getDaqResolutionInfo())
+    print("daqResolutionInfo", xm.getDaqResolutionInfo())
 
-    dpi = xcpClient.getDaqProcessorInfo()
+    dpi = xm.getDaqProcessorInfo()
 
     for ecn in range(dpi.maxEventChannel):
-        eci = xcpClient.getEventChannelInfo(ecn)
+        eci = xm.getEventChannelInfo(ecn)
         print(eci)
-        data = xcpClient.upload(eci.eventChannelNameLength)
+        data = xm.upload(eci.eventChannelNameLength)
         print("EventChannelName:", data.decode("latin1"))
 
-    #print("GetDAQListInfo", xcpClient.getDaqListInfo(0))
-    xcpClient.freeDaq()
-    print("AllocDAQ:", xcpClient.allocDaq(2))
+    #print("GetDAQListInfo", xm.getDaqListInfo(0))
+    xm.freeDaq()
+    print("AllocDAQ:", xm.allocDaq(2))
 
-    xcpClient.setMta(0x1C0000)
-    print("CS:", xcpClient.buildChecksum(4742))
+    xm.setMta(0x1C0000)
+    print("CS:", xm.buildChecksum(4742))
 
-    unlock(xcpClient, 1)
-    verify(xcpClient, 0x1C0000, 128)
+    unlock(xm, 1)
+    verify(xm, 0x1C0000, 128)
 
-    #print("PS:", xcpClient.programStart()) # ERR_ACCESS_LOCKED
+    #print("PS:", xm.programStart()) # ERR_ACCESS_LOCKED
 
-    xcpClient.disconnect()
-    xcpClient.close()
+    xm.disconnect()
+    xm.close()
 
 
 def timecode(ticks, mode):
@@ -118,70 +119,72 @@ def timecode(ticks, mode):
 
 
 def cstest():
-    tr = transport.Eth('localhost', connected = False, loglevel = "DEBUG")
+    tr = transport.Eth('localhost', port= 5555, connected = False, loglevel = "DEBUG")
     #tr = transport.SxI("COM27", 115200, loglevel = "WARN")
-    with Client(tr) as xcpClient:
+    with Master(tr) as xm:
     #    tm = Timing()
 
-        conn = xcpClient.connect()
+        conn = xm.connect()
         print(conn, flush = True)
 
-        print("calpag ?", xcpClient.supportsCalpag)
-        print("daq ?", xcpClient.supportsDaq)
-        print("pgm ?", xcpClient.supportsPgm)
-        print("stim ?", xcpClient.supportsStim)
+        print("calpag ?", xm.supportsCalpag)
+        print("daq ?", xm.supportsDaq)
+        print("pgm ?", xm.supportsPgm)
+        print("stim ?", xm.supportsStim)
 
-        xcpClient.getStatus()
-        xcpClient.synch()
+        xm.getStatus()
+        xm.synch()
 
         if conn.commModeBasic.optional:
-            xcpClient.getCommModeInfo()
+            xm.getCommModeInfo()
         else:
             print("No details on connection.")
 
-        result = xcpClient.getID(0x01)
-        result = xcpClient.upload(result.length)
+        result = xm.getID(0x01)
+        result = xm.upload(result.length)
         print("ID: '{}'".format(result.decode("utf8")))
 
-        resInfo = xcpClient.getDaqResolutionInfo()
+        resInfo = xm.getDaqResolutionInfo()
         print(resInfo)
-        #xcpClient.getDaqProcessorInfo()
+        #xm.getDaqProcessorInfo()
 
-    #    print("CS:", xcpClient.buildChecksum(4711))
+    #    print("CS:", xm.buildChecksum(4711))
 
-        start = xcpClient.getDaqClock()
+        start = xm.getDaqClock()
         print("Timestamp / Start: {}".format(start))
 
-        length, seed = xcpClient.getSeed(0, 0xff)
+        length, seed = xm.getSeed(0, 0xff)
         #print(seed)
         print("SEED: ", hexDump(seed))
-        #unlock(xcpClient, 1)
+        #unlock(xm, 1)
         resultCode, kee = getKey("SeedNKeyXcp.dll", 1, seed)
         if resultCode == 0:
-            res = xcpClient.unlock(len(kee), kee)
+            res = xm.unlock(len(kee), kee)
             print(res)
 
+
+        startMeasurement(xm)
     ##
-    ##    xcpClient.freeDaq()
-    ##    print("AllocDAQ:", xcpClient.allocDaq(2))
+    ##    xm.freeDaq()
+    ##    print("AllocDAQ:", xm.allocDaq(2))
     ##
-    ##    print("allocOdt", xcpClient.allocOdt(1, 5))
-    ##    print("allocOdt", xcpClient.allocOdt(0, 4))
-    ##    print("allocOdt", xcpClient.allocOdt(1, 3))
+    ##    print("allocOdt", xm.allocOdt(1, 5))
+    ##    print("allocOdt", xm.allocOdt(0, 4))
+    ##    print("allocOdt", xm.allocOdt(1, 3))
     ##
-    ##    print("allocOdt", xcpClient.allocOdtEntry(1, 3, 5))
-    ##    print("allocOdt", xcpClient.allocOdtEntry(0, 1, 2))
-    ##    print("allocOdt", xcpClient.allocOdtEntry(0, 3, 6))
-    ##    print("allocOdt", xcpClient.allocOdtEntry(1, 1, 5))
+    ##    print("allocOdt", xm.allocOdtEntry(1, 3, 5))
+    ##    print("allocOdt", xm.allocOdtEntry(0, 1, 2))
+    ##    print("allocOdt", xm.allocOdtEntry(0, 3, 6))
+    ##    print("allocOdt", xm.allocOdtEntry(1, 1, 5))
     ##
 
-        #xcpClient.freeDaq()
+        #xm.freeDaq()
 
     #    for _ in range(10):
     #        tm.start()
     #        time.sleep(0.250)
     #        tm.stop()
-    #        stop = xcpClient.getDaqClock()
+    #        stop = xm.getDaqClock()
     #        print("trueValue: {}".format(timecode(stop - start, resInfo)))
     #        print("Timestamp / Diff: {}".format(stop - start))
 
@@ -189,20 +192,155 @@ def cstest():
         print("=====")
     #    print(tm)
 
-        xcpClient.setMta(0x1C0000)
-        xcpClient.disconnect()
-        #xcpClient.close()
+        xm.setMta(0x1C0000)
+        xm.disconnect()
+        #xm.close()
         print("XCP roundtrip timing")
         print("=" * 20)
  #   print(tr.timing)
 
-    #skloader.quit()
 
+DaqEntry = namedtuple("DaqEntry", "daq odt entry bitoff size ext addr")
+
+def startMeasurement(cl):
+    print(cl.getDaqProcessorInfo())
+    cl.freeDaq()
+    cl.allocDaq(2)
+
+    cl.allocOdt(1, 13)
+    cl.allocOdt(0, 2)
+
+    cl.allocOdtEntry(0, 0, 1)
+    cl.allocOdtEntry(0, 1, 1)
+    cl.allocOdtEntry(0, 2, 1)
+    cl.allocOdtEntry(0, 3, 1)
+    cl.allocOdtEntry(0, 4, 1)
+    cl.allocOdtEntry(0, 5, 1)
+    cl.allocOdtEntry(0, 6, 1)
+    cl.allocOdtEntry(0, 7, 1)
+    cl.allocOdtEntry(0, 8, 1)
+    cl.allocOdtEntry(0, 9, 1)
+    cl.allocOdtEntry(0, 10, 1)
+    cl.allocOdtEntry(0, 11, 3)
+    cl.allocOdtEntry(0, 12, 5)
+
+    cl.allocOdtEntry(1, 0, 1)
+    cl.allocOdtEntry(1, 1, 1)
+
+    de0 = (
+        DaqEntry(daq=0, odt=0,  entry=0, bitoff=255, size=2, ext=0, addr=0x001BE068),
+        DaqEntry(daq=0, odt=1,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE06A),
+        DaqEntry(daq=0, odt=2,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE070),
+        DaqEntry(daq=0, odt=3,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE076),
+        DaqEntry(daq=0, odt=4,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE07C),
+        DaqEntry(daq=0, odt=5,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE082),
+        DaqEntry(daq=0, odt=6,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE088),
+        DaqEntry(daq=0, odt=7,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE08E),
+        DaqEntry(daq=0, odt=8,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE094),
+        DaqEntry(daq=0, odt=9,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE09A),
+        DaqEntry(daq=0, odt=10, entry=0, bitoff=255, size=6, ext=0, addr=0x001BE0A0),
+        DaqEntry(daq=0, odt=11, entry=0, bitoff=255, size=2, ext=0, addr=0x001BE0A6),
+        DaqEntry(daq=0, odt=11, entry=1, bitoff=255, size=1, ext=0, addr=0x001BE0CF),
+        DaqEntry(daq=0, odt=11, entry=2, bitoff=255, size=3, ext=0, addr=0x001BE234),
+        DaqEntry(daq=0, odt=12, entry=0, bitoff=255, size=1, ext=0, addr=0x001BE237),
+        DaqEntry(daq=0, odt=12, entry=1, bitoff=255, size=1, ext=0, addr=0x001BE24F),
+        DaqEntry(daq=0, odt=12, entry=2, bitoff=255, size=1, ext=0, addr=0x001BE269),
+        DaqEntry(daq=0, odt=12, entry=3, bitoff=255, size=1, ext=0, addr=0x001BE5A3),
+        DaqEntry(daq=0, odt=12, entry=4, bitoff=255, size=1, ext=0, addr=0x001C0003),
+        DaqEntry(daq=1, odt=0 , entry=0, bitoff=255, size=2, ext=0, addr=0x001C002C),
+        DaqEntry(daq=1, odt=1 , entry=0, bitoff=255, size=2, ext=0, addr=0x001C002E),
+    )
+    for daq, odt, entry, bitoff, size, ext, addr in de0:
+        cl.setDaqPtr(daq, odt,  entry)
+        cl.writeDaq(bitoff, size, ext, addr)
+    """
+    SET_DAQ_LIST_MODE mode=10h daq=0 event=1 prescaler=1 priority=1
+    START_STOP_DAQ_LIST mode=02h daq=0
+    SET_DAQ_LIST_MODE mode=10h daq=1 event=2 prescaler=1 priority=2
+    START_STOP_DAQ_LIST mode=02h daq=1
+    GET_DAQ_CLOCK
+    GET_DAQ_CLOCK
+    START_STOP_SYNCH mode=01h
+    """
+    cl.setDaqListMode(0x10, 0, 1, 1, 1)
+    cl.startStopDaqList(0x02, 0)
+    cl.setDaqListMode(0x10, 1, 2, 1, 2)
+    cl.startStopDaqList(0x02, 1)
+    cl.startStopSynch(0x01)
+
+    time.sleep(3.0)
+
+    cl.startStopSynch(0x00)
 
 if __name__=='__main__':
-    #setpriority(priority = 4)
-    #sxi = transport.SxI("COM27", 115200, loglevel = "DEBUG")
-    #print(sxi._port)
-    #sxi.disconnect()
     cstest()
+
+"""
+FREE_DAQ
+ALLOC_DAQ count=2
+ALLOC_ODT daq=0 count=13
+ALLOC_ODT daq=1 count=2
+
+ALLOC_ODT_ENTRY daq=0 odt=0 count=1
+ALLOC_ODT_ENTRY daq=0 odt=1 count=1
+ALLOC_ODT_ENTRY daq=0 odt=2 count=1
+ALLOC_ODT_ENTRY daq=0 odt=3 count=1
+ALLOC_ODT_ENTRY daq=0 odt=4 count=1
+ALLOC_ODT_ENTRY daq=0 odt=5 count=1
+ALLOC_ODT_ENTRY daq=0 odt=6 count=1
+ALLOC_ODT_ENTRY daq=0 odt=7 count=1
+ALLOC_ODT_ENTRY daq=0 odt=8 count=1
+ALLOC_ODT_ENTRY daq=0 odt=9 count=1
+ALLOC_ODT_ENTRY daq=0 odt=10 count=1
+ALLOC_ODT_ENTRY daq=0 odt=11 count=3
+ALLOC_ODT_ENTRY daq=0 odt=12 count=5
+
+ALLOC_ODT_ENTRY daq=1 odt=0 count=1
+ALLOC_ODT_ENTRY daq=1 odt=1 count=1
+
+SET_DAQ_PTR daq=0 odt=0 entry=0
+WRITE_DAQ bitoff=255 size=2 ext=0 addr=001BE068h        
+SET_DAQ_PTR daq=0 odt=1 entry=0                         
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE06Ah        
+SET_DAQ_PTR daq=0 odt=2 entry=0                         
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE070h        
+SET_DAQ_PTR daq=0 odt=3 entry=0                         
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE076h        
+SET_DAQ_PTR daq=0 odt=4 entry=0                         
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE07Ch        
+SET_DAQ_PTR daq=0 odt=5 entry=0                         
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE082h        
+SET_DAQ_PTR daq=0 odt=6 entry=0                         
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE088h        
+SET_DAQ_PTR daq=0 odt=7 entry=0                         
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE08Eh        
+SET_DAQ_PTR daq=0 odt=8 entry=0                         
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE094h        
+SET_DAQ_PTR daq=0 odt=9 entry=0                         
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE09Ah        
+SET_DAQ_PTR daq=0 odt=10 entry=0                        
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE0A0h        
+SET_DAQ_PTR daq=0 odt=11 entry=0                        
+WRITE_DAQ bitoff=255 size=2 ext=0 addr=001BE0A6h        
+WRITE_DAQ bitoff=255 size=1 ext=0 addr=001BE0CFh        
+WRITE_DAQ bitoff=255 size=3 ext=0 addr=001BE234h        
+SET_DAQ_PTR daq=0 odt=12 entry=0                        
+WRITE_DAQ bitoff=255 size=1 ext=0 addr=001BE237h        
+WRITE_DAQ bitoff=255 size=1 ext=0 addr=001BE24Fh        
+WRITE_DAQ bitoff=255 size=1 ext=0 addr=001BE269h        
+WRITE_DAQ bitoff=255 size=1 ext=0 addr=001BE5A3h        
+WRITE_DAQ bitoff=255 size=1 ext=0 addr=001C0003h        
+SET_DAQ_PTR daq=1 odt=0 entry=0
+WRITE_DAQ bitoff=255 size=2 ext=0 addr=001C002Ch
+SET_DAQ_PTR daq=1 odt=1 entry=0
+WRITE_DAQ bitoff=255 size=2 ext=0 addr=001C002Eh
+
+SET_DAQ_LIST_MODE mode=10h daq=0 event=1 prescaler=1 priority=1
+START_STOP_DAQ_LIST mode=02h daq=0
+SET_DAQ_LIST_MODE mode=10h daq=1 event=2 prescaler=1 priority=2
+START_STOP_DAQ_LIST mode=02h daq=1
+GET_DAQ_CLOCK
+GET_DAQ_CLOCK
+START_STOP_SYNCH mode=01h
+"""
 

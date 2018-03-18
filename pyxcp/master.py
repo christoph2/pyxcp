@@ -144,7 +144,7 @@ class MockTransport(object):
     __repr__ = __str__
 
 
-class Client(object):
+class Master(object):
 
     def __init__(self, transport):
         self.ctr = 0
@@ -157,7 +157,9 @@ class Client(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
-        if exc_tb:
+        if exc_type is None:
+            return
+        else:
             self.succeeded = False
             #print("=" * 79)
             #print("Exception while in Context-Manager:\n")
@@ -177,6 +179,25 @@ class Client(object):
     ## Mandatory Commands.
     ##
     def connect(self):
+        """Build up connection to an XCP slave.
+
+        Before the actual XCP traffic starts a connection is required.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        `types.ConnectResponse`
+            Describes fundamental client properties.
+
+        Note
+        ----
+        Every XCP slave supports at most one connection,
+        more attempts to connect are silently ignored.
+
+        """
         response = self.transport.request(types.Command.CONNECT, 0x00)
         result = types.ConnectResponse.parse(response)
         self.maxCto = result.maxCto
@@ -189,6 +210,19 @@ class Client(object):
         return result
 
     def disconnect(self):
+        """Releases the connection to the XCP slave.
+
+        Thereafter, no further communication with the slave is possible (besides `connect`).
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+
+        """
         response = self.transport.request(types.Command.DISCONNECT)
 
     def getStatus(self):
