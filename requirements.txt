@@ -2,3 +2,5 @@ enum34
 construct >= 2.8
 mako
 pyserial
+numpydoc
+sphinxcontrib-napoleon
