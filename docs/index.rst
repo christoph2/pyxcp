@@ -10,7 +10,7 @@ Welcome to pyXCP's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-pyxcp.rst
+   pyxcp
 
 
 Indices and tables
