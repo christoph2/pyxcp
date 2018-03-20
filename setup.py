@@ -17,7 +17,7 @@ setup(
     url = 'http://github.com/pySART/pyxcp',
     packages = packagez('pyxcp'),
     install_requires = ['enum34', 'construct >= 2.8', 'mako', 'pyserial'],
-    doc_requires = ['numpydoc', 'sphinxcontrib-napoleon']
+    doc_requires = ['numpydoc', 'sphinxcontrib-napoleon'],
     package_dir = {'tests': 'pyxcp/tests'},
     test_suite = "pyxcp.tests"
 )
