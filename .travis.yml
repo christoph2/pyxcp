@@ -1,10 +1,11 @@
-# https://travis-ci.org/christoph2/objutils
+# https://travis-ci.org/christoph2/pyxcp
 language: python
 sudo: required
-python:    
+python:
     - 3.3
     - 3.4
     - 3.5
+    - 3.6
     #- "pypy"
 
 os:
@@ -15,16 +16,16 @@ notifications:
 
 install:
   - pip install -r requirements.txt
-  - travis_retry pip install pylint codeclimate-test-reporter
+  #- travis_retry pip install pylint codeclimate-test-reporter
   - travis_retry pip install pytest-cov coverage coveralls codacy-coverage
 
 script:
-  python -m unittest discover ./pyxcp/tests/
+#  python -m unittest discover ./objutils/tests/
 #   python ./objutils/tools/readelf.py
-   coverage run --source=objutils setup.py test
+   coverage run --source=pyxcp setup.py test
 
 after_success:
   - pylint app
   - coveralls
   - coverage xml && python-codacy-coverage -r coverage.xml
-  - codeclimate-test-reporter
+#  - codeclimate-test-reporter
