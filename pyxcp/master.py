@@ -33,8 +33,6 @@ import sys
 import time
 import traceback
 
-import six
-
 from pyxcp import checksum
 from pyxcp import types
 from pyxcp import transport

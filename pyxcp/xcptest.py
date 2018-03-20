@@ -33,7 +33,6 @@ import struct
 import sys
 import time
 
-import six
 
 from pyxcp import checksum
 from pyxcp import types
@@ -50,7 +49,6 @@ def test():
     print("daq ?", xm.supportsDaq)
     print("pgm ?", xm.supportsPgm)
     print("stim ?", xm.supportsStim)
-
 
     xm.getStatus()
     xm.synch()
