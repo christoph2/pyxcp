@@ -74,7 +74,7 @@ class BaseTransport(metaclass = abc.ABCMeta):
         self.send(frame)
 
         try:
-            xcpPDU = self.resQueue.get(timeout = 0.3)
+            xcpPDU = self.resQueue.get(timeout = 2.0)
         except queue.Empty as e:
             if PYTHON_VERSION >= (3, 3):
                 raise types.XcpTimeoutError("Response timed out.") from None
