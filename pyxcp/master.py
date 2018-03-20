@@ -272,7 +272,7 @@ class Master(object):
         return types.ResourceProtectionStatus.parse(response)
 
     def fetch(self, length): ## TODO: pull
-        chunkSize = self.maxDto - 1
+        chunkSize = self.maxCto - 1
         chunks = range(length // chunkSize)
         remaining = length % chunkSize
         result = []
