@@ -4,9 +4,9 @@ pyXCP
 
 [![Codacy Badge](https://api.codacy.com/project/badge/grade/a19c06fc898f4f87b680694956302dab)](https://www.codacy.com/app/cpu12-gems/pyxcp)
 [![Code Climate](https://codeclimate.com/github/christoph2/pyxcp/badges/gpa.svg)](https://codeclimate.com/github/christoph2/pyxcp)
-[![Coverage Status](https://coveralls.io/repos/github/christoph2/objutils/badge.svg?branch=master)](https://coveralls.io/github/christoph2/objutils?branch=mast
+[![Coverage Status](https://coveralls.io/repos/github/christoph2/pyxcp/badge.svg?branch=master)](https://coveralls.io/github/christoph2/pyxcp?branch=master)
 [![Build Status](https://travis-ci.org/christoph2/pyxcp.svg)](https://travis-ci.org/christoph2/pyxcp)
-[![Build status](https://ci.appveyor.com/api/projects/status/owpi324b6wbwocq9?svg=true)](https://ci.appveyor.com/project/christoph2/pyxcp)
+[![Build status](https://ci.appveyor.com/api/projects/status/r00l4i4co095e9ht?svg=true)](https://ci.appveyor.com/project/christoph2/pyxcp)
 [![GPL License](http://img.shields.io/badge/license-GPL-blue.svg)](http://opensource.org/licenses/GPL-2.0)
 
 
@@ -27,7 +27,8 @@ pyXCP is hosted on Github, get the latest release: [https://github.com/christoph
 
 ### Requirements
 
-Python >= 3.3
+- Python >= 3.3
+- A running XCP slave
 
 
 ## Features
@@ -37,6 +38,12 @@ T.B.D.
 ## Examples
 
 T.B.D.
+
+## References
+
+- [Offical home of XCP](https://www.asam.net/standards/detail/mcd-1-xcp/)
+
+
 
 ## License
 
