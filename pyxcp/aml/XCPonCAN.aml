@@ -23,14 +23,14 @@
 /************************ start of CAN **********************************************/
 
 struct CAN_Parameters { /* At MODULE */
-uint; /* XCP on CAN version */
-/* e.g. "1.0" = 0x0100 */
+    uint; /* XCP on CAN version */
+    /* e.g. "1.0" = 0x0100 */
     taggedstruct { /* optional */
-        CAN_ID_BROADCASTù ulong; /* Auto detection CAN-ID */
+        "CAN_ID_BROADCAST"ù ulong; /* Auto detection CAN-ID */
 
         /* master -> slaves */
         /* Bit31= 1: extended identifier */
-        CAN_ID_MASTERù ulong; /* CMD/STIM CAN-ID */
+        "CAN_ID_MASTER"ù ulong; /* CMD/STIM CAN-ID */
 
         /* master -> slave */
         /* Bit31= 1: extended identifier */
@@ -38,15 +38,15 @@ uint; /* XCP on CAN version */
 
         /* start of range = CAN_ID_MASTER */
         /* end of range = CAN_ID_MASTER+MAX_BS(_PGM)-1 */
-        CAN_ID_SLAVEù ulong; /* RES/ERR/EV/SERV/DAQ CAN-ID */
+        "CAN_ID_SLAVE"ù ulong; /* RES/ERR/EV/SERV/DAQ CAN-ID */
 
         /* slave -> master */
         /* Bit31= 1: extended identifier */
-        BAUDRATEù ulong; /* BAUDRATE [Hz] */
+        "BAUDRATE"ù ulong; /* BAUDRATE [Hz] */
         "SAMPLE_POINT" uchar; /* sample point */
 
         /* [% complete bit time] */
-        SAMPLE_RATEù enum {
+        "SAMPLE_RATE"ù enum {
             "SINGLE" = 1, /* 1 sample per bit */
             "TRIPLE" = 3 /* 3 samples per bit */
         };
@@ -60,10 +60,10 @@ uint; /* XCP on CAN version */
             "SINGLE" = 1, /* on falling edge only */
             "DUAL" = 2 /* on falling and rising edge */
         };
-        MAX_DLC_REQUIREDù; /* master to slave frames */
+        "MAX_DLC_REQUIRED"ù; /* master to slave frames */
 
         /* always to have DLC = MAX_DLC = 8 */
-        (block DAQ_LIST_CAN_IDù struct { /* At IF_DATA DAQ */
+        (block "DAQ_LIST_CAN_ID"ù struct { /* At IF_DATA DAQ */
             uint; /* reference to DAQ_LIST_NUMBER */
             taggedstruct { /* exclusive tags */
                 /* either VARIABLE or FIXED */

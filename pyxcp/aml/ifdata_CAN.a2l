@@ -1,21 +1,21 @@
 begin XCP_ON_CAN
-0x0100 /* XCP on CAN version */
-CAN_ID_BROADCAST 0x0100 /* Broadcast */
-CAN_ID_MASTER 0x0200 /* CMD/STIM */
-CAN_ID_MASTER_INCREMENTAL
-CAN_ID_SLAVE 0x0300 /* RES/ERR/EV/SERV/DAQ */
-BAUDRATE 500000 /* BAUDRATE */
-/begin DAQ_LIST_CAN_ID
-0x0000 /* for DAQ_LIST 0 */
-FIXED 0x310
-/end DAQ_LIST_CAN_ID
-/begin DAQ_LIST_CAN_ID
-0x0001 /* for DAQ_LIST 1 */
-FIXED 0x320
-/end DAQ_LIST_CAN_ID
-/begin DAQ_LIST_CAN_ID
-0x0002 /* for DAQ_LIST 2 */
-FIXED 0x330
-/end DAQ_LIST_CAN_ID
+    0x0100 /* XCP on CAN version */
+    CAN_ID_BROADCAST 0x0100 /* Broadcast */
+    CAN_ID_MASTER 0x0200 /* CMD/STIM */
+    CAN_ID_MASTER_INCREMENTAL
+    CAN_ID_SLAVE 0x0300 /* RES/ERR/EV/SERV/DAQ */
+    BAUDRATE 500000 /* BAUDRATE */
+    /begin DAQ_LIST_CAN_ID
+        0x0000 /* for DAQ_LIST 0 */
+        FIXED 0x310
+    /end DAQ_LIST_CAN_ID
+    /begin DAQ_LIST_CAN_ID
+        0x0001 /* for DAQ_LIST 1 */
+        FIXED 0x320
+    /end DAQ_LIST_CAN_ID
+    /begin DAQ_LIST_CAN_ID
+        0x0002 /* for DAQ_LIST 2 */
+        FIXED 0x330
+    /end DAQ_LIST_CAN_ID
 /end XCP_ON_CAN
 

@@ -26,33 +26,33 @@ struct SxI_Parameters { /* At MODULE */
     /* e.g. "1.0" = 0x0100 */
     ulong; /* BAUDRATE [Hz] */
     taggedstruct { /* exclusive tags */
-        "ASYNCH_FULL_DUPLEX_MODEù struct {
-        enum {
-            "PARITY_NONE" = 0,
-            "PARITY_ODD" = 1,
-            "PARITY_EVEN" = 2
-        };
-        enum {
-            "ONE_STOP_BIT" = 1,
-            "TWO_STOP_BITS" = 2
-        };
-        taggedstruct {
-            block FRAMINGù struct {
-              uchar; /* SYNC */
-                uchar; /* ESC */
+        "ASYNCH_FULL_DUPLEX_MODE"ù struct {
+            enum {
+                "PARITY_NONE" = 0,
+                "PARITY_ODD" = 1,
+                "PARITY_EVEN" = 2
             };
-        };
-        "SYNCH_FULL_DUPLEX_MODE_BYTE‚Äù;
-        "SYNCH_FULL_DUPLEX_MODE_WORD‚Äù;
-        "SYNCH_FULL_DUPLEX_MODE_DWORD‚Äù;
-        "SYNCH_MASTER_SLAVE_MODE_BYTE‚Äù;
-        "SYNCH_MASTER_SLAVE_MODE_WORD‚Äù;
-        "SYNCH_MASTER_SLAVE_MODE_DWORD‚Äù;
+            enum {
+                "ONE_STOP_BIT" = 1,
+                "TWO_STOP_BITS" = 2
+            };
+            taggedstruct {
+                block "FRAMING"ù struct {
+                    uchar; /* SYNC */
+                    uchar; /* ESC */
+                };
+            };
+            "SYNCH_FULL_DUPLEX_MODE_BYTE"Äù;
+            "SYNCH_FULL_DUPLEX_MODE_WORD"Äù;
+            "SYNCH_FULL_DUPLEX_MODE_DWORD";Äù
+            "SYNCH_MASTER_SLAVE_MODE_BYTE";Äù
+            "SYNCH_MASTER_SLAVE_MODE_WORD";Äù
+            "SYNCH_MASTER_SLAVE_MODE_DWORD";ù;
     };
     enum {
         "HEADER_LEN_BYTE" = 0,
         "HEADER_LEN_CTR_BYTE" = 1,
-        "HEADER_LEN_FILL_BYTE‚Äù = 2,
+        "HEADER_LEN_FILL_BYTE"Äù = 2,
         "HEADER_LEN_WORD" = 3,
         "HEADER_LEN_CTR_WORD" = 4,
         "HEADER_LEN_FILL_WORD" = 5
