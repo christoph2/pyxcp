@@ -282,7 +282,7 @@ class Master(object):
         if remaining:
             data = self.upload(remaining)
             result.extend(data)
-        return result
+        return bytes(result)
 
     def buildChecksum(self, blocksize):
         bs = struct.pack("<I", blocksize)
