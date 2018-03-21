@@ -1,0 +1,83 @@
+ASAP2_VERSION 1 30  
+/begin PROJECT  
+  aProjectName 
+  "description of project"  
+   
+  /begin HEADER  
+     "project"  
+     VERSION "1.0"   
+     PROJECT_NO "1.0"  
+  /end HEADER  
+
+  /begin MODULE  
+     aModuleName  
+     "description of module"  
+
+     /begin MOD_PAR  
+        ""  
+     /end MOD_PAR  
+
+     /begin IF_DATA CAN_MONITORING  
+        /begin  TP_BLOB  
+           500 
+       /end  TP_BLOB 
+     /end IF_DATA 
+
+     /begin MEASUREMENT  
+        aMeasurementName 
+        "description of measurement"  
+        ULONG 
+        aConversionName 
+        0  
+        0.0 
+        0  
+        1000         
+        /begin IF_DATA CAN_MONITORING  
+           /begin KP_BLOB   
+              0x0 32 
+           /end KP_BLOB  
+        /end IF_DATA  
+        FORMAT ""   
+        BYTE_ORDER MSB_LAST  
+        BIT_MASK 0xFFFFFFFF  
+     /end MEASUREMENT  
+
+     /begin COMPU_METHOD  
+        aConversionName  
+        "description of conversion"  
+        RAT_FUNC  
+        "%f5.2"  
+        "" 
+        COEFFS 0 1.0 0.0 0 0 1  
+     /end COMPU_METHOD  
+
+
+
+
+
+
+
+
+    /begin FRAME  
+        aFrameName 
+        "description of frame"  
+        0  
+        0  
+        /begin IF_DATA CAN_MONITORING  
+           QP_BLOB 0x0200 0 8 
+        /end IF_DATA  
+        FRAME_MEASUREMENT aMeasurementName   
+     /end FRAME 
+
+     /begin FUNCTION  
+        aFunctionName 
+        "description of function"  
+        /begin OUT_MEASUREMENT  
+           aMeasurementName 
+        /end OUT_MEASUREMENT  
+     /end FUNCTION  
+
+  /end MODULE  
+
+/end PROJECT  
+

@@ -1,0 +1,67 @@
+/*******************************************************************/
+/*                                                                 */
+/*   ASAP2 Meta Language for CAN-Monitoring V1.1                   */
+/*   Assumes ASAP2 V1.121                                          */
+/*                                                                 */
+/*   ETAS GmbH                                                     */
+/*                                                                 */
+/*   Datatypes:                                                    */
+/*                                                                 */
+/*   A2ML       ASAP2          Windows  Erlaeuuterung              */
+/*   -------------------------------------------------------       */
+/*   uchar      UBYTE          BYTE     unsigned 8 Bit             */
+/*   char       SBYTE          char     signed 8 Bit               */
+/*   uint       UWORD          WORD     unsigned integer 16 Bit    */
+/*   int        SWORD          int      signed integer 16 Bit      */
+/*   ulong      ULONG          DWORD    unsigned integer 32 Bit    */
+/*   long       SLONG          LONG     signed integer 32 Bit      */
+/*   float      FLOAT32_IEEE            float 32 Bit               */
+/*                                                                 */
+/*******************************************************************/
+
+
+taggedunion IF_DATA
+{
+   "CAN_MONITORING" taggedstruct
+   {
+      block „TP_BLOB“ struct
+      {
+         ulong;                /* Baudrate in kBaud */
+      };
+   };
+};
+
+
+
+
+taggedunion IF_DATA
+{
+   "CAN_MONITORING" taggedstruct
+   {
+      block "QP_BLOB" struct
+      {
+         long;       /* Message identifier */
+         char;       /* Identifier length */
+         char;       /* Message length */
+      };
+   };
+};
+
+taggedunion IF_DATA
+{
+    "CAN_MONITORING" taggedstruct {
+         block "KP_BLOB" struct {
+            char;       /* Start bit */
+            char;       /* Number of bits */
+            taggedstruct {
+               "MULTIPLEX" struct{
+                  char;    /* Start bit */
+                  char;    /* Number of bits */
+                  char;    /* Type and sign */
+                  char;    /* Byte order */
+                  long;    /* Tag */
+               };
+            };
+         };
+    };
+};
