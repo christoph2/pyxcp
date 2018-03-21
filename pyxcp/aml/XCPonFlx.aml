@@ -1,0 +1,113 @@
+/************************************************************************************/
+/*                                                                                  */
+/* ASAP2 meta language for XCP on FlexRay V1.0                                      */
+/*                                                                                  */
+/* 2005-10-13                                                                       */
+/*                                                                                  */
+/* Datatypes:                                                                       */
+/*                                                                                  */
+/* A2ML ASAP2 Windows description                                                   */
+/* ---------------------------------------------------------------------------------*/
+/* uchar UBYTE BYTE unsigned 8 Bit                                                  */
+/* char SBYTE char signed 8 Bit                                                     */
+/* uint UWORD WORD unsigned integer 16 Bit                                          */
+/* int SWORD int signed integer 16 Bit                                              */
+/* ulong ULONG DWORD unsigned integer 32 Bit                                        */
+/* long SLONG LONG signed integer 32 Bit                                            */
+/* float FLOAT32_IEEE float 32 Bit                                                  */
+/*                                                                                  */
+/************************************************************************************/
+
+/************************ start of FLX **************************************/
+enum packet_assignment_type {
+    "NOT_ALLOWED",
+    "FIXED",
+    "VARIABLE_INITIALISED",
+    "VARIABLE"
+}; /* end of packet_assignment_type */
+
+struct buffer {
+    uchar; /* FLX_BUF */
+    taggedstruct {
+        "MAX_FLX_LEN_BUF" taggedunion {
+            "FIXED" uchar; /* constant value */
+            "VARIABLE" uchar; /* initial value */
+        }; /* end of MAX_FLX_LEN_BUF */
+        block "LPDU_ID" taggedstruct {
+            "FLX_SLOT_ID" taggedunion {
+                "FIXED" uint;
+                "VARIABLE" taggedstruct{
+                    "INITIAL_VALUE" uint;
+                };
+            }; /* end of FLX_SLOT_ID */
+            "OFFSET" taggedunion {
+                "FIXED" uchar;
+                "VARIABLE" taggedstruct{
+                    "INITIAL_VALUE" uchar;
+                };
+            }; /* end of OFFSET */
+            "CYCLE_REPETITION" taggedunion {
+                "FIXED" uchar;
+                    "VARIABLE" taggedstruct{
+                    "INITIAL_VALUE" uchar;
+                };
+            }; /* end of CYCLE_REPETITION */
+            "CHANNEL" taggedunion {
+                "FIXED" enum {
+                   "A" = 0,
+                    "B" = 1
+                };
+                "VARIABLE" taggedstruct{
+                    "INITIAL_VALUE" enum {
+                        "A" = 0,
+                        "B" = 1
+                    };
+                };
+            }; /* end of CHANNEL */
+        }; /* end of LPDU_ID */
+        block "XCP_PACKET" taggedstruct {
+        "CMD" enum packet_assignment_type; /* end of CMD */
+        "RES_ERR" enum packet_assignment_type; /* end of RES_ERR */
+        "EV_SERV" enum packet_assignment_type; /* end of EV_SERV */
+        "DAQ" enum packet_assignment_type; /* end of DAQ */
+        "STIM" enum packet_assignment_type; /* end of STIM */
+        }; /* end of XCP_PACKET */
+    };
+}; /* end of buffer */
+
+struct FLX_Parameters {
+    uint; /* XCP on FlexRay version */
+    /* e.g. "1.0" = 0x0100 */
+    uint; /* T1_FLX [ms] */
+    char[256]; /* FIBEX-file including CHI information */
+    /* including extension */
+    /* without path */
+    char[256]; /* Cluster-ID */
+    uchar; /* NAX */
+    enum {
+        "HEADER_NAX" = 0,
+        "HEADER_NAX_FILL" = 1,
+        "HEADER_NAX_CTR" = 2,
+        "HEADER_NAX_FILL3" = 3,
+        "HEADER_NAX_CTR_FILL2" = 4,
+        "HEADER_NAX_LEN" = 5,
+        "HEADER_NAX_CTR_LEN" = 6,
+        "HEADER_NAX_FILL2_LEN" = 7,
+        "HEADER_NAX_CTR_FILL_LEN" = 8
+    };
+    enum {
+        "PACKET_ALIGNMENT_8" = 0,
+        "PACKET_ALIGNMENT_16" = 1,
+        "PACKET_ALIGNMENT_32" = 2
+    };
+    taggedunion {
+        block "INITIAL_CMD_BUFFER" struct buffer;
+    };
+    taggedunion {
+        block "INITIAL_RES_ERR_BUFFER" struct buffer;
+    };
+    taggedstruct {
+        (block "POOL_BUFFER" struct buffer)*;
+    };
+};
+/************************* end of FLX ***********************************/

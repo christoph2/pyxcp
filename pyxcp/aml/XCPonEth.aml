@@ -1,0 +1,33 @@
+/************************************************************************************/
+/*                                                                                  */
+/* ASAP2 meta language for XCP on UDP_IP V1.0                                       */
+/*                                                                                  */
+/* 2003-03-03                                                                       */
+/*                                                                                  */
+/* Vector Informatik, Schuermans                                                    */
+/*                                                                                  */
+/* Datatypes:                                                                       */
+/*                                                                                  */
+/* A2ML ASAP2 Windows description                                                   */
+/* ---------------------------------------------------------------------------------*/
+/* uchar UBYTE BYTE unsigned 8 Bit                                                  */
+/* char SBYTE char signed 8 Bit                                                     */
+/* uint UWORD WORD unsigned integer 16 Bit                                          */
+/* int SWORD int signed integer 16 Bit                                              */
+/* ulong ULONG DWORD unsigned integer 32 Bit                                        */
+/* long SLONG LONG signed integer 32 Bit                                            */
+/* float FLOAT32_IEEE float 32 Bit                                                  */
+/*                                                                                  */
+/************************************************************************************/
+
+/************************** start of UDP_IP *****************************************/
+struct UDP_IP_Parameters { /* at MODULE */
+    uint; /* XCP on UDP_IP version */
+    /* e.g. "1.0" = 0x0100 */
+    uint; /* PORT */
+    taggedunion {
+        "HOST_NAME" char[256];
+        "ADDRESS" char[15];
+    };
+
+};/*************************** end of UDP_IP ***********************************/

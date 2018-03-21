@@ -1,0 +1,101 @@
+/****************************************************************************/
+/*                                                                          */
+/* ASAP2 meta language for XCP on USB V1.0                                  */
+/* Assumes ASAP2 V1.4 or later                                              */
+/*                                                                          */
+/* 2003-12-16                                                               */
+/*                                                                          */
+/* XCP on USB working group                                                 */
+/*                                                                          */
+/* Datatypes:                                                               */
+/*                                                                          */
+/* A2ML ASAP2 Windows description                                           */
+/* ------------------------------------------------------------------------ */
+/* uchar UBYTE BYTE unsigned 8 Bit                                          */
+/* char SBYTE char signed 8 Bit                                             */
+/* uint UWORD WORD unsigned integer 16 Bit                                  */
+/* int SWORD int signed integer 16 Bit                                      */
+/* ulong ULONG DWORD unsigned integer 32 Bit                                */
+/* long SLONG LONG signed integer 32 Bit                                    */
+/* float FLOAT32_IEEE float 32 Bit                                          */
+/****************************************************************************/
+
+/************************ start of USB **************************************/
+struct ep_parameters {
+    uchar; /* ENDPOINT_NUMBER, not endpoint address */
+    enum {
+        BULK_TRANSFERù = 2, /* Numbers according to USB spec. */
+        INTERRUPT_TRANSFERù = 3
+    };
+    uint; /* wMaxPacketSize: Maximum packet */
+    /* size of endpoint in bytes */
+    uchar; /* bInterval: polling of endpoint */
+    enum { /* Packing of XCP Messages */
+        "MESSAGE_PACKING_SINGLE" = 0, /* Single per USB data packet */
+        "MESSAGE_PACKING_MULTIPLE" = 1, /* Multiple per USB data packet */
+        "MESSAGE_PACKING_STREAMING" = 2 /* No restriction by packet sizes */
+    };
+    enum { /* Alignment mandatory for all */
+        "ALIGNMENT_8_BIT" = 0, /* packing types */
+        "ALIGNMENT_16_BIT"= 1,
+        "ALIGNMENT_32_BIT"= 2,
+        "ALIGNMENT_64_BIT"= 3
+    };
+    taggedstruct { /* Optional */
+        "RECOMMENDED_HOST_BUFSIZE" uint; /* Recommended size for the host */
+        /* buffer size. The size is defined*/
+        /* as multiple of wMaxPacketSize. */
+    };
+}; /* end of ep_parameters */
+
+struct USB_Parameters {
+    uint; /* XCP on USB version */
+    /* e.g. ‚Äû1.0‚Äú = 0x0100 */
+    uint; /* Vendor ID */
+    uint; /* Product ID */
+    uchar; /* Number of interface */
+    enum {
+        "HEADER_LEN_BYTE" = 0,
+        "HEADER_LEN_CTR_BYTE" = 1,
+        "HEADER_LEN_FILL_BYTE‚Äù = 2,
+        "HEADER_LEN_WORD" = 3,
+        "HEADER_LEN_CTR_WORD" = 4,
+        "HEADER_LEN_FILL_WORD" = 5
+    };
+    /* OUT-EP for CMD and */
+    /* STIM (additional USB Endpoints may also be specified) */
+    taggedunion {
+        block "OUT_EP_CMD_STIM" struct ep_parameters;
+    };
+    /* IN-EP for RES/ERR, */
+    /* DAQ (additional USB Endpoints may also be specified) */
+    /* and EV/SERV (if not specified otherwise) */
+    taggedunion {
+        block "IN_EP_RESERR_DAQ_EVSERV" struct ep_parameters;
+    };
+    /* ----------- Begin of optional ------- */
+    taggedstruct { /* Optional */
+            "ALTERNATE_SETTING_NO" uchar; /* Number of alternate setting */
+        /* String Descriptor of XCP */
+        /* interface */
+        "INTERFACE_STRING_DESCRIPTOR" char [101];
+        /* multiple OUT-EP's for STIM */
+        (block "OUT_EP_ONLY_STIM" struct ep_parameters)*;
+        /* multiple IN-EP's for DAQ */
+        (block "IN_EP_ONLY_DAQ" struct ep_parameters)*;
+        /* only one IN-EP for EV/SERV */
+        block "IN_EP_ONLY_EVSERV" struct ep_parameters;
+        /* Not associated DAQ-Lists are assigned per default to */
+        /* OUT_EP_CD_STIM / IN_EP_RESERR_DAQ_EVSERV */
+        (block "DAQ_LIST_USB_ENDPOINT" struct {
+            uint; /* reference to DAQ_LIST_NUMBER */
+            taggedstruct { /* only mentioned if not VARIABLE */
+                "FIXED_IN" uchar; /* this DAQ list always */
+                /* ENDPOINT_NUMBER, not endpoint address */
+                "FIXED_OUT" uchar; /* this STIM list always */
+                /* ENDPOINT_NUMBER, not endpoint address */
+            };
+        })*; /* end of DAQ_LIST_USB_ENDPOINT */
+    }; /* end of optional */
+};
+/************************* end of USB ***********************************/

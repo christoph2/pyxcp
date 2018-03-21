@@ -1,0 +1,78 @@
+/************************************************************************************/
+/*                                                                                  */
+/* ASAP2 meta language for XCP on CAN V1.0                                          */
+/*                                                                                  */
+/* 2003-03-03                                                                       */
+/*                                                                                  */
+/* Vector Informatik, Schuermans                                                    */
+/*                                                                                  */
+/* Datatypes:                                                                       */
+/*                                                                                  */
+/* A2ML ASAP2 Windows description                                                   */
+/* ---------------------------------------------------------------------------------*/
+/* uchar UBYTE BYTE unsigned 8 Bit                                                  */
+/* char SBYTE char signed 8 Bit                                                     */
+/* uint UWORD WORD unsigned integer 16 Bit                                          */
+/* int SWORD int signed integer 16 Bit                                              */
+/* ulong ULONG DWORD unsigned integer 32 Bit                                        */
+/* long SLONG LONG signed integer 32 Bit                                            */
+/* float FLOAT32_IEEE float 32 Bit                                                  */
+/*                                                                                  */
+/************************************************************************************/
+
+/************************ start of CAN **********************************************/
+
+struct CAN_Parameters { /* At MODULE */
+uint; /* XCP on CAN version */
+/* e.g. "1.0" = 0x0100 */
+    taggedstruct { /* optional */
+        CAN_ID_BROADCASTù ulong; /* Auto detection CAN-ID */
+
+        /* master -> slaves */
+        /* Bit31= 1: extended identifier */
+        CAN_ID_MASTERù ulong; /* CMD/STIM CAN-ID */
+
+        /* master -> slave */
+        /* Bit31= 1: extended identifier */
+        "CAN_ID_MASTER_INCREMENTAL"; /* master uses range of CAN-IDs */
+
+        /* start of range = CAN_ID_MASTER */
+        /* end of range = CAN_ID_MASTER+MAX_BS(_PGM)-1 */
+        CAN_ID_SLAVEù ulong; /* RES/ERR/EV/SERV/DAQ CAN-ID */
+
+        /* slave -> master */
+        /* Bit31= 1: extended identifier */
+        BAUDRATEù ulong; /* BAUDRATE [Hz] */
+        "SAMPLE_POINT" uchar; /* sample point */
+
+        /* [% complete bit time] */
+        SAMPLE_RATEù enum {
+            "SINGLE" = 1, /* 1 sample per bit */
+            "TRIPLE" = 3 /* 3 samples per bit */
+        };
+        "BTL_CYCLES" uchar; /* BTL_CYCLES */
+
+        /* [slots per bit time] */
+        "SJW" uchar; /* length synchr. segment */
+
+        /* [BTL_CYCLES] */
+        "SYNC_EDGE" enum {
+            "SINGLE" = 1, /* on falling edge only */
+            "DUAL" = 2 /* on falling and rising edge */
+        };
+        MAX_DLC_REQUIREDù; /* master to slave frames */
+
+        /* always to have DLC = MAX_DLC = 8 */
+        (block DAQ_LIST_CAN_IDù struct { /* At IF_DATA DAQ */
+            uint; /* reference to DAQ_LIST_NUMBER */
+            taggedstruct { /* exclusive tags */
+                /* either VARIABLE or FIXED */
+                "VARIABLE";
+                "FIXED" ulong; /* this DAQ_LIST always */
+                /* on this CAN_ID */
+            };
+        })*;
+    };
+};
+
+/************************* end of CAN ***********************************/

@@ -1,0 +1,66 @@
+/************************************************************************************/
+/*                                                                                  */
+/* ASAP2 meta language for XCP on SxI V1.0                                          */
+/*                                                                                  */
+/* 2007-08-07                                                                       */
+/*                                                                                  */
+/* Vector Informatik, Schuermans                                                    */
+/*                                                                                  */
+/* Datatypes:                                                                       */
+/*                                                                                  */
+/* A2ML ASAP2 Windows description                                                   */
+/* ---------------------------------------------------------------------------------*/
+/* uchar UBYTE BYTE unsigned 8 Bit                                                  */
+/* char SBYTE char signed 8 Bit                                                     */
+/* uint UWORD WORD unsigned integer 16 Bit                                          */
+/* int SWORD int signed integer 16 Bit                                              */
+/* ulong ULONG DWORD unsigned integer 32 Bit                                        */
+/* long SLONG LONG signed integer 32 Bit                                            */
+/* float FLOAT32_IEEE float 32 Bit                                                  */
+/*                                                                                  */
+/************************************************************************************/
+
+/************************** start of SxI ************************************/
+struct SxI_Parameters { /* At MODULE */
+    uint; /* XCP on SxI version */
+    /* e.g. "1.0" = 0x0100 */
+    ulong; /* BAUDRATE [Hz] */
+    taggedstruct { /* exclusive tags */
+        "ASYNCH_FULL_DUPLEX_MODE� struct {
+        enum {
+            "PARITY_NONE" = 0,
+            "PARITY_ODD" = 1,
+            "PARITY_EVEN" = 2
+        };
+        enum {
+            "ONE_STOP_BIT" = 1,
+            "TWO_STOP_BITS" = 2
+        };
+        taggedstruct {
+            block FRAMING� struct {
+              uchar; /* SYNC */
+                uchar; /* ESC */
+            };
+        };
+        "SYNCH_FULL_DUPLEX_MODE_BYTE”;
+        "SYNCH_FULL_DUPLEX_MODE_WORD”;
+        "SYNCH_FULL_DUPLEX_MODE_DWORD”;
+        "SYNCH_MASTER_SLAVE_MODE_BYTE”;
+        "SYNCH_MASTER_SLAVE_MODE_WORD”;
+        "SYNCH_MASTER_SLAVE_MODE_DWORD”;
+    };
+    enum {
+        "HEADER_LEN_BYTE" = 0,
+        "HEADER_LEN_CTR_BYTE" = 1,
+        "HEADER_LEN_FILL_BYTE” = 2,
+        "HEADER_LEN_WORD" = 3,
+        "HEADER_LEN_CTR_WORD" = 4,
+        "HEADER_LEN_FILL_WORD" = 5
+    };
+    enum {
+        "NO_CHECKSUM" = 0,
+        "CHECKSUM_BYTE" = 1,
+        "CHECKSUM_WORD" = 2
+    };
+};
+/*************************** end of SxI ***********************************/
