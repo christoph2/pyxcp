@@ -1,0 +1,14 @@
+/begin XCP_ON_SxI
+    0x0100 /* XCP on SxI version */
+    25000 /* BAUDRATE */
+    ASYNCH_FULL_DUPLEX_MODE
+        PARITY_ODD
+        TWO_STOP_BITS
+        /begin FRAMING
+            0x9A /* SYNC */
+            0x9B /* ESC */
+        /end FRAMING
+    HEADER_LEN_CTR_WORD
+    NO_CHECKSUM
+/end XCP_ON_SxI
+

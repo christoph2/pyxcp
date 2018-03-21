@@ -1,0 +1,12 @@
+/begin XCP_ON_TCP_IP
+0x0100 /* XCP on TCP_IP version */
+0x5555 /* PORT */
+"127.0.0.1" /* ADDRESS */
+/end XCP_ON_TCP_IP
+
+/begin XCP_ON_UDP_IP
+0x0100 /* XCP on UDP_IP version */
+0x5555 /* PORT */
+"127.0.0.1" /* ADDRESS */
+/end XCP_ON_UDP_IP
+
