@@ -23,21 +23,18 @@ __copyright__="""
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-import array
 import enum
 import logging
 import os
 import select
 import struct
 import sys
-import time
 import traceback
 
 from pyxcp import checksum
 from pyxcp import types
 from pyxcp import transport
 
-from pyxcp.dllif import getKey
 from pyxcp.timing import Timing
 from pyxcp.utils import setpriority
 
