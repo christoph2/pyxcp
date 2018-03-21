@@ -133,16 +133,21 @@ class Crc16:
     def __call__(self, frame):
         remainder = self.initalRemainder
         for ch in frame:
-            if self.reflectData:
-                data = (reflect(ch, 8) ^ (remainder >> (self.WIDTH - 8))) & 0xff
-            else:
-                data = (ch ^ (remainder >> (self.WIDTH - 8))) & 0xff
+            data = self.reflectIn(ch, remainder)
             remainder = (self.table[data] ^ (remainder << 8)) & 0xffff
-        if self.reflectRemainder:
-            result =  (reflect(remainder, 16) ^ self.finalXorValue)
+        return self.reflectOut(remainder)
+
+    def reflectIn(self, ch, remainder):
+        if self.reflectData:
+            return (reflect(ch, 8) ^ (remainder >> (self.WIDTH - 8))) & 0xff
         else:
-            result = remainder ^ self.finalXorValue
-        return result
+            return (ch ^ (remainder >> (self.WIDTH - 8))) & 0xff
+
+    def reflectOut(self, remainder):
+        if self.reflectRemainder:
+            return reflect(remainder, 16) ^ self.finalXorValue
+        else:
+            return remainder ^ self.finalXorValue
 
 
 """
