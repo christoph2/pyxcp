@@ -4,7 +4,7 @@
 __copyright__="""
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2017 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -111,6 +111,15 @@ CRC16_CCITT = (
 )
 
 
+def reflect(data, nBits):
+    reflection = 0x00000000
+    for bit in range(nBits):
+        if (data & 0x01):
+            reflection |= (1 << ((nBits - 1) - bit))
+        data = (data >> 1)
+    return reflection
+
+
 class Crc16:
     WIDTH  = 16
 
@@ -125,23 +134,15 @@ class Crc16:
         remainder = self.initalRemainder
         for ch in frame:
             if self.reflectData:
-                data = (self.reflect(ch, 8) ^ (remainder >> (self.WIDTH - 8))) & 0xff
+                data = (reflect(ch, 8) ^ (remainder >> (self.WIDTH - 8))) & 0xff
             else:
                 data = (ch ^ (remainder >> (self.WIDTH - 8))) & 0xff
             remainder = (self.table[data] ^ (remainder << 8)) & 0xffff
         if self.reflectRemainder:
-            result =  (self.reflect(remainder, 16) ^ self.finalXorValue)
+            result =  (reflect(remainder, 16) ^ self.finalXorValue)
         else:
             result = remainder ^ self.finalXorValue
         return result
-
-    def reflect(self, data, nBits):
-        reflection = 0x00000000
-        for bit in range(nBits):
-            if (data & 0x01):
-                reflection |= (1 << ((nBits - 1) - bit))
-            data = (data >> 1)
-        return reflection
 
 
 """
