@@ -24,11 +24,9 @@ __copyright__="""
 """
 
 import struct
-import time
 
 import serial
 
-from ..logger import Logger
 from ..utils import hexDump
 from ..timing import Timing
 import pyxcp.types as types

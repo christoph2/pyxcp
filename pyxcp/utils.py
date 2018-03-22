@@ -23,7 +23,7 @@ __copyright__="""
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-import itertools
+import ctypes
 import os
 import sys
 import threading
@@ -115,8 +115,6 @@ def cygpathToWin(path):
         path = "{0}{1}".format(driveLetter, path)
     return path
 
-
-import ctypes
 
 class StructureWithEnums(ctypes.Structure):
     """Add missing enum feature to ctypes Structures.
@@ -213,7 +211,7 @@ if sys.platform == "win32":
     ## Code snippet taken from http://code.activestate.com/recipes/496767-set-process-priority-in-windows/
     ## Licenced under PSF.
     ##
-    import ctypes, win32api,win32process,win32con
+    import win32api, win32process, win32con
 
     def setpriority(pid = None, priority = 1):
         """ Set The Priority of a Windows Process.  Priority is a value between 0-5 where
