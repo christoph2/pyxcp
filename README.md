@@ -6,8 +6,7 @@ pyXCP
 [![Maintainability](https://api.codeclimate.com/v1/badges/4c639f3695f2725e392a/maintainability)](https://codeclimate.com/github/christoph2/pyxcp/maintainability)
 [![Build Status](https://travis-ci.org/christoph2/pyxcp.svg)](https://travis-ci.org/christoph2/pyxcp)
 [![Build status](https://ci.appveyor.com/api/projects/status/r00l4i4co095e9ht?svg=true)](https://ci.appveyor.com/project/christoph2/pyxcp)
-[[![Coverage Status](https://coveralls.io/repos/github/christoph2/pyxcp/badge.svg?branch=master)](https://coveralls.io/github/christoph2/pyxcp?branch=master)
-
+[![Coverage Status](https://coveralls.io/repos/github/christoph2/pyxcp/badge.svg?branch=master)](https://coveralls.io/github/christoph2/pyxcp?branch=master)
 [![GPL License](http://img.shields.io/badge/license-GPL-blue.svg)](http://opensource.org/licenses/GPL-2.0)
 
 
