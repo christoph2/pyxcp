@@ -25,79 +25,11 @@ __copyright__="""
 
 import enum
 import logging
-import os
-import select
 import struct
 import traceback
 
 from pyxcp import checksum
 from pyxcp import types
-from pyxcp import transport
-
-
-##
-##  todo: Meta-Programming wg. Persistenz/ Speicherung
-##        als XML-File.
-##
-
-##
-##  1)  Packet for transferring generic control commands    : CTO
-##  2)  Packet for transferring synchronous data            : DTO
-##
-
-##
-##  MAX_CTO     indicates the maximum length of a CTO packet in bytes.
-##  MAX_DTO     indicates the maximum length of a DTO packet in bytes.
-##
-
-class XCPMessage(object):
-    pass
-
-##
-##  ... consists of:
-##
-class XCPHeader(object):
-    pass
-
-class XCPPacket(object):
-    ##
-    ## - Identification Field
-    ##      - PID
-    ##      - FILL
-    ##      - DAQ
-    ## - Timestamp Field
-    ##      - TIMESTAMP
-    ## - Data Field
-    ##      - DATA
-    ##
-    pass
-
-class XCPTail(object):
-    pass
-
-##
-##  XCPHeaderOnEthernet
-##
-class XCPHeaderOnEthernet(XCPHeader):
-    ##
-    ## LEN CTR. - Words im Intel (Little-Endian-Format).
-    ##
-
-    """
-    Length
-    ------
-    LEN is the number of bytes in the original XCP Packet.
-
-    Counter
-    -------
-    The CTR value in the XCP Header allows to detect missing Packets.
-    The master has to generate a CTR value when sending a CMD or STIM. The master has to
-    increment the CTR value for each new packet sent from master to slave.
-    The slave has to generate a (second independent) CTR value when sending a RES, ERR_EV,
-    SRM or DAQ. The slave has to increment the CTR value for each new packet sent from slave to
-    master.
-    """
-    pass
 
 
 class CANMessageObject(object):
@@ -224,6 +156,7 @@ class Master(object):
 
     def synch(self):
         response = self.transport.request(types.Command.SYNCH)
+        return response
 
     def getCommModeInfo(self):
         response = self.transport.request(types.Command.GET_COMM_MODE_INFO)
@@ -244,6 +177,7 @@ class Master(object):
 
     def setRequest(self, mode, sessionConfigurationId):
         response = self.transport.request(types.Command.SET_REQUEST, mode, sessionConfigurationId >> 8, sessionConfigurationId & 0xff)
+        return response
 
     def upload(self, length):
         response = self.transport.request(types.Command.UPLOAD, length)
@@ -256,6 +190,7 @@ class Master(object):
     def setMta(self, address):
         addr = struct.pack("<I", address)
         response = self.transport.request(types.Command.SET_MTA, 0, 0, 0, *addr)
+        return response
 
     def getSeed(self, first, resource):
         response = self.transport.request(types.Command.GET_SEED, first, resource)
@@ -265,12 +200,15 @@ class Master(object):
         response = self.transport.request(types.Command.UNLOCK, length, *key)
         return types.ResourceProtectionStatus.parse(response)
 
-    def fetch(self, length): ## TODO: pull
-        chunkSize = self.maxCto - 1
+    def fetch(self, length, limitPayload = None): ## TODO: pull
+        if limitPayload and limitPayload < 8:
+            raise ValueError("Payload must be at least 8 bytes - given: {}".format(limitPayload))
+        payload = min(limitPayload, self.maxCto) if limitPayload else self.maxCto
+        chunkSize = payload - 1
         chunks = range(length // chunkSize)
         remaining = length % chunkSize
         result = []
-        for idx in chunks:
+        for _ in chunks:
             data = self.upload(chunkSize)
             result.extend(data)
         if remaining:
