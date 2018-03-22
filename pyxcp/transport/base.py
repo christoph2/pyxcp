@@ -35,14 +35,32 @@ import pyxcp.types as types
 from ..timing import Timing
 
 
+class ConfigType:
+    """Configuration base class.
+
+    JSON...
+    """
+
+    def __init__(self):
+        pass
+
+    def __repr__(self):
+        """
+        Returns
+        -------
+            dict: Descr.
+        """
+
+
 class BaseTransport(metaclass = abc.ABCMeta):
 
-    def __init__(self, config = {}, loglevel = 'WARN'):
+    def __init__(self, config = ConfigType(), loglevel = 'WARN'):
         self.parent = None
         self.closeEvent = threading.Event()
         self.logger = Logger("transport.Base")
         self.logger.setLevel(loglevel)
-        self.counter = 0
+        self.counterSend = 0
+        self.counterReceived = 0
         self.timing = Timing()
         self.resQueue = queue.Queue()
         self.daqQueue = queue.Queue()
@@ -67,7 +85,8 @@ class BaseTransport(metaclass = abc.ABCMeta):
 
     def request(self, cmd, *data):
         self.logger.debug(cmd.name)
-        header = struct.pack("<HH", len(data) + 1, self.counter)
+        header = struct.pack("<HH", len(data) + 1, self.counterSend)
+        self.counterSend += 1
         frame = header + bytearray([cmd, *data])
         self.logger.debug("-> {}".format(hexDump(frame)))
         self.timing.start()

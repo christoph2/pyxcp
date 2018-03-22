@@ -94,7 +94,7 @@ class SxI(BaseTransport):
             if len(response) < self.HEADER_SIZE:
                 raise types.FrameSizeError("Frame too short.")
             self.logger.debug("<- {}\n".format(hexDump(response)))
-            packetLen, seqNo = struct.unpack(SxI.HEADER, response[ : 4])
+            packetLen, self.counterReceived = struct.unpack(SxI.HEADER, response[ : 4])
             xcpPDU = response[4 : ]
             if len(xcpPDU) != packetLen:
                 raise types.FrameSizeError("Size mismatch.")

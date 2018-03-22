@@ -23,7 +23,6 @@ __copyright__="""
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-import queue
 import selectors
 import socket
 import struct
@@ -61,7 +60,7 @@ class Eth(BaseTransport):
             if self.closeEvent.isSet() or self.sock.fileno() == -1:
                 return
             sel  = self.selector.select(0.1)
-            for key, events in sel:
+            for _, events in sel:
                 if events & selectors.EVENT_READ:
                     if self.connected:
                         length = struct.unpack("<H", self.sock.recv(2))[0]
@@ -79,7 +78,7 @@ class Eth(BaseTransport):
                     if len(response) < self.HEADER_SIZE:
                         raise types.FrameSizeError("Frame too short.")
                     self.logger.debug("<- {}\n".format(hexDump(response)))
-                    packetLen, seqNo = struct.unpack(Eth.HEADER, response[ : 4])
+                    packetLen, self.counterReceived = struct.unpack(Eth.HEADER, response[ : 4])
                     xcpPDU = response[4 : ]
                     if len(xcpPDU) != packetLen:
                         raise types.FrameSizeError("Size mismatch.")
