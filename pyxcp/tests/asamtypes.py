@@ -24,7 +24,7 @@ class TestAsamBaseType(unittest.TestCase):
         self.assertTrue(isinstance(types.AsamBaseType(types.MOTOROLA), types.AsamBaseType))
 
     def testInvalidByteOrderRaisesTypeError(self):
-        self.assertRaises(TypeError, types.AsamBaseType, '#')
+        self.assertRaises(ValueError, types.AsamBaseType, '#')
 
 if __name__ == '__main__':
   unittest.main()

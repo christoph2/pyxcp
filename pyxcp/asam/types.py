@@ -55,7 +55,7 @@ class AsamBaseType(object):
           - '>' Big-endian
         """
         if not  byteorder in ("<", ">"):
-            raise TypeError("Invalid byteorder.")
+            raise ValueError("Invalid byteorder.")
         self.byteorder = byteorder
 
     def encode(self, value):
