@@ -45,8 +45,6 @@
 
 
 uint8_t dllname[NP_BUFSIZE] = {0};
-DWORD nRead;
-DWORD dwError;
 
 DWORD GetKey(char * const dllName, BYTE privilege, BYTE lenSeed, BYTE * seed, BYTE * lenKey, BYTE * key);
 void hexlify(uint8_t const * const buf, uint16_t len);
@@ -54,12 +52,6 @@ void hexlify(uint8_t const * const buf, uint16_t len);
 typedef DWORD (*XCP_GetAvailablePrivilegesType)(BYTE * privilege);
 typedef DWORD (*XCP_ComputeKeyFromSeedType)(BYTE privilege, BYTE lenSeed, BYTE *seed, BYTE * lenKey, BYTE * key);
 
-
-XCP_GetAvailablePrivilegesType XCP_GetAvailablePrivileges;
-XCP_ComputeKeyFromSeedType XCP_ComputeKeyFromSeed;
-
-//const uint8_t seed[10] = {0x61, 0x2b, 0x8d, 0xbb, 0x4d, 0x65, 0xdb, 0x78, 0x49, 0xb5};
-//uint8_t key[10] = {0};
 
 uint8_t keyBuffer[KEY_BUFSIZE] = {0};
 uint8_t seedBuffer[KEY_BUFSIZE] = {0};
