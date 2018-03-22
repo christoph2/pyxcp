@@ -16,7 +16,7 @@ notifications:
 
 install:
   - pip install -r requirements.txt
-  #- travis_retry pip install pylint codeclimate-test-reporter
+  - travis_retry pip install pylint codeclimate-test-reporter
   - travis_retry pip install pytest-cov coverage coveralls codacy-coverage
 
 script:
@@ -28,4 +28,4 @@ after_success:
   - pylint app
   - coveralls
   - coverage xml && python-codacy-coverage -r coverage.xml
-#  - codeclimate-test-reporter
+  - codeclimate-test-reporter
