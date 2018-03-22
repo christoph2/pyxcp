@@ -87,6 +87,7 @@ class BaseTransport(metaclass = abc.ABCMeta):
         self.logger.debug(cmd.name)
         header = struct.pack("<HH", len(data) + 1, self.counterSend)
         self.counterSend += 1
+        self.counterSend &= 0xffff
         frame = header + bytearray([cmd, *data])
         self.logger.debug("-> {}".format(hexDump(frame)))
         self.timing.start()
