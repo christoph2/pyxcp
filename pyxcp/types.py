@@ -174,30 +174,20 @@ Response = Struct(
 
 )
 
-#st = Struct(
-#    "type" / Enum(Byte, INT1=1, INT2=2, INT4=3, STRING=4),
-#    "data" / Switch(this.type, {
-#        "INT1" : Int8ub,
-#        "INT2" : Int16ub,
-#        "INT4" : Int32ub,
-#        "STRING" : String(10),
-#    }),
-#)
-
-Resource = BitStruct (
+ResourceType = BitStruct (
     Padding(3),
-    "pgm" / BitsInteger(1),
-    "stim" / BitsInteger(1),
-    "daq" / BitsInteger(1),
+    "pgm" / Flag,
+    "stim" / Flag,
+    "daq" / Flag,
     Padding(1),
-    "calpag" / BitsInteger(1),
+    "calpag" / Flag,
 )
 
 CommModeBasic = BitStruct (
-    "optional" / BitsInteger(1),    # The OPTIONAL flag indicates whether additional information on supported types
+    "optional" / Flag,    # The OPTIONAL flag indicates whether additional information on supported types
                                     # of Communication mode is available. The master can get that additional
                                     # information with GET_COMM_MODE_INFO
-    "slaveBlockMode" / BitsInteger(1),
+    "slaveBlockMode" / Flag,
     Padding(3),
     "addressGranularity" / Enum(BitsInteger(2),
         BYTE = 0,
@@ -212,7 +202,7 @@ CommModeBasic = BitStruct (
 )
 
 ConnectResponse = Struct(
-    "resource" / Resource,
+    "resource" / ResourceType,
     "commModeBasic" / CommModeBasic,
     "maxCto" / Int8ul,
     "maxDto" / Int16ul,
@@ -221,35 +211,26 @@ ConnectResponse = Struct(
 )
 
 SessionStatus = BitStruct(
-    "resume" / BitsInteger(1),
-    "daqRunning" / BitsInteger(1),
+    "resume" / Flag,
+    "daqRunning" / Flag,
     Padding(2),
-    "clearDaqRequest" / BitsInteger(1),
-    "storeDaqRequest" / BitsInteger(1),
+    "clearDaqRequest" / Flag,
+    "storeDaqRequest" / Flag,
     Padding(1),
-    "storeCalRequest" / BitsInteger(1),
-)
-
-ResourceProtectionStatus = BitStruct(
-    Padding(3),
-    "pgm" / BitsInteger(1),
-    "stim" / BitsInteger(1),
-    "daq" / BitsInteger(1),
-    Padding(1),
-    "calpag" / BitsInteger(1),
+    "storeCalRequest" / Flag,
 )
 
 GetStatusResponse = Struct(
     "sessionStatus" / SessionStatus,
-    "resourceProtectionStatus" / ResourceProtectionStatus,
+    "resourceProtectionStatus" / ResourceType,
     "reserved" / Int8ul,
     "sessionConfiguration" / Int16ul,
 )
 
 CommModeOptional = BitStruct(
     Padding(6),
-    "interleavedMode" / BitsInteger(1),
-    "masterBlockMode" / BitsInteger(1),
+    "interleavedMode" / Flag,
+    "masterBlockMode" / Flag,
 )
 
 GetCommModeInfoResponse = Struct(
@@ -270,10 +251,10 @@ GetIDResponse = Struct(
 
 SetRequestMode = BitStruct(
     Padding(4),
-    "clearDaqReq" / BitsInteger(1),
-    "storeDaqReq" / BitsInteger(1),
+    "clearDaqReq" / Flag,
+    "storeDaqReq" / Flag,
     Padding(1),
-    "storeCalReq" / BitsInteger(1),
+    "storeCalReq" / Flag,
 )
 
 BuildChecksumResponse = Struct(
@@ -294,10 +275,10 @@ BuildChecksumResponse = Struct(
 )
 
 SetCalPageMode = BitStruct(
-    "all" / BitsInteger(1),
+    "all" / Flag,
     Padding(5),
-    "xcp" / BitsInteger(1),
-    "ecu" / BitsInteger(1),
+    "xcp" / Flag,
+    "ecu" / Flag,
 )
 
 GetPagProcessorInfoResponse = Struct(
@@ -325,24 +306,24 @@ GetSegmentInfoMode2Response = Struct(
 
 PageProperties = BitStruct(
     Padding(2),
-    "xcpWriteAccessWithEcu" / BitsInteger(1),
-    "xcpWriteAccessWithoutEcu" / BitsInteger(1),
-    "xcpReadAccessWithEcu" / BitsInteger(1),
-    "xcpReadAccessWithoutEcu" / BitsInteger(1),
-    "ecuAccessWithXcp" / BitsInteger(1),
-    "ecuAccessWithoutXcp" / BitsInteger(1),
+    "xcpWriteAccessWithEcu" / Flag,
+    "xcpWriteAccessWithoutEcu" / Flag,
+    "xcpReadAccessWithEcu" / Flag,
+    "xcpReadAccessWithoutEcu" / Flag,
+    "ecuAccessWithXcp" / Flag,
+    "ecuAccessWithoutXcp" / Flag,
 )
 
 ###
 DaqProperties = BitStruct(
-    "overloadEvent" / BitsInteger(1),
-    "overloadMsb" / BitsInteger(1),
-    "pidOffSupported" / BitsInteger(1),
-    "timestampSupported" / BitsInteger(1),
-    "bitStimSupported" / BitsInteger(1),
-    "resumeSupported" / BitsInteger(1),
-    "prescalerSupported" / BitsInteger(1),
-    "daqConfigType" / BitsInteger(1),
+    "overloadEvent" / Flag,
+    "overloadMsb" / Flag,
+    "pidOffSupported" / Flag,
+    "timestampSupported" / Flag,
+    "bitStimSupported" / Flag,
+    "resumeSupported" / Flag,
+    "prescalerSupported" / Flag,
+    "daqConfigType" / Flag,
 )
 
 GetDaqProcessorInfoResponse = Struct(
@@ -375,13 +356,13 @@ GetDaqProcessorInfoResponse = Struct(
 )
 
 CurrentMode = BitStruct(
-    "resume" / BitsInteger(1),
-    "running" / BitsInteger(1),
-    "pid_off" / BitsInteger(1),
-    "timestamp" / BitsInteger(1),
+    "resume" / Flag,
+    "running" / Flag,
+    "pid_off" / Flag,
+    "timestamp" / Flag,
     Padding(2),
-    "direction" / BitsInteger(1),
-    "selected" / BitsInteger(1),
+    "direction" / Flag,
+    "selected" / Flag,
 )
 
 GetDaqListModeResponse = Struct(
@@ -425,7 +406,7 @@ GetDaqResolutionInfoResponse = Struct(
              DAQ_TIMESTAMP_UNIT_10PS  = 0b1011,
              DAQ_TIMESTAMP_UNIT_100PS = 0b1100,
         ),
-        "fixed" / BitsInteger(1),
+        "fixed" / Flag,
         "size" / Enum(BitsInteger(3),
             NO_TIME_STAMP =  0b000,
             S1 = 0b001,
@@ -439,10 +420,10 @@ GetDaqResolutionInfoResponse = Struct(
 
 DaqListProperties = BitStruct(
     Padding(4),
-    "stim" / BitsInteger(1),
-    "daq" / BitsInteger(1),
-    "eventFixed" / BitsInteger(1),
-    "predefined" / BitsInteger(1),
+    "stim" / Flag,
+    "daq" / Flag,
+    "eventFixed" / Flag,
+    "predefined" / Flag,
 )
 
 GetDaqListInfoResponse = Struct(
@@ -454,8 +435,8 @@ GetDaqListInfoResponse = Struct(
 
 DaqEventProperties = BitStruct(
     Padding(4),
-    "stim" / BitsInteger(1),
-    "daq" / BitsInteger(1),
+    "stim" / Flag,
+    "daq" / Flag,
     Padding(2)
 )
 
@@ -470,10 +451,10 @@ GetEventChannelInfoResponse = Struct(
 
 CommModePgm = BitStruct(
     Padding(1),
-    "slaveBlockMode" / BitsInteger(1),
+    "slaveBlockMode" / Flag,
     Padding(4),
-    "interleavedMode" / BitsInteger(1),
-    "masterBlockMode" / BitsInteger(1),
+    "interleavedMode" / Flag,
+    "masterBlockMode" / Flag,
 )
 
 ProgramStartResponse = Struct(

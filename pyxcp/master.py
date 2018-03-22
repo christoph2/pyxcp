@@ -28,15 +28,12 @@ import logging
 import os
 import select
 import struct
-import sys
 import traceback
 
 from pyxcp import checksum
 from pyxcp import types
 from pyxcp import transport
 
-from pyxcp.timing import Timing
-from pyxcp.utils import setpriority
 
 ##
 ##  todo: Meta-Programming wg. Persistenz/ Speicherung
@@ -198,10 +195,10 @@ class Master(object):
         self.maxCto = result.maxCto
         self.maxDto = result.maxDto
 
-        self.supportsPgm = True if result.resource.pgm == 1 else False
-        self.supportsStim = True if result.resource.stim == 1 else False
-        self.supportsDaq = True if result.resource.daq == 1 else False
-        self.supportsCalpag = True if result.resource.calpag == 1 else False
+        self.supportsPgm = result.resource.pgm
+        self.supportsStim = result.resource.stim
+        self.supportsDaq = result.resource.daq
+        self.supportsCalpag = result.resource.calpag
         return result
 
     def disconnect(self):
