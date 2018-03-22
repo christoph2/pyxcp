@@ -27,7 +27,8 @@ MOTOROLA = ">"
 class AsamBaseType(object):
 
   def __init__(self, byteorder):
-    assert byteorder in ("<", ">")
+    if not  byteorder in ("<", ">"):
+        raise TypeError("Invalid byteorder.")
     self.byteorder = byteorder
 
   def encode(self, value):
