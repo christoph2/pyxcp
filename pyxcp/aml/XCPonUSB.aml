@@ -57,7 +57,7 @@ struct USB_Parameters {
     enum {
         "HEADER_LEN_BYTE" = 0,
         "HEADER_LEN_CTR_BYTE" = 1,
-        "HEADER_LEN_FILL_BYTE‚Äù = 2,
+        "HEADER_LEN_FILL_BYTE"Äù = 2,
         "HEADER_LEN_WORD" = 3,
         "HEADER_LEN_CTR_WORD" = 4,
         "HEADER_LEN_FILL_WORD" = 5
@@ -75,7 +75,7 @@ struct USB_Parameters {
     };
     /* ----------- Begin of optional ------- */
     taggedstruct { /* Optional */
-            "ALTERNATE_SETTING_NO" uchar; /* Number of alternate setting */
+        "ALTERNATE_SETTING_NO" uchar; /* Number of alternate setting */
         /* String Descriptor of XCP */
         /* interface */
         "INTERFACE_STRING_DESCRIPTOR" char [101];

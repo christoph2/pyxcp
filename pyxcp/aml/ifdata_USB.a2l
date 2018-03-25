@@ -7,26 +7,26 @@
     /* OUT-EP for CMD and */
     /* STIM (additional USB Endpoints may also be specified) */
     /begin OUT_EP_CMD_STIM
-    0x01 /* Endpoint number is 1 (dir=OUT) */
-    BULK_TRANSFER
-    0x40 /* Maximum packet size is 64 bytes */
-    0 /* Polling interval don’t care */
-    MESSAGE_PACKING_SINGLE /* Only one XCP Message/packet */
-    ALIGNMENT_32_BIT /* XCP Message starts on 32 bit */
-    /* addresses within USB data packet*/
+        0x01 /* Endpoint number is 1 (dir=OUT) */
+        BULK_TRANSFER
+        0x40 /* Maximum packet size is 64 bytes */
+        0 /* Polling interval don’t care */
+        MESSAGE_PACKING_SINGLE /* Only one XCP Message/packet */
+        ALIGNMENT_32_BIT /* XCP Message starts on 32 bit */
+        /* addresses within USB data packet*/
     /end OUT_EP_CMD_STIM
     /* IN-EP for RES/ERR, */
     /* DAQ (additional USB Endpoints may also be specified) */
     /* and EV/SERV (if not specified otherwise) */
     /begin IN_EP_RESERR_DAQ_EVSERV
-    0x01 /* Endpoint number is 1 (dir=IN) */
-    BULK_TRANSFER
-    0x40 /* Maximum packet size is 64 bytes */
-    0 /* Polling interval don’t care */
-    MESSAGE_PACKING_SINGLE /* Only one XCP Message/packet */
-    ALIGNMENT_32_BIT /* XCP Message starts on 32 bit */
-    /* addresses within USB data packet*/
-    RECOMMENDED_HOST_BUFSIZE 1 /* Host: 1 * 64 bytes = 64 bytes */
+        0x01 /* Endpoint number is 1 (dir=IN) */
+        BULK_TRANSFER
+        0x40 /* Maximum packet size is 64 bytes */
+        0 /* Polling interval don’t care */
+        MESSAGE_PACKING_SINGLE /* Only one XCP Message/packet */
+        ALIGNMENT_32_BIT /* XCP Message starts on 32 bit */
+        /* addresses within USB data packet*/
+        RECOMMENDED_HOST_BUFSIZE 1 /* Host: 1 * 64 bytes = 64 bytes */
     /end IN_EP_RESERR_DAQ_EVSERV
     /* ----------- Begin of optional ------- */
     ALTERNATE_SETTING_NO 0x01 /* Use alternate setting number 1 */
@@ -35,48 +35,48 @@
     /* description file */
     INTERFACE_STRING_DESCRIPTOR "XCP Master ECU on interface 1"
     /begin OUT_EP_ONLY_STIM /* Endpoint supporting packet type */
-    /* only STIM */
-    0x02 /* Endpoint number is 2 (dir=OUT) */
-    BULK_TRANSFER
-    0x40 /* Maximum packet size is 64 bytes */
-    0 /* Polling interval don’t care */
-    MESSAGE_PACKING_MULTIPLE /* Multiple XCP Messages/packet */
-    ALIGNMENT_32_BIT /* XCP Messages start on 32 bit */
-    /* addresses within USB data packet*/
+        /* only STIM */
+        0x02 /* Endpoint number is 2 (dir=OUT) */
+        BULK_TRANSFER
+        0x40 /* Maximum packet size is 64 bytes */
+        0 /* Polling interval don’t care */
+        MESSAGE_PACKING_MULTIPLE /* Multiple XCP Messages/packet */
+        ALIGNMENT_32_BIT /* XCP Messages start on 32 bit */
+        /* addresses within USB data packet*/
     /end OUT_EP_ONLY_STIM
     /begin IN_EP_ONLY_DAQ /* Endpoint supporting packet type */
-    /* only DAQ */
-    0x02 /* Endpoint number is 2 (dir=IN) */
-    BULK_TRANSFER
-    0x40 /* Maximum packet size is 64 bytes */
-    0 /* Polling interval don’t care */
-    MESSAGE_PACKING_STREAMING /* Streaming mode */
-    ALIGNMENT_32_BIT /* XCP Messages start on 32 bit */
-    /* addresses within USB data packet*/
-    RECOMMENDED_HOST_BUFSIZE 5 /* Host: 5 * 64 bytes = 320 bytes */
+        /* only DAQ */
+        0x02 /* Endpoint number is 2 (dir=IN) */
+        BULK_TRANSFER
+        0x40 /* Maximum packet size is 64 bytes */
+        0 /* Polling interval don’t care */
+        MESSAGE_PACKING_STREAMING /* Streaming mode */
+        ALIGNMENT_32_BIT /* XCP Messages start on 32 bit */
+        /* addresses within USB data packet*/
+        RECOMMENDED_HOST_BUFSIZE 5 /* Host: 5 * 64 bytes = 320 bytes */
     /end IN_EP_ONLY_DAQ
     /begin IN_EP_ONLY_EVSERV /* Endpoint supporting packet types */
-    /* only EV, SERV */
-    0x03 /* Endpoint number is 3 (dir=IN) */
-    INTERRUPT_TRANSFER
-    0x40 /* Maximum packet size is 64 bytes */
-    0x10 /* Polling interval is 16 ms */
-    MESSAGE_PACKING_SINGLE /* Only one XCP Message/packet */
-    ALIGNMENT_32_BIT /* XCP Message starts on 32 bit */
-    /* addresses within USB data packet*/
-    RECOMMENDED_HOST_BUFSIZE 1 /* Host: 1 * 64 bytes = 64 bytes */
+        /* only EV, SERV */
+        0x03 /* Endpoint number is 3 (dir=IN) */
+        INTERRUPT_TRANSFER
+        0x40 /* Maximum packet size is 64 bytes */
+        0x10 /* Polling interval is 16 ms */
+        MESSAGE_PACKING_SINGLE /* Only one XCP Message/packet */
+        ALIGNMENT_32_BIT /* XCP Message starts on 32 bit */
+        /* addresses within USB data packet*/
+        RECOMMENDED_HOST_BUFSIZE 1 /* Host: 1 * 64 bytes = 64 bytes */
     /end IN_EP_ONLY_EVSERV
     /begin DAQ_LIST_USB_ENDPOINT
-    0x0000 /* DTO-DAQ dedicated to list 0 */
-    FIXED_IN 0x02 /* uses Endpoint 2 IN. */
+        0x0000 /* DTO-DAQ dedicated to list 0 */
+        FIXED_IN 0x02 /* uses Endpoint 2 IN. */
     /end DAQ_LIST_USB_ENDPOINT
     /begin DAQ_LIST_USB_ENDPOINT
-    0x0001 /* DTO-DAQ dedicated to list 1 */
-    FIXED_IN 0x02 /* uses Endpoint 2 IN. */
+        0x0001 /* DTO-DAQ dedicated to list 1 */
+        FIXED_IN 0x02 /* uses Endpoint 2 IN. */
     /end DAQ_LIST_USB_ENDPOINT
     /begin DAQ_LIST_USB_ENDPOINT
-    0x0002 /* DTO-STIM dedicated to list 2 */
-    FIXED_OUT 0x02 /* uses Endpoint 2 OUT. */
+        0x0002 /* DTO-STIM dedicated to list 2 */
+        FIXED_OUT 0x02 /* uses Endpoint 2 OUT. */
     /end DAQ_LIST_USB_ENDPOINT
 /end XCP_ON_USB
 
