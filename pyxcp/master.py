@@ -32,42 +32,6 @@ from pyxcp import checksum
 from pyxcp import types
 
 
-class CANMessageObject(object):
-
-    def __init__(self, canID, dlc, data, extendedAddr = False, rtr = False):
-        self.canID = canID
-        self.dlc = dlc
-        self.data = data
-        self.extendedAddr = extendedAddr
-        self.rtr = rtr
-
-    def __str__(self):
-        addrFmt =  "[{:08X}]  " if self.extendedAddr else "{:04X}  "
-        fmt = addrFmt + "{}"
-        return fmt.format(self.canID, " ".join(["{:02X}".format(x) for x in self.data]))
-
-    __repr__ = __str__
-
-
-class MockTransport(object):
-
-    def __init__(self, canID):
-        self.parent = None
-        self.canID = canID
-
-    def send(self, b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, b7 = 0):
-        self.message = CANMessageObject(self.canID, 8, bytearray((b0, b1, b2, b3, b4, b5, b6, b7)))
-
-    def receive(self, b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, b7 = 0):
-        self.message = CANMessageObject(self.canID, 8, bytearray((b0, b1, b2, b3, b4, b5, b6, b7)))
-        self.parent.receive(self.message)
-
-    def __str__(self):
-        return "[Current Message]: {}".format(self.message)
-
-    __repr__ = __str__
-
-
 class Master(object):
 
     def __init__(self, transport):
@@ -93,11 +57,6 @@ class Master(object):
 
     def close(self):
         self.transport.close()
-
-    def sendCRO(self, canID, cmd, ctr, b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0):
-        """Transfer up to 6 data bytes from master to slave (ECU).
-        """
-        self.transport.send(canID, cmd, ctr, b0, b1, b2, b3, b4, b5)
 
     ##
     ## Mandatory Commands.
