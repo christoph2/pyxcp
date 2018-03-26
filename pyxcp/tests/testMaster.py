@@ -7,25 +7,6 @@ from unittest import mock
 from pyxcp.master import Master
 from pyxcp import transport
 
-"""
-[in test_my_module]
-@patch('external_module.api_call')
-def test_some_func(self, mock_api_call):
-     mock_api_call.return_value =
-MagicMock(status_code=200, response=json.dumps({'key':'value'}))
-     my_module.some_func()
-
-##
-##
-##
-m = MagicMock()
-m.foo() #no error raised
-
-# Response objects have a status_code attribute
-m = MagicMock(spec=Response, status_code=200, response=json.dumps({'key': 'value'}))
-m.foo() #raises AttributeError
-m.status_code #no error raised
-"""
 
 class TestMaster(unittest.TestCase):
 
@@ -74,6 +55,40 @@ class TestMaster(unittest.TestCase):
         self.assertEqual(res.resourceProtectionStatus.stim, True)
         self.assertEqual(res.resourceProtectionStatus.daq, True)
         self.assertEqual(res.resourceProtectionStatus.calpag, True)
+
+    @mock.patch("pyxcp.transport.Eth")
+    def testSync(self, Eth):
+        tr = Eth()
+        tr.request.return_value = bytes([0x00])
+        with Master(tr) as xm:
+            res = xm.synch()
+        self.assertTrue(len(res) == 1)
+
+    @mock.patch("pyxcp.transport.Eth")
+    def testGetCommModeInfo(self, Eth):
+        tr = Eth()
+        tr.request.return_value = bytes([0x00, 0x01, 0xff, 0x02, 0x00, 0x00, 0x19])
+        with Master(tr) as xm:
+            res = xm.getCommModeInfo()
+        self.assertEqual(res.commModeOptional.interleavedMode, False)
+        self.assertEqual(res.commModeOptional.masterBlockMode, True)
+        self.assertEqual(res.maxbs, 2)
+        self.assertEqual(res.minSt, 0)
+        self.assertEqual(res.queueSize, 0)
+        self.assertEqual(res.xcpDriverVersionNumber, 25)
+
+    @mock.patch("pyxcp.transport.Eth")
+    def testGetID(self, Eth):
+        tr = Eth()
+        tr.request.return_value = bytes([0x00, 0x01, 0xff, 0x06, 0x00, 0x00, 0x00])
+        with Master(tr) as xm:
+            gid = xm.getID(0x01)
+            tr.request.return_value = bytes([0x58, 0x43, 0x50, 0x73, 0x69, 0x6d])
+            res = xm.upload(gid.length)
+        self.assertEqual(gid.mode, 0)
+        self.assertEqual(gid.reserved, 65281)
+        self.assertEqual(gid.length, 6)
+        self.assertEqual(res, b'XCPsim')
 
 
 def main():
