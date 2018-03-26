@@ -28,6 +28,13 @@ import os
 import sys
 import threading
 
+try:
+    import win32api, win32process, win32con
+except ImportError:
+    winApi = False
+else:
+    winApi = True
+
 
 def hexDump(arr):
     return "[{}]".format(' '.join(["{:02x}".format(x) for x in arr]))
@@ -205,13 +212,12 @@ def memoryMap(filename, writeable = False):
     return mmap.mmap(fd, size, access = mmap.ACCESS_WRITE if writeable else mmap.ACCESS_READ)
 
 
-if sys.platform == "win32":
+if sys.platform == "win32" and winApi:
 
     ##
     ## Code snippet taken from http://code.activestate.com/recipes/496767-set-process-priority-in-windows/
     ## Licenced under PSF.
     ##
-    import win32api, win32process, win32con
 
     def setpriority(pid = None, priority = 1):
         """ Set The Priority of a Windows Process.  Priority is a value between 0-5 where
@@ -237,5 +243,4 @@ if sys.platform == "win32":
 else:
     def setpriority(pid = None, priority = 1):
         pass
-
 
