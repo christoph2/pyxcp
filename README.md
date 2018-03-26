@@ -27,8 +27,8 @@ pyXCP is hosted on Github, get the latest release: [https://github.com/christoph
 
 ### Requirements
 
-- Python >= 3.3
-- A running XCP slave
+- Python >= 3.5
+- A running XCP slave (of cause).
 
 ## First steps
 
