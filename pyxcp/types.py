@@ -30,7 +30,7 @@ if construct.version < (2, 8):
     print("pyXCP requires at least construct 2.8")
     exit(1)
 
-from construct import Struct,  Adapter, FlagsEnum, Enum, String, Array, Padding, Tell, Union, HexDump
+from construct import Struct,  Adapter, FlagsEnum, Enum, Array, Padding, Tell, Union, HexDump
 from construct import CString, IfThenElse, Pass, Float64l, Int8ul, Construct, this, GreedyBytes, Switch
 from construct import Byte, GreedyRange, Bytes, Int16ul, Int16sl, Int32ul, Int32sl, Int64ul
 from construct import BitStruct, BitsInteger, Flag
@@ -465,6 +465,5 @@ ProgramStartResponse = Struct(
     "minStPgm" / Int8ul,
     "queueSizePgm" / Int8ul,
 )
-
 
 
