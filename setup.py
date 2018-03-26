@@ -2,7 +2,6 @@
 
 import os
 from setuptools import setup, find_packages
-from glob import glob
 
 def packagez(base):
     return  ["{0!s}{1!s}{2!s}".format(base, os.path.sep, p) for p in find_packages(base)]
