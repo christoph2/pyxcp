@@ -32,7 +32,7 @@ from ..logger import Logger
 from ..utils import hexDump, PYTHON_VERSION
 
 import pyxcp.types as types
-import pyxcp.config Config
+from pyxcp.config import Config
 
 from ..timing import Timing
 
