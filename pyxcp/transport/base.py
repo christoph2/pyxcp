@@ -30,26 +30,11 @@ import threading
 
 from ..logger import Logger
 from ..utils import hexDump, PYTHON_VERSION
+
 import pyxcp.types as types
+import pyxcp.config Config
 
 from ..timing import Timing
-
-
-class ConfigType:
-    """Configuration base class.
-
-    JSON...
-    """
-
-    def __init__(self):
-        pass
-
-    def __repr__(self):
-        """
-        Returns
-        -------
-            dict: Descr.
-        """
 
 
 class BaseTransport(metaclass = abc.ABCMeta):
