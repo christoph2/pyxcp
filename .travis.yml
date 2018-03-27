@@ -10,6 +10,7 @@ python:
 
 os:
   - linux
+  - macosx
 
 notifications:
   email: false
