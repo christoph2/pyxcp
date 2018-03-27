@@ -40,6 +40,14 @@ class FrameSizeError(Exception): pass
 class XcpResponseError(Exception): pass
 class XcpTimeoutError(Exception): pass
 
+
+class XcpGetIdType(enum.IntEnum):
+    ASCII_TEXT = 0
+    FILENAME = 1
+    FILE_AND_PATH = 2
+    URL = 3
+    FILE_TO_UPLOAD = 4
+
 class Command(enum.IntEnum):
 
 # class STD(Command):
