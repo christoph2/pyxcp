@@ -105,36 +105,80 @@ class Master(object):
         -------
         None
 
+        Notes
+        -----
+        If DISCONNECT is currently not possible, ERR_CMD_BUSY will be returned.
         """
         response = self.transport.request(types.Command.DISCONNECT)
 
     def getStatus(self):
+        """Get current status information of the slave device.
+
+        This includes the status of the resource protection, pending store requests and the general
+        status of data acquisition and stimulation.
+
+        Returns
+        -------
+        `types.GetStatusResponse`
+        """
         response = self.transport.request(types.Command.GET_STATUS)
         result = types.GetStatusResponse.parse(response)
         return result
 
     def synch(self):
+        """Synchronize command execution after timeout conditions.
+
+        """
         response = self.transport.request(types.Command.SYNCH)
         return response
 
     def getCommModeInfo(self):
+        """Get optional information on different Communication Modes supported by the slave.
+
+        Returns
+        -------
+        `types.GetCommModeInfoResponse`
+        """
         response = self.transport.request(types.Command.GET_COMM_MODE_INFO)
         result = types.GetCommModeInfoResponse.parse(response)
         return result
 
     def getID(self, mode):
-        class XcpIdType(enum.IntEnum):
-            ASCII_TEXT = 0
-            FILENAME = 1
-            FILE_AND_PATH = 2
-            URL = 3
-            FILE_TO_UPLOAD = 4
+        """This command is used for automatic session configuration and for slave device identification.
+
+        Parameters
+        ----------
+        mode: uint8
+            The following identification types may be requested:
+
+            - 0        ASCII text
+            - 1        ASAM-MC2 filename without path and extension
+            - 2        ASAM-MC2 filename with path and extension
+            - 3        URL where the ASAM-MC2 file can be found
+            - 4        ASAM-MC2 file to upload
+            - 128..255 User defined
+
+            `types.XcpGetIdType`may be used.
+
+        Returns
+        -------
+        `types.GetIDResponse`
+        """
         response = self.transport.request(types.Command.GET_ID, mode)
         result = types.GetIDResponse.parse(response)
         result.length = struct.unpack("<I", response[3 : 7])[0]
         return result
 
     def setRequest(self, mode, sessionConfigurationId):
+        """Request to save to non-volatile memory.
+
+        Parameters
+        ----------
+        mode: uint8
+            tbd
+        sessionConfigurationId: uint16
+            tbd
+        """
         response = self.transport.request(types.Command.SET_REQUEST, mode, sessionConfigurationId >> 8, sessionConfigurationId & 0xff)
         return response
 
@@ -188,6 +232,9 @@ class Master(object):
         response = self.transport.request(types.Command.USER_CMD, subCommand, *data)
         return response
 
+    ##
+    ## Calibration Commands (CAL)
+    ##
     def download(self, *data):
         length = len(data)
         response = self.transport.request(types.Command.DOWNLOAD, length, *data)
