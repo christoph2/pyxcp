@@ -39,7 +39,7 @@ from ..timing import Timing
 
 class BaseTransport(metaclass = abc.ABCMeta):
 
-    def __init__(self, config = ConfigType(), loglevel = 'WARN'):
+    def __init__(self, config = Config({}), loglevel = 'WARN'):
         self.parent = None
         self.closeEvent = threading.Event()
         self.logger = Logger("transport.Base")
