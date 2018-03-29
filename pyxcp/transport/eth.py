@@ -75,14 +75,7 @@ class Eth(BaseTransport):
                         except Exception as e:
                             self.logger.error(str(e))
                             continue
-                    if len(response) < self.HEADER_SIZE:
-                        raise types.FrameSizeError("Frame too short.")
-                    self.logger.debug("<- {}\n".format(hexDump(response)))
-                    packetLen, self.counterReceived = struct.unpack(Eth.HEADER, response[ : 4])
-                    xcpPDU = response[4 : ]
-                    if len(xcpPDU) != packetLen:
-                        raise types.FrameSizeError("Size mismatch.")
-                    self.resQueue.put(xcpPDU)
+                    self.processResponse(response)
 
     def send(self, frame):
         self.sock.send(frame)

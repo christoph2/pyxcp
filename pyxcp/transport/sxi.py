@@ -89,14 +89,8 @@ class SxI(BaseTransport):
             self.timing.stop()
             response = rawLength + response
 
-            if len(response) < self.HEADER_SIZE:
-                raise types.FrameSizeError("Frame too short.")
-            self.logger.debug("<- {}\n".format(hexDump(response)))
-            packetLen, self.counterReceived = struct.unpack(SxI.HEADER, response[ : 4])
-            xcpPDU = response[4 : ]
-            if len(xcpPDU) != packetLen:
-                raise types.FrameSizeError("Size mismatch.")
-            self.resQueue.put(xcpPDU)
+            self.processResponse(response)
+
 
     def send(self, frame):
         self.port.write(frame)

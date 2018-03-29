@@ -110,3 +110,13 @@ class BaseTransport(metaclass = abc.ABCMeta):
     def listen(self):
         pass
 
+    def processResponse(self, response):
+        if len(response) < self.HEADER_SIZE:
+            raise types.FrameSizeError("Frame too short.")
+        self.logger.debug("<- {}\n".format(hexDump(response)))
+        packetLen, self.counterReceived = struct.unpack(self.HEADER, response[ : 4])
+        xcpPDU = response[4 : ]
+        if len(xcpPDU) != packetLen:
+            raise types.FrameSizeError("Size mismatch.")
+        self.resQueue.put(xcpPDU)
+
