@@ -26,6 +26,7 @@ __copyright__="""
 import abc
 import queue
 import struct
+import time
 import threading
 
 from ..logger import Logger
@@ -85,14 +86,13 @@ class BaseTransport(metaclass = abc.ABCMeta):
                 raise types.XcpTimeoutError("Response timed out.") from None
             else:
                 raise types.XcpTimeoutError("Response timed out.")
-        self.resQueue.task_done()
+        self.resQueue.task_done()   # TODO: move up!?
         self.timing.stop()
 
         pid = types.Response.parse(xcpPDU).type
-        if pid != 'OK' and pid == 'ERR':
-            if cmd.name != 'SYNCH':
-                err = types.XcpError.parse(xcpPDU[1 : ])
-                raise types.XcpResponseError(err)
+        if pid == 'ERR' and cmd.name != 'SYNCH':
+            err = types.XcpError.parse(xcpPDU[1 : ])
+            raise types.XcpResponseError(err)
         else:
             pass    # Und nu??
         return xcpPDU[1 : ]
@@ -118,5 +118,13 @@ class BaseTransport(metaclass = abc.ABCMeta):
         xcpPDU = response[4 : ]
         if len(xcpPDU) != packetLen:
             raise types.FrameSizeError("Size mismatch.")
-        self.resQueue.put(xcpPDU)
+        pid = xcpPDU[0]
+        if pid == 0xff or xcpPDU[0] == 0xfe:
+            self.resQueue.put(xcpPDU)
+        elif pid == 0xfd:
+            self.evQueue.put(xcpPDU)
+        elif pid == 0xfc:
+            self.servQueue.put(xcpPDU)
+        else:
+            self.daqQueue.put(xcpPDU)
 
