@@ -182,6 +182,12 @@ Response = Struct(
 
 )
 
+DAQ = Struct(
+     "odt" / Byte,
+     "daq" / Byte,
+     "data" / GreedyBytes,
+)
+
 ResourceType = BitStruct (
     Padding(3),
     "pgm" / Flag,
