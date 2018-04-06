@@ -201,7 +201,7 @@ class Master(object):
 
     def unlock(self, length, key):
         response = self.transport.request(types.Command.UNLOCK, length, *key)
-        return types.ResourceProtectionStatus.parse(response)
+        return types.ResourceType.parse(response)
 
     def fetch(self, length, limitPayload = None): ## TODO: pull
         if limitPayload and limitPayload < 8:
