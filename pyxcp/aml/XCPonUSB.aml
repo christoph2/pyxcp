@@ -20,13 +20,17 @@
 /* float FLOAT32_IEEE float 32 Bit                                          */
 /****************************************************************************/
 
+/begin A2ML
+
 /************************ start of USB **************************************/
 struct ep_parameters {
     uchar; /* ENDPOINT_NUMBER, not endpoint address */
+
     enum {
-        BULK_TRANSFERù = 2, /* Numbers according to USB spec. */
-        INTERRUPT_TRANSFERù = 3
+	"BULK_TRANSFER" = 2, /* Numbers according to USB spec. */
+	"INTERRUPT_TRANSFER" = 3
     };
+
     uint; /* wMaxPacketSize: Maximum packet */
     /* size of endpoint in bytes */
     uchar; /* bInterval: polling of endpoint */
@@ -57,7 +61,7 @@ struct USB_Parameters {
     enum {
         "HEADER_LEN_BYTE" = 0,
         "HEADER_LEN_CTR_BYTE" = 1,
-        "HEADER_LEN_FILL_BYTE"Äù = 2,
+        "HEADER_LEN_FILL_BYTE" = 2,
         "HEADER_LEN_WORD" = 3,
         "HEADER_LEN_CTR_WORD" = 4,
         "HEADER_LEN_FILL_WORD" = 5
@@ -99,3 +103,4 @@ struct USB_Parameters {
     }; /* end of optional */
 };
 /************************* end of USB ***********************************/
+/end A2ML
