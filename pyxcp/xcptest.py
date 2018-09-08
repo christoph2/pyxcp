@@ -51,7 +51,7 @@ def test():
     print(result)
     #xm.upload(result.length)
 
-    unlock(xm, 4)
+#    unlock(xm, 4)
     #length, seed = xm.getSeed(0x7ba, 0, 4)
     #print("SEED: ", hexDump(seed), flush = True)
     #_, kee = skloader.getKey(b"SeedNKeyXcp.dll", 4, seed)
@@ -162,13 +162,14 @@ def cstest():
 
         start = xm.getDaqClock()
         print("Timestamp / Start: {}".format(start))
-
+        """
         length, seed = xm.getSeed(0, 0xff)
         print("SEED: ", hexDump(seed))
         resultCode, kee = getKey("SeedNKeyXcp.dll", 1, seed)
         if resultCode == 0:
             res = xm.unlock(len(kee), kee)
             print(res)
+        """
 
 
         startMeasurement(xm)
@@ -222,7 +223,7 @@ def cstest():
 
 from collections import OrderedDict
 from pprint import pprint
-import pandas as pd
+#import pandas as pd
 
 def bench(xm):
     result = OrderedDict()
