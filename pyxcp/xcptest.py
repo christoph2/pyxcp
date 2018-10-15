@@ -139,10 +139,11 @@ def cstest():
 
 #        bench(xm)
 
-#        gid = xm.getID(0x4)
+#        gid = xm.getID(0xdc)
 #        print(gid)
-#        #result = xm.upload(251)
-#        #print("ID: '{}'".format(result.decode("utf8")))
+#        result = xm.upload()
+#        print("ID: '{}'".format(result.decode("utf8")))
+
 #        start = time.perf_counter()
 #        result = xm.fetch(gid.length, 252)
 #        stop = time.perf_counter()
@@ -156,7 +157,7 @@ def cstest():
 
         resInfo = xm.getDaqResolutionInfo()
         print(resInfo, flush = True)
-        #xm.getDaqProcessorInfo()
+        xm.getDaqProcessorInfo()
 
     #    print("CS:", xm.buildChecksum(4711))
 
@@ -594,9 +595,9 @@ Queue:
     GET_DAQ_CLOCK
     START_STOP_SYNCH mode=01h
     """
-    cl.setDaqListMode(0x10, 0, 1, 1, 1)
+    cl.setDaqListMode(0x10, 0, 1, 1, 0)	# , 1)
     print("startStopDaqList #0", cl.startStopDaqList(0x02, 0))
-    cl.setDaqListMode(0x10, 1, 2, 1, 2)
+    cl.setDaqListMode(0x10, 1, 2, 1, 0) # , 2)
     print("startStopDaqList #1", cl.startStopDaqList(0x02, 1))
     cl.startStopSynch(0x01)
 
