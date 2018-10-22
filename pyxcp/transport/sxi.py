@@ -35,8 +35,8 @@ from  pyxcp.transport.base import BaseTransport
 class SxI(BaseTransport):
 
     MAX_DATAGRAM_SIZE = 512
-    HEADER = "<HH"
-    HEADER_SIZE = struct.calcsize(HEADER)
+    HEADER = struct.Struct("<HH")
+    HEADER_SIZE = HEADER.size
 
     def __init__(self, portName, baudrate = 9600, bytesize = 8, parity = 'N', stopbits = 1, timeout = 0.75, config = {}, loglevel = "WARN"):
         self.portName = portName
@@ -83,13 +83,12 @@ class SxI(BaseTransport):
                 return
             if not self.port.inWaiting():
                 continue
-            rawLength = self.port.read(2)
-            length = struct.unpack("<H", rawLength)[0]
-            response = self.port.read(length + 2)
-            self.timing.stop()
-            response = rawLength + response
+            length, counter = self.HEADER.unpack(self.port.read(2))
 
-            self.processResponse(response)
+            response = self.port.read(length)
+            self.timing.stop()
+
+            self.processResponse(response, length, counter)
 
 
     def send(self, frame):
