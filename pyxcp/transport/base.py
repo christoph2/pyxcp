@@ -38,6 +38,8 @@ from pyxcp.config import Config
 
 from ..timing import Timing
 
+from datetime import datetime
+
 
 class BaseTransport(metaclass = abc.ABCMeta):
 
@@ -59,6 +61,7 @@ class BaseTransport(metaclass = abc.ABCMeta):
             kwargs={},
         )
         self.prev_response = time.perf_counter()
+        self.first_daq_timestamp = None
 
     def __del__(self):
         self.finishListener()
@@ -153,5 +156,7 @@ class BaseTransport(metaclass = abc.ABCMeta):
                     )
                 )
                 self.prev_response = timestamp
+            if self.first_daq_timestamp is None:
+                self.first_daq_timestamp = datetime.now()
             self.daqQueue.append((response, counter, length))
 
