@@ -119,10 +119,10 @@ class BaseTransport(metaclass = abc.ABCMeta):
     def processResponse(self, response, length, counter):
 
         self.counterReceived = counter
-        xcpPDU = response
+        response = response
         if len(response) != length:
             raise types.FrameSizeError("Size mismatch.")
-        pid = xcpPDU[0]
+        pid = response[0]
         if pid >= 0xFC:
             timestamp = time.perf_counter()
             self.logger.debug(
@@ -134,11 +134,11 @@ class BaseTransport(metaclass = abc.ABCMeta):
                 )
             )
             if pid >= 0xfe:
-                self.resQueue.put(xcpPDU)
+                self.resQueue.put(response)
             elif pid == 0xfd:
-                self.evQueue.put(xcpPDU)
+                self.evQueue.put(response)
             elif pid == 0xfc:
-                self.servQueue.put(xcpPDU)
+                self.servQueue.put(response)
         else:
             if False:
                 timestamp = time.perf_counter()
@@ -153,5 +153,5 @@ class BaseTransport(metaclass = abc.ABCMeta):
                     )
                 )
                 self.prev_response = timestamp
-            self.daqQueue.append((xcpPDU, counter, length))
+            self.daqQueue.append((response, counter, length))
 
