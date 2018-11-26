@@ -59,7 +59,7 @@ class BaseTransport(metaclass = abc.ABCMeta):
             args=(),
             kwargs={},
         )
-        self.prev_response = time.perf_counter()
+
         self.first_daq_timestamp = None
 
     def __del__(self):
@@ -119,17 +119,14 @@ class BaseTransport(metaclass = abc.ABCMeta):
         pass
 
     def processResponse(self, response, length, counter):
-
         self.counterReceived = counter
         response = response
         if len(response) != length:
             raise types.FrameSizeError("Size mismatch.")
         pid = response[0]
         if pid >= 0xFC:
-            timestamp = time.perf_counter()
             self.logger.debug(
-                "<- {:.3f}ms L{} C{} {}\n".format(
-                    (timestamp - self.prev_response) * 1000,
+                "<- L{} C{} {}\n".format(
                     length,
                     counter,
                     hexDump(response),
@@ -142,19 +139,6 @@ class BaseTransport(metaclass = abc.ABCMeta):
             elif pid == 0xfc:
                 self.servQueue.put(response)
         else:
-            if False:
-                timestamp = time.perf_counter()
-                self.logger.debug(
-                    "<- {:.3f}ms L{} C{} TS{} CLK{} {}\n".format(
-                        (timestamp - self.prev_response) * 1000,
-                        length,
-                        counter,
-                        struct.unpack('<I', response[4:8]),
-                        struct.unpack('<I', response[8:12]),
-                        hexDump(response),
-                    )
-                )
-                self.prev_response = timestamp
             if self.first_daq_timestamp is None:
                 self.first_daq_timestamp = datetime.now()
             self.daqQueue.put((response, counter, length))
