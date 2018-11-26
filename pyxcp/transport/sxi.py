@@ -83,7 +83,7 @@ class SxI(BaseTransport):
                 return
             if not self.port.inWaiting():
                 continue
-            length, counter = self.HEADER.unpack(self.port.read(2))
+            length, counter = self.HEADER.unpack(self.port.read(4))
 
             response = self.port.read(length)
             self.timing.stop()

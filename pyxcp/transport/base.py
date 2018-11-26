@@ -31,7 +31,6 @@ import threading
 
 from ..logger import Logger
 from ..utils import hexDump, PYTHON_VERSION
-from collections import deque
 
 import pyxcp.types as types
 from pyxcp.config import Config
@@ -52,7 +51,7 @@ class BaseTransport(metaclass = abc.ABCMeta):
         self.counterReceived = 0
         self.timing = Timing()
         self.resQueue = queue.Queue()
-        self.daqQueue = deque()
+        self.daqQueue = queue.Queue()
         self.evQueue = queue.Queue()
         self.servQueue = queue.Queue()
         self.listener = threading.Thread(
@@ -158,5 +157,5 @@ class BaseTransport(metaclass = abc.ABCMeta):
                 self.prev_response = timestamp
             if self.first_daq_timestamp is None:
                 self.first_daq_timestamp = datetime.now()
-            self.daqQueue.append((response, counter, length))
+            self.daqQueue.put((response, counter, length))
 
