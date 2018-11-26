@@ -4,7 +4,7 @@ import os
 from codecs import open
 from setuptools import setup, find_packages
 
-with open(path.join('pyxcp', 'version.py'), 'r') as f:
+with open(os.path.join('pyxcp', 'version.py'), 'r') as f:
     for line in f:
         if line.startswith('__version__'):
             version = line.split('=')[-1].strip().strip('"')
