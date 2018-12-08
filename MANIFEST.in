@@ -1,0 +1,4 @@
+include LICENSE
+recursive-include pyxcp *.c
+recursive-include pyxcp *.a2l
+recursive-include pyxcp *.aml

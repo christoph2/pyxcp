@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from .version import __version__
+from .master import Master
+from .transport import Eth, SxI
+
 __copyright__="""
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
@@ -22,4 +26,5 @@ __copyright__="""
   with this program; if not, write to the Free Software Foundation, Inc.,
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
+
 

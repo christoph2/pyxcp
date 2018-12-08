@@ -39,14 +39,14 @@ DEFAULT_XCP_PORT = 5555
 class Eth(BaseTransport):
 
     MAX_DATAGRAM_SIZE = 512
-    HEADER = "<HH"
-    HEADER_SIZE = struct.calcsize(HEADER)
+    HEADER = struct.Struct("<HH")
+    HEADER_SIZE = HEADER.size
 
-    def __init__(self, ipAddress, port = DEFAULT_XCP_PORT, config = {}, connected = True, loglevel = "WARN"):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM if connected else socket.SOCK_DGRAM)
+    def __init__(self, ipAddress, port = DEFAULT_XCP_PORT, config = {}, protocol='TCP', loglevel = "WARN"):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM if protocol=='TCP' else socket.SOCK_DGRAM)
         self.selector = selectors.DefaultSelector()
         self.selector.register(self.sock, selectors.EVENT_READ)
-        self.connected = connected
+        self.use_tcp = protocol == 'TCP'
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if hasattr(self.sock, "SO_REUSEPORT"):
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
@@ -55,27 +55,58 @@ class Eth(BaseTransport):
         super(Eth, self).__init__(config, loglevel)
         self.startListener()
 
+        self.status = 1 # connected
+
     def listen(self):
+        HEADER_UNPACK = self.HEADER.unpack
+        HEADER_SIZE = self.HEADER_SIZE
+        use_tcp = self.use_tcp
+        processResponse = self.processResponse
+
+        if use_tcp:
+            sock_recv = self.sock.recv
+        else:
+            sock_recv = self.sock.recvfrom
+
         while True:
-            if self.closeEvent.isSet() or self.sock.fileno() == -1:
-                return
-            sel  = self.selector.select(0.1)
-            for _, events in sel:
-                if events & selectors.EVENT_READ:
-                    if self.connected:
-                        length = struct.unpack("<H", self.sock.recv(2))[0]
-                        try:
-                            response = self.sock.recv(length + 2)
-                        except Exception as e:
-                            self.logger.error(str(e))
-                            continue
-                    else:
-                        try:
-                            response, server = self.sock.recvfrom(Eth.MAX_DATAGRAM_SIZE)
-                        except Exception as e:
-                            self.logger.error(str(e))
-                            continue
-                    self.processResponse(response)
+            try:
+                if self.closeEvent.isSet() or self.sock.fileno() == -1:
+                    return
+                sel = self.selector.select(0.1)
+                for _, events in sel:
+                    if events & selectors.EVENT_READ:
+                        if use_tcp:
+                            header = bytearray()
+
+                            while len(header) < HEADER_SIZE:
+                                new_bytes = sock_recv(HEADER_SIZE - len(header))
+                                header.extend(new_bytes)
+
+                            length, counter = HEADER_UNPACK(header)
+
+                            try:
+                                response = bytearray()
+                                while len(response) < length:
+                                    new_bytes = sock_recv(length - len(response))
+                                    response.extend(new_bytes)
+
+                            except Exception as e:
+                                self.logger.error(str(e))
+                                continue
+                        else:
+                            try:
+                                response, server = sock_recv(Eth.MAX_DATAGRAM_SIZE)
+                                length, counter = HEADER_UNPACK(response)
+                                response = response[HEADER_SIZE:]
+                            except Exception as e:
+                                self.logger.error(str(e))
+                                continue
+
+                        processResponse(response, length, counter)
+            except:
+                self.status = 0  # disconnected
+                break
+
 
     def send(self, frame):
         self.sock.send(frame)
