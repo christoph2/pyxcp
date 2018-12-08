@@ -3,6 +3,7 @@
 import os
 from codecs import open
 from setuptools import setup, find_packages
+import sys
 
 with open(os.path.join('pyxcp', 'version.py'), 'r') as f:
     for line in f:
@@ -13,6 +14,11 @@ with open(os.path.join('pyxcp', 'version.py'), 'r') as f:
 def packagez(base):
     return  ["{0!s}{1!s}{2!s}".format(base, os.path.sep, p) for p in find_packages(base)]
 
+install_reqs = ['construct == 2.8.17', 'mako', 'pyserial']
+
+if sys.version_info.major == 2 or (sys.version_info.major == 3 and sys.version_info.minor < 4):
+    install_reqs.extend(['enum34', 'mock'])
+
 setup(
     name = 'pyxcp',
     version = version,
@@ -22,8 +28,10 @@ setup(
     author_email = 'cpu12.gems@googlemail.com',
     url = 'https://github.com/christoph2/pyxcp',
     packages = packagez('pyxcp'),
+
     include_package_data=True,
     install_requires = ['enum34', 'construct >= 2.8', 'mako', 'pyserial'],
+
     doc_requires = ['numpydoc', 'sphinxcontrib-napoleon'],
     package_dir = {'tests': 'pyxcp/tests'},
     test_suite = "pyxcp.tests",

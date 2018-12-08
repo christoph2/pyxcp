@@ -110,6 +110,7 @@ class Command(enum.IntEnum):
     CLEAR_DAQ_LIST          = 0xE3
     SET_DAQ_PTR             = 0xE2
     WRITE_DAQ               = 0xE1
+    WRITE_DAQ_MULTIPLE      = 0xC7 # NEW IN 1.1
     SET_DAQ_LIST_MODE       = 0xE0
     GET_DAQ_LIST_MODE       = 0xDF
     START_STOP_DAQ_LIST     = 0xDE
@@ -170,6 +171,9 @@ XcpError = Enum(Int8ul,
     ERR_MEMORY_OVERFLOW     = 0x30, # Memory overflow error                                         S2
     ERR_GENERIC             = 0x31, # Generic error.                                                S2
     ERR_VERIFY              = 0x32, # The slave internal program verify routine detects an error.   S3
+
+    # NEW IN 1.1
+    ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE = 0x33 #  Access to the requested resource is temporary not possible.   S3
 )
 
 Response = Struct(

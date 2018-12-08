@@ -45,16 +45,44 @@ ERR_COULD_NOT_LOAD_FUNC     = 17
 bwidth, _ = platform.architecture()
 
 if sys.platform == 'win32' and bwidth == '64bit':
-    pass
-
+  prgName = "asamkeydll64"
+elif sys.platform == 'win32' and bwidth == '32bit':
+  prgName = "asamkeydll32"
+else:
+  raise RuntimeError("Platform '{}' currently not supported.".format(sys.platform))
+    
 def getKey(dllName, privilege, seed):
-    p0 = subprocess.run(["asamkeydll", dllName, str(privilege), binascii.hexlify(seed).decode("ascii")], stdout=subprocess.PIPE, shell = True)
-    res = re.split(b"\r?\n", p0.stdout)
+    p0 = subprocess.Popen([prgName, dllName, str(privilege), binascii.hexlify(seed).decode("ascii")], stdout=subprocess.PIPE, shell = True)
+    key = p0.stdout.read()
+    res = re.split(b"\r?\n", key)
     returnCode = int(res[0])
     if len(res) < 2:
         return (returnCode, None)
     key = binascii.unhexlify(res[1])
     return (returnCode, key)
+#elif sys.platform == 'win32' and bwidth == '32bit':
+#  """
+#  uint32_t XCP_ComputeKeyFromSeed (uint8_t resource, uint8_t seedLen, uint8_t const *seedPtr, uint8_t * keyLenPtr, uint8_t * keyPtr);
+#                                                  
+#  """
+#  import ctypes
+#  
+#  def getKey(dllName, privilege, seed):
+#    print("D: {} P: {} S: {}".format(dllName, privilege, seed))
+#    dll = ctypes.cdll.LoadLibrary(dllName)
+#    print(dll)
+#    func = dll.XCP_ComputeKeyFromSeed
+#    func.restype = ctypes.c_uint32
+##    func.argtypes = [ctypes.c_uint8, ctypes.c_uint8, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
+#    print(func)
+#    
+#    kb = ctypes.create_string_buffer(b'\000' * 128)
+#    kl = ctypes.c_uint8(128)
+#    
+#    retCode = func(privilege, len(seed), ctypes.c_char_p(seed), ctypes.byref(kl), kb)
+#    print("RES", retCode)
+#    print("KEY", kl, kb.value)
+#    return (retCode, kb.value)
 
 #getKey("SeedNKeyXcp.dll", "1", b'\xa9\xe0\x7fSm;\xa3-;M')   # "a9e07f536d3ba32d3b4d"
 #getKey("SeedNKeyXcp.dll", "1", bytes((0x61, 0x2b, 0x8d, 0xbb, 0x4d, 0x65, 0xdb, 0x78, 0x49, 0xb5)))

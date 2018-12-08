@@ -47,11 +47,11 @@ def slicer(iterable, sliceLength, converter = None):
     return [converter((iterable[item : item + sliceLength])) for item in range(0, length, sliceLength)]
 
 
-def makeList(*args):
+def flatten(*args):
     result = []
-    for arg in args:
+    for arg in list(args):
         if hasattr(arg, '__iter__'):
-            result.extend(list(arg))
+            result.extend(flatten(*arg))
         else:
             result.append(arg)
     return result

@@ -30,7 +30,7 @@ import time
 import threading
 
 from ..logger import Logger
-from ..utils import hexDump, PYTHON_VERSION
+from ..utils import flatten, hexDump, PYTHON_VERSION
 
 import pyxcp.types as types
 from pyxcp.config import Config
@@ -82,7 +82,7 @@ class BaseTransport(metaclass = abc.ABCMeta):
         header = self.HEADER.pack(len(data) + 1, self.counterSend)
         self.counterSend += 1
         self.counterSend &= 0xffff
-        frame = header + bytes([cmd, *data])
+        frame = header + bytes(flatten(cmd, data)) 
         self.logger.debug("-> {}".format(hexDump(frame)))
         self.timing.start()
         self.send(frame)
