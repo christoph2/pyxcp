@@ -111,7 +111,7 @@ def timecode(ticks, mode):
 
 
 def cstest():
-    tr = transport.Eth('localhost', port= 5555, connected = False, loglevel = "WARN")  # "DEBUG"
+    tr = transport.Eth('localhost', port= 5555, protocol = TCP', loglevel = "WARN")  # "DEBUG"
     #tr = transport.SxI("COM27", 115200, loglevel = "WARN")
     with Master(tr) as xm:
     #    tm = Timing()
@@ -632,37 +632,37 @@ ALLOC_ODT_ENTRY daq=1 odt=0 count=1
 ALLOC_ODT_ENTRY daq=1 odt=1 count=1
 
 SET_DAQ_PTR daq=0 odt=0 entry=0
-WRITE_DAQ bitoff=255 size=2 ext=0 addr=001BE068h        
-SET_DAQ_PTR daq=0 odt=1 entry=0                         
-WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE06Ah        
-SET_DAQ_PTR daq=0 odt=2 entry=0                         
-WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE070h        
-SET_DAQ_PTR daq=0 odt=3 entry=0                         
-WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE076h        
-SET_DAQ_PTR daq=0 odt=4 entry=0                         
-WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE07Ch        
-SET_DAQ_PTR daq=0 odt=5 entry=0                         
-WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE082h        
-SET_DAQ_PTR daq=0 odt=6 entry=0                         
-WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE088h        
-SET_DAQ_PTR daq=0 odt=7 entry=0                         
-WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE08Eh        
-SET_DAQ_PTR daq=0 odt=8 entry=0                         
-WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE094h        
-SET_DAQ_PTR daq=0 odt=9 entry=0                         
-WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE09Ah        
-SET_DAQ_PTR daq=0 odt=10 entry=0                        
-WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE0A0h        
-SET_DAQ_PTR daq=0 odt=11 entry=0                        
-WRITE_DAQ bitoff=255 size=2 ext=0 addr=001BE0A6h        
-WRITE_DAQ bitoff=255 size=1 ext=0 addr=001BE0CFh        
-WRITE_DAQ bitoff=255 size=3 ext=0 addr=001BE234h        
-SET_DAQ_PTR daq=0 odt=12 entry=0                        
-WRITE_DAQ bitoff=255 size=1 ext=0 addr=001BE237h        
-WRITE_DAQ bitoff=255 size=1 ext=0 addr=001BE24Fh        
-WRITE_DAQ bitoff=255 size=1 ext=0 addr=001BE269h        
-WRITE_DAQ bitoff=255 size=1 ext=0 addr=001BE5A3h        
-WRITE_DAQ bitoff=255 size=1 ext=0 addr=001C0003h        
+WRITE_DAQ bitoff=255 size=2 ext=0 addr=001BE068h
+SET_DAQ_PTR daq=0 odt=1 entry=0
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE06Ah
+SET_DAQ_PTR daq=0 odt=2 entry=0
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE070h
+SET_DAQ_PTR daq=0 odt=3 entry=0
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE076h
+SET_DAQ_PTR daq=0 odt=4 entry=0
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE07Ch
+SET_DAQ_PTR daq=0 odt=5 entry=0
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE082h
+SET_DAQ_PTR daq=0 odt=6 entry=0
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE088h
+SET_DAQ_PTR daq=0 odt=7 entry=0
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE08Eh
+SET_DAQ_PTR daq=0 odt=8 entry=0
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE094h
+SET_DAQ_PTR daq=0 odt=9 entry=0
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE09Ah
+SET_DAQ_PTR daq=0 odt=10 entry=0
+WRITE_DAQ bitoff=255 size=6 ext=0 addr=001BE0A0h
+SET_DAQ_PTR daq=0 odt=11 entry=0
+WRITE_DAQ bitoff=255 size=2 ext=0 addr=001BE0A6h
+WRITE_DAQ bitoff=255 size=1 ext=0 addr=001BE0CFh
+WRITE_DAQ bitoff=255 size=3 ext=0 addr=001BE234h
+SET_DAQ_PTR daq=0 odt=12 entry=0
+WRITE_DAQ bitoff=255 size=1 ext=0 addr=001BE237h
+WRITE_DAQ bitoff=255 size=1 ext=0 addr=001BE24Fh
+WRITE_DAQ bitoff=255 size=1 ext=0 addr=001BE269h
+WRITE_DAQ bitoff=255 size=1 ext=0 addr=001BE5A3h
+WRITE_DAQ bitoff=255 size=1 ext=0 addr=001C0003h
 SET_DAQ_PTR daq=1 odt=0 entry=0
 WRITE_DAQ bitoff=255 size=2 ext=0 addr=001C002Ch
 SET_DAQ_PTR daq=1 odt=1 entry=0
