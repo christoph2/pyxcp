@@ -82,7 +82,7 @@ class BaseTransport(metaclass = abc.ABCMeta):
         header = self.HEADER.pack(len(data) + 1, self.counterSend)
         self.counterSend += 1
         self.counterSend &= 0xffff
-        frame = header + bytes(flatten(cmd, data)) 
+        frame = header + bytes(flatten(cmd, data))
         self.logger.debug("-> {}".format(hexDump(frame)))
         self.timing.start()
         self.send(frame)
