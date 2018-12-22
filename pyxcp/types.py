@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__copyright__="""
+__copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
    (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
@@ -187,9 +187,9 @@ Response = Struct(
 )
 
 DAQ = Struct(
-     "odt" / Byte,
-     "daq" / Byte,
-     "data" / GreedyBytes,
+    "odt" / Byte,
+    "daq" / Byte,
+    "data" / GreedyBytes,
 )
 
 ResourceType = BitStruct (
@@ -277,6 +277,7 @@ SetRequestMode = BitStruct(
 
 BuildChecksumResponse = Struct(
     "checksumType" / Enum(Int8ul,
+        XCP_NONE   = 0x00,
         XCP_ADD_11 = 0x01,
         XCP_ADD_12 = 0x02,
         XCP_ADD_14 = 0x03,
@@ -288,7 +289,7 @@ BuildChecksumResponse = Struct(
         XCP_CRC_32 = 0x09,
         XCP_USER_DEFINED = 0xFF,
     ),
-    "reserved" / Int16ul,
+    Padding(2),
     "checksum" / Int32ul,
 )
 
