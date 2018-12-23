@@ -206,8 +206,9 @@ class MasterBaseType(object):
     def fetch(self, length, limitPayload = None): ## TODO: pull
         if limitPayload and limitPayload < 8:
             raise ValueError("Payload must be at least 8 bytes - given: {}".format(limitPayload))
-        payload = min(limitPayload, self.maxCto) if limitPayload else self.maxCto
-        chunkSize = payload - 1
+        maxPayload = self.maxCto - 1
+        payload = min(limitPayload, maxPayload) if limitPayload else maxPayload
+        chunkSize = payload
         chunks = range(length // chunkSize)
         remaining = length % chunkSize
         result = []
