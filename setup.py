@@ -34,6 +34,7 @@ setup(
 
     doc_requires = ['numpydoc', 'sphinxcontrib-napoleon'],
     package_dir = {'tests': 'pyxcp/tests'},
+    tests_require=["pytest", "pytest-runner"],
     test_suite = "pyxcp.tests",
     license='GPLv2',
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers

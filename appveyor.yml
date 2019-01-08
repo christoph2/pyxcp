@@ -20,6 +20,7 @@ environment:
 
 install:
   # We need wheel installed to build wheels
+  - cmd: set PATH=%PATH%;%PYTHON%\Scripts
   - "%PYTHON%\\python.exe -m pip install wheel"
   - "%PYTHON%\\python.exe -m pip install -r requirements.txt"
 

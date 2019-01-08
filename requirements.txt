@@ -1,3 +1,5 @@
+pytest
+pytest-runner
 enum34
 construct>=2.8
 mako
