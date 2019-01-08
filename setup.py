@@ -2,7 +2,8 @@
 
 import os
 from codecs import open
-from setuptools import setup, find_packages
+from distutils.core import setup, Extension
+from setuptools import find_packages
 import sys
 
 with open(os.path.join('pyxcp', 'version.py'), 'r') as f:
@@ -34,15 +35,15 @@ setup(
 
     doc_requires = ['numpydoc', 'sphinxcontrib-napoleon'],
     package_dir = {'tests': 'pyxcp/tests'},
-    tests_require=["pytest", "pytest-runner"],
-    test_suite = "pyxcp.tests",
-    license='GPLv2',
-    # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
-    classifiers=[
-        # How mature is this project? Common values are
-        #   3 - Alpha
-        #   4 - Beta
-        #   5 - Production/Stable
+tests_require=["pytest", "pytest-runner"],
+test_suite = "pyxcp.tests",
+license='GPLv2',
+# See https://pypi.python.org/pypi?%3Aaction=list_classifiers
+classifiers=[
+    # How mature is this project? Common values are
+    #   3 - Alpha
+    #   4 - Beta
+    #   5 - Production/Stable
         'Development Status :: 4 - Beta',
 
         # Indicate who your project is intended for
