@@ -33,17 +33,17 @@ setup(
     include_package_data=True,
     install_requires = ['enum34', 'construct >= 2.8', 'mako', 'pyserial'],
 
-    doc_requires = ['numpydoc', 'sphinxcontrib-napoleon'],
+    #doc_requires = ['numpydoc', 'sphinxcontrib-napoleon'],
     package_dir = {'tests': 'pyxcp/tests'},
-tests_require=["pytest", "pytest-runner"],
-test_suite = "pyxcp.tests",
-license='GPLv2',
-# See https://pypi.python.org/pypi?%3Aaction=list_classifiers
-classifiers=[
-    # How mature is this project? Common values are
-    #   3 - Alpha
-    #   4 - Beta
-    #   5 - Production/Stable
+    tests_require = ["pytest", "pytest-runner"],
+    test_suite = "pyxcp.tests",
+    license='GPLv2',
+    # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
+    classifiers=[
+        # How mature is this project? Common values are
+        #   3 - Alpha
+        #   4 - Beta
+        #   5 - Production/Stable
         'Development Status :: 4 - Beta',
 
         # Indicate who your project is intended for
@@ -58,7 +58,7 @@ classifiers=[
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
-#        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.7',
     ],
 )
 
