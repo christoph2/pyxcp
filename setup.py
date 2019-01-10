@@ -2,8 +2,7 @@
 
 import os
 from codecs import open
-from distutils.core import setup, Extension
-from setuptools import find_packages
+from setuptools import find_packages, setup, Extension
 import sys
 
 with open(os.path.join('pyxcp', 'version.py'), 'r') as f:
