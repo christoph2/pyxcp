@@ -379,4 +379,15 @@ class MasterBaseType(object):
             AG>1: AG MAX_CTO-AG
         ELEMENT Data elements
         """
-
+    ##
+    ## Convenience Functions.
+    ##
+    def verify(self, addr, length):
+        self.setMta(addr)
+        cs = self.buildChecksum(length)
+        print("Client CS: {:08X}".format(cs.checksum))
+        self.setMta(addr)
+        data = self.fetch(length)
+        cc = checksum.check(data, cs.checksumType)
+        print("Our CS: {:08X}".format(cc))
+        return cs.checksum == cc
