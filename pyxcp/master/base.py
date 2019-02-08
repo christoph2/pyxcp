@@ -31,7 +31,8 @@ import traceback
 from pyxcp import checksum
 from pyxcp import types
 
-class Master(object):
+
+class MasterBaseType(object):
 
     def __init__(self, transport):
         self.ctr = 0
@@ -205,8 +206,9 @@ class Master(object):
     def fetch(self, length, limitPayload = None): ## TODO: pull
         if limitPayload and limitPayload < 8:
             raise ValueError("Payload must be at least 8 bytes - given: {}".format(limitPayload))
-        payload = min(limitPayload, self.maxCto) if limitPayload else self.maxCto
-        chunkSize = payload - 1
+        maxPayload = self.maxCto - 1
+        payload = min(limitPayload, maxPayload) if limitPayload else maxPayload
+        chunkSize = payload
         chunks = range(length // chunkSize)
         remaining = length % chunkSize
         result = []
@@ -246,19 +248,6 @@ class Master(object):
 
     def downloadMax(self, *data):
         response = self.transport.request(types.Command.DOWNLOAD_MAX, *data)
-        return response
-
-    def shortDownload(self, address, addressExt, *data):
-        length = len(data)
-        addr = struct.pack("<I", address)
-        response = self.transport.request(types.Command.SHORT_DOWNLOAD, length, 0, addressExt, *addr, *data)
-        return response
-
-    def modifyBits(self, shiftValue, andMask, xorMask):
-        # A = ( (A) & ((~((dword)(((word)~MA)<<S))) )^((dword)(MX<<S)) )
-        am = struct.pack("<H", andMask)
-        xm = struct.pack("<H", xorMask)
-        response = self.transport.request(types.Command.MODIFY_BITS, shiftValue, *am, *xm)
         return response
 
     ##
@@ -309,20 +298,9 @@ class Master(object):
         response = self.transport.request(types.Command.CLEAR_DAQ_LIST, 0, *daqList)
         return response
 
-    def setDaqPtr(self, daqListNumber, odtNumber, odtEntryNumber):
-        daqList = struct.pack("<H", daqListNumber)
-        response = self.transport.request(types.Command.SET_DAQ_PTR, 0, *daqList, odtNumber, odtEntryNumber)
-        return response
-
     def writeDaq(self, bitOffset, entrySize, addressExt, address):
         addr = struct.pack("<I", address)
         response = self.transport.request(types.Command.WRITE_DAQ, bitOffset, entrySize, addressExt, *addr)
-        return response
-
-    def setDaqListMode(self, mode, daqListNumber, eventChannelNumber, prescaler, priority):
-        dln = struct.pack("<H", daqListNumber)
-        ecn = struct.pack("<H", eventChannelNumber)
-        response = self.transport.request(types.Command.SET_DAQ_LIST_MODE, mode, *dln, *ecn, prescaler, priority)
         return response
 
     def getDaqListMode(self, daqListNumber):
@@ -377,16 +355,6 @@ class Master(object):
         response = self.transport.request(types.Command.ALLOC_DAQ, 0, *dq)
         return response
 
-    def allocOdt(self, daqListNumber, odtCount):
-        dln = struct.pack("<H", daqListNumber)
-        response = self.transport.request(types.Command.ALLOC_ODT, 0, *dln, odtCount)
-        return response
-
-    def allocOdtEntry(self, daqListNumber, odtNumber, odtEntriesCount):
-        dln = struct.pack("<H", daqListNumber)
-        response = self.transport.request(types.Command.ALLOC_ODT_ENTRY, 0, *dln, odtNumber, odtEntriesCount)
-        return response
-
     ##
     ## PGM
     ##
@@ -411,23 +379,4 @@ class Master(object):
             AG>1: AG MAX_CTO-AG
         ELEMENT Data elements
         """
-
-
-def unlock(client, privilege):
-    length, seed = client.getSeed(0, privilege)
-    #print("SEED: ", hexDump(seed), flush = True)
-    _, kee = dllif.getKey(b"SeedNKeyXcp.dll", privilege, seed)
-    print("KEE:", kee)
-#    res = client.unlock(len(kee), kee)
-    #print(res)
-
-
-def verify(client, addr, length):
-    client.setMta(addr)
-    cs = client.buildChecksum(length)
-    print("CS: {:08X}".format(cs.checksum))
-    client.setMta(addr)
-    data = client.upload(length)
-    cc = checksum.check(data, cs.checksumType)
-    print("CS: {:08X}".format(cc))
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__copyright__="""
+__copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
    (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
@@ -24,16 +24,19 @@ __copyright__="""
 """
 
 import ctypes
+import mmap
 import os
 import sys
+import subprocess
 import threading
+import types
 
 try:
     import win32api, win32process, win32con
 except ImportError:
-    winApi = False
+    WINAPI = False
 else:
-    winApi = True
+    WINAPI = True
 
 
 def hexDump(arr):
@@ -155,7 +158,6 @@ class StructureWithEnums(ctypes.Structure):
     __repr__ = __str__
 
 
-import subprocess
 
 class CommandError(Exception):
     pass
@@ -184,27 +186,26 @@ class SingletonBase(object):
         return cls._instance
 
 
-class RepresentationMixIn(object):
-
-    def __repr__(self):
-        keys = [k for k in self.__dict__ if not (k.startswith('__') and k.endswith('__'))]
-        result = []
-        result.append("{0!s} {{".format(self.__class__.__name__))
-        for key in keys:
-            value = getattr(self, key)
-            if isinstance(value, (int, long)):
-                line = "    {0!s} = 0x{1:X}".format(key, value)
-            elif isinstance(value, (float, types.NoneType)):
-                line = "    {0!s} = {1!s}".format(key, value)
-            elif isinstance(value, array):
-                line = "    {0!s} = {1!s}".format(key, helper.hexDump(value))
-            else:
-                line = "    {0!s} = '{1!s}'".format(key, value)
-            result.append(line)
-        result.append("}")
-        return '\n'.join(result)
-
-import mmap
+#  class RepresentationMixIn(object):
+#
+#      def __repr__(self):
+#          keys = [k for k in self.__dict__ if not (k.startswith('__') and k.endswith('__'))]
+#          result = []
+#          result.append("{0!s} {{".format(self.__class__.__name__))
+#          for key in keys:
+#              value = getattr(self, key)
+#              if isinstance(value, (int, )):
+#                  line = "    {0!s} = 0x{1:X}".format(key, value)
+#              elif isinstance(value, (float, types.NoneType)):
+#                  line = "    {0!s} = {1!s}".format(key, value)
+#              elif isinstance(value, array):
+#                  line = "    {0!s} = {1!s}".format(key, hexDump(value))
+#              else:
+#                  line = "    {0!s} = '{1!s}'".format(key, value)
+#              result.append(line)
+#          result.append("}")
+#          return '\n'.join(result)
+#
 
 def memoryMap(filename, writeable = False):
     size = os.path.getsize(filename)
@@ -212,7 +213,7 @@ def memoryMap(filename, writeable = False):
     return mmap.mmap(fd, size, access = mmap.ACCESS_WRITE if writeable else mmap.ACCESS_READ)
 
 
-if sys.platform == "win32" and winApi:
+if sys.platform == "win32" and WINAPI:
 
     ##
     ## Code snippet taken from http://code.activestate.com/recipes/496767-set-process-priority-in-windows/

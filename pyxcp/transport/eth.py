@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__copyright__="""
+__copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
    (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
@@ -96,8 +96,8 @@ class Eth(BaseTransport):
                         else:
                             try:
                                 response, server = sock_recv(Eth.MAX_DATAGRAM_SIZE)
-                                length, counter = HEADER_UNPACK(response)
-                                response = response[HEADER_SIZE:]
+                                length, counter = HEADER_UNPACK(response[: HEADER_SIZE])
+                                response = response[HEADER_SIZE :]
                             except Exception as e:
                                 self.logger.error(str(e))
                                 continue

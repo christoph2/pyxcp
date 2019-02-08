@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__copyright__="""
+__copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
    (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
@@ -114,7 +114,7 @@ CRC16_CCITT = (
 def reflect(data, nBits):
     reflection = 0x00000000
     for bit in range(nBits):
-        if (data & 0x01):
+        if data & 0x01:
             reflection |= (1 << ((nBits - 1) - bit))
         data = (data >> 1)
     return reflection
@@ -181,12 +181,12 @@ def wordSum(modulus, step):
     return add
 
 
-add11 = adder(2**8)
-add12 = adder(2**16)
-add14 = adder(2**32)
-add22 = wordSum(2**16, 2)
-add24 = wordSum(2**32, 2)
-add44 = wordSum(2**32, 4)
+add11 = adder(2 ** 8)
+add12 = adder(2 ** 16)
+add14 = adder(2 ** 32)
+add22 = wordSum(2 ** 16, 2)
+add24 = wordSum(2 ** 32, 2)
+add44 = wordSum(2 ** 32, 4)
 crc16 = Crc16(CRC16, 0x0000, 0x0000, True, True)
 crc16_ccitt = Crc16(CRC16_CCITT, 0xffff, 0x0000, False, False)
 crc32 = lambda x: zlib.crc32(x) & 0xffffffff
