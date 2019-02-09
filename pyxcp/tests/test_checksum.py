@@ -1,6 +1,6 @@
 
 
-import unittest
+import pytest
 
 from pyxcp import checksum
 
@@ -22,34 +22,31 @@ TEST = bytes((
     0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF, 0x00,
 ))
 
-class TestChecksums(unittest.TestCase):
+class TestChecksums:
 
     def testAdd11(self):
-        self.assertEqual(checksum.check(TEST, "XCP_ADD_11"), 0x10)
+        assert checksum.check(TEST, "XCP_ADD_11") == 0x10
 
     def testAdd12(self):
-        self.assertEqual(checksum.check(TEST, "XCP_ADD_12"), 0x0F10)
+        assert checksum.check(TEST, "XCP_ADD_12") == 0x0F10
 
     def testAdd14(self):
-        self.assertEqual(checksum.check(TEST, "XCP_ADD_14"), 0x00000F10)
+        assert checksum.check(TEST, "XCP_ADD_14") == 0x00000F10
 
     def testAdd22(self):
-        self.assertEqual(checksum.check(TEST, "XCP_ADD_22"), 0x1800)
+        assert checksum.check(TEST, "XCP_ADD_22") == 0x1800
 
     def testAdd24(self):
-        self.assertEqual(checksum.check(TEST, "XCP_ADD_24"), 0x00071800)
+        assert checksum.check(TEST, "XCP_ADD_24") == 0x00071800
 
     def testAdd44(self):
-        self.assertEqual(checksum.check(TEST, "XCP_ADD_44"), 0x140C03F8)
+        assert checksum.check(TEST, "XCP_ADD_44") == 0x140C03F8
 
     def testCrc16(self):
-        self.assertEqual(checksum.check(TEST, "XCP_CRC_16"), 0xC76A)
+        assert checksum.check(TEST, "XCP_CRC_16") == 0xC76A
 
     def testCrc16Ccitt(self):
-        self.assertEqual(checksum.check(TEST, "XCP_CRC_16_CITT"), 0x9D50)
+        assert checksum.check(TEST, "XCP_CRC_16_CITT") == 0x9D50
 
     def testCrc32(self):
-        self.assertEqual(checksum.check(TEST, "XCP_CRC_32"), 0x89CD97CE)
-
-if __name__ == '__main__':
-    unittest.main()
+        assert checksum.check(TEST, "XCP_CRC_32") == 0x89CD97CE

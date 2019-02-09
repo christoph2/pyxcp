@@ -27,15 +27,17 @@ import logging
 import struct
 import traceback
 
+from pyxcp import checksum
 from pyxcp import types
 
 
 class MasterBaseType(object):
 
-    def __init__(self, transport):
+    def __init__(self, transport, loglevel="WARN"):
         self.ctr = 0
         self.succeeded = True
         self.logger = logging.getLogger("pyXCP")
+        self.logger.setLevel(loglevel)
         self.transport = transport
 
     def __enter__(self):
@@ -401,3 +403,15 @@ class MasterBaseType(object):
             AG>1: AG MAX_CTO-AG
         ELEMENT Data elements
         """
+
+    # Convenience Functions.
+    def verify(self, addr, length):
+        self.setMta(addr)
+        cs = self.buildChecksum(length)
+        self.logger.debug("BuildChecksum return'd: 0x{:08X} [{}]".format(
+            cs.checksum, cs.checksumType))
+        self.setMta(addr)
+        data = self.fetch(length)
+        cc = checksum.check(data, cs.checksumType)
+        self.logger.debug("Our checksum          : 0x{:08X}".format(cc))
+        return cs.checksum == cc

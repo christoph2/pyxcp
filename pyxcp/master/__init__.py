@@ -25,9 +25,6 @@ __copyright__="""
 
 import sys
 
-import pyxcp.checksum as checksum
-
-
 version = sys.version_info
 PRE35 = version.major >= 3 and version.minor < 5    # We need some pre-3.5 fixes, e.g. flatten() function.
 
@@ -44,14 +41,4 @@ def unlock(client, privilege):
     print("KEE:", kee)
 #    res = client.unlock(len(kee), kee)
     #print(res)
-
-
-def verify(client, addr, length):
-    client.setMta(addr)
-    cs = client.buildChecksum(length)
-    print("Client CS: {:08X}".format(cs.checksum))
-    client.setMta(addr)
-    data = client.fetch(length)
-    cc = checksum.check(data, cs.checksumType)
-    print("Our CS: {:08X}".format(cc))
 
