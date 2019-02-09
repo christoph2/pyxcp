@@ -109,10 +109,17 @@ class TestMaster(unittest.TestCase):
 
         with Master(tr) as xm:
             data = [0xCA, 0xFE, 0xBA, 0xBE]
-            print("testDownloadMax: {} {}".format(len(data), data))
-            xm.downloadMax(data)
+            #print("testDownloadMax: {} {}".format(len(data), data))
+            xm.downloadMax(*data)
 
         tr.close()
+
+        """
+            [0x05, 0x00, 0x00, 0x00, 0xee, 0xca, 0xfe, 0xba, 0xbe]))
+
+E   Expected call:  send(b'\x05\x00\x00\x00\xee\xca\xfe\xba\xbe')
+E   Actual call:    send(b'\x02\x00\x00\x00\xee\xca\xfe\xba\xbe')
+        """
 
         mock_socket.return_value.send.assert_called_with(bytes(
             [0x05, 0x00, 0x00, 0x00, 0xee, 0xca, 0xfe, 0xba, 0xbe]))
