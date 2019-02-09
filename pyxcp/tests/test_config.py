@@ -43,40 +43,38 @@ SxI_Parameters = {
     }
 }
 
-class TestConfig:
+def testCreation():
+    cfg = Config(SxI_Parameters)
+    assert cfg.port == "COM27"
+    assert cfg.baudrate == 115200
+    assert cfg.mode == "ASYNCH_FULL_DUPLEX_MODE"
+    assert cfg.parity == "PARITY_NONE"
+    assert cfg.stopbits == "ONE_STOP_BIT"
+    assert cfg.header == "HEADER_LEN_CTR_WORD"
+    assert cfg.checksum == "NO_CHECKSUM"
+    assert cfg.nested.RED == 1
+    assert cfg.nested.GREEN == 2
+    assert cfg.nested.BLUE == 3
 
-    def testCreation(self):
-        cfg = Config(SxI_Parameters)
-        assert cfg.port == "COM27"
-        assert cfg.baudrate == 115200
-        assert cfg.mode == "ASYNCH_FULL_DUPLEX_MODE"
-        assert cfg.parity == "PARITY_NONE"
-        assert cfg.stopbits == "ONE_STOP_BIT"
-        assert cfg.header == "HEADER_LEN_CTR_WORD"
-        assert cfg.checksum == "NO_CHECKSUM"
-        assert cfg.nested.RED == 1
-        assert cfg.nested.GREEN == 2
-        assert cfg.nested.BLUE == 3
+def testCopy():
+    cfg = Config(SxI_Parameters)
+    cfg2 = cfg.copy()
+    assert cfg == cfg2
 
-    def testCopy(self):
-        cfg = Config(SxI_Parameters)
-        cfg2 = cfg.copy()
-        assert cfg == cfg2
+def testModifiedCopy():
+    cfg = Config(SxI_Parameters)
+    cfg2 = cfg.copy()
+    cfg2.baudrate = 38400
+    assert cfg != cfg2
 
-    def testModifiedCopy(self):
-        cfg = Config(SxI_Parameters)
-        cfg2 = cfg.copy()
-        cfg2.baudrate = 38400
-        assert cfg != cfg2
+def testComparesEqualToDict():
+    cfg = Config(SxI_Parameters)
+    di = cfg.asdict()
+    assert cfg == di
 
-    def testComparesEqualToDict(self):
-        cfg = Config(SxI_Parameters)
-        di = cfg.asdict()
-        assert cfg == di
-
-    def testComparesNotEqualToDict(self):
-        cfg = Config(SxI_Parameters)
-        di = cfg.asdict()
-        di['baudrate'] = 38400
-        assert cfg != di
+def testComparesNotEqualToDict():
+    cfg = Config(SxI_Parameters)
+    di = cfg.asdict()
+    di['baudrate'] = 38400
+    assert cfg != di
 
