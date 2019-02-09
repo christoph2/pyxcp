@@ -38,7 +38,7 @@ class TestMaster(unittest.TestCase):
         tr.request.return_value = bytes([])
         with Master(tr) as xm:
             res = xm.disconnect()
-        self.assertEqual(res, None)
+        self.assertEqual(res, b'')
 
     @mock.patch("pyxcp.transport.Eth")
     def testGetStatus(self, Eth):
@@ -96,23 +96,83 @@ class TestMaster(unittest.TestCase):
 
     @mock.patch('socket.socket')
     @mock.patch('selectors.DefaultSelector')
-    def testDownloadMax(self, mock_selector, mock_socket):
+    def testConnect2(self, mock_selector, mock_socket):
         mock_socket.return_value.recv.side_effect = [
-            [0x01, 0x00, 0xff, 0x06], [0xff]]
+            [0x08, 0x00, 0x00, 0x00],
+            [0xff, 0x1d, 0xc0, 0xff, 0xdc, 0x05, 0x01, 0x01]]
         mock_selector.return_value.select.side_effect = [[(0, 1)], [(0, 1)]]
 
-        tr = transport.Eth('localhost', loglevel="DEBUG")
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            res = xm.connect()
 
-        mock_socket.assert_called()
-        mock_selector.assert_called()
-        mock_selector.return_value.register.assert_called()
+        self.assertEqual(res.maxCto, 255)
+        self.assertEqual(res.maxDto, 1500)
+        self.assertEqual(res.protocolLayerVersion, 1)
+        self.assertEqual(res.transportLayerVersion, 1)
+        self.assertEqual(res.resource.pgm, True)
+        self.assertEqual(res.resource.stim, True)
+        self.assertEqual(res.resource.daq, True)
+        self.assertEqual(res.resource.calpag, True)
+        self.assertEqual(res.commModeBasic.optional, True)
+        self.assertEqual(res.commModeBasic.slaveBlockMode, True)
+        self.assertEqual(res.commModeBasic.addressGranularity, 'BYTE')
+        self.assertEqual(res.commModeBasic.byteOrder, 'INTEL')
+        self.assertEqual(xm.maxCto, res.maxCto)
+        self.assertEqual(xm.maxDto, res.maxDto)
 
-        with Master(tr) as xm:
+        mock_socket.return_value.send.assert_called_with(bytes(
+            [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+
+    @mock.patch('socket.socket')
+    @mock.patch('selectors.DefaultSelector')
+    def testDisconnect2(self, mock_selector, mock_socket):
+        mock_socket.return_value.recv.side_effect = [
+            [0x01, 0x00, 0x00, 0x00], [0xff]]
+        mock_selector.return_value.select.side_effect = [[(0, 1)], [(0, 1)]]
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            res = xm.disconnect()
+
+        self.assertEqual(res, b'')
+
+        mock_socket.return_value.send.assert_called_with(bytes(
+            [0x01, 0x00, 0x00, 0x00, 0xfe]))
+
+    @mock.patch('socket.socket')
+    @mock.patch('selectors.DefaultSelector')
+    def testGetStatus2(self, mock_selector, mock_socket):
+        mock_socket.return_value.recv.side_effect = [
+            [0x06, 0x00, 0x00, 0x00],
+            [0xff, 0x09, 0x1d, 0x00, 0x34, 0x12]]
+        mock_selector.return_value.select.side_effect = [[(0, 1)], [(0, 1)]]
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            res = xm.getStatus()
+
+        self.assertEqual(res.sessionStatus.storeCalRequest, True)
+        self.assertEqual(res.sessionStatus.storeDaqRequest, False)
+        self.assertEqual(res.sessionStatus.clearDaqRequest, True)
+        self.assertEqual(res.sessionStatus.daqRunning, False)
+        self.assertEqual(res.sessionStatus.resume, False)
+        self.assertEqual(res.resourceProtectionStatus.pgm, True)
+        self.assertEqual(res.resourceProtectionStatus.stim, True)
+        self.assertEqual(res.resourceProtectionStatus.daq, True)
+        self.assertEqual(res.resourceProtectionStatus.calpag, True)
+        self.assertEqual(res.sessionConfiguration, 0x1234)
+
+        mock_socket.return_value.send.assert_called_with(bytes(
+            [0x01, 0x00, 0x00, 0x00, 0xfd]))
+
+    @mock.patch('socket.socket')
+    @mock.patch('selectors.DefaultSelector')
+    def testDownloadMax(self, mock_selector, mock_socket):
+        mock_socket.return_value.recv.side_effect = [
+            [0x01, 0x00, 0x00, 0x00], [0xff]]
+        mock_selector.return_value.select.side_effect = [[(0, 1)], [(0, 1)]]
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             data = [0xCA, 0xFE, 0xBA, 0xBE]
-            print("testDownloadMax: {} {}".format(len(data), data))
             xm.downloadMax(data)
-
-        tr.close()
 
         mock_socket.return_value.send.assert_called_with(bytes(
             [0x05, 0x00, 0x00, 0x00, 0xee, 0xca, 0xfe, 0xba, 0xbe]))

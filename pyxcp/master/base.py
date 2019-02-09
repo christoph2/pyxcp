@@ -52,7 +52,7 @@ class MasterBaseType(object):
             self.logger.error(''.join(traceback.format_exception(
                 exc_type, exc_val, exc_tb)))
             # print("=" * 79)
-        return True
+            # return True
 
     def close(self):
         self.transport.close()
@@ -108,6 +108,7 @@ class MasterBaseType(object):
         If DISCONNECT is currently not possible, ERR_CMD_BUSY will be returned.
         """
         response = self.transport.request(types.Command.DISCONNECT)
+        return response
 
     def getStatus(self):
         """Get current status information of the slave device.
