@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__copyright__="""
+__copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
    (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
@@ -23,7 +23,6 @@ __copyright__="""
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-import enum
 import logging
 import struct
 import traceback
@@ -34,7 +33,7 @@ from pyxcp import types
 
 class MasterBaseType(object):
 
-    def __init__(self, transport, loglevel = "WARN"):
+    def __init__(self, transport, loglevel="WARN"):
         self.ctr = 0
         self.succeeded = True
         self.logger = logging.getLogger("pyXCP")
@@ -50,18 +49,17 @@ class MasterBaseType(object):
             return
         else:
             self.succeeded = False
-            #print("=" * 79)
-            #print("Exception while in Context-Manager:\n")
-            self.logger.error(''.join(traceback.format_exception(exc_type, exc_val, exc_tb)))
-            #print("=" * 79)
-        return True
+            # print("=" * 79)
+            # print("Exception while in Context-Manager:\n")
+            self.logger.error(''.join(traceback.format_exception(
+                exc_type, exc_val, exc_tb)))
+            # print("=" * 79)
+            # return True
 
     def close(self):
         self.transport.close()
 
-    ##
-    ## Mandatory Commands.
-    ##
+    # Mandatory Commands.
     def connect(self):
         """Build up connection to an XCP slave.
 
@@ -96,7 +94,8 @@ class MasterBaseType(object):
     def disconnect(self):
         """Releases the connection to the XCP slave.
 
-        Thereafter, no further communication with the slave is possible (besides `connect`).
+        Thereafter, no further communication with the slave is possible
+        (besides `connect`).
 
         Parameters
         ----------
@@ -111,12 +110,13 @@ class MasterBaseType(object):
         If DISCONNECT is currently not possible, ERR_CMD_BUSY will be returned.
         """
         response = self.transport.request(types.Command.DISCONNECT)
+        return response
 
     def getStatus(self):
         """Get current status information of the slave device.
 
-        This includes the status of the resource protection, pending store requests and the general
-        status of data acquisition and stimulation.
+        This includes the status of the resource protection, pending store
+        requests and the general status of data acquisition and stimulation.
 
         Returns
         -------
@@ -134,7 +134,8 @@ class MasterBaseType(object):
         return response
 
     def getCommModeInfo(self):
-        """Get optional information on different Communication Modes supported by the slave.
+        """Get optional information on different Communication Modes supported
+        by the slave.
 
         Returns
         -------
@@ -145,7 +146,8 @@ class MasterBaseType(object):
         return result
 
     def getID(self, mode):
-        """This command is used for automatic session configuration and for slave device identification.
+        """This command is used for automatic session configuration and for
+        slave device identification.
 
         Parameters
         ----------
@@ -167,7 +169,7 @@ class MasterBaseType(object):
         """
         response = self.transport.request(types.Command.GET_ID, mode)
         result = types.GetIDResponse.parse(response)
-        result.length = struct.unpack("<I", response[3 : 7])[0]
+        result.length = struct.unpack("<I", response[3:7])[0]
         return result
 
     def setRequest(self, mode, sessionConfigurationId):
@@ -180,7 +182,9 @@ class MasterBaseType(object):
         sessionConfigurationId: uint16
             tbd
         """
-        response = self.transport.request(types.Command.SET_REQUEST, mode, sessionConfigurationId >> 8, sessionConfigurationId & 0xff)
+        response = self.transport.request(
+            types.Command.SET_REQUEST, mode,
+            sessionConfigurationId >> 8, sessionConfigurationId & 0xff)
         return response
 
     def upload(self, length):
@@ -189,24 +193,28 @@ class MasterBaseType(object):
 
     def shortUpload(self, length):
         response = self.transport.request(types.Command.SHORT_UPLOAD, length)
-        return response[1 : ]
+        return response[1:]
 
     def setMta(self, address):
         addr = struct.pack("<I", address)
-        response = self.transport.request(types.Command.SET_MTA, 0, 0, 0, *addr)
+        response = self.transport.request(
+            types.Command.SET_MTA, 0, 0, 0, *addr)
         return response
 
     def getSeed(self, first, resource):
-        response = self.transport.request(types.Command.GET_SEED, first, resource)
-        return response[1], response[1 : ]
+        response = self.transport.request(
+            types.Command.GET_SEED, first, resource)
+        return response[1], response[1:]
 
     def unlock(self, length, key):
         response = self.transport.request(types.Command.UNLOCK, length, *key)
         return types.ResourceType.parse(response)
 
-    def fetch(self, length, limitPayload = None): ## TODO: pull
+    def fetch(self, length, limitPayload=None):  # TODO: pull
         if limitPayload and limitPayload < 8:
-            raise ValueError("Payload must be at least 8 bytes - given: {}".format(limitPayload))
+            raise ValueError(
+                "Payload must be at least 8 bytes - given: {}".format(
+                    limitPayload))
         maxPayload = self.maxCto - 1
         payload = min(limitPayload, maxPayload) if limitPayload else maxPayload
         chunkSize = payload
@@ -223,43 +231,47 @@ class MasterBaseType(object):
 
     def buildChecksum(self, blocksize):
         bs = struct.pack("<I", blocksize)
-        response = self.transport.request(types.Command.BUILD_CHECKSUM, 0, 0, 0, *bs)
+        response = self.transport.request(
+            types.Command.BUILD_CHECKSUM, 0, 0, 0, *bs)
         return types.BuildChecksumResponse.parse(response)
 
     def transportLayerCommand(self, subCommand, *data):
-        response = self.transport.request(types.Command.TRANSPORT_LAYER_CMD, subCommand, *data)
+        response = self.transport.request(
+            types.Command.TRANSPORT_LAYER_CMD, subCommand, *data)
         return response
 
     def userCommand(self, subCommand, *data):
-        response = self.transport.request(types.Command.USER_CMD, subCommand, *data)
+        response = self.transport.request(
+            types.Command.USER_CMD, subCommand, *data)
         return response
 
-    ##
-    ## Calibration Commands (CAL)
-    ##
+    # Calibration Commands (CAL)
     def download(self, *data):
         length = len(data)
-        response = self.transport.request(types.Command.DOWNLOAD, length, *data)
+        response = self.transport.request(
+            types.Command.DOWNLOAD, length, *data)
         return response
 
     def downloadNext(self, *data):
         length = len(data)
-        response = self.transport.request(types.Command.DOWNLOAD_NEXT, length, *data)
+        response = self.transport.request(
+            types.Command.DOWNLOAD_NEXT, length, *data)
         return response
 
     def downloadMax(self, *data):
         response = self.transport.request(types.Command.DOWNLOAD_MAX, *data)
         return response
 
-    ##
-    ## Page Switching Commands (PAG)
-    ##
+    # Page Switching Commands (PAG)
     def setCalPage(self, mode, logicalDataSegment, logicalDataPage):
-        response = self.transport.request(types.Command.SET_CAL_PAGE, mode, logicalDataSegment, logicalDataPage)
+        response = self.transport.request(
+            types.Command.SET_CAL_PAGE, mode, logicalDataSegment,
+            logicalDataPage)
         return response
 
     def getCalPage(self, mode, logicalDataSegment):
-        response = self.transport.request(types.Command.GET_CAL_PAGE, mode, logicalDataSegment)
+        response = self.transport.request(
+            types.Command.GET_CAL_PAGE, mode, logicalDataSegment)
         return response
 
     def getPagProcessorInfo(self):
@@ -267,7 +279,9 @@ class MasterBaseType(object):
         return types.GetPagProcessorInfoResponse.parse(response)
 
     def getSegmentInfo(self, mode, segmentNumber, segmentInfo, mappingIndex):
-        response = self.transport.request(types.Command.GET_SEGMENT_INFO, mode, segmentNumber, segmentInfo, mappingIndex)
+        response = self.transport.request(
+            types.Command.GET_SEGMENT_INFO, mode, segmentNumber, segmentInfo,
+            mappingIndex)
         if mode == 0:
             return types.GetSegmentInfoMode0Response.parse(response)
         elif mode == 1:
@@ -276,49 +290,56 @@ class MasterBaseType(object):
             return types.GetSegmentInfoMode2Response.parse(response)
 
     def getPageInfo(self, segmentNumber, pageNumber):
-        response = self.transport.request(types.Command.GET_PAGE_INFO, 0, pageNumber)
+        response = self.transport.request(
+            types.Command.GET_PAGE_INFO, 0, pageNumber)
         return (types.PageProperties.parse(response[1]), response[2])
 
     def setSegmentMode(self, mode, segmentNumber):
-        response = self.transport.request(types.Command.SET_SEGMENT_MODE, mode, segmentNumber)
+        response = self.transport.request(
+            types.Command.SET_SEGMENT_MODE, mode, segmentNumber)
         return response
 
     def getSegmentMode(self, segmentNumber):
-        response = self.transport.request(types.Command.GET_SEGMENT_MODE, 0, segmentNumber)
+        response = self.transport.request(
+            types.Command.GET_SEGMENT_MODE, 0, segmentNumber)
         return response[2]
 
     def copyCalPage(self, srcSegment, srcPage, dstSegment, dstPage):
-        response = self.transport.request(types.Command.COPY_CAL_PAGE, srcSegment, srcPage, dstSegment, dstPage)
+        response = self.transport.request(
+            types.Command.COPY_CAL_PAGE, srcSegment, srcPage, dstSegment,
+            dstPage)
         return response
 
-    ##
-    ## DAQ
-    ##
+    # DAQ
     def clearDaqList(self, daqListNumber):
         daqList = struct.pack("<H", daqListNumber)
-        response = self.transport.request(types.Command.CLEAR_DAQ_LIST, 0, *daqList)
+        response = self.transport.request(
+            types.Command.CLEAR_DAQ_LIST, 0, *daqList)
         return response
 
     def writeDaq(self, bitOffset, entrySize, addressExt, address):
         addr = struct.pack("<I", address)
-        response = self.transport.request(types.Command.WRITE_DAQ, bitOffset, entrySize, addressExt, *addr)
+        response = self.transport.request(
+            types.Command.WRITE_DAQ, bitOffset, entrySize, addressExt, *addr)
         return response
 
     def getDaqListMode(self, daqListNumber):
         dln = struct.pack("<H", daqListNumber)
-        response = self.transport.request(types.Command.GET_DAQ_LIST_MODE, 0, *dln)
+        response = self.transport.request(
+            types.Command.GET_DAQ_LIST_MODE, 0, *dln)
         return types.GetDaqListModeResponse.parse(response)
 
     def startStopDaqList(self, mode, daqListNumber):
         dln = struct.pack("<H", daqListNumber)
-        response = self.transport.request(types.Command.START_STOP_DAQ_LIST, mode, *dln)
+        response = self.transport.request(
+            types.Command.START_STOP_DAQ_LIST, mode, *dln)
         return response
 
     def startStopSynch(self, mode):
         response = self.transport.request(types.Command.START_STOP_SYNCH, mode)
         return response
 
-    ## optional.
+    # optional
     def getDaqClock(self):
         response = self.transport.request(types.Command.GET_DAQ_CLOCK)
         result = types.GetDaqClockResponse.parse(response)
@@ -333,17 +354,20 @@ class MasterBaseType(object):
         return types.GetDaqProcessorInfoResponse.parse(response)
 
     def getDaqResolutionInfo(self):
-        response = self.transport.request(types.Command.GET_DAQ_RESOLUTION_INFO)
+        response = self.transport.request(
+            types.Command.GET_DAQ_RESOLUTION_INFO)
         return types.GetDaqResolutionInfoResponse.parse(response)
 
     def getDaqListInfo(self, daqListNumber):
         dln = struct.pack("<H", daqListNumber)
-        response = self.transport.request(types.Command.GET_DAQ_LIST_INFO, 0, *dln)
+        response = self.transport.request(
+            types.Command.GET_DAQ_LIST_INFO, 0, *dln)
         return types.GetDaqListInfoResponse.parse(response)
 
     def getEventChannelInfo(self, eventChannelNumber):
         ecn = struct.pack("<H", eventChannelNumber)
-        response = self.transport.request(types.Command.GET_DAQ_EVENT_INFO, 0, *ecn)
+        response = self.transport.request(
+            types.Command.GET_DAQ_EVENT_INFO, 0, *ecn)
         return types.GetEventChannelInfoResponse.parse(response)
 
     # dynamic
@@ -356,16 +380,15 @@ class MasterBaseType(object):
         response = self.transport.request(types.Command.ALLOC_DAQ, 0, *dq)
         return response
 
-    ##
-    ## PGM
-    ##
+    # PGM
     def programStart(self):
         response = self.transport.request(types.Command.PROGRAM_START)
         return types.ProgramStartResponse.parse(response)
 
     def programClear(self, mode, clearRange):
         cr = struct.pack("<I", clearRange)
-        response = self.transport.request(types.Command.PROGRAM_CLEAR, mode, 0, 0, *cr)
+        response = self.transport.request(
+            types.Command.PROGRAM_CLEAR, mode, 0, 0, *cr)
         # ERR_ACCESS_LOCKED
         return response
 
@@ -380,13 +403,13 @@ class MasterBaseType(object):
             AG>1: AG MAX_CTO-AG
         ELEMENT Data elements
         """
-    ##
-    ## Convenience Functions.
-    ##
+
+    # Convenience Functions.
     def verify(self, addr, length):
         self.setMta(addr)
         cs = self.buildChecksum(length)
-        self.logger.debug("BuildChecksum return'd: 0x{:08X} [{}]".format(cs.checksum, cs.checksumType))
+        self.logger.debug("BuildChecksum return'd: 0x{:08X} [{}]".format(
+            cs.checksum, cs.checksumType))
         self.setMta(addr)
         data = self.fetch(length)
         cc = checksum.check(data, cs.checksumType)
