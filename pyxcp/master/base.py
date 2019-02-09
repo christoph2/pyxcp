@@ -34,10 +34,11 @@ from pyxcp import types
 
 class MasterBaseType(object):
 
-    def __init__(self, transport):
+    def __init__(self, transport, loglevel = "WARN"):
         self.ctr = 0
         self.succeeded = True
         self.logger = logging.getLogger("pyXCP")
+        self.logger.setLevel(loglevel)
         self.transport = transport
 
     def __enter__(self):
@@ -385,9 +386,9 @@ class MasterBaseType(object):
     def verify(self, addr, length):
         self.setMta(addr)
         cs = self.buildChecksum(length)
-        print("Client CS: {:08X}".format(cs.checksum))
+        self.logger.debug("BuildChecksum return'd: 0x{:08X} [{}]".format(cs.checksum, cs.checksumType))
         self.setMta(addr)
         data = self.fetch(length)
         cc = checksum.check(data, cs.checksumType)
-        print("Our CS: {:08X}".format(cc))
+        self.logger.debug("Our checksum          : 0x{:08X}".format(cc))
         return cs.checksum == cc
