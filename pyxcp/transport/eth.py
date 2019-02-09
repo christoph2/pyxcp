@@ -27,11 +27,7 @@ import selectors
 import socket
 import struct
 
-from ..utils import hexDump
-import pyxcp.types as types
-
-from ..timing import Timing
-from  pyxcp.transport.base import BaseTransport
+from pyxcp.transport.base import BaseTransport
 
 DEFAULT_XCP_PORT = 5555
 
@@ -42,8 +38,11 @@ class Eth(BaseTransport):
     HEADER = struct.Struct("<HH")
     HEADER_SIZE = HEADER.size
 
-    def __init__(self, ipAddress, port = DEFAULT_XCP_PORT, config = {}, protocol='TCP', loglevel = "WARN"):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM if protocol=='TCP' else socket.SOCK_DGRAM)
+    def __init__(self, ipAddress, port=DEFAULT_XCP_PORT, config={},
+                 protocol='TCP', loglevel="WARN"):
+        self.sock = socket.socket(
+            socket.AF_INET,
+            socket.SOCK_STREAM if protocol == 'TCP' else socket.SOCK_DGRAM)
         self.selector = selectors.DefaultSelector()
         self.selector.register(self.sock, selectors.EVENT_READ)
         self.use_tcp = protocol == 'TCP'
@@ -55,7 +54,7 @@ class Eth(BaseTransport):
         super(Eth, self).__init__(config, loglevel)
         self.startListener()
 
-        self.status = 1 # connected
+        self.status = 1  # connected
 
     def listen(self):
         HEADER_UNPACK = self.HEADER.unpack
@@ -79,7 +78,8 @@ class Eth(BaseTransport):
                             header = bytearray()
 
                             while len(header) < HEADER_SIZE:
-                                new_bytes = sock_recv(HEADER_SIZE - len(header))
+                                new_bytes = sock_recv(
+                                    HEADER_SIZE - len(header))
                                 header.extend(new_bytes)
 
                             length, counter = HEADER_UNPACK(header)
@@ -87,7 +87,8 @@ class Eth(BaseTransport):
                             try:
                                 response = bytearray()
                                 while len(response) < length:
-                                    new_bytes = sock_recv(length - len(response))
+                                    new_bytes = sock_recv(
+                                        length - len(response))
                                     response.extend(new_bytes)
 
                             except Exception as e:
@@ -95,23 +96,23 @@ class Eth(BaseTransport):
                                 continue
                         else:
                             try:
-                                response, server = sock_recv(Eth.MAX_DATAGRAM_SIZE)
-                                length, counter = HEADER_UNPACK(response[: HEADER_SIZE])
-                                response = response[HEADER_SIZE :]
+                                response, server = sock_recv(
+                                    Eth.MAX_DATAGRAM_SIZE)
+                                length, counter = HEADER_UNPACK(
+                                    response[:HEADER_SIZE])
+                                response = response[HEADER_SIZE:]
                             except Exception as e:
                                 self.logger.error(str(e))
                                 continue
 
                         processResponse(response, length, counter)
-            except:
+            except Exception as e:
+                self.logger.error(str(e))
                 self.status = 0  # disconnected
                 break
-
 
     def send(self, frame):
         self.sock.send(frame)
 
     def closeConnection(self):
         self.sock.close()
-
-

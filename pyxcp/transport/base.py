@@ -25,8 +25,6 @@ __copyright__ = """
 
 import abc
 import queue
-import struct
-import time
 import threading
 
 from ..logger import Logger
@@ -40,9 +38,9 @@ from ..timing import Timing
 from datetime import datetime
 
 
-class BaseTransport(metaclass = abc.ABCMeta):
+class BaseTransport(metaclass=abc.ABCMeta):
 
-    def __init__(self, config = Config({}), loglevel = 'WARN'):
+    def __init__(self, config=Config({}), loglevel='WARN'):
         self.parent = None
         self.closeEvent = threading.Event()
         self.logger = Logger("transport.Base")
@@ -106,7 +104,6 @@ class BaseTransport(metaclass = abc.ABCMeta):
             pass    # Und nu??
         return xcpPDU[1:]
 
-
     @abc.abstractmethod
     def send(self, frame):
         pass
@@ -143,4 +140,3 @@ class BaseTransport(metaclass = abc.ABCMeta):
             if self.first_daq_timestamp is None:
                 self.first_daq_timestamp = datetime.now()
             self.daqQueue.put((response, counter, length))
-
