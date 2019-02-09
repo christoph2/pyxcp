@@ -204,7 +204,7 @@ class MasterBaseType(object):
     def getSeed(self, first, resource):
         response = self.transport.request(
             types.Command.GET_SEED, first, resource)
-        return response[1], response[1:]
+        return response[0], response[1:]
 
     def unlock(self, length, key):
         response = self.transport.request(types.Command.UNLOCK, length, *key)

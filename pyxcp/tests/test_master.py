@@ -228,6 +228,41 @@ class TestMaster:
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testSetRequest(self, mock_selector, mock_socket):
+        mock_socket.return_value.recv.side_effect = [
+            [0x01, 0x00, 0x00, 0x00],
+            [0xff]]
+        mock_selector.return_value.select.side_effect = [
+            [(0, 1)], [(0, 1)]]
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            res = xm.setRequest(0x15, 0x1234)
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x04, 0x00, 0x00, 0x00, 0xf9, 0x15, 0x12, 0x34]))
+
+        assert res == b''
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testGetSeed(self, mock_selector, mock_socket):
+        mock_socket.return_value.recv.side_effect = [
+            [0x06, 0x00, 0x00, 0x00],
+            [0xff, 0x04, 0x12, 0x34, 0x56, 0x78]]
+        mock_selector.return_value.select.side_effect = [
+            [(0, 1)], [(0, 1)]]
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            res = xm.getSeed(0x00, 0x00)
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x03, 0x00, 0x00, 0x00, 0xf8, 0x00, 0x00]))
+
+        assert res[0] == 4
+        assert res[1] == b'\x12\x34\x56\x78'
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
     def testDownloadMax(self, mock_selector, mock_socket):
         mock_socket.return_value.recv.side_effect = [
             [0x01, 0x00, 0x00, 0x00], [0xff]]
