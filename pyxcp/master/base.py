@@ -195,10 +195,10 @@ class MasterBaseType(object):
         response = self.transport.request(types.Command.SHORT_UPLOAD, length)
         return response[1:]
 
-    def setMta(self, address):
+    def setMta(self, address, addressExt=0x00):
         addr = struct.pack("<I", address)
         response = self.transport.request(
-            types.Command.SET_MTA, 0, 0, 0, *addr)
+            types.Command.SET_MTA, 0, 0, addressExt, *addr)
         return response
 
     def getSeed(self, first, resource):

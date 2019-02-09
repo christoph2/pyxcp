@@ -106,8 +106,7 @@ class Eth(BaseTransport):
                                 continue
 
                         processResponse(response, length, counter)
-            except Exception as e:
-                self.logger.error(str(e))
+            except Exception:
                 self.status = 0  # disconnected
                 break
 

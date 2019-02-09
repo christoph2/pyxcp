@@ -99,7 +99,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = [
             [0x08, 0x00, 0x00, 0x00],
             [0xff, 0x1d, 0xc0, 0xff, 0xdc, 0x05, 0x01, 0x01]]
-        mock_selector.return_value.select.side_effect = [[(0, 1)], [(0, 1)]]
+        mock_selector.return_value.select.side_effect = [[(0, 1)]]
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.connect()
@@ -127,7 +127,7 @@ class TestMaster:
     def testDisconnect2(self, mock_selector, mock_socket):
         mock_socket.return_value.recv.side_effect = [
             [0x01, 0x00, 0x00, 0x00], [0xff]]
-        mock_selector.return_value.select.side_effect = [[(0, 1)], [(0, 1)]]
+        mock_selector.return_value.select.side_effect = [[(0, 1)]]
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.disconnect()
@@ -143,7 +143,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = [
             [0x06, 0x00, 0x00, 0x00],
             [0xff, 0x09, 0x1d, 0x00, 0x34, 0x12]]
-        mock_selector.return_value.select.side_effect = [[(0, 1)], [(0, 1)]]
+        mock_selector.return_value.select.side_effect = [[(0, 1)]]
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.getStatus()
@@ -168,7 +168,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = [
             [0x02, 0x00, 0x00, 0x00],
             [0xfe, 0x00]]
-        mock_selector.return_value.select.side_effect = [[(0, 1)], [(0, 1)]]
+        mock_selector.return_value.select.side_effect = [[(0, 1)]]
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.synch()
@@ -184,7 +184,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = [
             [0x08, 0x00, 0x00, 0x00],
             [0xff, 0x00, 0x01, 0xff, 0x02, 0x00, 0x00, 0x19]]
-        mock_selector.return_value.select.side_effect = [[(0, 1)], [(0, 1)]]
+        mock_selector.return_value.select.side_effect = [[(0, 1)]]
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.getCommModeInfo()
@@ -208,7 +208,7 @@ class TestMaster:
             [0x07, 0x00, 0x01, 0x00],
             [0xff, 0x58, 0x43, 0x50, 0x73, 0x69, 0x6d]]
         mock_selector.return_value.select.side_effect = [
-            [(0, 1)], [(0, 1)], [(0, 1)], [(0, 1)]]
+            [(0, 1)], [(0, 1)]]
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             gid = xm.getID(0x01)
@@ -232,8 +232,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = [
             [0x01, 0x00, 0x00, 0x00],
             [0xff]]
-        mock_selector.return_value.select.side_effect = [
-            [(0, 1)], [(0, 1)]]
+        mock_selector.return_value.select.side_effect = [[(0, 1)]]
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.setRequest(0x15, 0x1234)
@@ -249,8 +248,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = [
             [0x06, 0x00, 0x00, 0x00],
             [0xff, 0x04, 0x12, 0x34, 0x56, 0x78]]
-        mock_selector.return_value.select.side_effect = [
-            [(0, 1)], [(0, 1)]]
+        mock_selector.return_value.select.side_effect = [[(0, 1)]]
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.getSeed(0x00, 0x00)
@@ -263,10 +261,46 @@ class TestMaster:
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testUnlock(self, mock_selector, mock_socket):
+        mock_socket.return_value.recv.side_effect = [
+            [0x02, 0x00, 0x00, 0x00],
+            [0xff, 0x10]]
+        mock_selector.return_value.select.side_effect = [[(0, 1)]]
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            res = xm.unlock(0x04, [0x12, 0x34, 0x56, 0x78])
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x06, 0x00, 0x00, 0x00, 0xf7, 0x04, 0x12, 0x34, 0x56, 0x78]))
+
+        assert res.calpag is False
+        assert res.daq is False
+        assert res.stim is False
+        assert res.pgm is True
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testSetMta(self, mock_selector, mock_socket):
+        mock_socket.return_value.recv.side_effect = [
+            [0x01, 0x00, 0x00, 0x00],
+            [0xff]]
+        mock_selector.return_value.select.side_effect = [[(0, 1)]]
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            res = xm.setMta(0x12345678, 0x55)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x08, 0x00, 0x00, 0x00,
+                0xf6, 0x00, 0x00, 0x55, 0x78, 0x56, 0x34, 0x12]))
+
+        assert res == b''
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
     def testDownloadMax(self, mock_selector, mock_socket):
         mock_socket.return_value.recv.side_effect = [
             [0x01, 0x00, 0x00, 0x00], [0xff]]
-        mock_selector.return_value.select.side_effect = [[(0, 1)], [(0, 1)]]
+        mock_selector.return_value.select.side_effect = [[(0, 1)]]
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             data = [0xCA, 0xFE, 0xBA, 0xBE]
