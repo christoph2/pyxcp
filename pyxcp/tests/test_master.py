@@ -63,7 +63,7 @@ class TestMaster(unittest.TestCase):
         tr.request.return_value = bytes([0x00])
         with Master(tr) as xm:
             res = xm.synch()
-        self.assertTrue(len(res) == 1)
+        self.assertEqual(len(res), 1)
 
     @mock.patch("pyxcp.transport.Eth")
     def testGetCommModeInfo(self, Eth):
@@ -162,6 +162,70 @@ class TestMaster(unittest.TestCase):
 
         mock_socket.return_value.send.assert_called_with(bytes(
             [0x01, 0x00, 0x00, 0x00, 0xfd]))
+
+    @mock.patch('socket.socket')
+    @mock.patch('selectors.DefaultSelector')
+    def testSynch(self, mock_selector, mock_socket):
+        mock_socket.return_value.recv.side_effect = [
+            [0x02, 0x00, 0x00, 0x00],
+            [0xfe, 0x00]]
+        mock_selector.return_value.select.side_effect = [[(0, 1)], [(0, 1)]]
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            res = xm.synch()
+
+        self.assertEqual(res, b'\x00')
+
+        mock_socket.return_value.send.assert_called_with(bytes(
+            [0x01, 0x00, 0x00, 0x00, 0xfc]))
+
+    @mock.patch('socket.socket')
+    @mock.patch('selectors.DefaultSelector')
+    def testGetCommModeInfo2(self, mock_selector, mock_socket):
+        mock_socket.return_value.recv.side_effect = [
+            [0x08, 0x00, 0x00, 0x00],
+            [0xff, 0x00, 0x01, 0xff, 0x02, 0x00, 0x00, 0x19]]
+        mock_selector.return_value.select.side_effect = [[(0, 1)], [(0, 1)]]
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            res = xm.getCommModeInfo()
+
+        self.assertEqual(res.commModeOptional.interleavedMode, False)
+        self.assertEqual(res.commModeOptional.masterBlockMode, True)
+        self.assertEqual(res.maxbs, 2)
+        self.assertEqual(res.minSt, 0)
+        self.assertEqual(res.queueSize, 0)
+        self.assertEqual(res.xcpDriverVersionNumber, 25)
+
+        mock_socket.return_value.send.assert_called_with(bytes(
+            [0x01, 0x00, 0x00, 0x00, 0xfb]))
+
+    @mock.patch('socket.socket')
+    @mock.patch('selectors.DefaultSelector')
+    def testGetID2(self, mock_selector, mock_socket):
+        mock_socket.return_value.recv.side_effect = [
+            [0x08, 0x00, 0x00, 0x00],
+            [0xff, 0x00, 0x01, 0xff, 0x06, 0x00, 0x00, 0x00],
+            [0x07, 0x00, 0x01, 0x00],
+            [0xff, 0x58, 0x43, 0x50, 0x73, 0x69, 0x6d]]
+        mock_selector.return_value.select.side_effect = [
+            [(0, 1)], [(0, 1)], [(0, 1)], [(0, 1)]]
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            gid = xm.getID(0x01)
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x02, 0x00, 0x00, 0x00, 0xfa, 0x01]))
+
+            res = xm.upload(gid.length)
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x02, 0x00, 0x01, 0x00, 0xf5, 0x06]))
+
+        self.assertEqual(gid.mode, 0)
+        self.assertEqual(gid.reserved, 65281)
+        self.assertEqual(gid.length, 6)
+        self.assertEqual(res, b'XCPsim')
 
     @mock.patch('socket.socket')
     @mock.patch('selectors.DefaultSelector')
