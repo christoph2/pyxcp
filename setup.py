@@ -10,6 +10,9 @@ with open(os.path.join('pyxcp', 'version.py'), 'r') as f:
             version = line.split('=')[-1].strip().strip('"')
             break
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 install_reqs = ['construct == 2.8.17', 'mako', 'pyserial']
 
 if sys.version_info.major == 2 or (
@@ -21,6 +24,8 @@ setup(
     version=version,
     provides=['pyxcp'],
     description="Universal Calibration Protocol for Python",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     author='Christoph Schueler',
     author_email='cpu12.gems@googlemail.com',
     url='https://github.com/christoph2/pyxcp',
