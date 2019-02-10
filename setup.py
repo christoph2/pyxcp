@@ -13,7 +13,7 @@ with open(os.path.join('pyxcp', 'version.py'), 'r') as f:
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-install_reqs = ['construct == 2.8.17', 'mako', 'pyserial']
+install_reqs = ['construct == 2.8.17', 'mako', 'pyserial', 'sphinxcontrib-napoleon']
 
 if sys.version_info.major == 2 or (
         sys.version_info.major == 3 and sys.version_info.minor < 4):
@@ -32,9 +32,8 @@ setup(
     packages=find_packages(),
 
     include_package_data=True,
-    install_requires=['enum34', 'construct >= 2.8', 'mako', 'pyserial'],
+    install_requires=install_reqs,
 
-    # doc_requires=['numpydoc', 'sphinxcontrib-napoleon'],
     package_dir={'tests': 'pyxcp/tests'},
     tests_require=["pytest", "pytest-runner"],
     test_suite="pyxcp.tests",
