@@ -142,7 +142,9 @@ disable=print-statement,
 ##
 ## Chris
 ##
-        bad-whitespace, # C0326
+        bad-whitespace,      # C0326
+        trailing-newlines,   # Trailing newlines *are* required for C/C++ compilation units...
+        no-else-return
 
 
 # Enable the message, report, category or checker with the given id(s). You can
@@ -509,7 +511,7 @@ valid-metaclass-classmethod-first-arg=cls
 max-args=6
 
 # Maximum number of attributes for a class (see R0902).
-max-attributes=7
+max-attributes=12
 
 # Maximum number of boolean expressions in an if statement.
 max-bool-expr=5
@@ -524,7 +526,7 @@ max-locals=15
 max-parents=7
 
 # Maximum number of public methods for a class (see R0904).
-max-public-methods=20
+max-public-methods=50
 
 # Maximum number of return / yield for function / method body.
 max-returns=6
