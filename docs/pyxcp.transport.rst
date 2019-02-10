@@ -1,6 +1,13 @@
 pyxcp.transport package
 =======================
 
+Subpackages
+-----------
+
+.. toctree::
+
+    pyxcp.transport.can
+
 Submodules
 ----------
 
@@ -12,10 +19,26 @@ pyxcp.transport.base module
     :undoc-members:
     :show-inheritance:
 
+pyxcp.transport.can module
+--------------------------
+
+.. automodule:: pyxcp.transport.can
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pyxcp.transport.eth module
 --------------------------
 
 .. automodule:: pyxcp.transport.eth
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pyxcp.transport.kvaser module
+-----------------------------
+
+.. automodule:: pyxcp.transport.kvaser
     :members:
     :undoc-members:
     :show-inheritance:
