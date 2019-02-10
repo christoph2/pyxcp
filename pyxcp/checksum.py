@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""Checksum calculation for memory ranges
+
+.. [1] XCP Specification, BUILD_CHECKSUM service.
+"""
+
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
@@ -29,15 +34,18 @@ import zlib
 
 
 class Algorithm(enum.IntEnum):
-    XCP_ADD_11      = 1
-    XCP_ADD_12      = 2
-    XCP_ADD_14      = 3
-    XCP_ADD_22      = 4
-    XCP_ADD_24      = 5
-    XCP_ADD_44      = 6
-    XCP_CRC_16      = 7
-    XCP_CRC_16_CITT = 8
-    XCP_CRC_32      = 9
+    """Enumerates available checksum algorithms
+    """
+    XCP_ADD_11       = 1
+    XCP_ADD_12       = 2
+    XCP_ADD_14       = 3
+    XCP_ADD_22       = 4
+    XCP_ADD_24       = 5
+    XCP_ADD_44       = 6
+    XCP_CRC_16       = 7
+    XCP_CRC_16_CITT  = 8
+    XCP_CRC_32       = 9
+    XCP_USER_DEFINED = 10
 
 
 CRC16 = (
@@ -112,6 +120,14 @@ CRC16_CCITT = (
 
 
 def reflect(data, nBits):
+    """Reflect data, i.e. reverse bit order.
+
+    Parameters
+    ----------
+    data : int
+    nBits : int
+        width in bits of `data`
+    """
     reflection = 0x00000000
     for bit in range(nBits):
         if data & 0x01:
@@ -121,6 +137,29 @@ def reflect(data, nBits):
 
 
 class Crc16:
+    """Calculate CRC (16-bit)
+
+
+    Parameters
+    ----------
+    table: list-like
+        lookup table for CRC calculation
+    initalRemainder : int
+        value to start with
+    finalXorValue : int
+        final XOR value
+    reflectData : bool
+        reflect input data
+    reflectRemainder : bool
+        reflect output data
+
+    .. [1] A PAINLESS GUIDE TO CRC ERROR DETECTION ALGORITHMS
+           http://www.ross.net/crc/download/crc_v3.txt
+    .. [2] Understanding and implementing CRC (Cyclic Redundancy Check) calculation
+           http://www.sunshine2k.de/articles/coding/crc/understanding_crc.html
+    .. [3] Online CRC calculator
+           http://zorc.breitbandkatze.de/crc.html
+    """
     WIDTH  = 16
 
     def __init__(self, table, initalRemainder, finalXorValue, reflectData, reflectRemainder):
@@ -151,11 +190,44 @@ class Crc16:
 
 
 def adder(modulus):
+    """Factory function for modulus adders
+
+    Parameters
+    ----------
+    modulus : int
+        modulus to use
+
+    Returns
+    -------
+    function
+        adder function
+
+    Examples
+    --------
+    >>> a256=adder(256)
+    >>> a256([11, 22, 33, 44, 55, 66, 77, 88, 99])
+    239
+
+    """
     def add(frame):
         return sum(frame) % modulus
     return add
 
 def wordSum(modulus, step):
+    """Factory function for (double-)word modulus sums
+
+    Parameters
+    ----------
+    modulus : int
+    step : [2, 4]
+        2 - word wise
+        4 - double-word wise
+
+    Returns
+    -------
+    function
+        summation function
+    """
     def add(frame):
         if step == 2:
             mask = "<H"
@@ -179,6 +251,12 @@ CRC16_CCITT = Crc16(CRC16_CCITT, 0xffff, 0x0000, False, False)
 CRC32 = lambda x: zlib.crc32(x) & 0xffffffff
 
 def userDefined(x):
+    """User defined algorithms are not supported yet.
+
+    Raises
+    ------
+    `NotImplementedError`
+    """
     raise NotImplementedError("Checksum method 'XCP_USER_DEFINED' not supported yet.")
 
 ALGO = {
@@ -195,6 +273,17 @@ ALGO = {
 }
 
 def check(frame, algo):
+    """Calculate checksum using given algorithm
+
+    Parameters
+    ----------
+    frame : list of integers
+    algo : `ALGO`
+
+    Returns
+    -------
+    int
+    """
     fun = ALGO.get(algo)
     if fun:
         return fun(frame)
