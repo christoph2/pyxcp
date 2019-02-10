@@ -47,3 +47,7 @@ def testCrc16Ccitt():
 
 def testCrc32():
     assert checksum.check(TEST, "XCP_CRC_32") == 0x89CD97CE
+
+def testUserDefined():
+    with pytest.raises(NotImplementedError):
+        checksum.check(TEST, "XCP_USER_DEFINED")
