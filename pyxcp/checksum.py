@@ -4,7 +4,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -150,23 +150,10 @@ class Crc16:
             return remainder ^ self.finalXorValue
 
 
-"""
-0x01  XCP_ADD_11  Add BYTE into a BYTE checksum, ignore overflows
-0x02  XCP_ADD_12  Add BYTE into a WORD checksum, ignore overflows
-0x03  XCP_ADD_14  Add BYTE into a DWORD checksum, ignore overflows
-
-0x04  XCP_ADD_22  Add WORD into a WORD checksum, ignore overflows,  blocksize must be modulo 2
-0x05  XCP_ADD_24  Add WORD into a DWORD checksum, ignore  overflows, blocksize must be modulo 2
-0x06  XCP_ADD_44  Add DWORD into DWORD, ignore overflows, blocksize  must be modulo 4
-"""
-
 def adder(modulus):
     def add(frame):
         return sum(frame) % modulus
     return add
-
-def missing(x):
-    raise NotImplementedError("Checksum method 'XCP_USER_DEFINED' not supported yet.")
 
 def wordSum(modulus, step):
     def add(frame):
@@ -175,34 +162,36 @@ def wordSum(modulus, step):
         elif step == 4:
             mask = "<I"
         else:
-            raise ErrorNotImplemented("Only WORDs or DWORDs are supported.")
+            raise NotImplementedError("Only WORDs or DWORDs are supported.")
         x = [struct.unpack(mask, frame[x : x + step])[0] for x in range(0, len(frame), step)]
         return sum(x) % modulus
     return add
 
 
-add11 = adder(2 ** 8)
-add12 = adder(2 ** 16)
-add14 = adder(2 ** 32)
-add22 = wordSum(2 ** 16, 2)
-add24 = wordSum(2 ** 32, 2)
-add44 = wordSum(2 ** 32, 4)
-crc16 = Crc16(CRC16, 0x0000, 0x0000, True, True)
-crc16_ccitt = Crc16(CRC16_CCITT, 0xffff, 0x0000, False, False)
-crc32 = lambda x: zlib.crc32(x) & 0xffffffff
+ADD11 = adder(2 ** 8)
+ADD12 = adder(2 ** 16)
+ADD14 = adder(2 ** 32)
+ADD22 = wordSum(2 ** 16, 2)
+ADD24 = wordSum(2 ** 32, 2)
+ADD44 = wordSum(2 ** 32, 4)
+CRC16 = Crc16(CRC16, 0x0000, 0x0000, True, True)
+CRC16_CCITT = Crc16(CRC16_CCITT, 0xffff, 0x0000, False, False)
+CRC32 = lambda x: zlib.crc32(x) & 0xffffffff
 
+def userDefined(x):
+    raise NotImplementedError("Checksum method 'XCP_USER_DEFINED' not supported yet.")
 
 ALGO = {
-    "XCP_ADD_11":       add11,
-    "XCP_ADD_12":       add12,
-    "XCP_ADD_14":       add14,
-    "XCP_ADD_22":       add22,
-    "XCP_ADD_24":       add24,
-    "XCP_ADD_44":       add44,
-    "XCP_CRC_16":       crc16,
-    "XCP_CRC_16_CITT":  crc16_ccitt,
-    "XCP_CRC_32":       crc32,
-    "XCP_USER_DEFINED": missing,
+    "XCP_ADD_11":       ADD11,
+    "XCP_ADD_12":       ADD12,
+    "XCP_ADD_14":       ADD14,
+    "XCP_ADD_22":       ADD22,
+    "XCP_ADD_24":       ADD24,
+    "XCP_ADD_44":       ADD44,
+    "XCP_CRC_16":       CRC16,
+    "XCP_CRC_16_CITT":  CRC16_CCITT,
+    "XCP_CRC_32":       CRC32,
+    "XCP_USER_DEFINED": userDefined
 }
 
 def check(frame, algo):
@@ -211,4 +200,3 @@ def check(frame, algo):
         return fun(frame)
     else:
         raise NotImplementedError("Invalid algorithm '{}'.".format(algo))
-
