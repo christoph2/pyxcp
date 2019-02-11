@@ -21,29 +21,6 @@ pyxcp.checksum module
     :undoc-members:
     :show-inheritance:
 
-pyxcp.config module
--------------------
-
-.. automodule:: pyxcp.config
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pyxcp.configTester module
--------------------------
-
-.. automodule:: pyxcp.configTester
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pyxcp.dllif module
-------------------
-
-.. automodule:: pyxcp.dllif
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 pyxcp.errormatrix module
 ------------------------
@@ -53,13 +30,6 @@ pyxcp.errormatrix module
     :undoc-members:
     :show-inheritance:
 
-pyxcp.kvDbc module
-------------------
-
-.. automodule:: pyxcp.kvDbc
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 pyxcp.logger module
 -------------------
@@ -69,21 +39,6 @@ pyxcp.logger module
     :undoc-members:
     :show-inheritance:
 
-pyxcp.pygame\_templ module
---------------------------
-
-.. automodule:: pyxcp.pygame_templ
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pyxcp.timing module
--------------------
-
-.. automodule:: pyxcp.timing
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 pyxcp.types module
 ------------------
@@ -101,37 +56,6 @@ pyxcp.utils module
     :undoc-members:
     :show-inheritance:
 
-pyxcp.vectormap module
-----------------------
-
-.. automodule:: pyxcp.vectormap
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pyxcp.version module
---------------------
-
-.. automodule:: pyxcp.version
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pyxcp.visu module
------------------
-
-.. automodule:: pyxcp.visu
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pyxcp.xcpread module
---------------------
-
-.. automodule:: pyxcp.xcpread
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 pyxcp.xcptest module
 --------------------
