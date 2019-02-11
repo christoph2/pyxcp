@@ -252,10 +252,6 @@ CRC32 = lambda x: zlib.crc32(x) & 0xffffffff
 
 def userDefined(x):
     """User defined algorithms are not supported yet.
-
-    Raises
-    ------
-    `NotImplementedError`
     """
     raise NotImplementedError("Checksum method 'XCP_USER_DEFINED' not supported yet.")
 
