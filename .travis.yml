@@ -1,4 +1,5 @@
 # https://travis-ci.org/christoph2/pyxcp
+dist: xenial
 language: python
 sudo: required
 python:
