@@ -167,7 +167,7 @@ class MasterBaseType:
         result = types.GetCommModeInfoResponse.parse(response)
         return result
 
-    def getID(self, mode):
+    def getId(self, mode):
         """This command is used for automatic session configuration and for
         slave device identification.
 
@@ -215,58 +215,6 @@ class MasterBaseType:
             sessionConfigurationId >> 8, sessionConfigurationId & 0xff)
         return response
 
-    def upload(self, length):
-        """Transfer data from slave to master.
-
-        Parameters
-        ----------
-        length : int
-
-        .. note:: Adress is set via `setMta` (Some services like `getID` also
-        set the MTA).
-
-        Returns
-        -------
-        bytes
-        """
-        response = self.transport.request(types.Command.UPLOAD, length)
-        return response
-
-    def shortUpload(self, length, address, addressExt=0x00):
-        """Transfer data from slave to master.
-        As opposed to `upload` this service includes address information.
-
-        Parameters
-        ----------
-        address : int
-        addressExt : int
-
-        Returns
-        -------
-        bytes
-        """
-        addr = struct.pack("<I", address)
-        response = self.transport.request(
-            types.Command.SHORT_UPLOAD, length, 0, addressExt, *addr)
-        return response
-
-    def setMta(self, address, addressExt=0x00):
-        """Set Memory Transfer Address in slave.
-
-        Parameters
-        ----------
-        address : int
-        addressExt : int
-
-        .. note:: The MTA is used by `buildChecksum`, `upload`, `download`,
-                  `downloadNext`, `downloadMax`, `modifyBits`, `programClear`,
-                  `program`, `programNext` and `programMax`.
-        """
-        addr = struct.pack("<I", address)
-        response = self.transport.request(
-            types.Command.SET_MTA, 0, 0, addressExt, *addr)
-        return response
-
     def getSeed(self, first, resource):
         """Get seed from slave for unlocking a protected resource.
 
@@ -309,6 +257,119 @@ class MasterBaseType:
         response = self.transport.request(types.Command.UNLOCK, length, *key)
         return types.ResourceType.parse(response)
 
+    def setMta(self, address, addressExt=0x00):
+        """Set Memory Transfer Address in slave.
+
+        Parameters
+        ----------
+        address : int
+        addressExt : int
+
+        .. note:: The MTA is used by `buildChecksum`, `upload`, `download`,
+                  `downloadNext`, `downloadMax`, `modifyBits`, `programClear`,
+                  `program`, `programNext` and `programMax`.
+        """
+        addr = struct.pack("<I", address)
+        response = self.transport.request(
+            types.Command.SET_MTA, 0, 0, addressExt, *addr)
+        return response
+
+    def upload(self, length):
+        """Transfer data from slave to master.
+
+        Parameters
+        ----------
+        length : int
+
+        .. note:: Adress is set via `setMta` (Some services like `getID` also
+        set the MTA).
+
+        Returns
+        -------
+        bytes
+        """
+        response = self.transport.request(types.Command.UPLOAD, length)
+        return response
+
+    def shortUpload(self, length, address, addressExt=0x00):
+        """Transfer data from slave to master.
+        As opposed to `upload` this service includes address information.
+
+        Parameters
+        ----------
+        address : int
+        addressExt : int
+
+        Returns
+        -------
+        bytes
+        """
+        addr = struct.pack("<I", address)
+        response = self.transport.request(
+            types.Command.SHORT_UPLOAD, length, 0, addressExt, *addr)
+        return response
+
+    def buildChecksum(self, blocksize):
+        """Build checksum over memory range.
+
+        Parameters
+        ----------
+        blocksize : int
+
+        Returns
+        -------
+        `pyxcp.types.BuildChecksumResponse`
+
+        .. note:: Adress is set via `setMta`
+
+        See Also
+        --------
+        Module `pyxcp.checksum`
+        """
+        bs = struct.pack("<I", blocksize)
+        response = self.transport.request(
+            types.Command.BUILD_CHECKSUM, 0, 0, 0, *bs)
+        return types.BuildChecksumResponse.parse(response)
+
+    def transportLayerCmd(self, subCommand, *data):
+        """Execute transfer-layer specific command.
+
+        Parameters
+        ----------
+        subCommand : int
+        data : bytes
+
+        Returns
+        -------
+        Dependent on command
+
+        .. note:: For details refer to XCP specification.
+        """
+        response = self.transport.request(
+            types.Command.TRANSPORT_LAYER_CMD, subCommand, *data)
+        return response
+
+    def userCmd(self, subCommand, *data):
+        """Execute proprietary command implemented in your XCP client.
+
+        Parameters
+        ----------
+        subCommand : int
+        data : bytes
+
+        Returns
+        -------
+        Dependent on command
+
+        .. note:: For details refer to your XCP client vendor.
+        """
+
+        response = self.transport.request(
+            types.Command.USER_CMD, subCommand, *data)
+        return response
+
+    # todo: GET_VERSION
+
     def fetch(self, length, limitPayload=None):  # TODO: pull
         """Convenience function for data-transfer from slave to master
         (Not part of the XCP Specification).
@@ -343,65 +404,6 @@ class MasterBaseType:
             data = self.upload(remaining)
             result.extend(data)
         return bytes(result)
-
-    def buildChecksum(self, blocksize):
-        """Build checksum over memory range.
-
-        Parameters
-        ----------
-        blocksize : int
-
-        Returns
-        -------
-        `pyxcp.types.BuildChecksumResponse`
-
-        .. note:: Adress is set via `setMta`
-
-        See Also
-        --------
-        Module `pyxcp.checksum`
-        """
-        bs = struct.pack("<I", blocksize)
-        response = self.transport.request(
-            types.Command.BUILD_CHECKSUM, 0, 0, 0, *bs)
-        return types.BuildChecksumResponse.parse(response)
-
-    def transportLayerCommand(self, subCommand, *data):
-        """Execute transfer-layer specific command.
-
-        Parameters
-        ----------
-        subCommand : int
-        data : bytes
-
-        Returns
-        -------
-        Dependent on command
-
-        .. note:: For details refer to XCP specification.
-        """
-        response = self.transport.request(
-            types.Command.TRANSPORT_LAYER_CMD, subCommand, *data)
-        return response
-
-    def userCommand(self, subCommand, *data):
-        """Execute proprietary command implemented in your XCP client.
-
-        Parameters
-        ----------
-        subCommand : int
-        data : bytes
-
-        Returns
-        -------
-        Dependent on command
-
-        .. note:: For details refer to your XCP client vendor.
-        """
-
-        response = self.transport.request(
-            types.Command.USER_CMD, subCommand, *data)
-        return response
 
     # Calibration Commands (CAL)
     def download(self, *data):

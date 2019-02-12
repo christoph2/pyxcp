@@ -17,13 +17,11 @@ class MockSocket:
         self.data.extend(data)
 
     def recv(self, bufsize):
-        print("recv({})".format(bufsize))
         r = self.data[:bufsize]
         self.data = self.data[bufsize:]
         return r
 
     def select(self, timeout):
-        print("select({})".format(timeout))
         if self.data:
             return [(0, 1)]
         else:
@@ -103,12 +101,12 @@ class TestMaster:
         assert res.xcpDriverVersionNumber == 25
 
     @mock.patch("pyxcp.transport.Eth")
-    def testGetID(self, Eth):
+    def testGetId(self, Eth):
         tr = Eth()
         tr.request.return_value = bytes(
             [0x00, 0x01, 0xff, 0x06, 0x00, 0x00, 0x00])
         with Master(tr) as xm:
-            gid = xm.getID(0x01)
+            gid = xm.getId(0x01)
             tr.request.return_value = bytes(
                 [0x58, 0x43, 0x50, 0x73, 0x69, 0x6d])
             res = xm.upload(gid.length)
@@ -149,8 +147,6 @@ class TestMaster:
         assert res.commModeBasic.byteOrder == 'INTEL'
         assert xm.maxCto == res.maxCto
         assert xm.maxDto == res.maxDto
-
-    # todo: GET_VERSION
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
@@ -242,7 +238,7 @@ class TestMaster:
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
-    def testGetID2(self, mock_selector, mock_socket):
+    def testGetId2(self, mock_selector, mock_socket):
         ms = MockSocket()
 
         mock_socket.return_value.recv.side_effect = ms.recv
@@ -255,7 +251,7 @@ class TestMaster:
             0xff, 0x58, 0x43, 0x50, 0x73, 0x69, 0x6d])
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
-            gid = xm.getID(0x01)
+            gid = xm.getId(0x01)
 
             mock_socket.return_value.send.assert_called_with(bytes(
                 [0x02, 0x00, 0x00, 0x00, 0xfa, 0x01]))
@@ -392,6 +388,74 @@ class TestMaster:
             0xf4, 0x08, 0x00, 0x01, 0xbe, 0xba, 0xfe, 0xca]))
 
         assert res == b'\x01\x02\x03\x04\x05\x06\x07\x08'
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testBuildChecksum(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        ms.push([
+            0x08, 0x00, 0x00, 0x00,
+            0xff, 0x09, 0x00, 0x00, 0x04, 0x05, 0x06, 0x07])
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            res = xm.buildChecksum(1024)
+
+        mock_socket.return_value.send.assert_called_with(bytes([
+            0x08, 0x00, 0x00, 0x00,
+            0xf3, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00]))
+
+        assert res.checksumType == "XCP_CRC_32"
+        assert res.checksum == 0x07060504
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testTransportLayerCmd(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        ms.push([
+            0x03, 0x00, 0x00, 0x00,
+            0xff, 0xaa, 0xbb])
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            data = [0xbe, 0xef]
+            res = xm.transportLayerCmd(0x55, *data)
+
+        mock_socket.return_value.send.assert_called_with(bytes([
+            0x04, 0x00, 0x00, 0x00,
+            0xf2, 0x55, 0xbe, 0xef]))
+
+        assert res == b'\xaa\xbb'
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testUserCmd(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        ms.push([
+            0x03, 0x00, 0x00, 0x00,
+            0xff, 0xaa, 0xbb])
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            data = [0xbe, 0xef]
+            res = xm.userCmd(0x55, *data)
+
+        mock_socket.return_value.send.assert_called_with(bytes([
+            0x04, 0x00, 0x00, 0x00,
+            0xf1, 0x55, 0xbe, 0xef]))
+
+        assert res == b'\xaa\xbb'
+
+    # todo: GET_VERSION
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
