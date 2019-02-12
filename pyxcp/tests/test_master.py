@@ -132,6 +132,9 @@ class TestMaster:
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.connect()
 
+        mock_socket.return_value.send.assert_called_with(bytes(
+            [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+
         assert res.maxCto == 255
         assert res.maxDto == 1500
         assert res.protocolLayerVersion == 1
@@ -147,8 +150,7 @@ class TestMaster:
         assert xm.maxCto == res.maxCto
         assert xm.maxDto == res.maxDto
 
-        mock_socket.return_value.send.assert_called_with(bytes(
-            [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+    # todo: GET_VERSION
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
@@ -163,10 +165,10 @@ class TestMaster:
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.disconnect()
 
-        assert res == b''
-
         mock_socket.return_value.send.assert_called_with(bytes(
             [0x01, 0x00, 0x00, 0x00, 0xfe]))
+
+        assert res == b''
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
@@ -181,6 +183,9 @@ class TestMaster:
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.getStatus()
 
+        mock_socket.return_value.send.assert_called_with(bytes(
+            [0x01, 0x00, 0x00, 0x00, 0xfd]))
+
         assert res.sessionStatus.storeCalRequest is True
         assert res.sessionStatus.storeDaqRequest is False
         assert res.sessionStatus.clearDaqRequest is True
@@ -191,9 +196,6 @@ class TestMaster:
         assert res.resourceProtectionStatus.daq is True
         assert res.resourceProtectionStatus.calpag is True
         assert res.sessionConfiguration == 0x1234
-
-        mock_socket.return_value.send.assert_called_with(bytes(
-            [0x01, 0x00, 0x00, 0x00, 0xfd]))
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
@@ -208,10 +210,10 @@ class TestMaster:
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.synch()
 
-        assert res == b'\x00'
-
         mock_socket.return_value.send.assert_called_with(bytes(
             [0x01, 0x00, 0x00, 0x00, 0xfc]))
+
+        assert res == b'\x00'
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
@@ -228,15 +230,15 @@ class TestMaster:
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.getCommModeInfo()
 
+        mock_socket.return_value.send.assert_called_with(bytes(
+            [0x01, 0x00, 0x00, 0x00, 0xfb]))
+
         assert res.commModeOptional.interleavedMode is False
         assert res.commModeOptional.masterBlockMode is True
         assert res.maxbs == 2
         assert res.minSt == 0
         assert res.queueSize == 0
         assert res.xcpDriverVersionNumber == 25
-
-        mock_socket.return_value.send.assert_called_with(bytes(
-            [0x01, 0x00, 0x00, 0x00, 0xfb]))
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
@@ -281,8 +283,8 @@ class TestMaster:
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.setRequest(0x15, 0x1234)
 
-            mock_socket.return_value.send.assert_called_with(bytes(
-                [0x04, 0x00, 0x00, 0x00, 0xf9, 0x15, 0x12, 0x34]))
+        mock_socket.return_value.send.assert_called_with(bytes(
+            [0x04, 0x00, 0x00, 0x00, 0xf9, 0x15, 0x12, 0x34]))
 
         assert res == b''
 
@@ -301,8 +303,8 @@ class TestMaster:
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.getSeed(0x00, 0x00)
 
-            mock_socket.return_value.send.assert_called_with(bytes(
-                [0x03, 0x00, 0x00, 0x00, 0xf8, 0x00, 0x00]))
+        mock_socket.return_value.send.assert_called_with(bytes(
+            [0x03, 0x00, 0x00, 0x00, 0xf8, 0x00, 0x00]))
 
         assert res[0] == 4
         assert res[1] == b'\x12\x34\x56\x78'
@@ -322,8 +324,8 @@ class TestMaster:
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.unlock(0x04, [0x12, 0x34, 0x56, 0x78])
 
-            mock_socket.return_value.send.assert_called_with(bytes(
-                [0x06, 0x00, 0x00, 0x00, 0xf7, 0x04, 0x12, 0x34, 0x56, 0x78]))
+        mock_socket.return_value.send.assert_called_with(bytes(
+            [0x06, 0x00, 0x00, 0x00, 0xf7, 0x04, 0x12, 0x34, 0x56, 0x78]))
 
         assert res.calpag is False
         assert res.daq is False
@@ -343,11 +345,53 @@ class TestMaster:
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.setMta(0x12345678, 0x55)
 
-            mock_socket.return_value.send.assert_called_with(bytes([
-                0x08, 0x00, 0x00, 0x00,
-                0xf6, 0x00, 0x00, 0x55, 0x78, 0x56, 0x34, 0x12]))
+        mock_socket.return_value.send.assert_called_with(bytes([
+            0x08, 0x00, 0x00, 0x00,
+            0xf6, 0x00, 0x00, 0x55, 0x78, 0x56, 0x34, 0x12]))
 
         assert res == b''
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testUpload(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        ms.push([
+            0x09, 0x00, 0x00, 0x00,
+            0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08])
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            res = xm.upload(8)
+
+        mock_socket.return_value.send.assert_called_with(bytes([
+            0x02, 0x00, 0x00, 0x00,
+            0xf5, 0x08]))
+
+        assert res == b'\x01\x02\x03\x04\x05\x06\x07\x08'
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testShortUpload(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        ms.push([
+            0x09, 0x00, 0x00, 0x00,
+            0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08])
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            res = xm.shortUpload(8, 0xcafebabe, 1)
+
+        mock_socket.return_value.send.assert_called_with(bytes([
+            0x08, 0x00, 0x00, 0x00,
+            0xf4, 0x08, 0x00, 0x01, 0xbe, 0xba, 0xfe, 0xca]))
+
+        assert res == b'\x01\x02\x03\x04\x05\x06\x07\x08'
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
