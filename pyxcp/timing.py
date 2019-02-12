@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__copyright__="""
+__copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
    (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
@@ -25,6 +25,7 @@ __copyright__="""
 
 import time
 
+
 class Timing:
 
     T_US = 1000 * 1000
@@ -36,9 +37,10 @@ class Timing:
         T_MS: "mS",
         T_S: "S",
     }
-    FMT = "min:  {0:2.3f} {4}\nmax:  {1:2.3f} {4}\navg:  {2:2.3f} {4}\nlast: {3:2.3f} {4}"
+    FMT = ("min:  {0:2.3f} {4}\nmax:  {1:2.3f} {4}\n"
+           "avg:  {2:2.3f} {4}\nlast: {3:2.3f} {4}")
 
-    def __init__(self, unit = T_MS, record = False):
+    def __init__(self, unit=T_MS, record=False):
         self.min = None
         self.max = None
         self.avg = None
@@ -69,11 +71,12 @@ class Timing:
         self.max = 0 if self.max is None else self.max
         self.avg = 0 if self.avg is None else self.avg
         self._previous = 0 if self._previous is None else self._previous
-        return Timing.FMT.format(self.min * self.unit, self.max * self.unit, self.avg * self.unit, self._previous * self.unit, unitName)
+        return Timing.FMT.format(
+            self.min * self.unit, self.max * self.unit, self.avg * self.unit,
+            self._previous * self.unit, unitName)
 
     __repr__ = __str__
 
     @property
     def values(self):
         return self._values
-

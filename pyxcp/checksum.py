@@ -36,15 +36,15 @@ import zlib
 class Algorithm(enum.IntEnum):
     """Enumerates available checksum algorithms
     """
-    XCP_ADD_11       = 1
-    XCP_ADD_12       = 2
-    XCP_ADD_14       = 3
-    XCP_ADD_22       = 4
-    XCP_ADD_24       = 5
-    XCP_ADD_44       = 6
-    XCP_CRC_16       = 7
-    XCP_CRC_16_CITT  = 8
-    XCP_CRC_32       = 9
+    XCP_ADD_11 = 1
+    XCP_ADD_12 = 2
+    XCP_ADD_14 = 3
+    XCP_ADD_22 = 4
+    XCP_ADD_24 = 5
+    XCP_ADD_44 = 6
+    XCP_CRC_16 = 7
+    XCP_CRC_16_CITT = 8
+    XCP_CRC_32 = 9
     XCP_USER_DEFINED = 10
 
 
@@ -155,14 +155,16 @@ class Crc16:
 
     .. [1] A PAINLESS GUIDE TO CRC ERROR DETECTION ALGORITHMS
            http://www.ross.net/crc/download/crc_v3.txt
-    .. [2] Understanding and implementing CRC (Cyclic Redundancy Check) calculation
+    .. [2] Understanding and implementing CRC (Cyclic Redundancy Check)
+           calculation
            http://www.sunshine2k.de/articles/coding/crc/understanding_crc.html
     .. [3] Online CRC calculator
            http://zorc.breitbandkatze.de/crc.html
     """
-    WIDTH  = 16
+    WIDTH = 16
 
-    def __init__(self, table, initalRemainder, finalXorValue, reflectData, reflectRemainder):
+    def __init__(self, table, initalRemainder, finalXorValue, reflectData,
+                 reflectRemainder):
         self.table = table
         self.initalRemainder = initalRemainder
         self.finalXorValue = finalXorValue
@@ -213,6 +215,7 @@ def adder(modulus):
         return sum(frame) % modulus
     return add
 
+
 def wordSum(modulus, step):
     """Factory function for (double-)word modulus sums
 
@@ -235,7 +238,8 @@ def wordSum(modulus, step):
             mask = "<I"
         else:
             raise NotImplementedError("Only WORDs or DWORDs are supported.")
-        x = [struct.unpack(mask, frame[x : x + step])[0] for x in range(0, len(frame), step)]
+        x = [struct.unpack(mask, frame[x:x + step])[0]
+             for x in range(0, len(frame), step)]
         return sum(x) % modulus
     return add
 
@@ -248,12 +252,18 @@ ADD24 = wordSum(2 ** 32, 2)
 ADD44 = wordSum(2 ** 32, 4)
 CRC16 = Crc16(CRC16, 0x0000, 0x0000, True, True)
 CRC16_CCITT = Crc16(CRC16_CCITT, 0xffff, 0x0000, False, False)
-CRC32 = lambda x: zlib.crc32(x) & 0xffffffff
+
+
+def CRC32(x):
+    return zlib.crc32(x) & 0xffffffff
+
 
 def userDefined(x):
     """User defined algorithms are not supported yet.
     """
-    raise NotImplementedError("Checksum method 'XCP_USER_DEFINED' not supported yet.")
+    raise NotImplementedError(
+        "Checksum method 'XCP_USER_DEFINED' not supported yet.")
+
 
 ALGO = {
     "XCP_ADD_11":       ADD11,
@@ -267,6 +277,7 @@ ALGO = {
     "XCP_CRC_32":       CRC32,
     "XCP_USER_DEFINED": userDefined
 }
+
 
 def check(frame, algo):
     """Calculate checksum using given algorithm

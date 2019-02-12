@@ -9,7 +9,7 @@
 .. [1] XCP Specification, Part 2 - Protocol Layer Specification
 """
 
-__copyright__="""
+__copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
    (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
@@ -34,7 +34,9 @@ __copyright__="""
 import sys
 
 VERSION = sys.version_info
-PRE35 = VERSION.major >= 3 and VERSION.minor < 5    # We need some pre-3.5 fixes, e.g. flatten() function.
+PRE35 = VERSION.major >= 3 and VERSION.minor < 5
+
+# We need some pre-3.5 fixes, e.g. flatten() function.
 
 if PRE35:
     from pyxcp.master.pre35 import Master
