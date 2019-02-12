@@ -459,6 +459,40 @@ class TestMaster:
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testDownload(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        ms.push([0x01, 0x00, 0x00, 0x00, 0xff])
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            data = [0xCA, 0xFE, 0xBA, 0xBE]
+            xm.download(*data)
+
+        mock_socket.return_value.send.assert_called_with(bytes(
+            [0x06, 0x00, 0x00, 0x00, 0xf0, 0x04, 0xca, 0xfe, 0xba, 0xbe]))
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testDownloadNext(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        ms.push([0x01, 0x00, 0x00, 0x00, 0xff])
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            data = [0xCA, 0xFE, 0xBA, 0xBE]
+            xm.downloadNext(*data)
+
+        mock_socket.return_value.send.assert_called_with(bytes(
+            [0x06, 0x00, 0x00, 0x00, 0xef, 0x04, 0xca, 0xfe, 0xba, 0xbe]))
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
     def testDownloadMax(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -473,3 +507,21 @@ class TestMaster:
 
         mock_socket.return_value.send.assert_called_with(bytes(
             [0x05, 0x00, 0x00, 0x00, 0xee, 0xca, 0xfe, 0xba, 0xbe]))
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testShortDownload(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        ms.push([0x01, 0x00, 0x00, 0x00, 0xff])
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            data = [0xCA, 0xFE, 0xBA, 0xBE]
+            xm.shortDownload(0x12345678, 0x55, *data)
+
+        mock_socket.return_value.send.assert_called_with(bytes([
+            0x0c, 0x00, 0x00, 0x00, 0xed, 0x04, 0x00, 0x55,
+            0x78, 0x56, 0x34, 0x12, 0xca, 0xfe, 0xba, 0xbe]))
