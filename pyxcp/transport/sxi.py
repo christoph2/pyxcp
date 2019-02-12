@@ -27,9 +27,8 @@ import struct
 
 import serial
 
-from ..timing import Timing
-import pyxcp.types as types
-from  pyxcp.transport.base import BaseTransport
+from pyxcp.transport.base import BaseTransport
+
 
 class SxI(BaseTransport):
 
@@ -37,7 +36,8 @@ class SxI(BaseTransport):
     HEADER = struct.Struct("<HH")
     HEADER_SIZE = HEADER.size
 
-    def __init__(self, portName, baudrate = 9600, bytesize = 8, parity = 'N', stopbits = 1, timeout = 0.75, config = {}, loglevel = "WARN"):
+    def __init__(self, portName, baudrate=9600, bytesize=8, parity='N',
+                 stopbits=1, timeout=0.75, config={}, loglevel="WARN"):
         self.portName = portName
         self.port = None
         self._baudrate = baudrate
@@ -53,17 +53,20 @@ class SxI(BaseTransport):
         self.closeConnection()
 
     def connect(self):
-        #SerialPort.counter += 1
-        self.logger.debug("Trying to open serial port {}.".format(self.portName))
+        # SerialPort.counter += 1
+        self.logger.debug(
+            "Trying to open serial port {}.".format(self.portName))
         try:
-            #self.port = serial.Serial(self.portName, self._baudrate , self._bytesize, self._parity,
-            #    self._stopbits, self._timeout
-            #)
-            self.port = serial.Serial(self.portName, self._baudrate, timeout = self._timeout)
+            # self.port = serial.Serial(
+            #    self.portName, self._baudrate, self._bytesize, self._parity,
+            #    self._stopbits, self._timeout)
+            self.port = serial.Serial(
+                self.portName, self._baudrate, timeout=self._timeout)
         except serial.SerialException as e:
             self.logger.error("{}".format(e))
             raise
-        self.logger.info("Serial port openend as '{}' @ {} Bits/Sec.".format(self.port.portstr, self.port.baudrate))
+        self.logger.info("Serial port openend as '{}' @ {} Bits/Sec.".format(
+            self.port.portstr, self.port.baudrate))
 
     def output(self, enable):
         if enable:
@@ -82,18 +85,17 @@ class SxI(BaseTransport):
                 return
             if not self.port.inWaiting():
                 continue
-            length, counter = self.HEADER.unpack(self.port.read(HEADER_SIZE))
+            length, counter = self.HEADER.unpack(
+                self.port.read(self.HEADER_SIZE))
 
             response = self.port.read(length)
             self.timing.stop()
 
             self.processResponse(response, length, counter)
 
-
     def send(self, frame):
         self.port.write(frame)
 
     def closeConnection(self):
-        if self.port and self.port.isOpen() == True:
+        if self.port and self.port.isOpen():
             self.port.close()
-
