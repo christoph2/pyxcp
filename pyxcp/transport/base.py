@@ -124,7 +124,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         pid = response[0]
         if pid >= 0xFC:
             self.logger.debug(
-                "<- L{} C{} {}\n".format(
+                "<- L{} C{} {}".format(
                     length,
                     counter,
                     hexDump(response),

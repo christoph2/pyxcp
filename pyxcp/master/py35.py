@@ -28,42 +28,48 @@ import struct
 from pyxcp.master.base import MasterBaseType
 from pyxcp import types
 
+
 class Master(MasterBaseType):
-    ##
-    ## Python >= 3.5 permits nice unpacking syntax (PEP448).
-    ##
+    # Python >= 3.5 permits nice unpacking syntax (PEP448).
 
     def shortDownload(self, address, addressExt, *data):
         length = len(data)
         addr = struct.pack("<I", address)
-        response = self.transport.request(types.Command.SHORT_DOWNLOAD, length, 0, addressExt, *addr, *data)
+        response = self.transport.request(
+            types.Command.SHORT_DOWNLOAD, length, 0, addressExt, *addr, *data)
         return response
 
     def modifyBits(self, shiftValue, andMask, xorMask):
         # A = ( (A) & ((~((dword)(((word)~MA)<<S))) )^((dword)(MX<<S)) )
         am = struct.pack("<H", andMask)
         xm = struct.pack("<H", xorMask)
-        response = self.transport.request(types.Command.MODIFY_BITS, shiftValue, *am, *xm)
+        response = self.transport.request(
+            types.Command.MODIFY_BITS, shiftValue, *am, *xm)
         return response
 
     def setDaqPtr(self, daqListNumber, odtNumber, odtEntryNumber):
         daqList = struct.pack("<H", daqListNumber)
-        response = self.transport.request(types.Command.SET_DAQ_PTR, 0, *daqList, odtNumber, odtEntryNumber)
+        response = self.transport.request(
+            types.Command.SET_DAQ_PTR, 0, *daqList, odtNumber, odtEntryNumber)
         return response
 
-    def setDaqListMode(self, mode, daqListNumber, eventChannelNumber, prescaler, priority):
+    def setDaqListMode(self, mode, daqListNumber, eventChannelNumber,
+                       prescaler, priority):
         dln = struct.pack("<H", daqListNumber)
         ecn = struct.pack("<H", eventChannelNumber)
-        response = self.transport.request(types.Command.SET_DAQ_LIST_MODE, mode, *dln, *ecn, prescaler, priority)
+        response = self.transport.request(
+            types.Command.SET_DAQ_LIST_MODE,
+            mode, *dln, *ecn, prescaler, priority)
         return response
 
     def allocOdt(self, daqListNumber, odtCount):
         dln = struct.pack("<H", daqListNumber)
-        response = self.transport.request(types.Command.ALLOC_ODT, 0, *dln, odtCount)
+        response = self.transport.request(
+            types.Command.ALLOC_ODT, 0, *dln, odtCount)
         return response
 
     def allocOdtEntry(self, daqListNumber, odtNumber, odtEntriesCount):
         dln = struct.pack("<H", daqListNumber)
-        response = self.transport.request(types.Command.ALLOC_ODT_ENTRY, 0, *dln, odtNumber, odtEntriesCount)
+        response = self.transport.request(
+            types.Command.ALLOC_ODT_ENTRY, 0, *dln, odtNumber, odtEntriesCount)
         return response
-

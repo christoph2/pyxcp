@@ -167,7 +167,7 @@ class MasterBaseType:
         result = types.GetCommModeInfoResponse.parse(response)
         return result
 
-    def getID(self, mode):
+    def getId(self, mode):
         """This command is used for automatic session configuration and for
         slave device identification.
 
@@ -215,55 +215,6 @@ class MasterBaseType:
             sessionConfigurationId >> 8, sessionConfigurationId & 0xff)
         return response
 
-    def upload(self, length):
-        """Transfer data from slave to master.
-
-        Parameters
-        ----------
-        length : int
-
-        .. note:: Adress is set via `setMta` (Some services like `getID` also set the MTA).
-
-        Returns
-        -------
-        bytes
-        """
-        response = self.transport.request(types.Command.UPLOAD, length)
-        return response
-
-    def shortUpload(self, length, address, addressExt=0x00):
-        """Transfer data from slave to master.
-        As opposed to `upload` this service includes address information.
-
-        Parameters
-        ----------
-        address : int
-        addressExt : int
-
-        Returns
-        -------
-        bytes
-        """
-        addr = struct.pack("<I", address)
-        response = self.transport.request(types.Command.SHORT_UPLOAD, length, 0 , addressExt, *addr)
-        return response[1:]
-
-    def setMta(self, address, addressExt=0x00):
-        """Set Memory Transfer Address in slave.
-
-        Parameters
-        ----------
-        address : int
-        addressExt : int
-
-        .. note:: The MTA is used by `buildChecksum`, `upload`, `download`, `downloadNext`,
-                  `downloadMax`, `modifyBits`, `programClear`, `program`, `programNext` and `programMax`.
-        """
-        addr = struct.pack("<I", address)
-        response = self.transport.request(
-            types.Command.SET_MTA, 0, 0, addressExt, *addr)
-        return response
-
     def getSeed(self, first, resource):
         """Get seed from slave for unlocking a protected resource.
 
@@ -297,46 +248,66 @@ class MasterBaseType:
         -------
         `pydbc.types.ResourceType`
 
-        .. note:: The master has to use `unlock` in a defined sequence together with `getSeed`.
-                  The master only can send an `unlock`sequence if previously there was a `getSeed` sequence.
-                  The master has to send the first `unlocking` after a `getSeed` sequence with a Length
-                  containing the total length of the key.
+        .. note:: The master has to use `unlock` in a defined sequence together
+                  with `getSeed`. The master only can send an `unlock` sequence
+                  if previously there was a `getSeed` sequence. The master has
+                  to send the first `unlocking` after a `getSeed` sequence with
+                  a Length containing the total length of the key.
         """
         response = self.transport.request(types.Command.UNLOCK, length, *key)
         return types.ResourceType.parse(response)
 
-    def fetch(self, length, limitPayload=None):  # TODO: pull
-        """Convenience function for data-transfer from slave to master (Not part of the XCP Specification).
+    def setMta(self, address, addressExt=0x00):
+        """Set Memory Transfer Address in slave.
+
+        Parameters
+        ----------
+        address : int
+        addressExt : int
+
+        .. note:: The MTA is used by `buildChecksum`, `upload`, `download`,
+                  `downloadNext`, `downloadMax`, `modifyBits`, `programClear`,
+                  `program`, `programNext` and `programMax`.
+        """
+        addr = struct.pack("<I", address)
+        response = self.transport.request(
+            types.Command.SET_MTA, 0, 0, addressExt, *addr)
+        return response
+
+    def upload(self, length):
+        """Transfer data from slave to master.
 
         Parameters
         ----------
         length : int
-        limitPayload : int
-            transfer less bytes then supported by transport-layer
+
+        .. note:: Adress is set via `setMta` (Some services like `getID` also
+        set the MTA).
 
         Returns
         -------
         bytes
-
-        .. note:: address information is not included because of services like `getID`.
         """
-        if limitPayload and limitPayload < 8:
-            raise ValueError(
-                "Payload must be at least 8 bytes - given: {}".format(
-                    limitPayload))
-        maxPayload = self.maxCto - 1
-        payload = min(limitPayload, maxPayload) if limitPayload else maxPayload
-        chunkSize = payload
-        chunks = range(length // chunkSize)
-        remaining = length % chunkSize
-        result = []
-        for _ in chunks:
-            data = self.upload(chunkSize)
-            result.extend(data)
-        if remaining:
-            data = self.upload(remaining)
-            result.extend(data)
-        return bytes(result)
+        response = self.transport.request(types.Command.UPLOAD, length)
+        return response
+
+    def shortUpload(self, length, address, addressExt=0x00):
+        """Transfer data from slave to master.
+        As opposed to `upload` this service includes address information.
+
+        Parameters
+        ----------
+        address : int
+        addressExt : int
+
+        Returns
+        -------
+        bytes
+        """
+        addr = struct.pack("<I", address)
+        response = self.transport.request(
+            types.Command.SHORT_UPLOAD, length, 0, addressExt, *addr)
+        return response
 
     def buildChecksum(self, blocksize):
         """Build checksum over memory range.
@@ -360,7 +331,7 @@ class MasterBaseType:
             types.Command.BUILD_CHECKSUM, 0, 0, 0, *bs)
         return types.BuildChecksumResponse.parse(response)
 
-    def transportLayerCommand(self, subCommand, *data):
+    def transportLayerCmd(self, subCommand, *data):
         """Execute transfer-layer specific command.
 
         Parameters
@@ -378,7 +349,7 @@ class MasterBaseType:
             types.Command.TRANSPORT_LAYER_CMD, subCommand, *data)
         return response
 
-    def userCommand(self, subCommand, *data):
+    def userCmd(self, subCommand, *data):
         """Execute proprietary command implemented in your XCP client.
 
         Parameters
@@ -396,6 +367,43 @@ class MasterBaseType:
         response = self.transport.request(
             types.Command.USER_CMD, subCommand, *data)
         return response
+
+    # todo: GET_VERSION
+
+    def fetch(self, length, limitPayload=None):  # TODO: pull
+        """Convenience function for data-transfer from slave to master
+        (Not part of the XCP Specification).
+
+        Parameters
+        ----------
+        length : int
+        limitPayload : int
+            transfer less bytes then supported by transport-layer
+
+        Returns
+        -------
+        bytes
+
+        .. note:: address information is not included because of services like
+                  `getID`.
+        """
+        if limitPayload and limitPayload < 8:
+            raise ValueError(
+                "Payload must be at least 8 bytes - given: {}".format(
+                    limitPayload))
+        maxPayload = self.maxCto - 1
+        payload = min(limitPayload, maxPayload) if limitPayload else maxPayload
+        chunkSize = payload
+        chunks = range(length // chunkSize)
+        remaining = length % chunkSize
+        result = []
+        for _ in chunks:
+            data = self.upload(chunkSize)
+            result.extend(data)
+        if remaining:
+            data = self.upload(remaining)
+            result.extend(data)
+        return bytes(result)
 
     # Calibration Commands (CAL)
     def download(self, *data):
@@ -443,9 +451,10 @@ class MasterBaseType:
         Parameters
         ----------
         mode : int (bitfield)
-	        0x01 - The given page will be used by the slave device application.
-	        0x02 - The slave device XCP driver will access the given page.
-		0x80 - The logical segment number is ignored. The command applies to all segments
+            0x01 - The given page will be used by the slave device application.
+            0x02 - The slave device XCP driver will access the given page.
+            0x80 - The logical segment number is ignored. The command applies
+                   to all segments
         logicalDataSegment : int
         logicalDataPage : int
         """
@@ -472,7 +481,7 @@ class MasterBaseType:
         Returns
         -------
         `pydbc.types.GetPagProcessorInfoResponse`
-	"""
+    """
         response = self.transport.request(types.Command.GET_PAG_PROCESSOR_INFO)
         return types.GetPagProcessorInfoResponse.parse(response)
 
@@ -498,7 +507,8 @@ class MasterBaseType:
         mappingIndex : int
             Mode 0: don’t care
             Mode 1: don’t care
-            Mode 2: identifier for address mapping range that mapping_info belongs to.
+            Mode 2: identifier for address mapping range that mapping_info
+                    belongs to.
 
         """
         response = self.transport.request(
@@ -519,7 +529,8 @@ class MasterBaseType:
         segmentNumber : int
         pageNumber : int
         """
-        response = self.transport.request(types.Command.GET_PAGE_INFO, 0, segmentNumber, pageNumber)
+        response = self.transport.request(
+            types.Command.GET_PAGE_INFO, 0, segmentNumber, pageNumber)
         return (types.PageProperties.parse(response[1]), response[2])
 
     def setSegmentMode(self, mode, segmentNumber):
@@ -580,7 +591,8 @@ class MasterBaseType:
         Parameters
         ----------
         bitOffset : int
-            Position of bit in 32-bit variable referenced by the address and extension below
+            Position of bit in 32-bit variable referenced by the address and
+            extension below
         entrySize : int
         addressExt : int
         address : int

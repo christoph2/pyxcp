@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__copyright__="""
+__copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
    (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
@@ -23,8 +23,6 @@ __copyright__="""
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-import json
-import pytest
 
 from pyxcp.config import Config
 
@@ -32,16 +30,19 @@ SxI_Parameters = {
     "port": "COM27",
     "baudrate": 115200,
     "mode": "ASYNCH_FULL_DUPLEX_MODE",
-    "parity": "PARITY_NONE",    # PARITY_NONE | PARITY_ODD | PARITY_EVEN
-    "stopbits": "ONE_STOP_BIT", # ONE_STOP_BIT | TWO_STOP_BITS
-    "header": "HEADER_LEN_CTR_WORD",   # HEADER_LEN_BYTE | HEADER_LEN_CTR_BYTE | HEADER_LEN_FILL_BYTE | HEADER_LEN_WORD | HEADER_LEN_CTR_WORD | HEADER_LEN_FILL_WORD
-    "checksum": "NO_CHECKSUM", #NO_CHECKSUM | CHECKSUM_BYTE | CHECKSUM_WORD
+    "parity": "PARITY_NONE",     # PARITY_NONE | PARITY_ODD | PARITY_EVEN
+    "stopbits": "ONE_STOP_BIT",  # ONE_STOP_BIT | TWO_STOP_BITS
+    # HEADER_LEN_BYTE | HEADER_LEN_CTR_BYTE | HEADER_LEN_FILL_BYTE |
+    # HEADER_LEN_WORD | HEADER_LEN_CTR_WORD | HEADER_LEN_FILL_WORD
+    "header": "HEADER_LEN_CTR_WORD",
+    "checksum": "NO_CHECKSUM",   # NO_CHECKSUM | CHECKSUM_BYTE | CHECKSUM_WORD
     "nested": {
         "RED": 1,
         "GREEN": 2,
         "BLUE": 3,
     }
 }
+
 
 def testCreation():
     cfg = Config(SxI_Parameters)
@@ -56,10 +57,12 @@ def testCreation():
     assert cfg.nested.GREEN == 2
     assert cfg.nested.BLUE == 3
 
+
 def testCopy():
     cfg = Config(SxI_Parameters)
     cfg2 = cfg.copy()
     assert cfg == cfg2
+
 
 def testModifiedCopy():
     cfg = Config(SxI_Parameters)
@@ -67,14 +70,15 @@ def testModifiedCopy():
     cfg2.baudrate = 38400
     assert cfg != cfg2
 
+
 def testComparesEqualToDict():
     cfg = Config(SxI_Parameters)
     di = cfg.asdict()
     assert cfg == di
+
 
 def testComparesNotEqualToDict():
     cfg = Config(SxI_Parameters)
     di = cfg.asdict()
     di['baudrate'] = 38400
     assert cfg != di
-

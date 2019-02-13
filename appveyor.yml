@@ -3,20 +3,18 @@ environment:
   matrix:
 
     # For Python versions available on Appveyor, see
-    # http://www.appveyor.com/docs/installed-software#python
+    # https://www.appveyor.com/docs/windows-images-software/#python
     # The list here is complete (excluding Python 2.6, which
     # isn't covered by this document) at the time of writing.
 
-    #- PYTHON: "C:\\Python33"
     - PYTHON: "C:\\Python34"
     - PYTHON: "C:\\Python35"
     - PYTHON: "C:\\Python36"
-    #- PYTHON: "C:\\Python33-x64"
-    #  DISTUTILS_USE_SDK: "1"
+    - PYTHON: "C:\\Python37"
     - PYTHON: "C:\\Python34-x64"
-    #  DISTUTILS_USE_SDK: "1"
     - PYTHON: "C:\\Python35-x64"
     - PYTHON: "C:\\Python36-x64"
+    - PYTHON: "C:\\Python37-x64"
 
 install:
   # We need wheel installed to build wheels
@@ -35,7 +33,7 @@ test_script:
   # only needed to support those cases.
   # Note that you must use the environment variable %PYTHON% to refer to
   # the interpreter you're using - Appveyor does not do anything special
-  # to put the Python evrsion you want to use on PATH.
+  # to put the Python version you want to use on PATH.
   - "%PYTHON%\\python.exe setup.py test"
 
 after_test:
@@ -44,8 +42,6 @@ after_test:
   # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
   # interpreter
   - "%PYTHON%\\python.exe setup.py bdist_wheel"
-  - "%PYTHON%\\python.exe -m pip install --upgrade pip"
-
 
 artifacts:
   # bdist_wheel puts your built wheel in the dist directory
@@ -55,3 +51,8 @@ artifacts:
 #  You can use this step to upload your artifacts to a public website.
 #  See Appveyor's documentation for more details. Or you can simply
 #  access your wheels from the Appveyor "artifacts" tab for your build.
+
+on_finish:
+  - ps: |
+      $wc = New-Object 'System.Net.WebClient'
+      $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\result.xml))

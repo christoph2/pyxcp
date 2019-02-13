@@ -28,8 +28,6 @@ import socket
 import struct
 
 from pyxcp.transport.base import BaseTransport
-import pyxcp.types as types
-from ..timing import Timing
 
 DEFAULT_XCP_PORT = 5555
 
