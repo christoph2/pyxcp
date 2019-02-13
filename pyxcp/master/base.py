@@ -473,7 +473,7 @@ class MasterBaseType:
         """
         response = self.transport.request(
             types.Command.GET_CAL_PAGE, mode, logicalDataSegment)
-        return response
+        return response[2]
 
     def getPagProcessorInfo(self):
         """Get general information on PAG processor.

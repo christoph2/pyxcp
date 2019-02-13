@@ -469,10 +469,12 @@ class TestMaster:
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             data = [0xCA, 0xFE, 0xBA, 0xBE]
-            xm.download(*data)
+            res = xm.download(*data)
 
         mock_socket.return_value.send.assert_called_with(bytes(
             [0x06, 0x00, 0x00, 0x00, 0xf0, 0x04, 0xca, 0xfe, 0xba, 0xbe]))
+
+        assert res == b''
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
@@ -486,10 +488,12 @@ class TestMaster:
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             data = [0xCA, 0xFE, 0xBA, 0xBE]
-            xm.downloadNext(*data)
+            res = xm.downloadNext(*data)
 
         mock_socket.return_value.send.assert_called_with(bytes(
             [0x06, 0x00, 0x00, 0x00, 0xef, 0x04, 0xca, 0xfe, 0xba, 0xbe]))
+
+        assert res == b''
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
@@ -503,10 +507,12 @@ class TestMaster:
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             data = [0xCA, 0xFE, 0xBA, 0xBE]
-            xm.downloadMax(*data)
+            res = xm.downloadMax(*data)
 
         mock_socket.return_value.send.assert_called_with(bytes(
             [0x05, 0x00, 0x00, 0x00, 0xee, 0xca, 0xfe, 0xba, 0xbe]))
+
+        assert res == b''
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
@@ -520,8 +526,65 @@ class TestMaster:
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             data = [0xCA, 0xFE, 0xBA, 0xBE]
-            xm.shortDownload(0x12345678, 0x55, *data)
+            res = xm.shortDownload(0x12345678, 0x55, *data)
 
         mock_socket.return_value.send.assert_called_with(bytes([
             0x0c, 0x00, 0x00, 0x00, 0xed, 0x04, 0x00, 0x55,
             0x78, 0x56, 0x34, 0x12, 0xca, 0xfe, 0xba, 0xbe]))
+
+        assert res == b''
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testModifyBits(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        ms.push([0x01, 0x00, 0x00, 0x00, 0xff])
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            res = xm.modifyBits(0xff, 0x1234, 0xabcd)
+
+        mock_socket.return_value.send.assert_called_with(bytes([
+            0x06, 0x00, 0x00, 0x00, 0xec, 0xff, 0x34, 0x12,
+            0xcd, 0xab]))
+
+        assert res == b''
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testSetCalPage(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        ms.push([0x01, 0x00, 0x00, 0x00, 0xff])
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            res = xm.setCalPage(0x03, 0x12, 0x34)
+
+        mock_socket.return_value.send.assert_called_with(bytes([
+            0x04, 0x00, 0x00, 0x00, 0xeb, 0x03, 0x12, 0x34]))
+
+        assert res == b''
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testGetCalPage(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        ms.push([0x04, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x55])
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            res = xm.getCalPage(0x02, 0x44)
+
+        mock_socket.return_value.send.assert_called_with(bytes([
+            0x03, 0x00, 0x00, 0x00, 0xea, 0x02, 0x44]))
+
+        assert res == 0x55
