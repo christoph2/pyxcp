@@ -116,3 +116,7 @@ dmypy.json
 
 # junitxml
 result.xml
+/docs/_templates
+/docs/_build
+/docs/_static
+
