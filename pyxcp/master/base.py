@@ -555,7 +555,7 @@ class MasterBaseType:
         """
         response = self.transport.request(
             types.Command.GET_SEGMENT_MODE, 0, segmentNumber)
-        return response[2]
+        return response[1]
 
     def copyCalPage(self, srcSegment, srcPage, dstSegment, dstPage):
         """Copy page.
