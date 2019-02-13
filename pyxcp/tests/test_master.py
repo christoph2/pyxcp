@@ -588,3 +588,41 @@ class TestMaster:
             0x03, 0x00, 0x00, 0x00, 0xea, 0x02, 0x44]))
 
         assert res == 0x55
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testPageSwitchingCommands(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        ms.push([0x03, 0x00, 0x00, 0x00, 0xff, 0x10, 0x01])
+        ms.push([0x08, 0x00, 0x01, 0x00,
+                 0xff, 0x00, 0x00, 0x00, 0x78, 0x56, 0x34, 0x12])
+        ms.push([0x03, 0x00, 0x02, 0x00,
+                 0xff, 0x3F, 0x55])
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            res = xm.getPagProcessorInfo()
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x01, 0x00, 0x00, 0x00, 0xe9]))
+
+            assert res.maxSegments == 16
+            assert res.pagProperties == 0x01
+
+            res = xm.getSegmentInfo(2, 5, 1, 3)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x05, 0x00, 0x01, 0x00, 0xe8, 0x02, 0x05, 0x01, 0x03]))
+
+            assert res.mappingInfo == 0x12345678
+
+            res = xm.getPageInfo(0x12, 0x34)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x04, 0x00, 0x02, 0x00, 0xe7, 0x00, 0x12, 0x34]))
+
+            assert res[0].xcpWriteAccessWithEcu
+            assert res[1] == 0x55

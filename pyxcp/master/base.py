@@ -531,7 +531,7 @@ class MasterBaseType:
         """
         response = self.transport.request(
             types.Command.GET_PAGE_INFO, 0, segmentNumber, pageNumber)
-        return (types.PageProperties.parse(response[1]), response[2])
+        return (types.PageProperties.parse(bytes([response[0]])), response[1])
 
     def setSegmentMode(self, mode, segmentNumber):
         """Set mode for a segment.
