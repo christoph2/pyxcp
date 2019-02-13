@@ -47,7 +47,7 @@ class Master(MasterBaseType):
         am = struct.pack("<H", andMask)
         xm = struct.pack("<H", xorMask)
         response = self.transport.request(
-            types.Command.MODIFY_BITS, shiftValue, flatten(am, xm))
+            types.Command.MODIFY_BITS, shiftValue, *flatten(am, xm))
         return response
 
     def setDaqPtr(self, daqListNumber, odtNumber, odtEntryNumber):
