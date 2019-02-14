@@ -473,7 +473,7 @@ class MasterBaseType:
         """
         response = self.transport.request(
             types.Command.GET_CAL_PAGE, mode, logicalDataSegment)
-        return response
+        return response[2]
 
     def getPagProcessorInfo(self):
         """Get general information on PAG processor.
@@ -531,7 +531,7 @@ class MasterBaseType:
         """
         response = self.transport.request(
             types.Command.GET_PAGE_INFO, 0, segmentNumber, pageNumber)
-        return (types.PageProperties.parse(response[1]), response[2])
+        return (types.PageProperties.parse(bytes([response[0]])), response[1])
 
     def setSegmentMode(self, mode, segmentNumber):
         """Set mode for a segment.
@@ -555,7 +555,7 @@ class MasterBaseType:
         """
         response = self.transport.request(
             types.Command.GET_SEGMENT_MODE, 0, segmentNumber)
-        return response[2]
+        return response[1]
 
     def copyCalPage(self, srcSegment, srcPage, dstSegment, dstPage):
         """Copy page.

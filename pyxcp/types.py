@@ -309,12 +309,13 @@ SetCalPageMode = BitStruct(
 )
 
 GetPagProcessorInfoResponse = Struct(
-    "maxSegment" / Int8ul,
+    "maxSegments" / Int8ul,
     "pagProperties" / Int8ul,
 )
 
 GetSegmentInfoMode0Response = Struct(
     "reserved" / Int8ul,
+    "reserved" / Int16ul,
     "basicInfo" / Int32ul,
 )
 
@@ -328,6 +329,7 @@ GetSegmentInfoMode1Response = Struct(
 
 GetSegmentInfoMode2Response = Struct(
     "reserved" / Int8ul,
+    "reserved" / Int16ul,
     "mappingInfo" / Int32ul,
 )
 
