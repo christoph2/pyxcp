@@ -649,3 +649,121 @@ class TestMaster:
                 0x05, 0x00, 0x05, 0x00, 0xe4, 0x12, 0x34, 0x56, 0x78]))
 
             assert res == b''
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testDaqCommands(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push([0x01, 0x00, 0x00, 0x00, 0xff])
+
+            res = xm.setDaqPtr(2, 3, 4)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x06, 0x00, 0x00, 0x00, 0xe2, 0x00, 0x02, 0x00, 0x03, 0x04]))
+
+            assert res == b''
+
+            ms.push([0x01, 0x00, 0x01, 0x00, 0xff])
+
+            res = xm.writeDaq(31, 15, 1, 0x12345678)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x08, 0x00, 0x01, 0x00,
+                0xe1, 0x1f, 0x0f, 0x01, 0x78, 0x56, 0x34, 0x12]))
+
+            assert res == b''
+
+            ms.push([0x01, 0x00, 0x02, 0x00, 0xff])
+
+            res = xm.setDaqListMode(0x3b, 256, 512, 1, 0xff)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x08, 0x00, 0x02, 0x00,
+                0xe0, 0x3b, 0x00, 0x01, 0x00, 0x02, 0x01, 0xff]))
+
+            assert res == b''
+
+            ms.push([0x01, 0x00, 0x03, 0x00, 0xff])
+
+            res = xm.startStopDaqList(1, 512)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x04, 0x00, 0x03, 0x00, 0xde, 0x01, 0x00, 0x02]))
+
+            assert res == b''
+
+            ms.push([0x01, 0x00, 0x04, 0x00, 0xff])
+
+            res = xm.startStopSynch(3)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x02, 0x00, 0x04, 0x00, 0xdd, 0x03]))
+
+            assert res == b''
+
+            # todo: xm.writeDaqMultiple()
+            # todo: xm.setDaqPackedMode()
+            # todo: xm.getDaqPackedMode()
+
+            ms.push([0x08, 0x00, 0x05, 0x00,
+                     0xff, 0x1f, 0x03, 0x04, 0x78, 0x56, 0x34, 0x12])
+
+            res = xm.readDaq()
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x01, 0x00, 0x05, 0x00, 0xdb]))
+
+            assert res.bitOffset == 31
+            assert res.sizeofDaqElement == 3
+            assert res.adressExtension == 4
+            assert res.address == 0x12345678
+
+            ms.push([0x08, 0x00, 0x06, 0x00,
+                     0xff, 0x00, 0x03, 0x04, 0x78, 0x56, 0x34, 0x12])
+
+            res = xm.getDaqClock()
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x01, 0x00, 0x06, 0x00, 0xdc]))
+
+            # todo: assert res.triggerInfo ==
+            # todo: assert res.payloadFmt ==
+            # todo: assert res.timestamp == 0x12345678
+            assert res == 0x12345678
+
+            ms.push([0x08, 0x00, 0x07, 0x00,
+                     0xff, 0x55, 0x00, 0x01, 0x34, 0x12, 0x22, 0x03])
+
+            res = xm.getDaqProcessorInfo()
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x01, 0x00, 0x07, 0x00, 0xda]))
+
+            assert res.daqProperties.overloadMsb is True
+            assert res.daqProperties.bitStimSupported is False
+            assert res.maxDaq == 256
+            assert res.maxEventChannel == 0x1234
+            assert res.minDaq == 0x22
+            assert res.daqKeyByte.Optimisation_Type == "OM_ODT_TYPE_64"
+
+            ms.push([0x08, 0x00, 0x08, 0x00,
+                     0xff, 0x12, 0x34, 0x56, 0x78, 0xaa, 0x34, 0x12])
+
+            res = xm.getDaqResolutionInfo()
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x01, 0x00, 0x08, 0x00, 0xd9]))
+
+            assert res.granularityOdtEntrySizeDaq == 0x12
+            assert res.maxOdtEntrySizeDaq == 0x34
+            assert res.granularityOdtEntrySizeStim == 0x56
+            assert res.maxOdtEntrySizeStim == 0x78
+            assert res.timestampMode.size == "S2"
+            assert res.timestampMode.fixed is True
+            assert res.timestampMode.unit == "DAQ_TIMESTAMP_UNIT_1PS"
+            assert res.timestampTicks == 0x1234

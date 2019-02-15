@@ -54,7 +54,7 @@ class Master(MasterBaseType):
         daqList = struct.pack("<H", daqListNumber)
         response = self.transport.request(
             types.Command.SET_DAQ_PTR,
-            0, flatten(daqList), odtNumber, odtEntryNumber)
+            0, *flatten(daqList, [odtNumber, odtEntryNumber]))
         return response
 
     def setDaqListMode(self, mode, daqListNumber, eventChannelNumber,
@@ -63,7 +63,7 @@ class Master(MasterBaseType):
         ecn = struct.pack("<H", eventChannelNumber)
         response = self.transport.request(
             types.Command.SET_DAQ_LIST_MODE,
-            mode, flatten(dln, ecn), prescaler, priority)
+            mode, *flatten(dln, ecn, [prescaler, priority]))
         return response
 
     def allocOdt(self, daqListNumber, odtCount):
