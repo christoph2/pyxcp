@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__copyright__="""
+__copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
    (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
@@ -23,7 +23,6 @@ __copyright__="""
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-#from .can import Can
+# from .can import Can
 from .eth import Eth
 from .sxi import SxI
-

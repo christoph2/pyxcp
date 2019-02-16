@@ -1,10 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__copyright__="""
+"""Lowlevel API reflecting available XCP services
+
+.. note:: For technical reasons the API is split into two parts;
+          common methods and a Python version specific part.
+
+.. [1] XCP Specification, Part 2 - Protocol Layer Specification
+"""
+
+__copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -25,20 +33,12 @@ __copyright__="""
 
 import sys
 
-version = sys.version_info
-PRE35 = version.major >= 3 and version.minor < 5    # We need some pre-3.5 fixes, e.g. flatten() function.
+VERSION = sys.version_info
+PRE35 = VERSION.major >= 3 and VERSION.minor < 5
+
+# We need some pre-3.5 fixes, e.g. flatten() function.
 
 if PRE35:
     from pyxcp.master.pre35 import Master
 else:
     from pyxcp.master.py35 import Master
-
-
-def unlock(client, privilege):
-    length, seed = client.getSeed(0, privilege)
-    #print("SEED: ", hexDump(seed), flush = True)
-    _, kee = dllif.getKey(b"SeedNKeyXcp.dll", privilege, seed)
-    print("KEE:", kee)
-#    res = client.unlock(len(kee), kee)
-    #print(res)
-

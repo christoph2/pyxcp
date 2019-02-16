@@ -5,7 +5,7 @@ from .version import __version__
 from .master import Master
 from .transport import Eth, SxI
 
-__copyright__="""
+__copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
    (C) 2009-2017 by Christoph Schueler <cpu12.gems@googlemail.com>
@@ -26,5 +26,3 @@ __copyright__="""
   with this program; if not, write to the Free Software Foundation, Inc.,
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
-
-
