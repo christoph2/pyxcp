@@ -270,7 +270,7 @@ GetCommModeInfoResponse = Struct(
 
 GetIDResponse = Struct(
     "mode" / Int8ul,
-    Padding(2),
+    "reserved" / Int16ul,
     "length" / Int32ul,
 )
 
