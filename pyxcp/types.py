@@ -4,7 +4,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -248,7 +248,7 @@ SessionStatus = BitStruct(
 GetStatusResponse = Struct(
     "sessionStatus" / SessionStatus,
     "resourceProtectionStatus" / ResourceType,
-    "reserved" / Int8ul,
+    Padding(1),
     "sessionConfiguration" / Int16ul,
 )
 
@@ -259,9 +259,9 @@ CommModeOptional = BitStruct(
 )
 
 GetCommModeInfoResponse = Struct(
-    "reserved" / Int8ul,
+    Padding(1),
     "commModeOptional" / CommModeOptional,
-    Int8ul,
+    Padding(1),
     "maxbs" / Int8ul,
     "minSt" / Int8ul,
     "queueSize" / Int8ul,
@@ -270,7 +270,7 @@ GetCommModeInfoResponse = Struct(
 
 GetIDResponse = Struct(
     "mode" / Int8ul,
-    "reserved" / Int16ul,
+    Padding(2),
     "length" / Int32ul,
 )
 
@@ -314,8 +314,7 @@ GetPagProcessorInfoResponse = Struct(
 )
 
 GetSegmentInfoMode0Response = Struct(
-    "reserved" / Int8ul,
-    "reserved" / Int16ul,
+    Padding(3),
     "basicInfo" / Int32ul,
 )
 
@@ -328,8 +327,7 @@ GetSegmentInfoMode1Response = Struct(
 )
 
 GetSegmentInfoMode2Response = Struct(
-    "reserved" / Int8ul,
-    "reserved" / Int16ul,
+    Padding(3),
     "mappingInfo" / Int32ul,
 )
 
