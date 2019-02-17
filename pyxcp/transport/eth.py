@@ -96,7 +96,7 @@ class Eth(BaseTransport):
                                 continue
                         else:
                             try:
-                                response, server = sock_recv(
+                                response, _ = sock_recv(
                                     Eth.MAX_DATAGRAM_SIZE)
                                 length, counter = HEADER_UNPACK(
                                     response[:HEADER_SIZE])
