@@ -800,9 +800,63 @@ class TestMaster:
             assert res.eventChannelPriority == 0xff
 
             # todo: xm.dtoCtrProperties()
-            # todo: xm.clearDaqList()
-            # todo: xm.getDaqListInfo()
-            # todo: xm.freeDaq()
-            # todo: xm.allocDaq()
-            # todo: xm.allocOdt()
-            # todo: xm.allocOdtEntry()
+
+            ms.push([0x01, 0x00, 0x0b, 0x00, 0xff])
+
+            res = xm.clearDaqList(256)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x04, 0x00, 0x0b, 0x00, 0xe3, 0x00, 0x00, 0x01]))
+
+            assert res == b''
+
+            ms.push([0x06, 0x00, 0x0c, 0x00,
+                     0xff, 0x15, 0x10, 0x20, 0x34, 0x12])
+
+            res = xm.getDaqListInfo(256)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x04, 0x00, 0x0c, 0x00, 0xd8, 0x00, 0x00, 0x01]))
+
+            assert res.daqListProperties.packed is True
+            assert res.daqListProperties.eventFixed is False
+            assert res.maxOdt == 0x10
+            assert res.maxOdt == 0x10
+            assert res.maxOdtEntries == 0x20
+            assert res.fixedEvent == 0x1234
+
+            ms.push([0x01, 0x00, 0x0d, 0x00, 0xff])
+
+            res = xm.freeDaq()
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x01, 0x00, 0x0d, 0x00, 0xd6]))
+
+            assert res == b''
+
+            ms.push([0x01, 0x00, 0x0e, 0x00, 0xff])
+
+            res = xm.allocDaq(258)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x04, 0x00, 0x0e, 0x00, 0xd5, 0x00, 0x02, 0x01]))
+
+            assert res == b''
+
+            ms.push([0x01, 0x00, 0x0f, 0x00, 0xff])
+
+            res = xm.allocOdt(258, 3)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x05, 0x00, 0x0f, 0x00, 0xd4, 0x00, 0x02, 0x01, 0x03]))
+
+            assert res == b''
+
+            ms.push([0x01, 0x00, 0x10, 0x00, 0xff])
+
+            res = xm.allocOdtEntry(258, 3, 4)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x06, 0x00, 0x10, 0x00, 0xd3, 0x00, 0x02, 0x01, 0x03, 0x04]))
+
+            assert res == b''

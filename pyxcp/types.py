@@ -460,7 +460,8 @@ GetDaqResolutionInfoResponse = Struct(
 )
 
 DaqListProperties = BitStruct(
-    Padding(4),
+    Padding(3),
+    "packed" / Flag,
     "stim" / Flag,
     "daq" / Flag,
     "eventFixed" / Flag,
