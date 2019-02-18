@@ -768,8 +768,37 @@ class TestMaster:
             assert res.timestampMode.unit == "DAQ_TIMESTAMP_UNIT_1PS"
             assert res.timestampTicks == 0x1234
 
-            # todo: xm.getDaqListMode()
-            # todo: xm.getDaqEventInfo()
+            ms.push([0x08, 0x00, 0x09, 0x00,
+                     0xff, 0xaa, 0x00, 0x00, 0x34, 0x12, 0x56, 0x78])
+
+            res = xm.getDaqListMode(256)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x04, 0x00, 0x09, 0x00, 0xdf, 0x00, 0x00, 0x01]))
+
+            assert res.currentMode.resume is True
+            assert res.currentMode.selected is False
+            assert res.currentEventChannel == 0x1234
+            assert res.currentPrescaler == 0x56
+            assert res.currentPriority == 0x78
+
+            ms.push([0x07, 0x00, 0x0a, 0x00,
+                     0xff, 0x48, 0xee, 0x05, 0x06, 0x07, 0xff])
+
+            res = xm.getDaqEventInfo(256)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x04, 0x00, 0x0a, 0x00, 0xd7, 0x00, 0x00, 0x01]))
+
+            assert res.daqEventProperties.consistency == "CONSISTENCY_DAQ"
+            assert res.daqEventProperties.stim is True
+            assert res.daqEventProperties.daq is False
+            assert res.maxDaqList == 0xee
+            assert res.eventChannelNameLength == 0x05
+            assert res.eventChannelTimeCycle == 0x06
+            assert res.eventChannelTimeUnit == 0x07
+            assert res.eventChannelPriority == 0xff
+
             # todo: xm.dtoCtrProperties()
             # todo: xm.clearDaqList()
             # todo: xm.getDaqListInfo()

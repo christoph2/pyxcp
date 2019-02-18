@@ -703,7 +703,7 @@ class MasterBaseType:
             types.Command.GET_DAQ_LIST_INFO, 0, *dln)
         return types.GetDaqListInfoResponse.parse(response)
 
-    def getEventChannelInfo(self, eventChannelNumber):
+    def getDaqEventInfo(self, eventChannelNumber):
         """Get specific information for an event channel.
 
         Parameters

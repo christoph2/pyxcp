@@ -475,7 +475,15 @@ GetDaqListInfoResponse = Struct(
 )
 
 DaqEventProperties = BitStruct(
-    Padding(4),
+    "consistency" / Enum(
+        BitsInteger(2),
+        CONSISTENCY_ODT=0b00,
+        CONSISTENCY_DAQ=0b01,
+        CONSISTENCY_EVENTCHANNEL=0b10,
+        CONSISTENCY_NONE=0b11,
+    ),
+    Padding(1),
+    "packed" / Flag,
     "stim" / Flag,
     "daq" / Flag,
     Padding(2)
