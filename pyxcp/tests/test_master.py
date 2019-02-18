@@ -906,8 +906,6 @@ class TestMaster:
             mock_socket.return_value.send.assert_called_with(bytes([
                 0x04, 0x00, 0x12, 0x00, 0xc0, 0x02, 0x02, 0x01]))
 
-            print(res)
-
             assert res.daqPackedMode == "NONE"
             assert res.dpmTimestampMode is None
 
@@ -928,8 +926,6 @@ class TestMaster:
 
             mock_socket.return_value.send.assert_called_with(bytes([
                 0x04, 0x00, 0x14, 0x00, 0xc0, 0x02, 0x02, 0x01]))
-
-            print(res)
 
             assert res.daqPackedMode == "EVENT_GROUPED"
             assert res.dpmTimestampMode == 0x01

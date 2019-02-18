@@ -745,8 +745,10 @@ class MasterBaseType:
         daqListNumber : int
         daqPackedMode : int
         """
+        params = []
         dln = struct.pack("<H", daqListNumber)
-        params = [*dln, daqPackedMode]
+        params.extend(dln)
+        params.append(daqPackedMode)
 
         if daqPackedMode == 1 or daqPackedMode == 2:
             params.append(dpmTimestampMode)
