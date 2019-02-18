@@ -258,27 +258,43 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([
-            0x08, 0x00, 0x00, 0x00,
-            0xff, 0x00, 0x01, 0xff, 0x06, 0x00, 0x00, 0x00,
-            0x07, 0x00, 0x01, 0x00,
-            0xff, 0x58, 0x43, 0x50, 0x73, 0x69, 0x6d])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push([
+                0x08, 0x00, 0x00, 0x00,
+                0xff, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00])
+
             gid = xm.getId(0x01)
 
             mock_socket.return_value.send.assert_called_with(bytes(
                 [0x02, 0x00, 0x00, 0x00, 0xfa, 0x01]))
+
+            assert gid.mode == 0
+            assert gid.length == 6
+
+            ms.push([
+                0x07, 0x00, 0x01, 0x00,
+                0xff, 0x58, 0x43, 0x50, 0x73, 0x69, 0x6d])
 
             res = xm.upload(gid.length)
 
             mock_socket.return_value.send.assert_called_with(bytes(
                 [0x02, 0x00, 0x01, 0x00, 0xf5, 0x06]))
 
-        assert gid.mode == 0
-        assert gid.reserved == 65281
-        assert gid.length == 6
-        assert res == b'XCPsim'
+            assert res == b'XCPsim'
+
+            ms.push([
+                0x0e, 0x00, 0x02, 0x00,
+                0xff, 0x01, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00,
+                0x58, 0x43, 0x50, 0x73, 0x69, 0x6d])
+
+            gid = xm.getId(0x01)
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x02, 0x00, 0x02, 0x00, 0xfa, 0x01]))
+
+            assert gid.mode == 1
+            assert gid.length == 6
+            assert gid.identification == list(b'XCPsim')
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
@@ -721,8 +737,6 @@ class TestMaster:
             assert res == b''
 
             # todo: xm.writeDaqMultiple()
-            # todo: xm.setDaqPackedMode()
-            # todo: xm.getDaqPackedMode()
 
             ms.push([0x08, 0x00, 0x05, 0x00,
                      0xff, 0x1f, 0x03, 0x04, 0x78, 0x56, 0x34, 0x12])
@@ -874,3 +888,49 @@ class TestMaster:
                 0x06, 0x00, 0x10, 0x00, 0xd3, 0x00, 0x02, 0x01, 0x03, 0x04]))
 
             assert res == b''
+
+            ms.push([0x01, 0x00, 0x11, 0x00, 0xff])
+
+            res = xm.setDaqPackedMode(258, 0)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x05, 0x00, 0x11, 0x00,
+                0xc0, 0x01, 0x02, 0x01, 0x00]))
+
+            assert res == b''
+
+            ms.push([0x03, 0x00, 0x12, 0x00, 0xff, 0x00, 0x00])
+
+            res = xm.getDaqPackedMode(258)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x04, 0x00, 0x12, 0x00, 0xc0, 0x02, 0x02, 0x01]))
+
+            print(res)
+
+            assert res.daqPackedMode == "NONE"
+            assert res.dpmTimestampMode is None
+
+            ms.push([0x01, 0x00, 0x13, 0x00, 0xff])
+
+            res = xm.setDaqPackedMode(258, 2, 0b01, 0x1234)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x08, 0x00, 0x13, 0x00,
+                0xc0, 0x01, 0x02, 0x01, 0x02, 0x01, 0x34, 0x12]))
+
+            assert res == b''
+
+            ms.push([0x06, 0x00, 0x14, 0x00,
+                     0xff, 0x00, 0x02, 0x01, 0x34, 0x12])
+
+            res = xm.getDaqPackedMode(258)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x04, 0x00, 0x14, 0x00, 0xc0, 0x02, 0x02, 0x01]))
+
+            print(res)
+
+            assert res.daqPackedMode == "EVENT_GROUPED"
+            assert res.dpmTimestampMode == 0x01
+            assert res.dpmSampleCount == 0x1234

@@ -29,7 +29,7 @@ import construct
 
 from construct import (
     Struct, Enum, Padding, Int8ul, GreedyBytes, Byte, Int16ul, Int32ul,
-    BitStruct, BitsInteger, Flag)
+    BitStruct, BitsInteger, Flag, If, this)
 
 if construct.version < (2, 8):
     print("pyXCP requires at least construct 2.8")
@@ -152,7 +152,7 @@ class Command(enum.IntEnum):
 
 
 class L1Command(enum.IntEnum):
-    GET_VERSION = 0x00  # todo: implement
+    GET_VERSION = 0x00
     SET_DAQ_PACKED_MODE = 0x01  # todo: implement
     GET_DAQ_PACKED_MODE = 0x02  # todo: implement
 
@@ -290,6 +290,7 @@ GetIDResponse = Struct(
     "mode" / Int8ul,
     "reserved" / Int16ul,
     "length" / Int32ul,
+    "identification" / If(this.mode == 1, Byte[this.length])
 )
 
 SetRequestMode = BitStruct(
@@ -423,6 +424,28 @@ GetDaqListModeResponse = Struct(
 GetDaqClockResponse = Struct(
     Padding(3),
     "timestamp" / Int32ul,
+)
+
+DaqPackedMode = Enum(
+    Int8ul,
+    NONE=0,
+    ELEMENT_GROUPED=1,
+    EVENT_GROUPED=2
+)
+
+GetDaqPackedModeResponse = Struct(
+    Padding(1),
+    "daqPackedMode" / DaqPackedMode,
+    "dpmTimestampMode" / If(
+        (this.daqPackedMode == "ELEMENT_GROUPED")
+        | (this.daqPackedMode == "EVENT_GROUPED"),
+        Int8ul
+    ),
+    "dpmSampleCount" / If(
+        (this.daqPackedMode == "ELEMENT_GROUPED")
+        | (this.daqPackedMode == "EVENT_GROUPED"),
+        Int16ul
+    )
 )
 
 ReadDaqResponse = Struct(

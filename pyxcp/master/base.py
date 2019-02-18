@@ -735,6 +735,47 @@ class MasterBaseType:
             types.Command.GET_DAQ_EVENT_INFO, 0, *ecn)
         return types.GetEventChannelInfoResponse.parse(response)
 
+    def setDaqPackedMode(
+            self, daqListNumber, daqPackedMode,
+            dpmTimestampMode=None, dpmSampleCount=None):
+        """Set DAQ List Packed Mode.
+
+        Parameters
+        ----------
+        daqListNumber : int
+        daqPackedMode : int
+        """
+        dln = struct.pack("<H", daqListNumber)
+        params = [*dln, daqPackedMode]
+
+        if daqPackedMode == 1 or daqPackedMode == 2:
+            params.append(dpmTimestampMode)
+            dsc = struct.pack("<H", dpmSampleCount)
+            params.extend(dsc)
+
+        response = self.transport.request(
+            types.Command.L1_CMD,
+            types.L1Command.SET_DAQ_PACKED_MODE,
+            *params)
+        return response
+
+    def getDaqPackedMode(self, daqListNumber):
+        """Get DAQ List Packed Mode.
+
+        This command returns information of the currently active packed mode of
+        the addressed DAQ list.
+
+        Parameters
+        ----------
+        daqListNumber : int
+        """
+        dln = struct.pack("<H", daqListNumber)
+        response = self.transport.request(
+            types.Command.L1_CMD,
+            types.L1Command.GET_DAQ_PACKED_MODE, *dln)
+        result = types.GetDaqPackedModeResponse.parse(response)
+        return result
+
     # dynamic
     def freeDaq(self):
         """Clear dynamic DAQ configuration.
