@@ -368,7 +368,23 @@ class MasterBaseType:
             types.Command.USER_CMD, subCommand, *data)
         return response
 
-    # todo: GET_VERSION
+    def getVersion(self):
+        """Get version information.
+
+        This command returns detailed information about the implemented
+        protocol layer version of the XCP slave and the transport layer
+        currently in use.
+
+        Returns
+        -------
+        `types.GetVersionResponse`
+        """
+
+        response = self.transport.request(
+            types.Command.L1_CMD,
+            types.L1Command.GET_VERSION)
+        result = types.GetVersionResponse.parse(response)
+        return result
 
     def fetch(self, length, limitPayload=None):  # TODO: pull
         """Convenience function for data-transfer from slave to master

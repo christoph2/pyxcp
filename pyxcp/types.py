@@ -148,7 +148,7 @@ class Command(enum.IntEnum):
 
     TIME_CORRELATION_PROPERTIES = 0xC6  # todo: implement
 
-    L1_CMD = 0xC1
+    L1_CMD = 0xC0
 
 
 class L1Command(enum.IntEnum):
@@ -243,6 +243,14 @@ ConnectResponse = Struct(
     "maxDto" / Int16ul,
     "protocolLayerVersion" / Int8ul,
     "transportLayerVersion" / Int8ul
+)
+
+GetVersionResponse = Struct(
+    Padding(1),
+    "protocolMajor" / Int8ul,
+    "protocolMinor" / Int8ul,
+    "transportMajor" / Int8ul,
+    "transportMinor" / Int8ul,
 )
 
 SessionStatus = BitStruct(

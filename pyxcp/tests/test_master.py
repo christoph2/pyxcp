@@ -123,30 +123,44 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([
-            0x08, 0x00, 0x00, 0x00,
-            0xff, 0x1d, 0xc0, 0xff, 0xdc, 0x05, 0x01, 0x01])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push([
+                0x08, 0x00, 0x00, 0x00,
+                0xff, 0x1d, 0xc0, 0xff, 0xdc, 0x05, 0x01, 0x01])
+
             res = xm.connect()
 
-        mock_socket.return_value.send.assert_called_with(bytes(
-            [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
 
-        assert res.maxCto == 255
-        assert res.maxDto == 1500
-        assert res.protocolLayerVersion == 1
-        assert res.transportLayerVersion == 1
-        assert res.resource.pgm is True
-        assert res.resource.stim is True
-        assert res.resource.daq is True
-        assert res.resource.calpag is True
-        assert res.commModeBasic.optional is True
-        assert res.commModeBasic.slaveBlockMode is True
-        assert res.commModeBasic.addressGranularity == 'BYTE'
-        assert res.commModeBasic.byteOrder == 'INTEL'
-        assert xm.maxCto == res.maxCto
-        assert xm.maxDto == res.maxDto
+            assert res.maxCto == 255
+            assert res.maxDto == 1500
+            assert res.protocolLayerVersion == 1
+            assert res.transportLayerVersion == 1
+            assert res.resource.pgm is True
+            assert res.resource.stim is True
+            assert res.resource.daq is True
+            assert res.resource.calpag is True
+            assert res.commModeBasic.optional is True
+            assert res.commModeBasic.slaveBlockMode is True
+            assert res.commModeBasic.addressGranularity == 'BYTE'
+            assert res.commModeBasic.byteOrder == 'INTEL'
+            assert xm.maxCto == res.maxCto
+            assert xm.maxDto == res.maxDto
+
+            ms.push([
+                0x06, 0x00, 0x01, 0x00,
+                0xff, 0x0, 0x01, 0x05, 0x01, 0x04])
+
+            res = xm.getVersion()
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x02, 0x00, 0x01, 0x00, 0xc0, 0x00]))
+
+            assert res.protocolMajor == 1
+            assert res.protocolMinor == 5
+            assert res.transportMajor == 1
+            assert res.transportMinor == 4
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
