@@ -767,3 +767,13 @@ class TestMaster:
             assert res.timestampMode.fixed is True
             assert res.timestampMode.unit == "DAQ_TIMESTAMP_UNIT_1PS"
             assert res.timestampTicks == 0x1234
+
+            # todo: xm.getDaqListMode()
+            # todo: xm.getDaqEventInfo()
+            # todo: xm.dtoCtrProperties()
+            # todo: xm.clearDaqList()
+            # todo: xm.getDaqListInfo()
+            # todo: xm.freeDaq()
+            # todo: xm.allocDaq()
+            # todo: xm.allocOdt()
+            # todo: xm.allocOdtEntry()
