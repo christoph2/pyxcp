@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""Checksum calculation for memory ranges
+
+.. [1] XCP Specification, BUILD_CHECKSUM service.
+"""
+
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -29,15 +34,18 @@ import zlib
 
 
 class Algorithm(enum.IntEnum):
-    XCP_ADD_11      = 1
-    XCP_ADD_12      = 2
-    XCP_ADD_14      = 3
-    XCP_ADD_22      = 4
-    XCP_ADD_24      = 5
-    XCP_ADD_44      = 6
-    XCP_CRC_16      = 7
+    """Enumerates available checksum algorithms
+    """
+    XCP_ADD_11 = 1
+    XCP_ADD_12 = 2
+    XCP_ADD_14 = 3
+    XCP_ADD_22 = 4
+    XCP_ADD_24 = 5
+    XCP_ADD_44 = 6
+    XCP_CRC_16 = 7
     XCP_CRC_16_CITT = 8
-    XCP_CRC_32      = 9
+    XCP_CRC_32 = 9
+    XCP_USER_DEFINED = 10
 
 
 CRC16 = (
@@ -112,6 +120,14 @@ CRC16_CCITT = (
 
 
 def reflect(data, nBits):
+    """Reflect data, i.e. reverse bit order.
+
+    Parameters
+    ----------
+    data : int
+    nBits : int
+        width in bits of `data`
+    """
     reflection = 0x00000000
     for bit in range(nBits):
         if data & 0x01:
@@ -121,9 +137,34 @@ def reflect(data, nBits):
 
 
 class Crc16:
-    WIDTH  = 16
+    """Calculate CRC (16-bit)
 
-    def __init__(self, table, initalRemainder, finalXorValue, reflectData, reflectRemainder):
+
+    Parameters
+    ----------
+    table: list-like
+        lookup table for CRC calculation
+    initalRemainder : int
+        value to start with
+    finalXorValue : int
+        final XOR value
+    reflectData : bool
+        reflect input data
+    reflectRemainder : bool
+        reflect output data
+
+    .. [1] A PAINLESS GUIDE TO CRC ERROR DETECTION ALGORITHMS
+           http://www.ross.net/crc/download/crc_v3.txt
+    .. [2] Understanding and implementing CRC (Cyclic Redundancy Check)
+           calculation
+           http://www.sunshine2k.de/articles/coding/crc/understanding_crc.html
+    .. [3] Online CRC calculator
+           http://zorc.breitbandkatze.de/crc.html
+    """
+    WIDTH = 16
+
+    def __init__(self, table, initalRemainder, finalXorValue, reflectData,
+                 reflectRemainder):
         self.table = table
         self.initalRemainder = initalRemainder
         self.finalXorValue = finalXorValue
@@ -150,65 +191,108 @@ class Crc16:
             return remainder ^ self.finalXorValue
 
 
-"""
-0x01  XCP_ADD_11  Add BYTE into a BYTE checksum, ignore overflows
-0x02  XCP_ADD_12  Add BYTE into a WORD checksum, ignore overflows
-0x03  XCP_ADD_14  Add BYTE into a DWORD checksum, ignore overflows
-
-0x04  XCP_ADD_22  Add WORD into a WORD checksum, ignore overflows,  blocksize must be modulo 2
-0x05  XCP_ADD_24  Add WORD into a DWORD checksum, ignore  overflows, blocksize must be modulo 2
-0x06  XCP_ADD_44  Add DWORD into DWORD, ignore overflows, blocksize  must be modulo 4
-"""
-
 def adder(modulus):
+    """Factory function for modulus adders
+
+    Parameters
+    ----------
+    modulus : int
+        modulus to use
+
+    Returns
+    -------
+    function
+        adder function
+
+    Examples
+    --------
+    >>> a256=adder(256)
+    >>> a256([11, 22, 33, 44, 55, 66, 77, 88, 99])
+    239
+
+    """
     def add(frame):
         return sum(frame) % modulus
     return add
 
-def missing(x):
-    raise NotImplementedError("Checksum method 'XCP_USER_DEFINED' not supported yet.")
 
 def wordSum(modulus, step):
+    """Factory function for (double-)word modulus sums
+
+    Parameters
+    ----------
+    modulus : int
+    step : [2, 4]
+        2 - word wise
+        4 - double-word wise
+
+    Returns
+    -------
+    function
+        summation function
+    """
     def add(frame):
         if step == 2:
             mask = "<H"
         elif step == 4:
             mask = "<I"
         else:
-            raise ErrorNotImplemented("Only WORDs or DWORDs are supported.")
-        x = [struct.unpack(mask, frame[x : x + step])[0] for x in range(0, len(frame), step)]
+            raise NotImplementedError("Only WORDs or DWORDs are supported.")
+        x = [struct.unpack(mask, frame[x:x + step])[0]
+             for x in range(0, len(frame), step)]
         return sum(x) % modulus
     return add
 
 
-add11 = adder(2 ** 8)
-add12 = adder(2 ** 16)
-add14 = adder(2 ** 32)
-add22 = wordSum(2 ** 16, 2)
-add24 = wordSum(2 ** 32, 2)
-add44 = wordSum(2 ** 32, 4)
-crc16 = Crc16(CRC16, 0x0000, 0x0000, True, True)
-crc16_ccitt = Crc16(CRC16_CCITT, 0xffff, 0x0000, False, False)
-crc32 = lambda x: zlib.crc32(x) & 0xffffffff
+ADD11 = adder(2 ** 8)
+ADD12 = adder(2 ** 16)
+ADD14 = adder(2 ** 32)
+ADD22 = wordSum(2 ** 16, 2)
+ADD24 = wordSum(2 ** 32, 2)
+ADD44 = wordSum(2 ** 32, 4)
+CRC16 = Crc16(CRC16, 0x0000, 0x0000, True, True)
+CRC16_CCITT = Crc16(CRC16_CCITT, 0xffff, 0x0000, False, False)
+
+
+def CRC32(x):
+    return zlib.crc32(x) & 0xffffffff
+
+
+def userDefined(x):
+    """User defined algorithms are not supported yet.
+    """
+    raise NotImplementedError(
+        "Checksum method 'XCP_USER_DEFINED' not supported yet.")
 
 
 ALGO = {
-    "XCP_ADD_11":       add11,
-    "XCP_ADD_12":       add12,
-    "XCP_ADD_14":       add14,
-    "XCP_ADD_22":       add22,
-    "XCP_ADD_24":       add24,
-    "XCP_ADD_44":       add44,
-    "XCP_CRC_16":       crc16,
-    "XCP_CRC_16_CITT":  crc16_ccitt,
-    "XCP_CRC_32":       crc32,
-    "XCP_USER_DEFINED": missing,
+    "XCP_ADD_11":       ADD11,
+    "XCP_ADD_12":       ADD12,
+    "XCP_ADD_14":       ADD14,
+    "XCP_ADD_22":       ADD22,
+    "XCP_ADD_24":       ADD24,
+    "XCP_ADD_44":       ADD44,
+    "XCP_CRC_16":       CRC16,
+    "XCP_CRC_16_CITT":  CRC16_CCITT,
+    "XCP_CRC_32":       CRC32,
+    "XCP_USER_DEFINED": userDefined
 }
 
+
 def check(frame, algo):
+    """Calculate checksum using given algorithm
+
+    Parameters
+    ----------
+    frame : list of integers
+    algo : `ALGO`
+
+    Returns
+    -------
+    int
+    """
     fun = ALGO.get(algo)
     if fun:
         return fun(frame)
     else:
         raise NotImplementedError("Invalid algorithm '{}'.".format(algo))
-

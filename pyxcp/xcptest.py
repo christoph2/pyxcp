@@ -4,7 +4,7 @@
 __copyright__="""
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -51,7 +51,7 @@ def test():
     print(result)
     #xm.upload(result.length)
 
-#    unlock(xm, 4)
+    #    unlock(xm, 4)
     #length, seed = xm.getSeed(0x7ba, 0, 4)
     #print("SEED: ", hexDump(seed), flush = True)
     #_, kee = skloader.getKey(b"SeedNKeyXcp.dll", 4, seed)
@@ -111,7 +111,7 @@ def timecode(ticks, mode):
 
 
 def cstest():
-    tr = transport.Eth('localhost', port= 5555, protocol = TCP, loglevel = "WARN")  # "DEBUG"
+    tr = transport.Eth('localhost', port= 5555, protocol = 'UDP', loglevel = "WARN")  # "DEBUG"
     #tr = transport.SxI("COM27", 115200, loglevel = "WARN")
     with Master(tr) as xm:
     #    tm = Timing()
@@ -133,14 +133,15 @@ def cstest():
             print("No details on connection.")
 
         gid = xm.getID(0x1)
-        print(gid, flush = True)
+        #gid = xm.getID(0xdb)
+        print("GET_ID:", gid, flush = True)
         result = xm.fetch(gid.length)
         print(result.decode("utf8"))
 
 #        bench(xm)
 
-#        gid = xm.getID(0xdc)
-#        print(gid)
+        #gid = xm.getID(0xdb)
+        #print("DB", gid)
 #        result = xm.upload()
 #        print("ID: '{}'".format(result.decode("utf8")))
 
@@ -151,9 +152,9 @@ def cstest():
 
 #        print("ID: '{}'".format(result.decode("utf8")))
 
-        #xm.setMta(0x005BF000)
-        #bhv = xm.fetch(0x104)
-        #print(bhv)
+        xm.setMta(0x0040c280)
+        bhv = xm.fetch(0x100, 16)
+        print(bhv)
 
         resInfo = xm.getDaqResolutionInfo()
         print(resInfo, flush = True)
@@ -595,7 +596,7 @@ Queue:
     GET_DAQ_CLOCK
     START_STOP_SYNCH mode=01h
     """
-    cl.setDaqListMode(0x10, 0, 1, 1, 0)	# , 1)
+    cl.setDaqListMode(0x10, 0, 1, 1, 0) # , 1)
     print("startStopDaqList #0", cl.startStopDaqList(0x02, 0))
     cl.setDaqListMode(0x10, 1, 2, 1, 0) # , 2)
     print("startStopDaqList #1", cl.startStopDaqList(0x02, 1))

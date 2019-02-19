@@ -1,7 +1,6 @@
 #!/bin/env python
 
 import os
-from codecs import open
 from setuptools import find_packages, setup
 import sys
 
@@ -11,7 +10,10 @@ with open(os.path.join('pyxcp', 'version.py'), 'r') as f:
             version = line.split('=')[-1].strip().strip('"')
             break
 
-install_reqs = ['construct == 2.8.17', 'mako', 'pyserial']
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
+install_reqs = ['construct == 2.8.17', 'mako', 'pyserial', 'sphinxcontrib-napoleon']
 
 if sys.version_info.major == 2 or (
         sys.version_info.major == 3 and sys.version_info.minor < 4):
@@ -22,15 +24,16 @@ setup(
     version=version,
     provides=['pyxcp'],
     description="Universal Calibration Protocol for Python",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     author='Christoph Schueler',
     author_email='cpu12.gems@googlemail.com',
     url='https://github.com/christoph2/pyxcp',
     packages=find_packages(),
 
     include_package_data=True,
-    install_requires=['enum34', 'construct >= 2.8', 'mako', 'pyserial'],
+    install_requires=install_reqs,
 
-    # doc_requires=['numpydoc', 'sphinxcontrib-napoleon'],
     package_dir={'tests': 'pyxcp/tests'},
     tests_require=["pytest", "pytest-runner"],
     test_suite="pyxcp.tests",

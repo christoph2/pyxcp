@@ -4,6 +4,14 @@ pyxcp.asam package
 Submodules
 ----------
 
+pyxcp.asam.compumethod module
+-----------------------------
+
+.. automodule:: pyxcp.asam.compumethod
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pyxcp.asam.types module
 -----------------------
 

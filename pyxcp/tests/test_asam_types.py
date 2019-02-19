@@ -1,30 +1,24 @@
-
-import unittest
+import pytest
 
 from pyxcp.asam import types
 
-class TestEncode(unittest.TestCase):
 
-    def testEncodeUint32_0(self):
-        self.assertEqual(types.A_Uint32("<").encode(3415750566), b'\xa67\x98\xcb')
-
-
-class TestDecode(unittest.TestCase):
-
-    def testDecodeUint32_0(self):
-        self.assertEqual(types.A_Uint32("<").decode((0xa6, 0x37, 0x98, 0xcb)), 3415750566)
+def testEncodeUint32_0():
+    assert types.A_Uint32("<").encode(3415750566) == b'\xa67\x98\xcb'
 
 
-class TestAsamBaseType(unittest.TestCase):
+def testDecodeUint32_0():
+    assert types.A_Uint32("<").decode((0xa6, 0x37, 0x98, 0xcb)) == 3415750566
 
-    def testLittleEndian(self):
-        self.assertTrue(isinstance(types.AsamBaseType(types.INTEL), types.AsamBaseType))
 
-    def testBigEndian(self):
-        self.assertTrue(isinstance(types.AsamBaseType(types.MOTOROLA), types.AsamBaseType))
+def testLittleEndian():
+    assert isinstance(types.AsamBaseType(types.INTEL), types.AsamBaseType)
 
-    def testInvalidByteOrderRaisesTypeError(self):
-        self.assertRaises(ValueError, types.AsamBaseType, '#')
 
-if __name__ == '__main__':
-  unittest.main()
+def testBigEndian():
+    assert isinstance(types.AsamBaseType(types.MOTOROLA), types.AsamBaseType)
+
+
+def testInvalidByteOrderRaisesTypeError():
+    with pytest.raises(ValueError):
+        types.AsamBaseType('#')

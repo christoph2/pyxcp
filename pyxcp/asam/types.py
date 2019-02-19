@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__copyright__="""
+__copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
    (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
@@ -37,6 +37,7 @@ MOTOROLA = ">"
     A_BYTEFIELD: Field of bytes
 """
 
+
 class AsamBaseType(object):
     """Base class for ASAM codecs.
 
@@ -54,7 +55,7 @@ class AsamBaseType(object):
           - '<' Little-endian
           - '>' Big-endian
         """
-        if not  byteorder in ("<", ">"):
+        if byteorder not in ("<", ">"):
             raise ValueError("Invalid byteorder.")
         self.byteorder = byteorder
 
@@ -78,7 +79,8 @@ class AsamBaseType(object):
     def decode(self, value):
         """Decode a value.
 
-        Decode means convert a byte-string to a meaningful data-type, eg. an integer.
+        Decode means convert a byte-string to a meaningful data-type, eg. an
+        integer.
 
         Parameters
         ----------
@@ -89,7 +91,8 @@ class AsamBaseType(object):
         data-type
           data-type is determined by derived class.
         """
-        return struct.unpack("{}{}".format(self.byteorder, self.FMT), bytes(value))[0]
+        return struct.unpack(
+            "{}{}".format(self.byteorder, self.FMT), bytes(value))[0]
 
 
 class A_Uint8(AsamBaseType):
@@ -150,4 +153,3 @@ class A_Float64(AsamBaseType):
     """ASAM A_FLOAT64 codec.
     """
     FMT = "d"
-

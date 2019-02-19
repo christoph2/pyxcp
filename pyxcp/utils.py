@@ -29,10 +29,11 @@ import os
 import sys
 import subprocess
 import threading
-import types
 
 try:
-    import win32api, win32process, win32con
+    import win32api
+    import win32process
+    import win32con
 except ImportError:
     WINAPI = False
 else:
@@ -43,11 +44,13 @@ def hexDump(arr):
     return "[{}]".format(' '.join(["{:02x}".format(x) for x in arr]))
 
 
-def slicer(iterable, sliceLength, converter = None):
+def slicer(iterable, sliceLength, converter=None):
     if converter is None:
         converter = type(iterable)
     length = len(iterable)
-    return [converter((iterable[item : item + sliceLength])) for item in range(0, length, sliceLength)]
+    return [
+        converter((iterable[item:item + sliceLength]))
+        for item in range(0, length, sliceLength)]
 
 
 def flatten(*args):
@@ -86,10 +89,13 @@ class Curry:
         return self.fun(*(self.pending + args), **kw)
 
 
-identity = lambda self,x: x
+def identity(self, x):
+    return x
+
 
 def getPythonVersion():
     return sys.version_info
+
 
 PYTHON_VERSION = getPythonVersion()
 
@@ -107,6 +113,7 @@ def createStringBuffer(*args):
     """
     return StringIO(*args)
 
+
 def binExtractor(fname, offset, length):
     """Extract a junk of data from a file.
     """
@@ -115,13 +122,15 @@ def binExtractor(fname, offset, length):
     data = fp.read(length)
     return data
 
+
 CYG_PREFIX = "/cygdrive/"
+
 
 def cygpathToWin(path):
     if path.startswith(CYG_PREFIX):
-        path = path[len(CYG_PREFIX) : ]
+        path = path[len(CYG_PREFIX):]
         driveLetter = "{0}:\\".format(path[0])
-        path = path[2 : ].replace("/", "\\")
+        path = path[2:].replace("/", "\\")
         path = "{0}{1}".format(driveLetter, path)
     return path
 
@@ -151,19 +160,21 @@ class StructureWithEnums(ctypes.Structure):
             if attr in self._map:
                 attrType = self._map[attr]
             value = getattr(self, attr)
-            result.append("    {0} [{1}] = {2!r};".format(attr, attrType.__name__, value))
+            result.append("    {0} [{1}] = {2!r};".format(
+                attr, attrType.__name__, value))
         result.append("};")
         return '\n'.join(result)
 
     __repr__ = __str__
 
 
-
 class CommandError(Exception):
     pass
 
+
 def runCommand(cmd):
-    proc = subprocess.Popen(cmd, shell = True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+    proc = subprocess.Popen(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     result = proc.communicate()
     proc.wait()
     if proc.returncode:
@@ -207,41 +218,42 @@ class SingletonBase(object):
 #          return '\n'.join(result)
 #
 
-def memoryMap(filename, writeable = False):
+def memoryMap(filename, writeable=False):
     size = os.path.getsize(filename)
     fd = os.open(filename, os.O_RDWR if writeable else os.O_RDONLY)
-    return mmap.mmap(fd, size, access = mmap.ACCESS_WRITE if writeable else mmap.ACCESS_READ)
+    return mmap.mmap(
+        fd, size, access=mmap.ACCESS_WRITE if writeable else mmap.ACCESS_READ)
 
 
 if sys.platform == "win32" and WINAPI:
 
-    ##
-    ## Code snippet taken from http://code.activestate.com/recipes/496767-set-process-priority-in-windows/
-    ## Licenced under PSF.
-    ##
+    # Code snippet taken from
+    # http://code.activestate.com/recipes/496767-set-process-priority-in-windows/
+    # Licenced under PSF.
 
-    def setpriority(pid = None, priority = 1):
-        """ Set The Priority of a Windows Process.  Priority is a value between 0-5 where
-            2 is normal priority.  Default sets the priority of the current
-            python process but can take any valid process ID. """
+    def setpriority(pid=None, priority=1):
+        """ Set The Priority of a Windows Process.  Priority is a value
+            between 0-5 where 2 is normal priority.  Default sets the priority
+            of the current python process but can take any valid process ID."""
         priorityclasses = [win32process.IDLE_PRIORITY_CLASS,
                            win32process.BELOW_NORMAL_PRIORITY_CLASS,
                            win32process.NORMAL_PRIORITY_CLASS,
                            win32process.ABOVE_NORMAL_PRIORITY_CLASS,
                            win32process.HIGH_PRIORITY_CLASS,
                            win32process.REALTIME_PRIORITY_CLASS]
-        if pid == None:
-            #pid = win32api.GetCurrentProcessId()
+        if pid is None:
+            # pid = win32api.GetCurrentProcessId()
             pid = ctypes.windll.kernel32.GetCurrentProcessId()
-        handle=ctypes.windll.kernel32.OpenProcess(win32con.PROCESS_ALL_ACCESS, True, pid)
+        handle = ctypes.windll.kernel32.OpenProcess(
+            win32con.PROCESS_ALL_ACCESS, True, pid)
         win32process.SetPriorityClass(handle, priorityclasses[priority])
-        ## Chris
+        # Chris
         win32process.SetProcessPriorityBoost(handle, False)
         ct = ctypes.windll.kernel32.GetCurrentThread()
         gle = win32api.GetLastError()
         print("gct", win32api.FormatMessage(gle))
-        ctypes.windll.kernel32.SetThreadPriority(ct, win32con.THREAD_BASE_PRIORITY_LOWRT)
+        ctypes.windll.kernel32.SetThreadPriority(
+            ct, win32con.THREAD_BASE_PRIORITY_LOWRT)
 else:
-    def setpriority(pid = None, priority = 1):
+    def setpriority(pid=None, priority=1):
         pass
-

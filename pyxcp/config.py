@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__copyright__="""
+__copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
    (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
@@ -25,7 +25,6 @@ __copyright__="""
 
 import copy
 import json
-from pprint import pprint
 
 
 class ConfigBase:
@@ -42,7 +41,8 @@ class ConfigBase:
                 value = '"{}"'.format(value)
             result.append('{}"{}": {}'.format(indent, attr, value))
         indent = " " * (4 * (self._level - 1))
-        return "{}{{\n{}\n{}}}{}".format(self._header, ',\n'.join(result), indent, self._footer)
+        return "{}{{\n{}\n{}}}{}".format(
+            self._header, ',\n'.join(result), indent, self._footer)
 
     def asdict(self):
         return json.loads(str(self))
@@ -59,7 +59,7 @@ class Config(ConfigBase):
     def __init__(self, params):
         self._addAttrs(params, self)
 
-    def _addAttrs(self, attrs, obj, level = 1):
+    def _addAttrs(self, attrs, obj, level=1):
         obj._attrs = []
         obj._nested = []
         obj._level = level
@@ -81,4 +81,3 @@ class Config(ConfigBase):
 
     def copy(self):
         return copy.copy(self)
-
