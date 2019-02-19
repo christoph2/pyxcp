@@ -150,6 +150,81 @@ class Command(enum.IntEnum):
 
     L1_CMD = 0xC0
 
+class CommandCategory(enum.IntEnum):
+    STD = 0
+    CAL = 1
+    PAG = 2
+    DAQ = 3
+    PGM = 4
+
+COMMAND_CATEGORIES = { # Mainly needed to automatically UNLOCK.
+    Command.CONNECT: CommandCategory.STD,
+    Command.DISCONNECT: CommandCategory.STD,
+    Command.GET_STATUS: CommandCategory.STD,
+    Command.SYNCH: CommandCategory.STD,
+    Command.GET_COMM_MODE_INFO: CommandCategory.STD,
+    Command.GET_ID: CommandCategory.STD,
+    Command.SET_REQUEST: CommandCategory.STD,
+    Command.GET_SEED: CommandCategory.STD,
+    Command.UNLOCK: CommandCategory.STD,
+    Command.SET_MTA: CommandCategory.STD,
+    Command.UPLOAD: CommandCategory.STD,
+    Command.SHORT_UPLOAD: CommandCategory.STD,
+    Command.BUILD_CHECKSUM: CommandCategory.STD,
+    Command.TRANSPORT_LAYER_CMD: CommandCategory.STD,
+    Command.USER_CMD: CommandCategory.STD,
+
+    Command.DOWNLOAD: CommandCategory.CAL,
+    Command.DOWNLOAD_NEXT: CommandCategory.CAL,
+    Command.DOWNLOAD_MAX: CommandCategory.CAL,
+    Command.SHORT_DOWNLOAD: CommandCategory.CAL,
+    Command.MODIFY_BITS: CommandCategory.CAL,
+
+    Command.SET_CAL_PAGE: CommandCategory.PAG,
+    Command.GET_CAL_PAGE: CommandCategory.PAG,
+    Command.GET_PAG_PROCESSOR_INFO: CommandCategory.PAG,
+    Command.GET_SEGMENT_INFO: CommandCategory.PAG,
+    Command.GET_PAGE_INFO: CommandCategory.PAG,
+    Command.SET_SEGMENT_MODE: CommandCategory.PAG,
+    Command.GET_SEGMENT_MODE: CommandCategory.PAG,
+    Command.COPY_CAL_PAGE: CommandCategory.PAG,
+    Command.CLEAR_DAQ_LIST: CommandCategory.DAQ,
+    Command.CLEAR_DAQ_LIST: CommandCategory.DAQ,
+    Command.SET_DAQ_PTR: CommandCategory.DAQ,
+    Command.WRITE_DAQ: CommandCategory.DAQ,
+    Command.WRITE_DAQ_MULTIPLE: CommandCategory.DAQ,
+    Command.SET_DAQ_LIST_MODE: CommandCategory.DAQ,
+    Command.GET_DAQ_LIST_MODE: CommandCategory.DAQ,
+    Command.START_STOP_DAQ_LIST: CommandCategory.DAQ,
+    Command.START_STOP_SYNCH: CommandCategory.DAQ,
+    Command.GET_DAQ_CLOCK: CommandCategory.DAQ,
+    Command.READ_DAQ: CommandCategory.DAQ,
+    Command.GET_DAQ_PROCESSOR_INFO: CommandCategory.DAQ,
+    Command.GET_DAQ_RESOLUTION_INFO: CommandCategory.DAQ,
+    Command.GET_DAQ_LIST_INFO: CommandCategory.DAQ,
+    Command.GET_DAQ_EVENT_INFO: CommandCategory.DAQ,
+    Command.DTO_CTR_PROPERTIES: CommandCategory.DAQ,
+    Command.FREE_DAQ: CommandCategory.DAQ,
+    Command.ALLOC_DAQ: CommandCategory.DAQ,
+    Command.ALLOC_ODT: CommandCategory.DAQ,
+    Command.ALLOC_ODT_ENTRY: CommandCategory.DAQ,
+
+    Command.PROGRAM_START: CommandCategory.PGM,
+    Command.PROGRAM_CLEAR: CommandCategory.PGM,
+    Command.PROGRAM: CommandCategory.PGM,
+    Command.PROGRAM_RESET: CommandCategory.PGM,
+    Command.GET_PGM_PROCESSOR_INFO: CommandCategory.PGM,
+    Command.GET_SECTOR_INFO: CommandCategory.PGM,
+    Command.PROGRAM_PREPARE: CommandCategory.PGM,
+    Command.PROGRAM_FORMAT: CommandCategory.PGM,
+    Command.PROGRAM_NEXT: CommandCategory.PGM,
+    Command.PROGRAM_MAX: CommandCategory.PGM,
+    Command.PROGRAM_VERIFY: CommandCategory.PGM,
+
+    # Well... ?
+    #TIME_CORRELATION_PROPERTIES
+    #L1_CMD
+}
 
 class L1Command(enum.IntEnum):
     GET_VERSION = 0x00
