@@ -69,12 +69,12 @@ class Master(MasterBaseType):
     def allocOdt(self, daqListNumber, odtCount):
         dln = struct.pack("<H", daqListNumber)
         response = self.transport.request(
-            types.Command.ALLOC_ODT, 0, flatten(dln), odtCount)
+            types.Command.ALLOC_ODT, 0, *flatten(dln, [odtCount]))
         return response
 
     def allocOdtEntry(self, daqListNumber, odtNumber, odtEntriesCount):
         dln = struct.pack("<H", daqListNumber)
         response = self.transport.request(
             types.Command.ALLOC_ODT_ENTRY,
-            0, flatten(dln), odtNumber, odtEntriesCount)
+            0, *flatten(dln, [odtNumber, odtEntriesCount]))
         return response

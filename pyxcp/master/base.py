@@ -368,7 +368,23 @@ class MasterBaseType:
             types.Command.USER_CMD, subCommand, *data)
         return response
 
-    # todo: GET_VERSION
+    def getVersion(self):
+        """Get version information.
+
+        This command returns detailed information about the implemented
+        protocol layer version of the XCP slave and the transport layer
+        currently in use.
+
+        Returns
+        -------
+        `types.GetVersionResponse`
+        """
+
+        response = self.transport.request(
+            types.Command.L1_CMD,
+            types.L1Command.GET_VERSION)
+        result = types.GetVersionResponse.parse(response)
+        return result
 
     def fetch(self, length, limitPayload=None):  # TODO: pull
         """Convenience function for data-transfer from slave to master
@@ -703,7 +719,7 @@ class MasterBaseType:
             types.Command.GET_DAQ_LIST_INFO, 0, *dln)
         return types.GetDaqListInfoResponse.parse(response)
 
-    def getEventChannelInfo(self, eventChannelNumber):
+    def getDaqEventInfo(self, eventChannelNumber):
         """Get specific information for an event channel.
 
         Parameters
@@ -718,6 +734,49 @@ class MasterBaseType:
         response = self.transport.request(
             types.Command.GET_DAQ_EVENT_INFO, 0, *ecn)
         return types.GetEventChannelInfoResponse.parse(response)
+
+    def setDaqPackedMode(
+            self, daqListNumber, daqPackedMode,
+            dpmTimestampMode=None, dpmSampleCount=None):
+        """Set DAQ List Packed Mode.
+
+        Parameters
+        ----------
+        daqListNumber : int
+        daqPackedMode : int
+        """
+        params = []
+        dln = struct.pack("<H", daqListNumber)
+        params.extend(dln)
+        params.append(daqPackedMode)
+
+        if daqPackedMode == 1 or daqPackedMode == 2:
+            params.append(dpmTimestampMode)
+            dsc = struct.pack("<H", dpmSampleCount)
+            params.extend(dsc)
+
+        response = self.transport.request(
+            types.Command.L1_CMD,
+            types.L1Command.SET_DAQ_PACKED_MODE,
+            *params)
+        return response
+
+    def getDaqPackedMode(self, daqListNumber):
+        """Get DAQ List Packed Mode.
+
+        This command returns information of the currently active packed mode of
+        the addressed DAQ list.
+
+        Parameters
+        ----------
+        daqListNumber : int
+        """
+        dln = struct.pack("<H", daqListNumber)
+        response = self.transport.request(
+            types.Command.L1_CMD,
+            types.L1Command.GET_DAQ_PACKED_MODE, *dln)
+        result = types.GetDaqPackedModeResponse.parse(response)
+        return result
 
     # dynamic
     def freeDaq(self):

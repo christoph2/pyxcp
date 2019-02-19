@@ -29,7 +29,7 @@ import construct
 
 from construct import (
     Struct, Enum, Padding, Int8ul, GreedyBytes, Byte, Int16ul, Int32ul,
-    BitStruct, BitsInteger, Flag)
+    BitStruct, BitsInteger, Flag, If, this)
 
 if construct.version < (2, 8):
     print("pyXCP requires at least construct 2.8")
@@ -76,7 +76,6 @@ class Command(enum.IntEnum):
     UPLOAD = 0xF5
     SHORT_UPLOAD = 0xF4
     BUILD_CHECKSUM = 0xF3
-
     TRANSPORT_LAYER_CMD = 0xF2
     USER_CMD = 0xF1
 
@@ -111,7 +110,7 @@ class Command(enum.IntEnum):
     CLEAR_DAQ_LIST = 0xE3
     SET_DAQ_PTR = 0xE2
     WRITE_DAQ = 0xE1
-    WRITE_DAQ_MULTIPLE = 0xC7  # NEW IN 1.1
+    WRITE_DAQ_MULTIPLE = 0xC7  # NEW IN 1.1  # todo: implement
     SET_DAQ_LIST_MODE = 0xE0
     GET_DAQ_LIST_MODE = 0xDF
     START_STOP_DAQ_LIST = 0xDE
@@ -124,6 +123,7 @@ class Command(enum.IntEnum):
     GET_DAQ_RESOLUTION_INFO = 0xD9
     GET_DAQ_LIST_INFO = 0xD8
     GET_DAQ_EVENT_INFO = 0xD7
+    DTO_CTR_PROPERTIES = 0xC5  # todo: implement
     FREE_DAQ = 0xD6
     ALLOC_DAQ = 0xD5
     ALLOC_ODT = 0xD4
@@ -134,17 +134,27 @@ class Command(enum.IntEnum):
     # Mandatory Commands
     PROGRAM_START = 0xD2
     PROGRAM_CLEAR = 0xD1
-    PROGRAM = 0xD0
-    PROGRAM_RESET = 0xCF
+    PROGRAM = 0xD0  # todo: implement
+    PROGRAM_RESET = 0xCF  # todo: implement
 
     # Optional Commands
-    GET_PGM_PROCESSOR_INFO = 0xCE
-    GET_SECTOR_INFO = 0xCD
-    PROGRAM_PREPARE = 0xCC
-    PROGRAM_FORMAT = 0xCB
-    PROGRAM_NEXT = 0xCA
-    PROGRAM_MAX = 0xC9
-    PROGRAM_VERIFY = 0xC8
+    GET_PGM_PROCESSOR_INFO = 0xCE  # todo: implement
+    GET_SECTOR_INFO = 0xCD  # todo: implement
+    PROGRAM_PREPARE = 0xCC  # todo: implement
+    PROGRAM_FORMAT = 0xCB  # todo: implement
+    PROGRAM_NEXT = 0xCA  # todo: implement
+    PROGRAM_MAX = 0xC9  # todo: implement
+    PROGRAM_VERIFY = 0xC8  # todo: implement
+
+    TIME_CORRELATION_PROPERTIES = 0xC6  # todo: implement
+
+    L1_CMD = 0xC0
+
+
+class L1Command(enum.IntEnum):
+    GET_VERSION = 0x00
+    SET_DAQ_PACKED_MODE = 0x01  # todo: implement
+    GET_DAQ_PACKED_MODE = 0x02  # todo: implement
 
 
 XcpError = Enum(
@@ -235,6 +245,14 @@ ConnectResponse = Struct(
     "transportLayerVersion" / Int8ul
 )
 
+GetVersionResponse = Struct(
+    Padding(1),
+    "protocolMajor" / Int8ul,
+    "protocolMinor" / Int8ul,
+    "transportMajor" / Int8ul,
+    "transportMinor" / Int8ul,
+)
+
 SessionStatus = BitStruct(
     "resume" / Flag,
     "daqRunning" / Flag,
@@ -272,6 +290,7 @@ GetIDResponse = Struct(
     "mode" / Int8ul,
     "reserved" / Int16ul,
     "length" / Int32ul,
+    "identification" / If(this.mode == 1, Byte[this.length])
 )
 
 SetRequestMode = BitStruct(
@@ -407,6 +426,28 @@ GetDaqClockResponse = Struct(
     "timestamp" / Int32ul,
 )
 
+DaqPackedMode = Enum(
+    Int8ul,
+    NONE=0,
+    ELEMENT_GROUPED=1,
+    EVENT_GROUPED=2
+)
+
+GetDaqPackedModeResponse = Struct(
+    Padding(1),
+    "daqPackedMode" / DaqPackedMode,
+    "dpmTimestampMode" / If(
+        (this.daqPackedMode == "ELEMENT_GROUPED")
+        | (this.daqPackedMode == "EVENT_GROUPED"),
+        Int8ul
+    ),
+    "dpmSampleCount" / If(
+        (this.daqPackedMode == "ELEMENT_GROUPED")
+        | (this.daqPackedMode == "EVENT_GROUPED"),
+        Int16ul
+    )
+)
+
 ReadDaqResponse = Struct(
     "bitOffset" / Int8ul,
     "sizeofDaqElement" / Int8ul,
@@ -450,7 +491,8 @@ GetDaqResolutionInfoResponse = Struct(
 )
 
 DaqListProperties = BitStruct(
-    Padding(4),
+    Padding(3),
+    "packed" / Flag,
     "stim" / Flag,
     "daq" / Flag,
     "eventFixed" / Flag,
@@ -465,7 +507,15 @@ GetDaqListInfoResponse = Struct(
 )
 
 DaqEventProperties = BitStruct(
-    Padding(4),
+    "consistency" / Enum(
+        BitsInteger(2),
+        CONSISTENCY_ODT=0b00,
+        CONSISTENCY_DAQ=0b01,
+        CONSISTENCY_EVENTCHANNEL=0b10,
+        CONSISTENCY_NONE=0b11,
+    ),
+    Padding(1),
+    "packed" / Flag,
     "stim" / Flag,
     "daq" / Flag,
     Padding(2)
