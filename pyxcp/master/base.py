@@ -55,6 +55,8 @@ class MasterBaseType:
         self.logger = logging.getLogger("pyXCP")
         self.logger.setLevel(loglevel)
         self.transport = transport
+        self.transport.parent = self # In some cases the transport-layer needs to communicate with us.
+        self.service = None
 
     def __enter__(self):
         """Context manager entry part.
@@ -75,6 +77,19 @@ class MasterBaseType:
                 exc_type, exc_val, exc_tb)))
             # print("=" * 79)
             # return True
+
+    def _setService(self, service):
+        """Records the currently processed service.
+
+        Parameters
+        ----------
+        service: `pydbc.types.Command`
+
+        Notes
+        -----
+        Internal Function, only to be used by transport-layer.
+        """
+        self.service = service
 
     def close(self):
         """Closes transport layer connection.
