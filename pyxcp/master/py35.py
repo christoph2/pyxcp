@@ -4,7 +4,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -26,12 +26,14 @@ __copyright__ = """
 import struct
 
 from pyxcp.master.base import MasterBaseType
+from pyxcp.master.errorhandler import wrapped
 from pyxcp import types
 
 
 class Master(MasterBaseType):
     # Python >= 3.5 permits nice unpacking syntax (PEP448).
 
+    @wrapped
     def shortDownload(self, address, addressExt, *data):
         length = len(data)
         addr = struct.pack("<I", address)
@@ -39,6 +41,7 @@ class Master(MasterBaseType):
             types.Command.SHORT_DOWNLOAD, length, 0, addressExt, *addr, *data)
         return response
 
+    @wrapped
     def modifyBits(self, shiftValue, andMask, xorMask):
         # A = ( (A) & ((~((dword)(((word)~MA)<<S))) )^((dword)(MX<<S)) )
         am = struct.pack("<H", andMask)
@@ -47,12 +50,14 @@ class Master(MasterBaseType):
             types.Command.MODIFY_BITS, shiftValue, *am, *xm)
         return response
 
+    @wrapped
     def setDaqPtr(self, daqListNumber, odtNumber, odtEntryNumber):
         daqList = struct.pack("<H", daqListNumber)
         response = self.transport.request(
             types.Command.SET_DAQ_PTR, 0, *daqList, odtNumber, odtEntryNumber)
         return response
 
+    @wrapped
     def setDaqListMode(self, mode, daqListNumber, eventChannelNumber,
                        prescaler, priority):
         dln = struct.pack("<H", daqListNumber)
@@ -62,12 +67,14 @@ class Master(MasterBaseType):
             mode, *dln, *ecn, prescaler, priority)
         return response
 
+    @wrapped
     def allocOdt(self, daqListNumber, odtCount):
         dln = struct.pack("<H", daqListNumber)
         response = self.transport.request(
             types.Command.ALLOC_ODT, 0, *dln, odtCount)
         return response
 
+    @wrapped
     def allocOdtEntry(self, daqListNumber, odtNumber, odtEntriesCount):
         dln = struct.pack("<H", daqListNumber)
         response = self.transport.request(
