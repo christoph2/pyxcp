@@ -57,7 +57,6 @@ class MasterBaseType:
         self.transport = transport
         self.transport.parent = self # In some cases the transport-layer needs to communicate with us.
         self.service = None
-        self.params = Parameters()
 
     def __enter__(self):
         """Context manager entry part.
