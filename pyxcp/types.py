@@ -368,6 +368,11 @@ GetIDResponse = Struct(
     "identification" / If(this.mode == 1, Byte[this.length])
 )
 
+GetSeedResponse = Struct(
+    "length" / Int8ul,
+    "seed" / If (this.length > 0, Byte[this.length])
+)
+
 SetRequestMode = BitStruct(
     Padding(4),
     "clearDaqReq" / Flag,
