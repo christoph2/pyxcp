@@ -55,7 +55,10 @@ class MasterBaseType:
         self.logger = logging.getLogger("pyXCP")
         self.logger.setLevel(loglevel)
         self.transport = transport
-        self.transport.parent = self # In some cases the transport-layer needs to communicate with us.
+
+        # In some cases the transport-layer needs to communicate with us.
+        self.transport.parent = self
+
         self.service = None
 
     def __enter__(self):

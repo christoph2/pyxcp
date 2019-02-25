@@ -930,3 +930,38 @@ class TestMaster:
             assert res.daqPackedMode == "EVENT_GROUPED"
             assert res.dpmTimestampMode == 0x01
             assert res.dpmSampleCount == 0x1234
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testPgmCommands(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push([0x07, 0x00, 0x00, 0x00,
+                     0xff, 0x00, 0x01, 0x08, 0x2a, 0xff, 0x55])
+
+            res = xm.programStart()
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x01, 0x00, 0x00, 0x00, 0xd2]))
+
+            assert res.commModePgm.masterBlockMode is True
+            assert res.commModePgm.interleavedMode is False
+            assert res.commModePgm.slaveBlockMode is False
+            assert res.maxCtoPgm == 8
+            assert res.maxBsPgm == 0x2a
+            assert res.minStPgm == 0xff
+            assert res.queueSizePgm == 0x55
+
+            ms.push([0x01, 0x00, 0x01, 0x00, 0xff])
+
+            res = xm.programClear(0x00, 0xa0000100)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x08, 0x00, 0x01, 0x00,
+                0xd1, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0xa0]))
+
+            assert res == b''

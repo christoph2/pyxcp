@@ -150,6 +150,13 @@ class Command(enum.IntEnum):
 
     L1_CMD = 0xC0
 
+
+class L1Command(enum.IntEnum):
+    GET_VERSION = 0x00
+    SET_DAQ_PACKED_MODE = 0x01
+    GET_DAQ_PACKED_MODE = 0x02
+
+
 class CommandCategory(enum.IntEnum):
     STD = 0
     CAL = 1
@@ -157,7 +164,8 @@ class CommandCategory(enum.IntEnum):
     DAQ = 3
     PGM = 4
 
-COMMAND_CATEGORIES = { # Mainly needed to automatically UNLOCK.
+
+COMMAND_CATEGORIES = {  # Mainly needed to automatically UNLOCK.
     Command.CONNECT: CommandCategory.STD,
     Command.DISCONNECT: CommandCategory.STD,
     Command.GET_STATUS: CommandCategory.STD,
@@ -222,15 +230,9 @@ COMMAND_CATEGORIES = { # Mainly needed to automatically UNLOCK.
     Command.PROGRAM_VERIFY: CommandCategory.PGM,
 
     # Well... ?
-    #TIME_CORRELATION_PROPERTIES
-    #L1_CMD
+    # TIME_CORRELATION_PROPERTIES
+    # L1_CMD
 }
-
-class L1Command(enum.IntEnum):
-    GET_VERSION = 0x00
-    SET_DAQ_PACKED_MODE = 0x01  # todo: implement
-    GET_DAQ_PACKED_MODE = 0x02  # todo: implement
-
 
 XcpError = Enum(
     Int8ul,
