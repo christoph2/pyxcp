@@ -42,7 +42,8 @@ class Eth(BaseTransport):
                  protocol='TCP', loglevel="WARN"):
         self.sock = socket.socket(
             socket.AF_INET,
-            socket.SOCK_STREAM if protocol == 'TCP' else socket.SOCK_DGRAM)
+            socket.SOCK_STREAM if protocol == 'TCP' else socket.SOCK_DGRAM
+        )
         self.selector = selectors.DefaultSelector()
         self.selector.register(self.sock, selectors.EVENT_READ)
         self.use_tcp = protocol == 'TCP'
@@ -61,6 +62,11 @@ class Eth(BaseTransport):
         HEADER_SIZE = self.HEADER_SIZE
         use_tcp = self.use_tcp
         processResponse = self.processResponse
+        EVENT_READ = selectors.EVENT_READ
+        
+        close_event_set = self.closeEvent.isSet
+        socket_fileno = self.sock.fileno
+        select = self.selector.select
 
         if use_tcp:
             sock_recv = self.sock.recv
@@ -69,27 +75,35 @@ class Eth(BaseTransport):
 
         while True:
             try:
-                if self.closeEvent.isSet() or self.sock.fileno() == -1:
+                if close_event_set() or socket_fileno() == -1:
                     return
-                sel = self.selector.select(0.1)
+                sel = select(0.1)
                 for _, events in sel:
-                    if events & selectors.EVENT_READ:
+                    if events & EVENT_READ:
                         if use_tcp:
                             header = bytearray()
 
-                            while len(header) < HEADER_SIZE:
-                                new_bytes = sock_recv(
-                                    HEADER_SIZE - len(header))
-                                header.extend(new_bytes)
+                            while 1:
+                                size = len(header) 
+                                if size < HEADER_SIZE:
+                                    header.extend(
+                                        sock_recv(HEADER_SIZE - size)
+                                    )
+                                else:
+                                    break
 
                             length, counter = HEADER_UNPACK(header)
 
                             try:
                                 response = bytearray()
-                                while len(response) < length:
-                                    new_bytes = sock_recv(
-                                        length - len(response))
-                                    response.extend(new_bytes)
+                                while 1:
+                                    size = len(response) 
+                                    if size < length:
+                                        response.extend(
+                                            sock_recv(length - size)
+                                        )
+                                    else:
+                                        break
 
                             except Exception as e:
                                 self.logger.error(str(e))
@@ -97,9 +111,11 @@ class Eth(BaseTransport):
                         else:
                             try:
                                 response, _ = sock_recv(
-                                    Eth.MAX_DATAGRAM_SIZE)
+                                    Eth.MAX_DATAGRAM_SIZE
+                                )
                                 length, counter = HEADER_UNPACK(
-                                    response[:HEADER_SIZE])
+                                    response[:HEADER_SIZE]
+                                )
                                 response = response[HEADER_SIZE:]
                             except Exception as e:
                                 self.logger.error(str(e))

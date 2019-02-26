@@ -32,11 +32,12 @@ __copyright__ = """
 """
 
 import logging
-import struct
 import traceback
 
 from pyxcp import checksum
 from pyxcp import types
+
+from pyxcp.constans import WORD_pack, DWORD_pack, DWORD_unpack
 
 
 class MasterBaseType:
@@ -206,7 +207,7 @@ class MasterBaseType:
         """
         response = self.transport.request(types.Command.GET_ID, mode)
         result = types.GetIDResponse.parse(response)
-        result.length = struct.unpack("<I", response[3:7])[0]
+        result.length = DWORD_unpack(response[3:7])[0]
         return result
 
     def setRequest(self, mode, sessionConfigurationId):
@@ -284,7 +285,7 @@ class MasterBaseType:
                   `downloadNext`, `downloadMax`, `modifyBits`, `programClear`,
                   `program`, `programNext` and `programMax`.
         """
-        addr = struct.pack("<I", address)
+        addr = DWORD_pack(address)
         response = self.transport.request(
             types.Command.SET_MTA, 0, 0, addressExt, *addr)
         return response
@@ -319,7 +320,7 @@ class MasterBaseType:
         -------
         bytes
         """
-        addr = struct.pack("<I", address)
+        addr = DWORD_pack(address)
         response = self.transport.request(
             types.Command.SHORT_UPLOAD, length, 0, addressExt, *addr)
         return response
@@ -341,7 +342,7 @@ class MasterBaseType:
         --------
         Module `pyxcp.checksum`
         """
-        bs = struct.pack("<I", blocksize)
+        bs = DWORD_pack(blocksize)
         response = self.transport.request(
             types.Command.BUILD_CHECKSUM, 0, 0, 0, *bs)
         return types.BuildChecksumResponse.parse(response)
@@ -611,7 +612,7 @@ class MasterBaseType:
         ----------
         daqListNumber : int
         """
-        daqList = struct.pack("<H", daqListNumber)
+        daqList = WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.CLEAR_DAQ_LIST, 0, *daqList)
         return response
@@ -628,7 +629,7 @@ class MasterBaseType:
         addressExt : int
         address : int
         """
-        addr = struct.pack("<I", address)
+        addr = DWORD_pack(address)
         response = self.transport.request(
             types.Command.WRITE_DAQ, bitOffset, entrySize, addressExt, *addr)
         return response
@@ -644,7 +645,7 @@ class MasterBaseType:
         -------
         `pyxcp.types.GetDaqListModeResponse`
         """
-        dln = struct.pack("<H", daqListNumber)
+        dln = WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.GET_DAQ_LIST_MODE, 0, *dln)
         return types.GetDaqListModeResponse.parse(response)
@@ -660,7 +661,7 @@ class MasterBaseType:
             2 = select
         daqListNumber : int
         """
-        dln = struct.pack("<H", daqListNumber)
+        dln = WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.START_STOP_DAQ_LIST, mode, *dln)
         return response
@@ -729,7 +730,7 @@ class MasterBaseType:
         ----------
         daqListNumber : int
         """
-        dln = struct.pack("<H", daqListNumber)
+        dln = WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.GET_DAQ_LIST_INFO, 0, *dln)
         return types.GetDaqListInfoResponse.parse(response)
@@ -745,7 +746,7 @@ class MasterBaseType:
         -------
         `pyxcp.types.GetEventChannelInfoResponse`
         """
-        ecn = struct.pack("<H", eventChannelNumber)
+        ecn = WORD_pack(eventChannelNumber)
         response = self.transport.request(
             types.Command.GET_DAQ_EVENT_INFO, 0, *ecn)
         return types.GetEventChannelInfoResponse.parse(response)
@@ -761,13 +762,13 @@ class MasterBaseType:
         daqPackedMode : int
         """
         params = []
-        dln = struct.pack("<H", daqListNumber)
+        dln = WORD_pack(daqListNumber)
         params.extend(dln)
         params.append(daqPackedMode)
 
         if daqPackedMode == 1 or daqPackedMode == 2:
             params.append(dpmTimestampMode)
-            dsc = struct.pack("<H", dpmSampleCount)
+            dsc = WORD_pack(dpmSampleCount)
             params.extend(dsc)
 
         response = self.transport.request(
@@ -786,7 +787,7 @@ class MasterBaseType:
         ----------
         daqListNumber : int
         """
-        dln = struct.pack("<H", daqListNumber)
+        dln = WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.L1_CMD,
             types.L1Command.GET_DAQ_PACKED_MODE, *dln)
@@ -808,7 +809,7 @@ class MasterBaseType:
         daqCount : int
             number of DAQ lists to be allocated
         """
-        dq = struct.pack("<H", daqCount)
+        dq = WORD_pack(daqCount)
         response = self.transport.request(types.Command.ALLOC_DAQ, 0, *dq)
         return response
 
@@ -833,7 +834,7 @@ class MasterBaseType:
             0x01 = the functional access mode is active
         clearRange : int
         """
-        cr = struct.pack("<I", clearRange)
+        cr = DWORD_pack(clearRange)
         response = self.transport.request(
             types.Command.PROGRAM_CLEAR, mode, 0, 0, *cr)
         # ERR_ACCESS_LOCKED
