@@ -78,6 +78,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     def request(self, cmd, *data):
         self.logger.debug(cmd.name)
+        self.parent._setService(cmd)
         header = self.HEADER.pack(len(data) + 1, self.counterSend)
         self.counterSend += 1
         self.counterSend &= 0xffff
