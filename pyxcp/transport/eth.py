@@ -63,7 +63,7 @@ class Eth(BaseTransport):
         use_tcp = self.use_tcp
         processResponse = self.processResponse
         EVENT_READ = selectors.EVENT_READ
-        
+
         close_event_set = self.closeEvent.isSet
         socket_fileno = self.sock.fileno
         select = self.selector.select
@@ -81,29 +81,44 @@ class Eth(BaseTransport):
                 for _, events in sel:
                     if events & EVENT_READ:
                         if use_tcp:
-                            header = bytearray()
 
-                            while 1:
-                                size = len(header) 
-                                if size < HEADER_SIZE:
-                                    header.extend(
-                                        sock_recv(HEADER_SIZE - size)
-                                    )
-                                else:
-                                    break
+                            # first try to get the header in one go
+                            # if we are lucky this will avoid creating a bytearray
+                            # and extending it
+                            header = sock_recv(HEADER_SIZE)
+                            size = len(header)
+                            if size != HEADER_SIZE:
+
+                                header = bytearray(header)
+
+                                while 1:
+                                    size = len(header)
+                                    if size < HEADER_SIZE:
+                                        header.extend(
+                                            sock_recv(HEADER_SIZE - size)
+                                        )
+                                    else:
+                                        break
 
                             length, counter = HEADER_UNPACK(header)
 
                             try:
-                                response = bytearray()
-                                while 1:
-                                    size = len(response) 
-                                    if size < length:
-                                        response.extend(
-                                            sock_recv(length - size)
-                                        )
-                                    else:
-                                        break
+                                # first try to get the response in one go
+                                # similar to the header
+                                response = sock_recv(length)
+                                size = len(response)
+
+                                if size != length:
+
+                                    response = bytearray(response)
+                                    while 1:
+                                        size = len(response)
+                                        if size < length:
+                                            response.extend(
+                                                sock_recv(length - size)
+                                            )
+                                        else:
+                                            break
 
                             except Exception as e:
                                 self.logger.error(str(e))

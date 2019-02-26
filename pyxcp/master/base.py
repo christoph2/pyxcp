@@ -37,7 +37,7 @@ import traceback
 from pyxcp import checksum
 from pyxcp import types
 
-from pyxcp.constans import WORD_pack, DWORD_pack, DWORD_unpack
+from pyxcp.constants import WORD_pack, DWORD_pack, DWORD_unpack
 
 
 class MasterBaseType:

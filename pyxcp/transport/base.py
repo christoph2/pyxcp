@@ -120,6 +120,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def processResponse(self, response, length, counter):
         self.counterReceived = counter
         if not self.use_tcp:
+            # for TCP this error cannot occur, instead a timeout
+            # will be reaised while waiting for the correct number
+            # of bytes to be received to complete the message
             if len(response) != length:
                 raise types.FrameSizeError("Size mismatch.")
         pid = response[0]
