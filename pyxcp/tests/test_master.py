@@ -1007,3 +1007,12 @@ class TestMaster:
                 0x03, 0x00, 0x05, 0x00, 0xcd, 2, 0x12]))
 
             assert res.sectorNameLength == 0xaa
+
+            ms.push([0x01, 0x00, 0x06, 0x00, 0xff])
+
+            res = xm.programPrepare(0x1234)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x04, 0x00, 0x06, 0x00, 0xcc, 0x00, 0x34, 0x12]))
+
+            assert res == b''

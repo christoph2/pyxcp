@@ -856,8 +856,7 @@ class MasterBaseType:
 
     def programReset(self):
         """Indicate the end of a programming sequence."""
-        response = self.transport.request(types.Command.PROGRAM_RESET)
-        return response
+        return self.transport.request(types.Command.PROGRAM_RESET)
 
     def getPgmProcessorInfo(self):
         """Get general information on PGM processor."""
@@ -872,6 +871,11 @@ class MasterBaseType:
             return types.GetSectorInfoResponseMode01.parse(response)
         elif mode == 2:
             return types.GetSectorInfoResponseMode2.parse(response)
+
+    def programPrepare(self, codesize):
+        """Prepare non-volatile memory programming."""
+        cs = struct.pack("<H", codesize)
+        return self.transport.request(types.Command.PROGRAM_PREPARE, 0x00, *cs)
 
     # Convenience Functions.
     def verify(self, addr, length):

@@ -140,7 +140,7 @@ class Command(enum.IntEnum):
     # Optional Commands
     GET_PGM_PROCESSOR_INFO = 0xCE
     GET_SECTOR_INFO = 0xCD
-    PROGRAM_PREPARE = 0xCC  # todo: implement
+    PROGRAM_PREPARE = 0xCC
     PROGRAM_FORMAT = 0xCB  # todo: implement
     PROGRAM_NEXT = 0xCA  # todo: implement
     PROGRAM_MAX = 0xC9  # todo: implement
