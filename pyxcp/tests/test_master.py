@@ -985,3 +985,25 @@ class TestMaster:
             assert res.pgmProperties.nonSeqPgmRequired is True
             assert res.pgmProperties.nonSeqPgmSupported is False
             assert res.maxSector == 0xbb
+
+            ms.push([0x08, 0x00, 0x04, 0x00,
+                     0xff, 0xaa, 0xbb, 0xcc, 0x78, 0x56, 0x34, 0x12])
+
+            res = xm.getSectorInfo(0, 0x12)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x03, 0x00, 0x04, 0x00, 0xcd, 0, 0x12]))
+
+            assert res.clearSequenceNumber == 0xaa
+            assert res.programSequenceNumber == 0xbb
+            assert res.programmingMethod == 0xcc
+            assert res.sectorInfo == 0x12345678
+
+            ms.push([0x02, 0x00, 0x05, 0x00, 0xff, 0xaa])
+
+            res = xm.getSectorInfo(2, 0x12)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x03, 0x00, 0x05, 0x00, 0xcd, 2, 0x12]))
+
+            assert res.sectorNameLength == 0xaa

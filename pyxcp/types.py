@@ -138,8 +138,8 @@ class Command(enum.IntEnum):
     PROGRAM_RESET = 0xCF
 
     # Optional Commands
-    GET_PGM_PROCESSOR_INFO = 0xCE  # todo: implement
-    GET_SECTOR_INFO = 0xCD  # todo: implement
+    GET_PGM_PROCESSOR_INFO = 0xCE
+    GET_SECTOR_INFO = 0xCD
     PROGRAM_PREPARE = 0xCC  # todo: implement
     PROGRAM_FORMAT = 0xCB  # todo: implement
     PROGRAM_NEXT = 0xCA  # todo: implement
@@ -638,4 +638,15 @@ PgmProperties = BitStruct(
 GetPgmProcessorInfoResponse = Struct(
     "pgmProperties" / PgmProperties,
     "maxSector" / Int8ul
+)
+
+GetSectorInfoResponseMode01 = Struct(
+    "clearSequenceNumber" / Int8ul,
+    "programSequenceNumber" / Int8ul,
+    "programmingMethod" / Int8ul,
+    "sectorInfo" / Int32ul,
+)
+
+GetSectorInfoResponseMode2 = Struct(
+    "sectorNameLength" / Int8ul
 )

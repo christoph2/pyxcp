@@ -864,6 +864,15 @@ class MasterBaseType:
         response = self.transport.request(types.Command.GET_PGM_PROCESSOR_INFO)
         return types.GetPgmProcessorInfoResponse.parse(response)
 
+    def getSectorInfo(self, mode, sectorNumber):
+        """Get specific information for a sector."""
+        response = self.transport.request(
+            types.Command.GET_SECTOR_INFO, mode, sectorNumber)
+        if mode == 0 or mode == 1:
+            return types.GetSectorInfoResponseMode01.parse(response)
+        elif mode == 2:
+            return types.GetSectorInfoResponseMode2.parse(response)
+
     # Convenience Functions.
     def verify(self, addr, length):
         """Convenience function for verification of a data-transfer from slave
