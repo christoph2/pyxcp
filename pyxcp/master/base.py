@@ -36,9 +36,8 @@ import traceback
 
 from pyxcp import checksum
 from pyxcp import types
-
 from pyxcp.constants import WORD_pack, DWORD_pack, DWORD_unpack
-
+from pyxcp.master.errorhandler import wrapped
 
 class MasterBaseType:
     """Common part of lowlevel XCP API.
@@ -70,7 +69,7 @@ class MasterBaseType:
         self.close()
         if exc_type is None:
             return
-        else:
+        else:a
             self.succeeded = False
             # print("=" * 79)
             # print("Exception while in Context-Manager:\n")
@@ -98,6 +97,7 @@ class MasterBaseType:
         self.transport.close()
 
     # Mandatory Commands.
+    @wrapped
     def connect(self):
         """Build up connection to an XCP slave.
 
@@ -129,6 +129,7 @@ class MasterBaseType:
         self.supportsCalpag = result.resource.calpag
         return result
 
+    @wrapped
     def disconnect(self):
         """Releases the connection to the XCP slave.
 
@@ -150,6 +151,7 @@ class MasterBaseType:
         response = self.transport.request(types.Command.DISCONNECT)
         return response
 
+    @wrapped
     def getStatus(self):
         """Get current status information of the slave device.
 
@@ -164,6 +166,7 @@ class MasterBaseType:
         result = types.GetStatusResponse.parse(response)
         return result
 
+    @wrapped
     def synch(self):
         """Synchronize command execution after timeout conditions.
 
@@ -171,6 +174,7 @@ class MasterBaseType:
         response = self.transport.request(types.Command.SYNCH)
         return response
 
+    @wrapped
     def getCommModeInfo(self):
         """Get optional information on different Communication Modes supported
         by the slave.
@@ -183,6 +187,7 @@ class MasterBaseType:
         result = types.GetCommModeInfoResponse.parse(response)
         return result
 
+    @wrapped
     def getId(self, mode):
         """This command is used for automatic session configuration and for
         slave device identification.
@@ -210,6 +215,7 @@ class MasterBaseType:
         result.length = DWORD_unpack(response[3:7])[0]
         return result
 
+    @wrapped
     def setRequest(self, mode, sessionConfigurationId):
         """Request to save to non-volatile memory.
 
@@ -231,6 +237,7 @@ class MasterBaseType:
             sessionConfigurationId >> 8, sessionConfigurationId & 0xff)
         return response
 
+    @wrapped
     def getSeed(self, first, resource):
         """Get seed from slave for unlocking a protected resource.
 
@@ -245,12 +252,13 @@ class MasterBaseType:
 
         Returns
         -------
-        TODO: Add structure to pydbc.types
+        TODO: `pydbc.types.GetSeedResponse`
         """
         response = self.transport.request(
             types.Command.GET_SEED, first, resource)
-        return response[0], response[1:]
+        return types.GetSeedResponse.parse(response)
 
+    @wrapped
     def unlock(self, length, key):
         """Send key to slave for unlocking a protected resource.
 
@@ -273,6 +281,7 @@ class MasterBaseType:
         response = self.transport.request(types.Command.UNLOCK, length, *key)
         return types.ResourceType.parse(response)
 
+    @wrapped
     def setMta(self, address, addressExt=0x00):
         """Set Memory Transfer Address in slave.
 
@@ -290,6 +299,7 @@ class MasterBaseType:
             types.Command.SET_MTA, 0, 0, addressExt, *addr)
         return response
 
+    @wrapped
     def upload(self, length):
         """Transfer data from slave to master.
 
@@ -307,6 +317,7 @@ class MasterBaseType:
         response = self.transport.request(types.Command.UPLOAD, length)
         return response
 
+    @wrapped
     def shortUpload(self, length, address, addressExt=0x00):
         """Transfer data from slave to master.
         As opposed to `upload` this service includes address information.
@@ -325,6 +336,7 @@ class MasterBaseType:
             types.Command.SHORT_UPLOAD, length, 0, addressExt, *addr)
         return response
 
+    @wrapped
     def buildChecksum(self, blocksize):
         """Build checksum over memory range.
 
@@ -347,6 +359,7 @@ class MasterBaseType:
             types.Command.BUILD_CHECKSUM, 0, 0, 0, *bs)
         return types.BuildChecksumResponse.parse(response)
 
+    @wrapped
     def transportLayerCmd(self, subCommand, *data):
         """Execute transfer-layer specific command.
 
@@ -365,6 +378,7 @@ class MasterBaseType:
             types.Command.TRANSPORT_LAYER_CMD, subCommand, *data)
         return response
 
+    @wrapped
     def userCmd(self, subCommand, *data):
         """Execute proprietary command implemented in your XCP client.
 
@@ -384,6 +398,7 @@ class MasterBaseType:
             types.Command.USER_CMD, subCommand, *data)
         return response
 
+    @wrapped
     def getVersion(self):
         """Get version information.
 
@@ -438,6 +453,7 @@ class MasterBaseType:
         return bytes(result)
 
     # Calibration Commands (CAL)
+    @wrapped
     def download(self, *data):
         """Transfer data from master to slave.
 
@@ -453,6 +469,7 @@ class MasterBaseType:
             types.Command.DOWNLOAD, length, *data)
         return response
 
+    @wrapped
     def downloadNext(self, *data):
         """Transfer data from master to slave (block mode).
 
@@ -466,6 +483,7 @@ class MasterBaseType:
             types.Command.DOWNLOAD_NEXT, length, *data)
         return response
 
+    @wrapped
     def downloadMax(self, *data):
         """Transfer data from master to slave (fixed size).
 
@@ -477,6 +495,7 @@ class MasterBaseType:
         return response
 
     # Page Switching Commands (PAG)
+    @wrapped
     def setCalPage(self, mode, logicalDataSegment, logicalDataPage):
         """Set calibration page.
 
@@ -495,6 +514,7 @@ class MasterBaseType:
             logicalDataPage)
         return response
 
+    @wrapped
     def getCalPage(self, mode, logicalDataSegment):
         """Get calibration page
 
@@ -507,6 +527,7 @@ class MasterBaseType:
             types.Command.GET_CAL_PAGE, mode, logicalDataSegment)
         return response[2]
 
+    @wrapped
     def getPagProcessorInfo(self):
         """Get general information on PAG processor.
 
@@ -517,6 +538,7 @@ class MasterBaseType:
         response = self.transport.request(types.Command.GET_PAG_PROCESSOR_INFO)
         return types.GetPagProcessorInfoResponse.parse(response)
 
+    @wrapped
     def getSegmentInfo(self, mode, segmentNumber, segmentInfo, mappingIndex):
         """Get specific information for a segment.
 
@@ -553,6 +575,7 @@ class MasterBaseType:
         elif mode == 2:
             return types.GetSegmentInfoMode2Response.parse(response)
 
+    @wrapped
     def getPageInfo(self, segmentNumber, pageNumber):
         """Get specific information for a page.
 
@@ -565,6 +588,7 @@ class MasterBaseType:
             types.Command.GET_PAGE_INFO, 0, segmentNumber, pageNumber)
         return (types.PageProperties.parse(bytes([response[0]])), response[1])
 
+    @wrapped
     def setSegmentMode(self, mode, segmentNumber):
         """Set mode for a segment.
 
@@ -578,6 +602,7 @@ class MasterBaseType:
             types.Command.SET_SEGMENT_MODE, mode, segmentNumber)
         return response
 
+    @wrapped
     def getSegmentMode(self, segmentNumber):
         """Get mode for a segment.
 
@@ -589,6 +614,7 @@ class MasterBaseType:
             types.Command.GET_SEGMENT_MODE, 0, segmentNumber)
         return response[1]
 
+    @wrapped
     def copyCalPage(self, srcSegment, srcPage, dstSegment, dstPage):
         """Copy page.
 
@@ -605,6 +631,7 @@ class MasterBaseType:
         return response
 
     # DAQ
+    @wrapped
     def clearDaqList(self, daqListNumber):
         """Clear DAQ list configuration.
 
@@ -617,6 +644,7 @@ class MasterBaseType:
             types.Command.CLEAR_DAQ_LIST, 0, *daqList)
         return response
 
+    @wrapped
     def writeDaq(self, bitOffset, entrySize, addressExt, address):
         """Write element in ODT entry.
 
@@ -634,6 +662,7 @@ class MasterBaseType:
             types.Command.WRITE_DAQ, bitOffset, entrySize, addressExt, *addr)
         return response
 
+    @wrapped
     def getDaqListMode(self, daqListNumber):
         """Get mode from DAQ list.
 
@@ -650,6 +679,7 @@ class MasterBaseType:
             types.Command.GET_DAQ_LIST_MODE, 0, *dln)
         return types.GetDaqListModeResponse.parse(response)
 
+    @wrapped
     def startStopDaqList(self, mode, daqListNumber):
         """Start /stop/select DAQ list.
 
@@ -666,6 +696,7 @@ class MasterBaseType:
             types.Command.START_STOP_DAQ_LIST, mode, *dln)
         return response
 
+    @wrapped
     def startStopSynch(self, mode):
         """Start/stop DAQ lists (synchronously).
 
@@ -680,6 +711,7 @@ class MasterBaseType:
         return response
 
     # optional
+    @wrapped
     def getDaqClock(self):
         """Get DAQ clock from slave.
 
@@ -692,6 +724,7 @@ class MasterBaseType:
         result = types.GetDaqClockResponse.parse(response)
         return result.timestamp
 
+    @wrapped
     def readDaq(self):
         """Read element from ODT entry.
 
@@ -702,6 +735,7 @@ class MasterBaseType:
         response = self.transport.request(types.Command.READ_DAQ)
         return types.ReadDaqResponse.parse(response)
 
+    @wrapped
     def getDaqProcessorInfo(self):
         """Get general information on DAQ processor.
 
@@ -712,6 +746,7 @@ class MasterBaseType:
         response = self.transport.request(types.Command.GET_DAQ_PROCESSOR_INFO)
         return types.GetDaqProcessorInfoResponse.parse(response)
 
+    @wrapped
     def getDaqResolutionInfo(self):
         """Get general information on DAQ processing resolution.
 
@@ -723,6 +758,7 @@ class MasterBaseType:
             types.Command.GET_DAQ_RESOLUTION_INFO)
         return types.GetDaqResolutionInfoResponse.parse(response)
 
+    @wrapped
     def getDaqListInfo(self, daqListNumber):
         """Get specific information for a DAQ list.
 
@@ -735,6 +771,7 @@ class MasterBaseType:
             types.Command.GET_DAQ_LIST_INFO, 0, *dln)
         return types.GetDaqListInfoResponse.parse(response)
 
+    @wrapped
     def getDaqEventInfo(self, eventChannelNumber):
         """Get specific information for an event channel.
 
@@ -751,6 +788,7 @@ class MasterBaseType:
             types.Command.GET_DAQ_EVENT_INFO, 0, *ecn)
         return types.GetEventChannelInfoResponse.parse(response)
 
+    @wrapped
     def setDaqPackedMode(
             self, daqListNumber, daqPackedMode,
             dpmTimestampMode=None, dpmSampleCount=None):
@@ -777,6 +815,7 @@ class MasterBaseType:
             *params)
         return response
 
+    @wrapped
     def getDaqPackedMode(self, daqListNumber):
         """Get DAQ List Packed Mode.
 
@@ -795,12 +834,14 @@ class MasterBaseType:
         return result
 
     # dynamic
+    @wrapped
     def freeDaq(self):
         """Clear dynamic DAQ configuration.
         """
         response = self.transport.request(types.Command.FREE_DAQ)
         return response
 
+    @wrapped
     def allocDaq(self, daqCount):
         """Allocate DAQ lists.
 
@@ -814,6 +855,7 @@ class MasterBaseType:
         return response
 
     # PGM
+    @wrapped
     def programStart(self):
         """Indicate the beginning of a programming sequence.
 
@@ -824,6 +866,7 @@ class MasterBaseType:
         response = self.transport.request(types.Command.PROGRAM_START)
         return types.ProgramStartResponse.parse(response)
 
+    @wrapped
     def programClear(self, mode, clearRange):
         """Clear a part of non-volatile memory.
 
@@ -840,6 +883,7 @@ class MasterBaseType:
         # ERR_ACCESS_LOCKED
         return response
 
+    @wrapped
     def program(self):
         """
         PROGRAM
