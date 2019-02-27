@@ -1,7 +1,6 @@
 pytest
 pytest-runner
-enum34
-construct>=2.8
+construct>=2.9
 mako
 pyserial
 numpydoc
