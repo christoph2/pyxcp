@@ -965,3 +965,12 @@ class TestMaster:
                 0xd1, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0xa0]))
 
             assert res == b''
+
+            ms.push([0x01, 0x00, 0x02, 0x00, 0xff])
+
+            res = xm.programReset()
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x01, 0x00, 0x02, 0x00, 0xcf]))
+
+            assert res == b''

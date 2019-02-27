@@ -854,6 +854,12 @@ class MasterBaseType:
         ELEMENT Data elements
         """
 
+    def programReset(self):
+        """Indicate the end of a programming sequence.
+        """
+        response = self.transport.request(types.Command.PROGRAM_RESET)
+        return response
+
     # Convenience Functions.
     def verify(self, addr, length):
         """Convenience function for verification of a data-transfer from slave

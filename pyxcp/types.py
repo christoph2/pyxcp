@@ -135,7 +135,7 @@ class Command(enum.IntEnum):
     PROGRAM_START = 0xD2
     PROGRAM_CLEAR = 0xD1
     PROGRAM = 0xD0  # todo: implement
-    PROGRAM_RESET = 0xCF  # todo: implement
+    PROGRAM_RESET = 0xCF
 
     # Optional Commands
     GET_PGM_PROCESSOR_INFO = 0xCE  # todo: implement
