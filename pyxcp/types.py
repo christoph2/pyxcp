@@ -623,3 +623,19 @@ ProgramStartResponse = Struct(
     "minStPgm" / Int8ul,
     "queueSizePgm" / Int8ul,
 )
+
+PgmProperties = BitStruct(
+    "nonSeqPgmRequired" / Flag,
+    "nonSeqPgmSupported" / Flag,
+    "encryptionRequired" / Flag,
+    "encryptionSupported" / Flag,
+    "compressionRequired" / Flag,
+    "compressionSupported" / Flag,
+    "functionalMode" / Flag,
+    "absoluteMode" / Flag
+)
+
+GetPgmProcessorInfoResponse = Struct(
+    "pgmProperties" / PgmProperties,
+    "maxSector" / Int8ul
+)

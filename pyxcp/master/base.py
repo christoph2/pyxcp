@@ -855,10 +855,14 @@ class MasterBaseType:
         """
 
     def programReset(self):
-        """Indicate the end of a programming sequence.
-        """
+        """Indicate the end of a programming sequence."""
         response = self.transport.request(types.Command.PROGRAM_RESET)
         return response
+
+    def getPgmProcessorInfo(self):
+        """Get general information on PGM processor."""
+        response = self.transport.request(types.Command.GET_PGM_PROCESSOR_INFO)
+        return types.GetPgmProcessorInfoResponse.parse(response)
 
     # Convenience Functions.
     def verify(self, addr, length):

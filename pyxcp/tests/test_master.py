@@ -974,3 +974,14 @@ class TestMaster:
                 0x01, 0x00, 0x02, 0x00, 0xcf]))
 
             assert res == b''
+
+            ms.push([0x03, 0x00, 0x03, 0x00, 0xff, 0xaa, 0xbb])
+
+            res = xm.getPgmProcessorInfo()
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x01, 0x00, 0x03, 0x00, 0xce]))
+
+            assert res.pgmProperties.nonSeqPgmRequired is True
+            assert res.pgmProperties.nonSeqPgmSupported is False
+            assert res.maxSector == 0xbb
