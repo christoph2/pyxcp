@@ -46,7 +46,6 @@ class Master(MasterBaseType):
 
     @wrapped
     def modifyBits(self, shiftValue, andMask, xorMask):
-        # A = ( (A) & ((~((dword)(((word)~MA)<<S))) )^((dword)(MX<<S)) )
         am = struct.pack("<H", andMask)
         xm = struct.pack("<H", xorMask)
         response = self.transport.request(

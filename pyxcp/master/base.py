@@ -252,11 +252,11 @@ class MasterBaseType:
 
         Returns
         -------
-        TODO: Add structure to pydbc.types
+        TODO: `pydbc.types.GetSeedResponse`
         """
         response = self.transport.request(
             types.Command.GET_SEED, first, resource)
-        return response[0], response[1:]
+        return types.GetSeedResponse.parse(response)
 
     @wrapped
     def unlock(self, length, key):
