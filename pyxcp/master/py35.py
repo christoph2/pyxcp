@@ -23,11 +23,11 @@ __copyright__ = """
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-import struct
-
 from pyxcp.master.base import MasterBaseType
 from pyxcp.master.errorhandler import wrapped
 from pyxcp import types
+
+from pyxcp.constants import DWORD_pack, WORD_pack
 
 
 class Master(MasterBaseType):
@@ -36,7 +36,7 @@ class Master(MasterBaseType):
     @wrapped
     def shortDownload(self, address, addressExt, *data):
         length = len(data)
-        addr = struct.pack("<I", address)
+        addr = DWORD_pack(address)
         response = self.transport.request(
             types.Command.SHORT_DOWNLOAD, length, 0, addressExt, *addr, *data)
         return response
@@ -44,15 +44,15 @@ class Master(MasterBaseType):
     @wrapped
     def modifyBits(self, shiftValue, andMask, xorMask):
         # A = ( (A) & ((~((dword)(((word)~MA)<<S))) )^((dword)(MX<<S)) )
-        am = struct.pack("<H", andMask)
-        xm = struct.pack("<H", xorMask)
+        am = WORD_pack(andMask)
+        xm = WORD_pack(xorMask)
         response = self.transport.request(
             types.Command.MODIFY_BITS, shiftValue, *am, *xm)
         return response
 
     @wrapped
     def setDaqPtr(self, daqListNumber, odtNumber, odtEntryNumber):
-        daqList = struct.pack("<H", daqListNumber)
+        daqList = WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.SET_DAQ_PTR, 0, *daqList, odtNumber, odtEntryNumber)
         return response
@@ -60,8 +60,8 @@ class Master(MasterBaseType):
     @wrapped
     def setDaqListMode(self, mode, daqListNumber, eventChannelNumber,
                        prescaler, priority):
-        dln = struct.pack("<H", daqListNumber)
-        ecn = struct.pack("<H", eventChannelNumber)
+        dln = WORD_pack(daqListNumber)
+        ecn = WORD_pack(eventChannelNumber)
         response = self.transport.request(
             types.Command.SET_DAQ_LIST_MODE,
             mode, *dln, *ecn, prescaler, priority)
@@ -69,14 +69,14 @@ class Master(MasterBaseType):
 
     @wrapped
     def allocOdt(self, daqListNumber, odtCount):
-        dln = struct.pack("<H", daqListNumber)
+        dln = WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.ALLOC_ODT, 0, *dln, odtCount)
         return response
 
     @wrapped
     def allocOdtEntry(self, daqListNumber, odtNumber, odtEntriesCount):
-        dln = struct.pack("<H", daqListNumber)
+        dln = WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.ALLOC_ODT_ENTRY, 0, *dln, odtNumber, odtEntriesCount)
         return response

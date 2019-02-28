@@ -80,8 +80,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.logger.debug(cmd.name)
         self.parent._setService(cmd)
         header = self.HEADER.pack(len(data) + 1, self.counterSend)
-        self.counterSend += 1
-        self.counterSend &= 0xffff
+        self.counterSend = (self.counterSend + 1) & 0xffff
+
         frame = header + bytes(flatten(cmd, data))
         self.logger.debug("-> {}".format(hexDump(frame)))
         self.timing.start()
@@ -119,9 +119,12 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     def processResponse(self, response, length, counter):
         self.counterReceived = counter
-        response = response
-        if len(response) != length:
-            raise types.FrameSizeError("Size mismatch.")
+        if not self.use_tcp:
+            # for TCP this error cannot occur, instead a timeout
+            # will be reaised while waiting for the correct number
+            # of bytes to be received to complete the message
+            if len(response) != length:
+                raise types.FrameSizeError("Size mismatch.")
         pid = response[0]
         if pid >= 0xFC:
             self.logger.debug(
