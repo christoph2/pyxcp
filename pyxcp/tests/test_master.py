@@ -930,3 +930,89 @@ class TestMaster:
             assert res.daqPackedMode == "EVENT_GROUPED"
             assert res.dpmTimestampMode == 0x01
             assert res.dpmSampleCount == 0x1234
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testPgmCommands(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push([0x07, 0x00, 0x00, 0x00,
+                     0xff, 0x00, 0x01, 0x08, 0x2a, 0xff, 0x55])
+
+            res = xm.programStart()
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x01, 0x00, 0x00, 0x00, 0xd2]))
+
+            assert res.commModePgm.masterBlockMode is True
+            assert res.commModePgm.interleavedMode is False
+            assert res.commModePgm.slaveBlockMode is False
+            assert res.maxCtoPgm == 8
+            assert res.maxBsPgm == 0x2a
+            assert res.minStPgm == 0xff
+            assert res.queueSizePgm == 0x55
+
+            ms.push([0x01, 0x00, 0x01, 0x00, 0xff])
+
+            res = xm.programClear(0x00, 0xa0000100)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x08, 0x00, 0x01, 0x00,
+                0xd1, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0xa0]))
+
+            assert res == b''
+
+            ms.push([0x01, 0x00, 0x02, 0x00, 0xff])
+
+            res = xm.programReset()
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x01, 0x00, 0x02, 0x00, 0xcf]))
+
+            assert res == b''
+
+            ms.push([0x03, 0x00, 0x03, 0x00, 0xff, 0xaa, 0xbb])
+
+            res = xm.getPgmProcessorInfo()
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x01, 0x00, 0x03, 0x00, 0xce]))
+
+            assert res.pgmProperties.nonSeqPgmRequired is True
+            assert res.pgmProperties.nonSeqPgmSupported is False
+            assert res.maxSector == 0xbb
+
+            ms.push([0x08, 0x00, 0x04, 0x00,
+                     0xff, 0xaa, 0xbb, 0xcc, 0x78, 0x56, 0x34, 0x12])
+
+            res = xm.getSectorInfo(0, 0x12)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x03, 0x00, 0x04, 0x00, 0xcd, 0, 0x12]))
+
+            assert res.clearSequenceNumber == 0xaa
+            assert res.programSequenceNumber == 0xbb
+            assert res.programmingMethod == 0xcc
+            assert res.sectorInfo == 0x12345678
+
+            ms.push([0x02, 0x00, 0x05, 0x00, 0xff, 0xaa])
+
+            res = xm.getSectorInfo(2, 0x12)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x03, 0x00, 0x05, 0x00, 0xcd, 2, 0x12]))
+
+            assert res.sectorNameLength == 0xaa
+
+            ms.push([0x01, 0x00, 0x06, 0x00, 0xff])
+
+            res = xm.programPrepare(0x1234)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x04, 0x00, 0x06, 0x00, 0xcc, 0x00, 0x34, 0x12]))
+
+            assert res == b''

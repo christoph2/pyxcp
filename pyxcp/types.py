@@ -135,12 +135,12 @@ class Command(enum.IntEnum):
     PROGRAM_START = 0xD2
     PROGRAM_CLEAR = 0xD1
     PROGRAM = 0xD0  # todo: implement
-    PROGRAM_RESET = 0xCF  # todo: implement
+    PROGRAM_RESET = 0xCF
 
     # Optional Commands
-    GET_PGM_PROCESSOR_INFO = 0xCE  # todo: implement
-    GET_SECTOR_INFO = 0xCD  # todo: implement
-    PROGRAM_PREPARE = 0xCC  # todo: implement
+    GET_PGM_PROCESSOR_INFO = 0xCE
+    GET_SECTOR_INFO = 0xCD
+    PROGRAM_PREPARE = 0xCC
     PROGRAM_FORMAT = 0xCB  # todo: implement
     PROGRAM_NEXT = 0xCA  # todo: implement
     PROGRAM_MAX = 0xC9  # todo: implement
@@ -150,6 +150,13 @@ class Command(enum.IntEnum):
 
     L1_CMD = 0xC0
 
+
+class L1Command(enum.IntEnum):
+    GET_VERSION = 0x00
+    SET_DAQ_PACKED_MODE = 0x01
+    GET_DAQ_PACKED_MODE = 0x02
+
+
 class CommandCategory(enum.IntEnum):
     STD = 0
     CAL = 1
@@ -157,7 +164,8 @@ class CommandCategory(enum.IntEnum):
     DAQ = 3
     PGM = 4
 
-COMMAND_CATEGORIES = { # Mainly needed to automatically UNLOCK.
+
+COMMAND_CATEGORIES = {  # Mainly needed to automatically UNLOCK.
     Command.CONNECT: CommandCategory.STD,
     Command.DISCONNECT: CommandCategory.STD,
     Command.GET_STATUS: CommandCategory.STD,
@@ -222,15 +230,9 @@ COMMAND_CATEGORIES = { # Mainly needed to automatically UNLOCK.
     Command.PROGRAM_VERIFY: CommandCategory.PGM,
 
     # Well... ?
-    #TIME_CORRELATION_PROPERTIES
-    #L1_CMD
+    # TIME_CORRELATION_PROPERTIES
+    # L1_CMD
 }
-
-class L1Command(enum.IntEnum):
-    GET_VERSION = 0x00
-    SET_DAQ_PACKED_MODE = 0x01  # todo: implement
-    GET_DAQ_PACKED_MODE = 0x02  # todo: implement
-
 
 XcpError = Enum(
     Int8ul,
@@ -625,4 +627,31 @@ ProgramStartResponse = Struct(
     "maxBsPgm" / Int8ul,
     "minStPgm" / Int8ul,
     "queueSizePgm" / Int8ul,
+)
+
+PgmProperties = BitStruct(
+    "nonSeqPgmRequired" / Flag,
+    "nonSeqPgmSupported" / Flag,
+    "encryptionRequired" / Flag,
+    "encryptionSupported" / Flag,
+    "compressionRequired" / Flag,
+    "compressionSupported" / Flag,
+    "functionalMode" / Flag,
+    "absoluteMode" / Flag
+)
+
+GetPgmProcessorInfoResponse = Struct(
+    "pgmProperties" / PgmProperties,
+    "maxSector" / Int8ul
+)
+
+GetSectorInfoResponseMode01 = Struct(
+    "clearSequenceNumber" / Int8ul,
+    "programSequenceNumber" / Int8ul,
+    "programmingMethod" / Int8ul,
+    "sectorInfo" / Int32ul,
+)
+
+GetSectorInfoResponseMode2 = Struct(
+    "sectorNameLength" / Int8ul
 )

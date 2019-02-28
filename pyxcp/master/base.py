@@ -55,7 +55,10 @@ class MasterBaseType:
         self.logger = logging.getLogger("pyXCP")
         self.logger.setLevel(loglevel)
         self.transport = transport
-        self.transport.parent = self # In some cases the transport-layer needs to communicate with us.
+
+        # In some cases the transport-layer needs to communicate with us.
+        self.transport.parent = self
+
         self.service = None
 
     def __enter__(self):
@@ -895,6 +898,29 @@ class MasterBaseType:
             AG>1: AG MAX_CTO-AG
         ELEMENT Data elements
         """
+
+    def programReset(self):
+        """Indicate the end of a programming sequence."""
+        return self.transport.request(types.Command.PROGRAM_RESET)
+
+    def getPgmProcessorInfo(self):
+        """Get general information on PGM processor."""
+        response = self.transport.request(types.Command.GET_PGM_PROCESSOR_INFO)
+        return types.GetPgmProcessorInfoResponse.parse(response)
+
+    def getSectorInfo(self, mode, sectorNumber):
+        """Get specific information for a sector."""
+        response = self.transport.request(
+            types.Command.GET_SECTOR_INFO, mode, sectorNumber)
+        if mode == 0 or mode == 1:
+            return types.GetSectorInfoResponseMode01.parse(response)
+        elif mode == 2:
+            return types.GetSectorInfoResponseMode2.parse(response)
+
+    def programPrepare(self, codesize):
+        """Prepare non-volatile memory programming."""
+        cs = struct.pack("<H", codesize)
+        return self.transport.request(types.Command.PROGRAM_PREPARE, 0x00, *cs)
 
     # Convenience Functions.
     def verify(self, addr, length):
