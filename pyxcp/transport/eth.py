@@ -91,14 +91,11 @@ class Eth(BaseTransport):
 
                                 header = bytearray(header)
 
-                                while 1:
-                                    size = len(header)
-                                    if size < HEADER_SIZE:
-                                        header.extend(
-                                            sock_recv(HEADER_SIZE - size)
-                                        )
-                                    else:
-                                        break
+                                while len(header) != HEADER_SIZE:
+                                    header.extend(
+                                        sock_recv(HEADER_SIZE - len(header))
+                                    )
+
 
                             length, counter = HEADER_UNPACK(header)
 
@@ -111,14 +108,10 @@ class Eth(BaseTransport):
                                 if size != length:
 
                                     response = bytearray(response)
-                                    while 1:
-                                        size = len(response)
-                                        if size < length:
-                                            response.extend(
-                                                sock_recv(length - size)
-                                            )
-                                        else:
-                                            break
+                                    while len(response) != length:
+                                        response.extend(
+                                            sock_recv(length - len(response))
+                                        )
 
                             except Exception as e:
                                 self.logger.error(str(e))

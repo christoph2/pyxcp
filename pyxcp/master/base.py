@@ -69,7 +69,7 @@ class MasterBaseType:
         self.close()
         if exc_type is None:
             return
-        else:a
+        else:
             self.succeeded = False
             # print("=" * 79)
             # print("Exception while in Context-Manager:\n")
