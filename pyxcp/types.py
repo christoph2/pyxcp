@@ -372,7 +372,7 @@ GetIDResponse = Struct(
 
 GetSeedResponse = Struct(
     "length" / Int8ul,
-    "seed" / If (this.length > 0, Byte[this.length])
+    "seed" / If(this.length > 0, Byte[this.length])
 )
 
 SetRequestMode = BitStruct(

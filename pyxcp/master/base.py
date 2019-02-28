@@ -39,6 +39,7 @@ from pyxcp import types
 from pyxcp.constants import WORD_pack, DWORD_pack, DWORD_unpack
 from pyxcp.master.errorhandler import wrapped
 
+
 class MasterBaseType:
     """Common part of lowlevel XCP API.
 
@@ -919,7 +920,7 @@ class MasterBaseType:
 
     def programPrepare(self, codesize):
         """Prepare non-volatile memory programming."""
-        cs = struct.pack("<H", codesize)
+        cs = WORD_pack(codesize)
         return self.transport.request(types.Command.PROGRAM_PREPARE, 0x00, *cs)
 
     # Convenience Functions.
