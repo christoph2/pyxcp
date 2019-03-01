@@ -28,5 +28,3 @@ import struct
 WORD_pack = struct.Struct("<H").pack
 DWORD_pack = struct.Struct("<I").pack
 DWORD_unpack = struct.Struct("<I").unpack
-
-

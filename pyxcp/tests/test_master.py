@@ -11,7 +11,7 @@ from pyxcp import transport
 
 class MockSocket:
     def __init__(self):
-        self.data = []
+        self.data = bytearray()
 
     def push(self, data):
         self.data.extend(data)
@@ -124,9 +124,7 @@ class TestMaster:
         mock_selector.return_value.select.side_effect = ms.select
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
-            ms.push([
-                0x08, 0x00, 0x00, 0x00,
-                0xff, 0x1d, 0xc0, 0xff, 0xdc, 0x05, 0x01, 0x01])
+            ms.push(bytes.fromhex("08 00 00 00 FF 1D C0 FF DC 05 01 01"))
 
             res = xm.connect()
 
@@ -148,9 +146,7 @@ class TestMaster:
             assert xm.maxCto == res.maxCto
             assert xm.maxDto == res.maxDto
 
-            ms.push([
-                0x06, 0x00, 0x01, 0x00,
-                0xff, 0x0, 0x01, 0x05, 0x01, 0x04])
+            ms.push(bytes.fromhex("06 00 01 00 FF 00 01 05 01 04"))
 
             res = xm.getVersion()
 
@@ -332,8 +328,8 @@ class TestMaster:
         mock_socket.return_value.send.assert_called_with(bytes(
             [0x03, 0x00, 0x00, 0x00, 0xf8, 0x00, 0x00]))
 
-        assert res[0] == 4
-        assert res[1] == b'\x12\x34\x56\x78'
+        assert res.length == 4
+        assert res.seed == list(b'\x12\x34\x56\x78')
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')

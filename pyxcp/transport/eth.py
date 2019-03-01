@@ -83,8 +83,8 @@ class Eth(BaseTransport):
                         if use_tcp:
 
                             # first try to get the header in one go
-                            # if we are lucky this will avoid creating a bytearray
-                            # and extending it
+                            # if we are lucky this will avoid creating a
+                            # bytearray and extending it
                             header = sock_recv(HEADER_SIZE)
                             size = len(header)
                             if size != HEADER_SIZE:
@@ -95,7 +95,6 @@ class Eth(BaseTransport):
                                     header.extend(
                                         sock_recv(HEADER_SIZE - len(header))
                                     )
-
 
                             length, counter = HEADER_UNPACK(header)
 
