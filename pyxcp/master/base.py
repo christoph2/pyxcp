@@ -36,7 +36,7 @@ import traceback
 
 from pyxcp import checksum
 from pyxcp import types
-from pyxcp.constants import WORD_pack, DWORD_pack, DWORD_unpack
+from pyxcp.constants import (makeWordPacker, makeDWordPacker, makeWordUnpacker, makeDWordUnpacker)
 from pyxcp.master.errorhandler import wrapped
 
 
@@ -59,8 +59,13 @@ class MasterBaseType:
 
         # In some cases the transport-layer needs to communicate with us.
         self.transport.parent = self
-
         self.service = None
+
+        # (D)Word (un-)packers are byte-order dependent -- byte-order is returned by CONNECT_Resp (COMM_MODE_BASIC)
+        self.WORD_pack = None
+        self.WORD_unpack = None
+        self.DWORD_pack = None
+        self.DWORD_unpack = None
 
     def __enter__(self):
         """Context manager entry part.
@@ -126,6 +131,13 @@ class MasterBaseType:
         result = types.ConnectResponse.parse(response)
         self.maxCto = result.maxCto
         self.maxDto = result.maxDto
+        byteOrderPrefix = "<" if result.commModeBasic.byteOrder == types.ByteOrder.INTEL else ">"
+
+        self.WORD_pack = makeWordPacker(byteOrderPrefix)
+        self.DWORD_pack = makeDWordPacker(byteOrderPrefix)
+        self.WORD_unpack = makeWordUnpacker(byteOrderPrefix)
+        self.DWORD_unpack = makeDWordUnpacker(byteOrderPrefix)
+
 
         self.supportsPgm = result.resource.pgm
         self.supportsStim = result.resource.stim
@@ -216,7 +228,7 @@ class MasterBaseType:
         """
         response = self.transport.request(types.Command.GET_ID, mode)
         result = types.GetIDResponse.parse(response)
-        result.length = DWORD_unpack(response[3:7])[0]
+        result.length = self.DWORD_unpack(response[3:7])[0]
         return result
 
     @wrapped
@@ -298,7 +310,7 @@ class MasterBaseType:
                   `downloadNext`, `downloadMax`, `modifyBits`, `programClear`,
                   `program`, `programNext` and `programMax`.
         """
-        addr = DWORD_pack(address)
+        addr = self.DWORD_pack(address)
         response = self.transport.request(
             types.Command.SET_MTA, 0, 0, addressExt, *addr)
         return response
@@ -335,7 +347,7 @@ class MasterBaseType:
         -------
         bytes
         """
-        addr = DWORD_pack(address)
+        addr = self.DWORD_pack(address)
         response = self.transport.request(
             types.Command.SHORT_UPLOAD, length, 0, addressExt, *addr)
         return response
@@ -358,7 +370,7 @@ class MasterBaseType:
         --------
         Module `pyxcp.checksum`
         """
-        bs = DWORD_pack(blocksize)
+        bs = self.DWORD_pack(blocksize)
         response = self.transport.request(
             types.Command.BUILD_CHECKSUM, 0, 0, 0, *bs)
         return types.BuildChecksumResponse.parse(response)
@@ -641,7 +653,7 @@ class MasterBaseType:
         ----------
         daqListNumber : int
         """
-        daqList = WORD_pack(daqListNumber)
+        daqList = self.WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.CLEAR_DAQ_LIST, 0, *daqList)
         return response
@@ -659,7 +671,7 @@ class MasterBaseType:
         addressExt : int
         address : int
         """
-        addr = DWORD_pack(address)
+        addr = self.DWORD_pack(address)
         response = self.transport.request(
             types.Command.WRITE_DAQ, bitOffset, entrySize, addressExt, *addr)
         return response
@@ -676,7 +688,7 @@ class MasterBaseType:
         -------
         `pyxcp.types.GetDaqListModeResponse`
         """
-        dln = WORD_pack(daqListNumber)
+        dln = self.WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.GET_DAQ_LIST_MODE, 0, *dln)
         return types.GetDaqListModeResponse.parse(response)
@@ -693,7 +705,7 @@ class MasterBaseType:
             2 = select
         daqListNumber : int
         """
-        dln = WORD_pack(daqListNumber)
+        dln = self.WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.START_STOP_DAQ_LIST, mode, *dln)
         return response
@@ -768,7 +780,7 @@ class MasterBaseType:
         ----------
         daqListNumber : int
         """
-        dln = WORD_pack(daqListNumber)
+        dln = self.WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.GET_DAQ_LIST_INFO, 0, *dln)
         return types.GetDaqListInfoResponse.parse(response)
@@ -785,7 +797,7 @@ class MasterBaseType:
         -------
         `pyxcp.types.GetEventChannelInfoResponse`
         """
-        ecn = WORD_pack(eventChannelNumber)
+        ecn = self.WORD_pack(eventChannelNumber)
         response = self.transport.request(
             types.Command.GET_DAQ_EVENT_INFO, 0, *ecn)
         return types.GetEventChannelInfoResponse.parse(response)
@@ -802,13 +814,13 @@ class MasterBaseType:
         daqPackedMode : int
         """
         params = []
-        dln = WORD_pack(daqListNumber)
+        dln = self.WORD_pack(daqListNumber)
         params.extend(dln)
         params.append(daqPackedMode)
 
         if daqPackedMode == 1 or daqPackedMode == 2:
             params.append(dpmTimestampMode)
-            dsc = WORD_pack(dpmSampleCount)
+            dsc = self.WORD_pack(dpmSampleCount)
             params.extend(dsc)
 
         response = self.transport.request(
@@ -827,7 +839,7 @@ class MasterBaseType:
         ----------
         daqListNumber : int
         """
-        dln = WORD_pack(daqListNumber)
+        dln = self.WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.GET_DAQ_PACKED_MODE, *dln)
         result = types.GetDaqPackedModeResponse.parse(response)
@@ -850,7 +862,7 @@ class MasterBaseType:
         daqCount : int
             number of DAQ lists to be allocated
         """
-        dq = WORD_pack(daqCount)
+        dq = self.WORD_pack(daqCount)
         response = self.transport.request(types.Command.ALLOC_DAQ, 0, *dq)
         return response
 
@@ -877,7 +889,7 @@ class MasterBaseType:
             0x01 = the functional access mode is active
         clearRange : int
         """
-        cr = DWORD_pack(clearRange)
+        cr = self.DWORD_pack(clearRange)
         response = self.transport.request(
             types.Command.PROGRAM_CLEAR, mode, 0, 0, *cr)
         # ERR_ACCESS_LOCKED
@@ -916,7 +928,7 @@ class MasterBaseType:
 
     def programPrepare(self, codesize):
         """Prepare non-volatile memory programming."""
-        cs = WORD_pack(codesize)
+        cs = self.WORD_pack(codesize)
         return self.transport.request(types.Command.PROGRAM_PREPARE, 0x00, *cs)
 
     # Convenience Functions.
