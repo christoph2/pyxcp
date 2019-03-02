@@ -14,7 +14,10 @@ class MockSocket:
         self.data = bytearray()
 
     def push(self, data):
-        self.data.extend(data)
+        try:
+            self.data.extend(data)
+        except TypeError:
+            self.data.extend(bytes.fromhex(data))
 
     def recv(self, bufsize):
         r = self.data[:bufsize]
@@ -125,7 +128,7 @@ class TestMaster:
         mock_selector.return_value.select.side_effect = ms.select
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
-            ms.push(bytes.fromhex("08 00 00 00 FF 1D C0 FF DC 05 01 01"))
+            ms.push("08 00 00 00 FF 1D C0 FF DC 05 01 01")
 
             res = xm.connect()
 
@@ -147,7 +150,7 @@ class TestMaster:
             assert xm.maxCto == res.maxCto
             assert xm.maxDto == res.maxDto
 
-            ms.push(bytes.fromhex("06 00 01 00 FF 00 01 05 01 04"))
+            ms.push("06 00 01 00 FF 00 01 05 01 04")
 
             res = xm.getVersion()
 
@@ -435,7 +438,8 @@ class TestMaster:
             0x08, 0x00, 0x00, 0x00,
             0xf3, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00]))
 
-        assert res.checksumType == "XCP_CRC_32"
+        assert res.checksumType == \
+            types.BuildChecksumResponse.checksumType.XCP_CRC_32
         assert res.checksum == 0x07060504
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
@@ -482,7 +486,26 @@ class TestMaster:
 
         assert res == b'\xaa\xbb'
 
-    # todo: GET_VERSION
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testGetVersion(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push("06 00 00 00 FF 00 01 05 01 04")
+
+            res = xm.getVersion()
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x02, 0x00, 0x00, 0x00, 0xc0, 0x00]))
+
+            assert res.protocolMajor == 1
+            assert res.protocolMinor == 5
+            assert res.transportMajor == 1
+            assert res.transportMinor == 4
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
@@ -582,98 +605,84 @@ class TestMaster:
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
-    def testSetCalPage(self, mock_selector, mock_socket):
+    def testPagCommands(self, mock_selector, mock_socket):
         ms = MockSocket()
 
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([0x01, 0x00, 0x00, 0x00, 0xff])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push("01 00 00 00 FF")
+
             res = xm.setCalPage(0x03, 0x12, 0x34)
 
-        mock_socket.return_value.send.assert_called_with(bytes([
-            0x04, 0x00, 0x00, 0x00, 0xeb, 0x03, 0x12, 0x34]))
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x04, 0x00, 0x00, 0x00, 0xeb, 0x03, 0x12, 0x34]))
 
-        assert res == b''
+            assert res == b''
 
-    @mock.patch('pyxcp.transport.eth.socket.socket')
-    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
-    def testGetCalPage(self, mock_selector, mock_socket):
-        ms = MockSocket()
+            ms.push("04 00 01 00 FF 00 00 55")
 
-        mock_socket.return_value.recv.side_effect = ms.recv
-        mock_selector.return_value.select.side_effect = ms.select
-
-        ms.push([0x04, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x55])
-
-        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.getCalPage(0x02, 0x44)
 
-        mock_socket.return_value.send.assert_called_with(bytes([
-            0x03, 0x00, 0x00, 0x00, 0xea, 0x02, 0x44]))
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x03, 0x00, 0x01, 0x00, 0xea, 0x02, 0x44]))
 
-        assert res == 0x55
+            assert res == 0x55
 
-    @mock.patch('pyxcp.transport.eth.socket.socket')
-    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
-    def testPageSwitchingCommands(self, mock_selector, mock_socket):
-        ms = MockSocket()
+            ms.push("03 00 02 00 FF 10 01")
 
-        mock_socket.return_value.recv.side_effect = ms.recv
-        mock_selector.return_value.select.side_effect = ms.select
-
-        ms.push([0x03, 0x00, 0x00, 0x00, 0xff, 0x10, 0x01])
-        ms.push([0x08, 0x00, 0x01, 0x00,
-                 0xff, 0x00, 0x00, 0x00, 0x78, 0x56, 0x34, 0x12])
-        ms.push([0x03, 0x00, 0x02, 0x00, 0xff, 0x3F, 0x55])
-        ms.push([0x01, 0x00, 0x03, 0x00, 0xff])
-        ms.push([0x03, 0x00, 0x04, 0x00, 0xff, 0x00, 0x01])
-        ms.push([0x01, 0x00, 0x05, 0x00, 0xff])
-
-        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.getPagProcessorInfo()
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x01, 0x00, 0x00, 0x00, 0xe9]))
+                0x01, 0x00, 0x02, 0x00, 0xe9]))
 
             assert res.maxSegments == 16
             assert res.pagProperties == 0x01
 
+            ms.push("08 00 03 00 FF 00 00 00 78 56 34 12")
+
             res = xm.getSegmentInfo(2, 5, 1, 3)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x05, 0x00, 0x01, 0x00, 0xe8, 0x02, 0x05, 0x01, 0x03]))
+                0x05, 0x00, 0x03, 0x00, 0xe8, 0x02, 0x05, 0x01, 0x03]))
 
             assert res.mappingInfo == 0x12345678
+
+            ms.push("03 00 04 00 FF 3F 55")
 
             res = xm.getPageInfo(0x12, 0x34)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x02, 0x00, 0xe7, 0x00, 0x12, 0x34]))
+                0x04, 0x00, 0x04, 0x00, 0xe7, 0x00, 0x12, 0x34]))
 
             assert res[0].xcpWriteAccessWithEcu
             assert res[1] == 0x55
 
+            ms.push("01 00 05 00 FF")
+
             res = xm.setSegmentMode(0x01, 0x23)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x03, 0x00, 0x03, 0x00, 0xe6, 0x01, 0x23]))
+                0x03, 0x00, 0x05, 0x00, 0xe6, 0x01, 0x23]))
 
             assert res == b''
+
+            ms.push("03 00 06 00 FF 00 01")
 
             res = xm.getSegmentMode(0x23)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x03, 0x00, 0x04, 0x00, 0xe5, 0x00, 0x23]))
+                0x03, 0x00, 0x06, 0x00, 0xe5, 0x00, 0x23]))
 
             assert res == 0x01
+
+            ms.push("01 00 07 00 FF")
 
             res = xm.copyCalPage(0x12, 0x34, 0x56, 0x78)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x05, 0x00, 0x05, 0x00, 0xe4, 0x12, 0x34, 0x56, 0x78]))
+                0x05, 0x00, 0x07, 0x00, 0xe4, 0x12, 0x34, 0x56, 0x78]))
 
             assert res == b''
 
@@ -903,7 +912,7 @@ class TestMaster:
             mock_socket.return_value.send.assert_called_with(bytes([
                 0x04, 0x00, 0x12, 0x00, 0xc0, 0x02, 0x02, 0x01]))
 
-            assert res.daqPackedMode == "NONE"
+            assert res.daqPackedMode == types.DaqPackedMode.NONE
             assert res.dpmTimestampMode is None
 
             ms.push([0x01, 0x00, 0x13, 0x00, 0xff])
@@ -963,6 +972,8 @@ class TestMaster:
 
             assert res == b''
 
+            # todo: PROGRAM
+
             ms.push([0x01, 0x00, 0x02, 0x00, 0xff])
 
             res = xm.programReset()
@@ -1013,3 +1024,10 @@ class TestMaster:
                 0x04, 0x00, 0x06, 0x00, 0xcc, 0x00, 0x34, 0x12]))
 
             assert res == b''
+
+            # todo: PROGRAM_FORMAT
+            # todo: PROGRAM_NEXT
+            # todo: PROGRAM_MAX
+            # todo: PROGRAM_VERIFY
+
+    # todo: TIME_CORRELATION_PROPERTIES

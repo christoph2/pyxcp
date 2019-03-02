@@ -78,6 +78,7 @@ class Command(enum.IntEnum):
     BUILD_CHECKSUM = 0xF3
     TRANSPORT_LAYER_CMD = 0xF2
     USER_CMD = 0xF1
+    GET_VERSION = 0xC000
 
     # CAL
 
@@ -124,6 +125,8 @@ class Command(enum.IntEnum):
     GET_DAQ_LIST_INFO = 0xD8
     GET_DAQ_EVENT_INFO = 0xD7
     DTO_CTR_PROPERTIES = 0xC5  # todo: implement
+    SET_DAQ_PACKED_MODE = 0xC001
+    GET_DAQ_PACKED_MODE = 0xC002
     FREE_DAQ = 0xD6
     ALLOC_DAQ = 0xD5
     ALLOC_ODT = 0xD4
@@ -147,14 +150,6 @@ class Command(enum.IntEnum):
     PROGRAM_VERIFY = 0xC8  # todo: implement
 
     TIME_CORRELATION_PROPERTIES = 0xC6  # todo: implement
-
-    L1_CMD = 0xC0
-
-
-class L1Command(enum.IntEnum):
-    GET_VERSION = 0x00
-    SET_DAQ_PACKED_MODE = 0x01
-    GET_DAQ_PACKED_MODE = 0x02
 
 
 class CommandCategory(enum.IntEnum):
@@ -181,6 +176,7 @@ COMMAND_CATEGORIES = {  # Mainly needed to automatically UNLOCK.
     Command.BUILD_CHECKSUM: CommandCategory.STD,
     Command.TRANSPORT_LAYER_CMD: CommandCategory.STD,
     Command.USER_CMD: CommandCategory.STD,
+    Command.GET_VERSION: CommandCategory.STD,
 
     Command.DOWNLOAD: CommandCategory.CAL,
     Command.DOWNLOAD_NEXT: CommandCategory.CAL,
@@ -212,6 +208,8 @@ COMMAND_CATEGORIES = {  # Mainly needed to automatically UNLOCK.
     Command.GET_DAQ_LIST_INFO: CommandCategory.DAQ,
     Command.GET_DAQ_EVENT_INFO: CommandCategory.DAQ,
     Command.DTO_CTR_PROPERTIES: CommandCategory.DAQ,
+    Command.SET_DAQ_PACKED_MODE: CommandCategory.DAQ,
+    Command.GET_DAQ_PACKED_MODE: CommandCategory.DAQ,
     Command.FREE_DAQ: CommandCategory.DAQ,
     Command.ALLOC_DAQ: CommandCategory.DAQ,
     Command.ALLOC_ODT: CommandCategory.DAQ,
@@ -231,7 +229,6 @@ COMMAND_CATEGORIES = {  # Mainly needed to automatically UNLOCK.
 
     # Well... ?
     # TIME_CORRELATION_PROPERTIES
-    # L1_CMD
 }
 
 XcpError = Enum(
@@ -273,8 +270,7 @@ Response = Struct(
         ERR=0xfe,
         EV=0xfd,
         SERV=0xfc,
-    ),
-
+    )
 )
 
 DAQ = Struct(
