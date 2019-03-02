@@ -284,12 +284,27 @@ DAQ = Struct(
 )
 
 ResourceType = BitStruct(
-    Padding(3),
+    Padding(2),
+    "dbg" / Flag,
     "pgm" / Flag,
     "stim" / Flag,
     "daq" / Flag,
     Padding(1),
     "calpag" / Flag,
+)
+
+AddressGranularity = Enum(
+    BitsInteger(2),
+    BYTE=0b00,
+    WORD=0b01,
+    DWORD=0b10,
+    RESERVED=0b11
+)
+
+ByteOrder = Enum(
+    BitsInteger(1),
+    INTEL=0,
+    MOTOROLA=1
 )
 
 CommModeBasic = BitStruct(
@@ -299,18 +314,8 @@ CommModeBasic = BitStruct(
                         # information with GET_COMM_MODE_INFO
     "slaveBlockMode" / Flag,
     Padding(3),
-    "addressGranularity" / Enum(
-        BitsInteger(2),
-        BYTE=0,
-        WORD=1,
-        DWORD=2,
-        RESERVED=3,
-    ),
-    "byteOrder" / Enum(
-        BitsInteger(1),
-        INTEL=0,
-        MOTOROLA=1,
-    )
+    "addressGranularity" / AddressGranularity,
+    "byteOrder" / ByteOrder
 )
 
 ConnectResponse = Struct(

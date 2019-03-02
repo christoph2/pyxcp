@@ -6,7 +6,7 @@ from unittest import mock
 import time
 
 from pyxcp.master import Master
-from pyxcp import transport
+from pyxcp import (transport, types)
 
 
 class MockSocket:
@@ -48,8 +48,9 @@ class TestMaster:
         assert res.resource.calpag is True
         assert res.commModeBasic.optional is True
         assert res.commModeBasic.slaveBlockMode is True
-        assert res.commModeBasic.addressGranularity == 'BYTE'
-        assert res.commModeBasic.byteOrder == 'INTEL'
+        assert res.commModeBasic.addressGranularity == \
+            types.AddressGranularity.BYTE
+        assert res.commModeBasic.byteOrder == types.ByteOrder.INTEL
         assert xm.maxCto == res.maxCto
         assert xm.maxDto == res.maxDto
 
