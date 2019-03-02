@@ -415,9 +415,7 @@ class MasterBaseType:
         `types.GetVersionResponse`
         """
 
-        response = self.transport.request(
-            types.Command.L1_CMD,
-            types.L1Command.GET_VERSION)
+        response = self.transport.request(types.Command.GET_VERSION)
         result = types.GetVersionResponse.parse(response)
         return result
 
@@ -814,8 +812,7 @@ class MasterBaseType:
             params.extend(dsc)
 
         response = self.transport.request(
-            types.Command.L1_CMD,
-            types.L1Command.SET_DAQ_PACKED_MODE,
+            types.Command.SET_DAQ_PACKED_MODE,
             *params)
         return response
 
@@ -832,8 +829,7 @@ class MasterBaseType:
         """
         dln = WORD_pack(daqListNumber)
         response = self.transport.request(
-            types.Command.L1_CMD,
-            types.L1Command.GET_DAQ_PACKED_MODE, *dln)
+            types.Command.GET_DAQ_PACKED_MODE, *dln)
         result = types.GetDaqPackedModeResponse.parse(response)
         return result
 
