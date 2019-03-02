@@ -642,47 +642,69 @@ class TestMaster:
 
             ms.push("08 00 03 00 FF 00 00 00 78 56 34 12")
 
+            res = xm.getSegmentInfo(0, 5, 1, 0)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x05, 0x00, 0x03, 0x00, 0xe8, 0x00, 0x05, 0x01, 0x00]))
+
+            assert res.basicInfo == 0x12345678
+
+            ms.push("06 00 04 00 FF aa bb cc 78 56")
+
+            res = xm.getSegmentInfo(1, 5, 0, 0)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x05, 0x00, 0x04, 0x00, 0xe8, 0x01, 0x05, 0x00, 0x00]))
+
+            assert res.maxPages == 0xaa
+            assert res.addressExtension == 0xbb
+            assert res.maxMapping == 0xcc
+            assert res.compressionMethod == 0x78
+            assert res.encryptionMethod == 0x56
+
+            ms.push("08 00 05 00 FF 00 00 00 78 56 34 12")
+
             res = xm.getSegmentInfo(2, 5, 1, 3)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x05, 0x00, 0x03, 0x00, 0xe8, 0x02, 0x05, 0x01, 0x03]))
+                0x05, 0x00, 0x05, 0x00, 0xe8, 0x02, 0x05, 0x01, 0x03]))
 
             assert res.mappingInfo == 0x12345678
 
-            ms.push("03 00 04 00 FF 3F 55")
+            ms.push("03 00 06 00 FF 3F 55")
 
             res = xm.getPageInfo(0x12, 0x34)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x04, 0x00, 0xe7, 0x00, 0x12, 0x34]))
+                0x04, 0x00, 0x06, 0x00, 0xe7, 0x00, 0x12, 0x34]))
 
             assert res[0].xcpWriteAccessWithEcu
             assert res[1] == 0x55
 
-            ms.push("01 00 05 00 FF")
+            ms.push("01 00 07 00 FF")
 
             res = xm.setSegmentMode(0x01, 0x23)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x03, 0x00, 0x05, 0x00, 0xe6, 0x01, 0x23]))
+                0x03, 0x00, 0x07, 0x00, 0xe6, 0x01, 0x23]))
 
             assert res == b''
 
-            ms.push("03 00 06 00 FF 00 01")
+            ms.push("03 00 08 00 FF 00 01")
 
             res = xm.getSegmentMode(0x23)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x03, 0x00, 0x06, 0x00, 0xe5, 0x00, 0x23]))
+                0x03, 0x00, 0x08, 0x00, 0xe5, 0x00, 0x23]))
 
             assert res == 0x01
 
-            ms.push("01 00 07 00 FF")
+            ms.push("01 00 09 00 FF")
 
             res = xm.copyCalPage(0x12, 0x34, 0x56, 0x78)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x05, 0x00, 0x07, 0x00, 0xe4, 0x12, 0x34, 0x56, 0x78]))
+                0x05, 0x00, 0x09, 0x00, 0xe4, 0x12, 0x34, 0x56, 0x78]))
 
             assert res == b''
 
