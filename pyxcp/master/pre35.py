@@ -28,8 +28,6 @@ from pyxcp.master.errorhandler import wrapped
 from pyxcp import types
 from pyxcp.utils import flatten
 
-from pyxcp.constants import DWORD_pack, WORD_pack
-
 
 class Master(MasterBaseType):
     # Python <= 3.4 requires nasty hack (flatten) to unpack tuples.
@@ -37,7 +35,7 @@ class Master(MasterBaseType):
     @wrapped
     def shortDownload(self, address, addressExt, *data):
         length = len(data)
-        addr = DWORD_pack(address)
+        addr = self.DWORD_pack(address)
         addr_data = flatten(addr, data)
         response = self.transport.request(
             types.Command.SHORT_DOWNLOAD,
@@ -46,15 +44,15 @@ class Master(MasterBaseType):
 
     @wrapped
     def modifyBits(self, shiftValue, andMask, xorMask):
-        am = WORD_pack(andMask)
-        xm = WORD_pack(xorMask)
+        am = self.WORD_pack(andMask)
+        xm = self.WORD_pack(xorMask)
         response = self.transport.request(
             types.Command.MODIFY_BITS, shiftValue, *flatten(am, xm))
         return response
-      
+
     @wrapped
     def setDaqPtr(self, daqListNumber, odtNumber, odtEntryNumber):
-        daqList = WORD_pack(daqListNumber)
+        daqList = self.WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.SET_DAQ_PTR,
             0, *flatten(daqList, [odtNumber, odtEntryNumber]))
@@ -63,8 +61,8 @@ class Master(MasterBaseType):
     @wrapped
     def setDaqListMode(self, mode, daqListNumber, eventChannelNumber,
                        prescaler, priority):
-        dln = WORD_pack(daqListNumber)
-        ecn = WORD_pack(eventChannelNumber)
+        dln = self.WORD_pack(daqListNumber)
+        ecn = self.WORD_pack(eventChannelNumber)
         response = self.transport.request(
             types.Command.SET_DAQ_LIST_MODE,
             mode, *flatten(dln, ecn, [prescaler, priority]))
@@ -72,14 +70,14 @@ class Master(MasterBaseType):
 
     @wrapped
     def allocOdt(self, daqListNumber, odtCount):
-        dln = WORD_pack(daqListNumber)
+        dln = self.WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.ALLOC_ODT, 0, *flatten(dln, [odtCount]))
         return response
 
     @wrapped
     def allocOdtEntry(self, daqListNumber, odtNumber, odtEntriesCount):
-        dln = WORD_pack(daqListNumber)
+        dln = self.WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.ALLOC_ODT_ENTRY,
             0, *flatten(dln, [odtNumber, odtEntriesCount]))

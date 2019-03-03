@@ -4,17 +4,34 @@
 from unittest import mock
 
 import time
+import struct
 
 from pyxcp.master import Master
-from pyxcp import transport
+from pyxcp import (transport, types)
 
 
 class MockSocket:
     def __init__(self):
         self.data = bytearray()
+        self.ctr = 0
 
-    def push(self, data):
-        self.data.extend(data)
+    # push frame consisting of header (len + ctr) and packet
+    def push_frame(self, frame):
+        try:
+            self.data.extend(frame)
+        except TypeError:
+            self.data.extend(bytes.fromhex(frame))
+        self.ctr += 1
+
+    # push packet, automatically add header (len + ctr)
+    def push_packet(self, data):
+        try:
+            data = bytes.fromhex(data)
+        except TypeError:
+            pass
+
+        header = struct.pack("<HH", len(data), self.ctr)
+        self.push_frame(header + data)
 
     def recv(self, bufsize):
         r = self.data[:bufsize]
@@ -30,6 +47,8 @@ class MockSocket:
 
 
 class TestMaster:
+
+    DefaultConnectResponse = "FF 3D C0 FF DC 05 01 01"
 
     @mock.patch("pyxcp.transport.Eth")
     def testConnect(self, Eth):
@@ -48,8 +67,9 @@ class TestMaster:
         assert res.resource.calpag is True
         assert res.commModeBasic.optional is True
         assert res.commModeBasic.slaveBlockMode is True
-        assert res.commModeBasic.addressGranularity == 'BYTE'
-        assert res.commModeBasic.byteOrder == 'INTEL'
+        assert res.commModeBasic.addressGranularity == \
+            types.AddressGranularity.BYTE
+        assert res.commModeBasic.byteOrder == types.ByteOrder.INTEL
         assert xm.maxCto == res.maxCto
         assert xm.maxDto == res.maxDto
 
@@ -103,15 +123,20 @@ class TestMaster:
     @mock.patch("pyxcp.transport.Eth")
     def testGetId(self, Eth):
         tr = Eth()
-        tr.request.return_value = bytes(
-            [0x00, 0x01, 0xff, 0x06, 0x00, 0x00, 0x00])
         with Master(tr) as xm:
+            tr.request.return_value = bytes(
+                [0x1d, 0xc0, 0xff, 0xdc, 0x05, 0x01, 0x01])
+
+            res = xm.connect()
+
+            tr.request.return_value = bytes(
+                [0x00, 0x01, 0xff, 0x06, 0x00, 0x00, 0x00])
+
             gid = xm.getId(0x01)
             tr.request.return_value = bytes(
                 [0x58, 0x43, 0x50, 0x73, 0x69, 0x6d])
             res = xm.upload(gid.length)
         assert gid.mode == 0
-        assert gid.reserved == 65281
         assert gid.length == 6
         assert res == b'XCPsim'
 
@@ -124,7 +149,7 @@ class TestMaster:
         mock_selector.return_value.select.side_effect = ms.select
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
-            ms.push(bytes.fromhex("08 00 00 00 FF 1D C0 FF DC 05 01 01"))
+            ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
 
@@ -135,18 +160,20 @@ class TestMaster:
             assert res.maxDto == 1500
             assert res.protocolLayerVersion == 1
             assert res.transportLayerVersion == 1
+            assert res.resource.dbg is True
             assert res.resource.pgm is True
             assert res.resource.stim is True
             assert res.resource.daq is True
             assert res.resource.calpag is True
             assert res.commModeBasic.optional is True
             assert res.commModeBasic.slaveBlockMode is True
-            assert res.commModeBasic.addressGranularity == 'BYTE'
-            assert res.commModeBasic.byteOrder == 'INTEL'
+            assert res.commModeBasic.addressGranularity == \
+                types.AddressGranularity.BYTE
+            assert res.commModeBasic.byteOrder == types.ByteOrder.INTEL
             assert xm.maxCto == res.maxCto
             assert xm.maxDto == res.maxDto
 
-            ms.push(bytes.fromhex("06 00 01 00 FF 00 01 05 01 04"))
+            ms.push_frame("06 00 01 00 FF 00 01 05 01 04")
 
             res = xm.getVersion()
 
@@ -166,13 +193,13 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([0x01, 0x00, 0x00, 0x00, 0xff])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_frame("01 00 00 00 FF")
+
             res = xm.disconnect()
 
-        mock_socket.return_value.send.assert_called_with(bytes(
-            [0x01, 0x00, 0x00, 0x00, 0xfe]))
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x01, 0x00, 0x00, 0x00, 0xfe]))
 
         assert res == b''
 
@@ -184,13 +211,13 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([0x06, 0x00, 0x00, 0x00, 0xff, 0x09, 0x1d, 0x00, 0x34, 0x12])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_frame("06 00 00 00 FF 09 1D 00 34 12")
+
             res = xm.getStatus()
 
-        mock_socket.return_value.send.assert_called_with(bytes(
-            [0x01, 0x00, 0x00, 0x00, 0xfd]))
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x01, 0x00, 0x00, 0x00, 0xfd]))
 
         assert res.sessionStatus.storeCalRequest is True
         assert res.sessionStatus.storeDaqRequest is False
@@ -211,7 +238,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([0x02, 0x00, 0x00, 0x00, 0xfe, 0x00])
+        ms.push_frame([0x02, 0x00, 0x00, 0x00, 0xfe, 0x00])
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.synch()
@@ -229,7 +256,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([
+        ms.push_frame([
             0x08, 0x00, 0x00, 0x00,
             0xff, 0x00, 0x01, 0xff, 0x02, 0x00, 0x00, 0x19])
 
@@ -255,38 +282,45 @@ class TestMaster:
         mock_selector.return_value.select.side_effect = ms.select
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
-            ms.push([
-                0x08, 0x00, 0x00, 0x00,
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+
+            ms.push_frame([
+                0x08, 0x00, 0x01, 0x00,
                 0xff, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00])
 
             gid = xm.getId(0x01)
 
             mock_socket.return_value.send.assert_called_with(bytes(
-                [0x02, 0x00, 0x00, 0x00, 0xfa, 0x01]))
+                [0x02, 0x00, 0x01, 0x00, 0xfa, 0x01]))
 
             assert gid.mode == 0
             assert gid.length == 6
 
-            ms.push([
-                0x07, 0x00, 0x01, 0x00,
+            ms.push_frame([
+                0x07, 0x00, 0x02, 0x00,
                 0xff, 0x58, 0x43, 0x50, 0x73, 0x69, 0x6d])
 
             res = xm.upload(gid.length)
 
             mock_socket.return_value.send.assert_called_with(bytes(
-                [0x02, 0x00, 0x01, 0x00, 0xf5, 0x06]))
+                [0x02, 0x00, 0x02, 0x00, 0xf5, 0x06]))
 
             assert res == b'XCPsim'
 
-            ms.push([
-                0x0e, 0x00, 0x02, 0x00,
+            ms.push_frame([
+                0x0e, 0x00, 0x03, 0x00,
                 0xff, 0x01, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00,
                 0x58, 0x43, 0x50, 0x73, 0x69, 0x6d])
 
             gid = xm.getId(0x01)
 
             mock_socket.return_value.send.assert_called_with(bytes(
-                [0x02, 0x00, 0x02, 0x00, 0xfa, 0x01]))
+                [0x02, 0x00, 0x03, 0x00, 0xfa, 0x01]))
 
             assert gid.mode == 1
             assert gid.length == 6
@@ -300,7 +334,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([0x01, 0x00, 0x00, 0x00, 0xff])
+        ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.setRequest(0x15, 0x1234)
@@ -318,7 +352,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([
+        ms.push_frame([
             0x06, 0x00, 0x00, 0x00,
             0xff, 0x04, 0x12, 0x34, 0x56, 0x78])
 
@@ -339,7 +373,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([
+        ms.push_frame([
             0x02, 0x00, 0x00, 0x00,
             0xff, 0x10])
 
@@ -362,16 +396,23 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([0x01, 0x00, 0x00, 0x00, 0xff])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+
+            ms.push_frame("01 00 01 00 FF")
+
             res = xm.setMta(0x12345678, 0x55)
 
-        mock_socket.return_value.send.assert_called_with(bytes([
-            0x08, 0x00, 0x00, 0x00,
-            0xf6, 0x00, 0x00, 0x55, 0x78, 0x56, 0x34, 0x12]))
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x08, 0x00, 0x01, 0x00,
+                0xf6, 0x00, 0x00, 0x55, 0x78, 0x56, 0x34, 0x12]))
 
-        assert res == b''
+            assert res == b''
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
@@ -381,7 +422,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([
+        ms.push_frame([
             0x09, 0x00, 0x00, 0x00,
             0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08])
 
@@ -402,18 +443,23 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([
-            0x09, 0x00, 0x00, 0x00,
-            0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+
+            ms.push_frame("09 00 01 00 FF 01 02 03 04 05 06 07 08")
+
             res = xm.shortUpload(8, 0xcafebabe, 1)
 
-        mock_socket.return_value.send.assert_called_with(bytes([
-            0x08, 0x00, 0x00, 0x00,
-            0xf4, 0x08, 0x00, 0x01, 0xbe, 0xba, 0xfe, 0xca]))
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x08, 0x00, 0x01, 0x00,
+                0xf4, 0x08, 0x00, 0x01, 0xbe, 0xba, 0xfe, 0xca]))
 
-        assert res == b'\x01\x02\x03\x04\x05\x06\x07\x08'
+            assert res == b'\x01\x02\x03\x04\x05\x06\x07\x08'
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
@@ -423,19 +469,25 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([
-            0x08, 0x00, 0x00, 0x00,
-            0xff, 0x09, 0x00, 0x00, 0x04, 0x05, 0x06, 0x07])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+
+            ms.push_frame("08 00 01 00 FF 09 00 00 04 05 06 07")
+
             res = xm.buildChecksum(1024)
 
-        mock_socket.return_value.send.assert_called_with(bytes([
-            0x08, 0x00, 0x00, 0x00,
-            0xf3, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00]))
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x08, 0x00, 0x01, 0x00,
+                0xf3, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00]))
 
-        assert res.checksumType == "XCP_CRC_32"
-        assert res.checksum == 0x07060504
+            assert res.checksumType == \
+                types.BuildChecksumResponse.checksumType.XCP_CRC_32
+            assert res.checksum == 0x07060504
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
@@ -445,7 +497,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([
+        ms.push_frame([
             0x03, 0x00, 0x00, 0x00,
             0xff, 0xaa, 0xbb])
 
@@ -467,7 +519,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([
+        ms.push_frame([
             0x03, 0x00, 0x00, 0x00,
             0xff, 0xaa, 0xbb])
 
@@ -481,7 +533,26 @@ class TestMaster:
 
         assert res == b'\xaa\xbb'
 
-    # todo: GET_VERSION
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testGetVersion(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_frame("06 00 00 00 FF 00 01 05 01 04")
+
+            res = xm.getVersion()
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x02, 0x00, 0x00, 0x00, 0xc0, 0x00]))
+
+            assert res.protocolMajor == 1
+            assert res.protocolMinor == 5
+            assert res.transportMajor == 1
+            assert res.transportMinor == 4
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
@@ -491,7 +562,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([0x01, 0x00, 0x00, 0x00, 0xff])
+        ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             data = [0xCA, 0xFE, 0xBA, 0xBE]
@@ -510,7 +581,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([0x01, 0x00, 0x00, 0x00, 0xff])
+        ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             data = [0xCA, 0xFE, 0xBA, 0xBE]
@@ -529,7 +600,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([0x01, 0x00, 0x00, 0x00, 0xff])
+        ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             data = [0xCA, 0xFE, 0xBA, 0xBE]
@@ -548,17 +619,24 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([0x01, 0x00, 0x00, 0x00, 0xff])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+
+            ms.push_frame("01 00 01 00 FF")
+
             data = [0xCA, 0xFE, 0xBA, 0xBE]
             res = xm.shortDownload(0x12345678, 0x55, *data)
 
-        mock_socket.return_value.send.assert_called_with(bytes([
-            0x0c, 0x00, 0x00, 0x00, 0xed, 0x04, 0x00, 0x55,
-            0x78, 0x56, 0x34, 0x12, 0xca, 0xfe, 0xba, 0xbe]))
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x0c, 0x00, 0x01, 0x00, 0xed, 0x04, 0x00, 0x55,
+                0x78, 0x56, 0x34, 0x12, 0xca, 0xfe, 0xba, 0xbe]))
 
-        assert res == b''
+            assert res == b''
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
@@ -568,111 +646,126 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([0x01, 0x00, 0x00, 0x00, 0xff])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+
+            ms.push_frame("01 00 01 00 ff")
+
             res = xm.modifyBits(0xff, 0x1234, 0xabcd)
 
-        mock_socket.return_value.send.assert_called_with(bytes([
-            0x06, 0x00, 0x00, 0x00, 0xec, 0xff, 0x34, 0x12,
-            0xcd, 0xab]))
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x06, 0x00, 0x01, 0x00, 0xec, 0xff, 0x34, 0x12,
+                0xcd, 0xab]))
 
-        assert res == b''
+            assert res == b''
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
-    def testSetCalPage(self, mock_selector, mock_socket):
+    def testPagCommands(self, mock_selector, mock_socket):
         ms = MockSocket()
 
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push([0x01, 0x00, 0x00, 0x00, 0xff])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_frame("01 00 00 00 FF")
+
             res = xm.setCalPage(0x03, 0x12, 0x34)
 
-        mock_socket.return_value.send.assert_called_with(bytes([
-            0x04, 0x00, 0x00, 0x00, 0xeb, 0x03, 0x12, 0x34]))
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x04, 0x00, 0x00, 0x00, 0xeb, 0x03, 0x12, 0x34]))
 
-        assert res == b''
+            assert res == b''
 
-    @mock.patch('pyxcp.transport.eth.socket.socket')
-    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
-    def testGetCalPage(self, mock_selector, mock_socket):
-        ms = MockSocket()
+            ms.push_frame("04 00 01 00 FF 00 00 55")
 
-        mock_socket.return_value.recv.side_effect = ms.recv
-        mock_selector.return_value.select.side_effect = ms.select
-
-        ms.push([0x04, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x55])
-
-        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.getCalPage(0x02, 0x44)
 
-        mock_socket.return_value.send.assert_called_with(bytes([
-            0x03, 0x00, 0x00, 0x00, 0xea, 0x02, 0x44]))
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x03, 0x00, 0x01, 0x00, 0xea, 0x02, 0x44]))
 
-        assert res == 0x55
+            assert res == 0x55
 
-    @mock.patch('pyxcp.transport.eth.socket.socket')
-    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
-    def testPageSwitchingCommands(self, mock_selector, mock_socket):
-        ms = MockSocket()
+            ms.push_frame("03 00 02 00 FF 10 01")
 
-        mock_socket.return_value.recv.side_effect = ms.recv
-        mock_selector.return_value.select.side_effect = ms.select
-
-        ms.push([0x03, 0x00, 0x00, 0x00, 0xff, 0x10, 0x01])
-        ms.push([0x08, 0x00, 0x01, 0x00,
-                 0xff, 0x00, 0x00, 0x00, 0x78, 0x56, 0x34, 0x12])
-        ms.push([0x03, 0x00, 0x02, 0x00, 0xff, 0x3F, 0x55])
-        ms.push([0x01, 0x00, 0x03, 0x00, 0xff])
-        ms.push([0x03, 0x00, 0x04, 0x00, 0xff, 0x00, 0x01])
-        ms.push([0x01, 0x00, 0x05, 0x00, 0xff])
-
-        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
             res = xm.getPagProcessorInfo()
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x01, 0x00, 0x00, 0x00, 0xe9]))
+                0x01, 0x00, 0x02, 0x00, 0xe9]))
 
             assert res.maxSegments == 16
             assert res.pagProperties == 0x01
 
+            ms.push_frame("08 00 03 00 FF 00 00 00 78 56 34 12")
+
+            res = xm.getSegmentInfo(0, 5, 1, 0)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x05, 0x00, 0x03, 0x00, 0xe8, 0x00, 0x05, 0x01, 0x00]))
+
+            assert res.basicInfo == 0x12345678
+
+            ms.push_frame("06 00 04 00 FF aa bb cc 78 56")
+
+            res = xm.getSegmentInfo(1, 5, 0, 0)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x05, 0x00, 0x04, 0x00, 0xe8, 0x01, 0x05, 0x00, 0x00]))
+
+            assert res.maxPages == 0xaa
+            assert res.addressExtension == 0xbb
+            assert res.maxMapping == 0xcc
+            assert res.compressionMethod == 0x78
+            assert res.encryptionMethod == 0x56
+
+            ms.push_frame("08 00 05 00 FF 00 00 00 78 56 34 12")
+
             res = xm.getSegmentInfo(2, 5, 1, 3)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x05, 0x00, 0x01, 0x00, 0xe8, 0x02, 0x05, 0x01, 0x03]))
+                0x05, 0x00, 0x05, 0x00, 0xe8, 0x02, 0x05, 0x01, 0x03]))
 
             assert res.mappingInfo == 0x12345678
+
+            ms.push_frame("03 00 06 00 FF 3F 55")
 
             res = xm.getPageInfo(0x12, 0x34)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x02, 0x00, 0xe7, 0x00, 0x12, 0x34]))
+                0x04, 0x00, 0x06, 0x00, 0xe7, 0x00, 0x12, 0x34]))
 
             assert res[0].xcpWriteAccessWithEcu
             assert res[1] == 0x55
 
+            ms.push_frame("01 00 07 00 FF")
+
             res = xm.setSegmentMode(0x01, 0x23)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x03, 0x00, 0x03, 0x00, 0xe6, 0x01, 0x23]))
+                0x03, 0x00, 0x07, 0x00, 0xe6, 0x01, 0x23]))
 
             assert res == b''
+
+            ms.push_frame("03 00 08 00 FF 00 01")
 
             res = xm.getSegmentMode(0x23)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x03, 0x00, 0x04, 0x00, 0xe5, 0x00, 0x23]))
+                0x03, 0x00, 0x08, 0x00, 0xe5, 0x00, 0x23]))
 
             assert res == 0x01
+
+            ms.push_frame("01 00 09 00 FF")
 
             res = xm.copyCalPage(0x12, 0x34, 0x56, 0x78)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x05, 0x00, 0x05, 0x00, 0xe4, 0x12, 0x34, 0x56, 0x78]))
+                0x05, 0x00, 0x09, 0x00, 0xe4, 0x12, 0x34, 0x56, 0x78]))
 
             assert res == b''
 
@@ -685,88 +778,92 @@ class TestMaster:
         mock_selector.return_value.select.side_effect = ms.select
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
-            ms.push([0x01, 0x00, 0x00, 0x00, 0xff])
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+
+            ms.push_frame([0x01, 0x00, 0x01, 0x00, 0xff])
 
             res = xm.setDaqPtr(2, 3, 4)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x06, 0x00, 0x00, 0x00, 0xe2, 0x00, 0x02, 0x00, 0x03, 0x04]))
+                0x06, 0x00, 0x01, 0x00, 0xe2, 0x00, 0x02, 0x00, 0x03, 0x04]))
 
             assert res == b''
 
-            ms.push([0x01, 0x00, 0x01, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x02, 0x00, 0xff])
 
             res = xm.writeDaq(31, 15, 1, 0x12345678)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x08, 0x00, 0x01, 0x00,
+                0x08, 0x00, 0x02, 0x00,
                 0xe1, 0x1f, 0x0f, 0x01, 0x78, 0x56, 0x34, 0x12]))
 
             assert res == b''
 
-            ms.push([0x01, 0x00, 0x02, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x03, 0x00, 0xff])
 
             res = xm.setDaqListMode(0x3b, 256, 512, 1, 0xff)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x08, 0x00, 0x02, 0x00,
+                0x08, 0x00, 0x03, 0x00,
                 0xe0, 0x3b, 0x00, 0x01, 0x00, 0x02, 0x01, 0xff]))
 
             assert res == b''
 
-            ms.push([0x01, 0x00, 0x03, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x04, 0x00, 0xff])
 
             res = xm.startStopDaqList(1, 512)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x03, 0x00, 0xde, 0x01, 0x00, 0x02]))
+                0x04, 0x00, 0x04, 0x00, 0xde, 0x01, 0x00, 0x02]))
 
             assert res == b''
 
-            ms.push([0x01, 0x00, 0x04, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x05, 0x00, 0xff])
 
             res = xm.startStopSynch(3)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x02, 0x00, 0x04, 0x00, 0xdd, 0x03]))
+                0x02, 0x00, 0x05, 0x00, 0xdd, 0x03]))
 
             assert res == b''
 
             # todo: xm.writeDaqMultiple()
 
-            ms.push([0x08, 0x00, 0x05, 0x00,
-                     0xff, 0x1f, 0x03, 0x04, 0x78, 0x56, 0x34, 0x12])
+            ms.push_frame("08 00 06 00 FF 1F 03 04 78 56 34 12")
 
             res = xm.readDaq()
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x01, 0x00, 0x05, 0x00, 0xdb]))
+                0x01, 0x00, 0x06, 0x00, 0xdb]))
 
             assert res.bitOffset == 31
             assert res.sizeofDaqElement == 3
             assert res.adressExtension == 4
             assert res.address == 0x12345678
 
-            ms.push([0x08, 0x00, 0x06, 0x00,
-                     0xff, 0x00, 0x03, 0x04, 0x78, 0x56, 0x34, 0x12])
+            ms.push_frame("08 00 07 00 FF 00 03 04 78 56 34 12")
 
             res = xm.getDaqClock()
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x01, 0x00, 0x06, 0x00, 0xdc]))
+                0x01, 0x00, 0x07, 0x00, 0xdc]))
 
             # todo: assert res.triggerInfo ==
             # todo: assert res.payloadFmt ==
             # todo: assert res.timestamp == 0x12345678
             assert res == 0x12345678
 
-            ms.push([0x08, 0x00, 0x07, 0x00,
-                     0xff, 0x55, 0x00, 0x01, 0x34, 0x12, 0x22, 0x03])
+            ms.push_frame("08 00 08 00 FF 55 00 01 34 12 22 03")
 
             res = xm.getDaqProcessorInfo()
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x01, 0x00, 0x07, 0x00, 0xda]))
+                0x01, 0x00, 0x08, 0x00, 0xda]))
 
             assert res.daqProperties.overloadMsb is True
             assert res.daqProperties.bitStimSupported is False
@@ -775,13 +872,12 @@ class TestMaster:
             assert res.minDaq == 0x22
             assert res.daqKeyByte.Optimisation_Type == "OM_ODT_TYPE_64"
 
-            ms.push([0x08, 0x00, 0x08, 0x00,
-                     0xff, 0x12, 0x34, 0x56, 0x78, 0xaa, 0x34, 0x12])
+            ms.push_frame("08 00 09 00 FF 12 34 56 78 AA 34 12")
 
             res = xm.getDaqResolutionInfo()
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x01, 0x00, 0x08, 0x00, 0xd9]))
+                0x01, 0x00, 0x09, 0x00, 0xd9]))
 
             assert res.granularityOdtEntrySizeDaq == 0x12
             assert res.maxOdtEntrySizeDaq == 0x34
@@ -792,13 +888,12 @@ class TestMaster:
             assert res.timestampMode.unit == "DAQ_TIMESTAMP_UNIT_1PS"
             assert res.timestampTicks == 0x1234
 
-            ms.push([0x08, 0x00, 0x09, 0x00,
-                     0xff, 0xaa, 0x00, 0x00, 0x34, 0x12, 0x56, 0x78])
+            ms.push_frame("08 00 0A 00 FF AA 00 00 34 12 56 78")
 
             res = xm.getDaqListMode(256)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x09, 0x00, 0xdf, 0x00, 0x00, 0x01]))
+                0x04, 0x00, 0x0A, 0x00, 0xdf, 0x00, 0x00, 0x01]))
 
             assert res.currentMode.resume is True
             assert res.currentMode.selected is False
@@ -806,13 +901,12 @@ class TestMaster:
             assert res.currentPrescaler == 0x56
             assert res.currentPriority == 0x78
 
-            ms.push([0x07, 0x00, 0x0a, 0x00,
-                     0xff, 0x48, 0xee, 0x05, 0x06, 0x07, 0xff])
+            ms.push_frame("07 00 0B 00 FF 48 EE 05 06 07 FF")
 
             res = xm.getDaqEventInfo(256)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x0a, 0x00, 0xd7, 0x00, 0x00, 0x01]))
+                0x04, 0x00, 0x0B, 0x00, 0xd7, 0x00, 0x00, 0x01]))
 
             assert res.daqEventProperties.consistency == "CONSISTENCY_DAQ"
             assert res.daqEventProperties.stim is True
@@ -825,22 +919,21 @@ class TestMaster:
 
             # todo: xm.dtoCtrProperties()
 
-            ms.push([0x01, 0x00, 0x0b, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x0C, 0x00, 0xff])
 
             res = xm.clearDaqList(256)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x0b, 0x00, 0xe3, 0x00, 0x00, 0x01]))
+                0x04, 0x00, 0x0C, 0x00, 0xe3, 0x00, 0x00, 0x01]))
 
             assert res == b''
 
-            ms.push([0x06, 0x00, 0x0c, 0x00,
-                     0xff, 0x15, 0x10, 0x20, 0x34, 0x12])
+            ms.push_frame("06 00 0D 00 FF 15 10 20 34 12")
 
             res = xm.getDaqListInfo(256)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x0c, 0x00, 0xd8, 0x00, 0x00, 0x01]))
+                0x04, 0x00, 0x0D, 0x00, 0xd8, 0x00, 0x00, 0x01]))
 
             assert res.daqListProperties.packed is True
             assert res.daqListProperties.eventFixed is False
@@ -849,79 +942,78 @@ class TestMaster:
             assert res.maxOdtEntries == 0x20
             assert res.fixedEvent == 0x1234
 
-            ms.push([0x01, 0x00, 0x0d, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x0E, 0x00, 0xff])
 
             res = xm.freeDaq()
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x01, 0x00, 0x0d, 0x00, 0xd6]))
+                0x01, 0x00, 0x0E, 0x00, 0xd6]))
 
             assert res == b''
 
-            ms.push([0x01, 0x00, 0x0e, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x0F, 0x00, 0xff])
 
             res = xm.allocDaq(258)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x0e, 0x00, 0xd5, 0x00, 0x02, 0x01]))
+                0x04, 0x00, 0x0F, 0x00, 0xd5, 0x00, 0x02, 0x01]))
 
             assert res == b''
 
-            ms.push([0x01, 0x00, 0x0f, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x10, 0x00, 0xff])
 
             res = xm.allocOdt(258, 3)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x05, 0x00, 0x0f, 0x00, 0xd4, 0x00, 0x02, 0x01, 0x03]))
+                0x05, 0x00, 0x10, 0x00, 0xd4, 0x00, 0x02, 0x01, 0x03]))
 
             assert res == b''
 
-            ms.push([0x01, 0x00, 0x10, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x11, 0x00, 0xff])
 
             res = xm.allocOdtEntry(258, 3, 4)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x06, 0x00, 0x10, 0x00, 0xd3, 0x00, 0x02, 0x01, 0x03, 0x04]))
+                0x06, 0x00, 0x11, 0x00, 0xd3, 0x00, 0x02, 0x01, 0x03, 0x04]))
 
             assert res == b''
 
-            ms.push([0x01, 0x00, 0x11, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x12, 0x00, 0xff])
 
             res = xm.setDaqPackedMode(258, 0)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x05, 0x00, 0x11, 0x00,
+                0x05, 0x00, 0x12, 0x00,
                 0xc0, 0x01, 0x02, 0x01, 0x00]))
 
             assert res == b''
 
-            ms.push([0x03, 0x00, 0x12, 0x00, 0xff, 0x00, 0x00])
+            ms.push_frame([0x03, 0x00, 0x13, 0x00, 0xff, 0x00, 0x00])
 
             res = xm.getDaqPackedMode(258)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x12, 0x00, 0xc0, 0x02, 0x02, 0x01]))
+                0x04, 0x00, 0x13, 0x00, 0xc0, 0x02, 0x02, 0x01]))
 
-            assert res.daqPackedMode == "NONE"
+            assert res.daqPackedMode == types.DaqPackedMode.NONE
             assert res.dpmTimestampMode is None
 
-            ms.push([0x01, 0x00, 0x13, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x14, 0x00, 0xff])
 
             res = xm.setDaqPackedMode(258, 2, 0b01, 0x1234)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x08, 0x00, 0x13, 0x00,
+                0x08, 0x00, 0x14, 0x00,
                 0xc0, 0x01, 0x02, 0x01, 0x02, 0x01, 0x34, 0x12]))
 
             assert res == b''
 
-            ms.push([0x06, 0x00, 0x14, 0x00,
-                     0xff, 0x00, 0x02, 0x01, 0x34, 0x12])
+            ms.push_frame("06 00 15 00 FF 00 02 01 34 12")
 
             res = xm.getDaqPackedMode(258)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x14, 0x00, 0xc0, 0x02, 0x02, 0x01]))
+                0x04, 0x00, 0x15, 0x00, 0xc0, 0x02, 0x02, 0x01]))
 
             assert res.daqPackedMode == "EVENT_GROUPED"
             assert res.dpmTimestampMode == 0x01
@@ -936,13 +1028,19 @@ class TestMaster:
         mock_selector.return_value.select.side_effect = ms.select
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
-            ms.push([0x07, 0x00, 0x00, 0x00,
-                     0xff, 0x00, 0x01, 0x08, 0x2a, 0xff, 0x55])
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+
+            ms.push_packet(b"\xFF\x00\x01\x08\x2A\xFF\x55")
 
             res = xm.programStart()
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x01, 0x00, 0x00, 0x00, 0xd2]))
+                0x01, 0x00, 0x01, 0x00, 0xd2]))
 
             assert res.commModePgm.masterBlockMode is True
             assert res.commModePgm.interleavedMode is False
@@ -952,63 +1050,71 @@ class TestMaster:
             assert res.minStPgm == 0xff
             assert res.queueSizePgm == 0x55
 
-            ms.push([0x01, 0x00, 0x01, 0x00, 0xff])
+            ms.push_packet("FF")
 
             res = xm.programClear(0x00, 0xa0000100)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x08, 0x00, 0x01, 0x00,
+                0x08, 0x00, 0x02, 0x00,
                 0xd1, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0xa0]))
 
             assert res == b''
 
-            ms.push([0x01, 0x00, 0x02, 0x00, 0xff])
+            # todo: PROGRAM
+
+            ms.push_packet("FF")
 
             res = xm.programReset()
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x01, 0x00, 0x02, 0x00, 0xcf]))
+                0x01, 0x00, 0x03, 0x00, 0xcf]))
 
             assert res == b''
 
-            ms.push([0x03, 0x00, 0x03, 0x00, 0xff, 0xaa, 0xbb])
+            ms.push_packet("FF AA BB")
 
             res = xm.getPgmProcessorInfo()
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x01, 0x00, 0x03, 0x00, 0xce]))
+                0x01, 0x00, 0x04, 0x00, 0xce]))
 
             assert res.pgmProperties.nonSeqPgmRequired is True
             assert res.pgmProperties.nonSeqPgmSupported is False
             assert res.maxSector == 0xbb
 
-            ms.push([0x08, 0x00, 0x04, 0x00,
-                     0xff, 0xaa, 0xbb, 0xcc, 0x78, 0x56, 0x34, 0x12])
+            ms.push_packet("FF AA BB CC 78 56 34 12")
 
             res = xm.getSectorInfo(0, 0x12)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x03, 0x00, 0x04, 0x00, 0xcd, 0, 0x12]))
+                0x03, 0x00, 0x05, 0x00, 0xcd, 0, 0x12]))
 
             assert res.clearSequenceNumber == 0xaa
             assert res.programSequenceNumber == 0xbb
             assert res.programmingMethod == 0xcc
             assert res.sectorInfo == 0x12345678
 
-            ms.push([0x02, 0x00, 0x05, 0x00, 0xff, 0xaa])
+            ms.push_packet("FF AA")
 
             res = xm.getSectorInfo(2, 0x12)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x03, 0x00, 0x05, 0x00, 0xcd, 2, 0x12]))
+                0x03, 0x00, 0x06, 0x00, 0xcd, 2, 0x12]))
 
             assert res.sectorNameLength == 0xaa
 
-            ms.push([0x01, 0x00, 0x06, 0x00, 0xff])
+            ms.push_packet("FF")
 
             res = xm.programPrepare(0x1234)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x06, 0x00, 0xcc, 0x00, 0x34, 0x12]))
+                0x04, 0x00, 0x07, 0x00, 0xcc, 0x00, 0x34, 0x12]))
 
             assert res == b''
+
+            # todo: PROGRAM_FORMAT
+            # todo: PROGRAM_NEXT
+            # todo: PROGRAM_MAX
+            # todo: PROGRAM_VERIFY
+
+    # todo: TIME_CORRELATION_PROPERTIES

@@ -79,10 +79,11 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def request(self, cmd, *data):
         self.logger.debug(cmd.name)
         self.parent._setService(cmd)
-        header = self.HEADER.pack(len(data) + 1, self.counterSend)
+        cmdlen = cmd.bit_length()//8  # calculate bytes needed for cmd
+        header = self.HEADER.pack(cmdlen + len(data), self.counterSend)
         self.counterSend = (self.counterSend + 1) & 0xffff
 
-        frame = header + bytes(flatten(cmd, data))
+        frame = header + bytes(flatten(cmd.to_bytes(cmdlen, 'big'), data))
         self.logger.debug("-> {}".format(hexDump(frame)))
         self.timing.start()
         self.send(frame)
