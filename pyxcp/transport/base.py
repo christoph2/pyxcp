@@ -120,7 +120,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     def processResponse(self, response, length, counter):
         self.counterReceived = counter
-        if has_attr(self, 'use_tcp'):
+        if hasattr(self, 'use_tcp'):
             use_tcp = self.use_tcp
         else:
             use_tcp = False
