@@ -42,6 +42,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     def __init__(self, config=Config({}), loglevel='WARN'):
         self.parent = None
+        self.config = Config(config)
         self.closeEvent = threading.Event()
         self.logger = Logger("transport.Base")
         self.logger.setLevel(loglevel)
@@ -105,6 +106,21 @@ class BaseTransport(metaclass=abc.ABCMeta):
         else:
             pass    # Und nu??
         return xcpPDU[1:]
+
+    def block_receive(self, length_required: int) -> bytes:
+        """
+        Implements packet reception for block communication model (e.g. for XCP on CAN)
+        :param length_required: number of bytes to be expected in block response packets
+        :return: all payload bytes received in block response packets
+        """
+        block_response = b''
+        while len(block_response) < length_required:
+            try:
+                partial_response = self.resQueue.get(timeout=2.0)
+                block_response += partial_response[1:]
+            except queue.Empty:
+                raise types.XcpTimeoutError("Response timed out.") from None
+        return block_response
 
     @abc.abstractmethod
     def send(self, frame):

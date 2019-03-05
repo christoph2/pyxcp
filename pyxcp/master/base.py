@@ -33,6 +33,7 @@ __copyright__ = """
 
 import logging
 import traceback
+import queue
 
 from pyxcp import checksum
 from pyxcp import types
@@ -330,7 +331,11 @@ class MasterBaseType:
         -------
         bytes
         """
+
         response = self.transport.request(types.Command.UPLOAD, length)
+        if length > self.transport.MAX_DATAGRAM_SIZE:
+            block_response = self.transport.block_receive(length_required=(length - len(response)))
+            response += block_response
         return response
 
     @wrapped
