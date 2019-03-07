@@ -39,6 +39,7 @@ from pyxcp import checksum
 from pyxcp import types
 from pyxcp.constants import (makeWordPacker, makeDWordPacker, makeWordUnpacker, makeDWordUnpacker)
 from pyxcp.master.errorhandler import wrapped
+from pyxcp.master import slave_properties
 
 
 class MasterBaseType:
@@ -133,6 +134,8 @@ class MasterBaseType:
         self.maxCto = result.maxCto
         self.maxDto = result.maxDto
         byteOrderPrefix = "<" if result.commModeBasic.byteOrder == types.ByteOrder.INTEL else ">"
+
+        slave_properties.slaveProperties.slave_little_endian = result.commModeBasic.byteOrder == types.ByteOrder.INTEL
 
         self.WORD_pack = makeWordPacker(byteOrderPrefix)
         self.DWORD_pack = makeDWordPacker(byteOrderPrefix)
