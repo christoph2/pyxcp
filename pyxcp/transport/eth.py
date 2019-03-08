@@ -43,13 +43,12 @@ class Eth(BaseTransport):
 
     def __init__(self, ipAddress, port=DEFAULT_XCP_PORT, config={},
                  protocol='TCP', ipv6=False, loglevel="WARN"):
-
         if ipv6 and not socket.has_ipv6:
             warnings.warn("IPv6 not supported by your platform.") # or maybe except?
+            ipv6 = False
             addressFamily = socket.AF_INET
         else:
             addressFamily = socket.AF_INET6 if ipv6 else socket.AF_INET
-
         self.sock = socket.socket(
             addressFamily,
             socket.SOCK_STREAM if protocol == 'TCP' else socket.SOCK_DGRAM
