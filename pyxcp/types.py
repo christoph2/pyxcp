@@ -29,13 +29,8 @@ import construct
 
 from construct import (
     Struct, Enum, Padding, Int8ul, GreedyBytes, Byte, Int16ul, Int32ul,
-    BitStruct, BitsInteger, Flag, If, this, Int16ub, Int32ub, Int8ub, IfThenElse)
-
-from pyxcp.master import slave_properties
-
-
-def slave_is_little_endian(context) -> bool:
-    return slave_properties.slaveProperties.slave_little_endian
+    BitStruct, BitsInteger, Flag, If, this, Int16ub, Int32ub, IfThenElse,
+    Int16sl, Int32sl, Int16sb, Int32sb)
 
 
 if construct.version < (2, 8):
@@ -310,6 +305,12 @@ ByteOrder = Enum(
     MOTOROLA=1
 )
 
+# byte-order dependent types
+Int16u = IfThenElse(this._.byteOrder == ByteOrder.INTEL, Int16ul, Int16ub)
+Int16s = IfThenElse(this._.byteOrder == ByteOrder.INTEL, Int16sl, Int16sb)
+Int32u = IfThenElse(this._.byteOrder == ByteOrder.INTEL, Int32ul, Int32ub)
+Int32s = IfThenElse(this._.byteOrder == ByteOrder.INTEL, Int32sl, Int32sb)
+
 CommModeBasic = BitStruct(
     "optional" / Flag,  # The OPTIONAL flag indicates whether additional
                         # information on supported types of Communication mode
@@ -325,7 +326,7 @@ ConnectResponse = Struct(
     "resource" / ResourceType,
     "commModeBasic" / CommModeBasic,
     "maxCto" / Int8ul,
-    "maxDto" / IfThenElse(slave_is_little_endian, Int16ul, Int16ub),
+    "maxDto" / Int16u,
     "protocolLayerVersion" / Int8ul,
     "transportLayerVersion" / Int8ul
 )
@@ -352,7 +353,7 @@ GetStatusResponse = Struct(
     "sessionStatus" / SessionStatus,
     "resourceProtectionStatus" / ResourceType,
     Padding(1),
-    "sessionConfiguration" / IfThenElse(slave_is_little_endian, Int16ul, Int16ub),
+    "sessionConfiguration" / Int16u,
 )
 
 CommModeOptional = BitStruct(
@@ -374,7 +375,7 @@ GetCommModeInfoResponse = Struct(
 GetIDResponse = Struct(
     "mode" / Int8ul,
     Padding(2),
-    "length" / IfThenElse(slave_is_little_endian, Int32ul, Int32ub),
+    "length" / Int32u,
     "identification" / If(this.mode == 1, Byte[this.length])
 )
 
@@ -407,7 +408,7 @@ BuildChecksumResponse = Struct(
         XCP_USER_DEFINED=0xFF,
     ),
     Padding(2),
-    "checksum" / IfThenElse(slave_is_little_endian, Int32ul, Int32ub),
+    "checksum" / Int32u,
 )
 
 SetCalPageMode = BitStruct(
@@ -424,7 +425,7 @@ GetPagProcessorInfoResponse = Struct(
 
 GetSegmentInfoMode0Response = Struct(
     Padding(3),
-    "basicInfo" / IfThenElse(slave_is_little_endian, Int32ul, Int32ub),
+    "basicInfo" / Int32u,
 )
 
 GetSegmentInfoMode1Response = Struct(
@@ -437,7 +438,7 @@ GetSegmentInfoMode1Response = Struct(
 
 GetSegmentInfoMode2Response = Struct(
     Padding(3),
-    "mappingInfo" / IfThenElse(slave_is_little_endian, Int32ul, Int32ub),
+    "mappingInfo" / Int32u,
 )
 
 PageProperties = BitStruct(
@@ -463,8 +464,8 @@ DaqProperties = BitStruct(
 
 GetDaqProcessorInfoResponse = Struct(
     "daqProperties" / DaqProperties,
-    "maxDaq" / IfThenElse(slave_is_little_endian, Int16ul, Int16ub),
-    "maxEventChannel" / IfThenElse(slave_is_little_endian, Int16ul, Int16ub),
+    "maxDaq" / Int16u,
+    "maxEventChannel" / Int16u,
     "minDaq" / Int8ul,
     "daqKeyByte" / BitStruct(
         "Identification_Field" / Enum(
@@ -518,7 +519,7 @@ CurrentMode = BitStruct(
 GetDaqListModeResponse = Struct(
     "currentMode" / CurrentMode,
     Padding(2),
-    "currentEventChannel" / IfThenElse(slave_is_little_endian, Int16ul, Int16ub),
+    "currentEventChannel" / Int16u,
     "currentPrescaler" / Int8ul,
     "currentPriority" / Int8ul,
 )
@@ -534,7 +535,7 @@ SetDaqListMode = BitStruct(
 
 GetDaqClockResponse = Struct(
     Padding(3),
-    "timestamp" / IfThenElse(slave_is_little_endian, Int32ul, Int32ub),
+    "timestamp" / Int32u,
 )
 
 DaqPackedMode = Enum(
@@ -555,7 +556,7 @@ GetDaqPackedModeResponse = Struct(
     "dpmSampleCount" / If(
         (this.daqPackedMode == "ELEMENT_GROUPED")
         | (this.daqPackedMode == "EVENT_GROUPED"),
-        IfThenElse(slave_is_little_endian, Int16ul, Int16ub)
+        Int16u
     )
 )
 
@@ -563,7 +564,7 @@ ReadDaqResponse = Struct(
     "bitOffset" / Int8ul,
     "sizeofDaqElement" / Int8ul,
     "adressExtension" / Int8ul,
-    "address" / IfThenElse(slave_is_little_endian, Int32ul, Int32ub),
+    "address" / Int32u,
 )
 
 GetDaqResolutionInfoResponse = Struct(
@@ -598,7 +599,7 @@ GetDaqResolutionInfoResponse = Struct(
             S4=0b100,
         ),
     ),
-    "timestampTicks" / IfThenElse(slave_is_little_endian, Int16ul, Int16ub),
+    "timestampTicks" / Int16u,
 )
 
 DaqListProperties = BitStruct(
@@ -614,7 +615,7 @@ GetDaqListInfoResponse = Struct(
     "daqListProperties" / DaqListProperties,
     "maxOdt" / Int8ul,
     "maxOdtEntries" / Int8ul,
-    "fixedEvent" / IfThenElse(slave_is_little_endian, Int16ul, Int16ub),
+    "fixedEvent" / Int16u,
 )
 
 StartStopDaqListResponse = Struct(
@@ -682,7 +683,7 @@ GetSectorInfoResponseMode01 = Struct(
     "clearSequenceNumber" / Int8ul,
     "programSequenceNumber" / Int8ul,
     "programmingMethod" / Int8ul,
-    "sectorInfo" / IfThenElse(slave_is_little_endian, Int32ul, Int32ub),
+    "sectorInfo" / Int32u,
 )
 
 GetSectorInfoResponseMode2 = Struct(
