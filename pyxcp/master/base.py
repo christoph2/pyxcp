@@ -43,7 +43,7 @@ from pyxcp.master.errorhandler import wrapped
 
 @dataclass
 class SlaveProperties:
-    byteOrder: types.ByteOrder
+    byteOrder: types.ByteOrder = types.ByteOrder.INTEL
 
 
 class MasterBaseType:
