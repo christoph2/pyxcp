@@ -716,7 +716,7 @@ class MasterBaseType:
         dln = self.WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.START_STOP_DAQ_LIST, mode, *dln)
-        return response
+        return types.StartStopDaqListResponse.parse(response)
 
     @wrapped
     def startStopSynch(self, mode):

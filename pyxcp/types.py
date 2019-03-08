@@ -493,13 +493,25 @@ GetDaqProcessorInfoResponse = Struct(
     ),
 )
 
+DAQ_DIRECTION = Enum(
+    BitsInteger(1),
+    DAQ=0,
+    STIM=1
+)
+
+PID_OFF = Enum(
+    BitsInteger(1),
+    DTO_WITH_ID_FIELD=0,
+    DTO_WITHOUT_ID_FIELD=1
+)
+
 CurrentMode = BitStruct(
     "resume" / Flag,
     "running" / Flag,
-    "pid_off" / Flag,
+    "pid_off" / PID_OFF,
     "timestamp" / Flag,
     Padding(2),
-    "direction" / Flag,
+    "direction" / DAQ_DIRECTION,
     "selected" / Flag,
 )
 
@@ -509,6 +521,15 @@ GetDaqListModeResponse = Struct(
     "currentEventChannel" / IfThenElse(slave_is_little_endian, Int16ul, Int16ub),
     "currentPrescaler" / Int8ul,
     "currentPriority" / Int8ul,
+)
+
+SetDaqListMode = BitStruct(
+    Padding(2),
+    "pid_off" / PID_OFF,
+    "enable_timestamp" / Flag,
+    Padding(2),
+    "direction" / DAQ_DIRECTION,
+    Padding(1)
 )
 
 GetDaqClockResponse = Struct(
@@ -594,6 +615,10 @@ GetDaqListInfoResponse = Struct(
     "maxOdt" / Int8ul,
     "maxOdtEntries" / Int8ul,
     "fixedEvent" / IfThenElse(slave_is_little_endian, Int16ul, Int16ub),
+)
+
+StartStopDaqListResponse = Struct(
+    "firstPid" / Int8ul
 )
 
 DaqEventProperties = BitStruct(
