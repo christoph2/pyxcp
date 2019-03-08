@@ -322,6 +322,11 @@ CommModeBasic = BitStruct(
     "byteOrder" / ByteOrder
 )
 
+ConnectResponsePartial = Struct(
+    "resource" / ResourceType,
+    "commModeBasic" / CommModeBasic
+)
+
 ConnectResponse = Struct(
     "resource" / ResourceType,
     "commModeBasic" / CommModeBasic,

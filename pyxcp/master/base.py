@@ -33,7 +33,6 @@ __copyright__ = """
 
 import logging
 import traceback
-from dataclasses import dataclass
 
 from pyxcp import checksum
 from pyxcp import types
@@ -41,9 +40,18 @@ from pyxcp.constants import (makeWordPacker, makeDWordPacker, makeWordUnpacker, 
 from pyxcp.master.errorhandler import wrapped
 
 
-@dataclass
-class SlaveProperties:
-    byteOrder: types.ByteOrder = types.ByteOrder.INTEL
+class SlaveProperties(dict):
+    """Container class for fixed parameters, like byte-order, maxCTO, ...
+    """
+
+    def __init__(self, *args, **kws):
+        super(SlaveProperties, self).__init__(*args, **kws)
+
+    def __getattr__(self, name):
+        return self[name]
+
+    def __setattr__(self, name, value):
+        self[name] = value
 
 
 class MasterBaseType:
@@ -62,7 +70,6 @@ class MasterBaseType:
         self.logger = logging.getLogger("pyXCP")
         self.logger.setLevel(loglevel)
         self.transport = transport
-        self.slaveProperties: SlaveProperties = SlaveProperties()
 
         # In some cases the transport-layer needs to communicate with us.
         self.transport.parent = self
@@ -135,23 +142,25 @@ class MasterBaseType:
 
         """
         response = self.transport.request(types.Command.CONNECT, 0x00)
-        result = types.ConnectResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
-        self.maxCto = result.maxCto
-        self.maxDto = result.maxDto
-        byteOrderPrefix = "<" if result.commModeBasic.byteOrder == types.ByteOrder.INTEL else ">"
+        resultPartial = types.ConnectResponsePartial.parse(response)    # First get byte-order
+        byteOrder = resultPartial.commModeBasic.byteOrder
+        result = types.ConnectResponse.parse(response, byteOrder=byteOrder)
+        self.slaveProperties = SlaveProperties(byteOrder = byteOrder, maxCto = result.maxCto, maxDto = result.maxDto)
+        byteOrderPrefix = "<" if byteOrder == types.ByteOrder.INTEL else ">"
 
-        self.slaveProperties.byteOrder = result.commModeBasic.byteOrder
+        self.slaveProperties.supportsPgm = result.resource.pgm
+        self.slaveProperties.supportsStim = result.resource.stim
+        self.slaveProperties.supportsDaq = result.resource.daq
+        self.slaveProperties.supportsCalpag = result.resource.calpag
+        self.slaveProperties.slaveBlockMode = result.commModeBasic.slaveBlockMode
+        self.slaveProperties.addressGranularity = result.commModeBasic.addressGranularity
+        self.slaveProperties.protocolLayerVersion = result.protocolLayerVersion
+        self.slaveProperties.transportLayerVersion = result.transportLayerVersion
 
         self.WORD_pack = makeWordPacker(byteOrderPrefix)
         self.DWORD_pack = makeDWordPacker(byteOrderPrefix)
         self.WORD_unpack = makeWordUnpacker(byteOrderPrefix)
         self.DWORD_unpack = makeDWordUnpacker(byteOrderPrefix)
-
-
-        self.supportsPgm = result.resource.pgm
-        self.supportsStim = result.resource.stim
-        self.supportsDaq = result.resource.daq
-        self.supportsCalpag = result.resource.calpag
         return result
 
     @wrapped
@@ -465,7 +474,7 @@ class MasterBaseType:
             raise ValueError(
                 "Payload must be at least 8 bytes - given: {}".format(
                     limitPayload))
-        maxPayload = self.maxCto - 1
+        maxPayload = self.slaveProperties.maxCto - 1
         payload = min(limitPayload, maxPayload) if limitPayload else maxPayload
         chunkSize = payload
         chunks = range(length // chunkSize)
