@@ -29,7 +29,9 @@ import construct
 
 from construct import (
     Struct, Enum, Padding, Int8ul, GreedyBytes, Byte, Int16ul, Int32ul,
-    BitStruct, BitsInteger, Flag, If, this)
+    BitStruct, BitsInteger, Flag, If, this, Int16ub, Int32ub, IfThenElse,
+    Int16sl, Int32sl, Int16sb, Int32sb)
+
 
 if construct.version < (2, 8):
     print("pyXCP requires at least construct 2.8")
@@ -303,6 +305,12 @@ ByteOrder = Enum(
     MOTOROLA=1
 )
 
+# byte-order dependent types
+Int16u = IfThenElse(this._.byteOrder == ByteOrder.INTEL, Int16ul, Int16ub)
+Int16s = IfThenElse(this._.byteOrder == ByteOrder.INTEL, Int16sl, Int16sb)
+Int32u = IfThenElse(this._.byteOrder == ByteOrder.INTEL, Int32ul, Int32ub)
+Int32s = IfThenElse(this._.byteOrder == ByteOrder.INTEL, Int32sl, Int32sb)
+
 CommModeBasic = BitStruct(
     "optional" / Flag,  # The OPTIONAL flag indicates whether additional
                         # information on supported types of Communication mode
@@ -318,7 +326,7 @@ ConnectResponse = Struct(
     "resource" / ResourceType,
     "commModeBasic" / CommModeBasic,
     "maxCto" / Int8ul,
-    "maxDto" / Int16ul,
+    "maxDto" / Int16u,
     "protocolLayerVersion" / Int8ul,
     "transportLayerVersion" / Int8ul
 )
@@ -345,7 +353,7 @@ GetStatusResponse = Struct(
     "sessionStatus" / SessionStatus,
     "resourceProtectionStatus" / ResourceType,
     Padding(1),
-    "sessionConfiguration" / Int16ul,
+    "sessionConfiguration" / Int16u,
 )
 
 CommModeOptional = BitStruct(
@@ -367,7 +375,7 @@ GetCommModeInfoResponse = Struct(
 GetIDResponse = Struct(
     "mode" / Int8ul,
     Padding(2),
-    "length" / Int32ul,
+    "length" / Int32u,
     "identification" / If(this.mode == 1, Byte[this.length])
 )
 
@@ -400,7 +408,7 @@ BuildChecksumResponse = Struct(
         XCP_USER_DEFINED=0xFF,
     ),
     Padding(2),
-    "checksum" / Int32ul,
+    "checksum" / Int32u,
 )
 
 SetCalPageMode = BitStruct(
@@ -417,7 +425,7 @@ GetPagProcessorInfoResponse = Struct(
 
 GetSegmentInfoMode0Response = Struct(
     Padding(3),
-    "basicInfo" / Int32ul,
+    "basicInfo" / Int32u,
 )
 
 GetSegmentInfoMode1Response = Struct(
@@ -430,7 +438,7 @@ GetSegmentInfoMode1Response = Struct(
 
 GetSegmentInfoMode2Response = Struct(
     Padding(3),
-    "mappingInfo" / Int32ul,
+    "mappingInfo" / Int32u,
 )
 
 PageProperties = BitStruct(
@@ -456,8 +464,8 @@ DaqProperties = BitStruct(
 
 GetDaqProcessorInfoResponse = Struct(
     "daqProperties" / DaqProperties,
-    "maxDaq" / Int16ul,
-    "maxEventChannel" / Int16ul,
+    "maxDaq" / Int16u,
+    "maxEventChannel" / Int16u,
     "minDaq" / Int8ul,
     "daqKeyByte" / BitStruct(
         "Identification_Field" / Enum(
@@ -486,27 +494,48 @@ GetDaqProcessorInfoResponse = Struct(
     ),
 )
 
+DAQ_DIRECTION = Enum(
+    BitsInteger(1),
+    DAQ=0,
+    STIM=1
+)
+
+PID_OFF = Enum(
+    BitsInteger(1),
+    DTO_WITH_ID_FIELD=0,
+    DTO_WITHOUT_ID_FIELD=1
+)
+
 CurrentMode = BitStruct(
     "resume" / Flag,
     "running" / Flag,
-    "pid_off" / Flag,
+    "pid_off" / PID_OFF,
     "timestamp" / Flag,
     Padding(2),
-    "direction" / Flag,
+    "direction" / DAQ_DIRECTION,
     "selected" / Flag,
 )
 
 GetDaqListModeResponse = Struct(
     "currentMode" / CurrentMode,
     Padding(2),
-    "currentEventChannel" / Int16ul,
+    "currentEventChannel" / Int16u,
     "currentPrescaler" / Int8ul,
     "currentPriority" / Int8ul,
 )
 
+SetDaqListMode = BitStruct(
+    Padding(2),
+    "pid_off" / PID_OFF,
+    "enable_timestamp" / Flag,
+    Padding(2),
+    "direction" / DAQ_DIRECTION,
+    Padding(1)
+)
+
 GetDaqClockResponse = Struct(
     Padding(3),
-    "timestamp" / Int32ul,
+    "timestamp" / Int32u,
 )
 
 DaqPackedMode = Enum(
@@ -527,7 +556,7 @@ GetDaqPackedModeResponse = Struct(
     "dpmSampleCount" / If(
         (this.daqPackedMode == "ELEMENT_GROUPED")
         | (this.daqPackedMode == "EVENT_GROUPED"),
-        Int16ul
+        Int16u
     )
 )
 
@@ -535,7 +564,7 @@ ReadDaqResponse = Struct(
     "bitOffset" / Int8ul,
     "sizeofDaqElement" / Int8ul,
     "adressExtension" / Int8ul,
-    "address" / Int32ul,
+    "address" / Int32u,
 )
 
 GetDaqResolutionInfoResponse = Struct(
@@ -570,7 +599,7 @@ GetDaqResolutionInfoResponse = Struct(
             S4=0b100,
         ),
     ),
-    "timestampTicks" / Int16ul,
+    "timestampTicks" / Int16u,
 )
 
 DaqListProperties = BitStruct(
@@ -586,7 +615,11 @@ GetDaqListInfoResponse = Struct(
     "daqListProperties" / DaqListProperties,
     "maxOdt" / Int8ul,
     "maxOdtEntries" / Int8ul,
-    "fixedEvent" / Int16ul,
+    "fixedEvent" / Int16u,
+)
+
+StartStopDaqListResponse = Struct(
+    "firstPid" / Int8ul
 )
 
 DaqEventProperties = BitStruct(
@@ -650,7 +683,7 @@ GetSectorInfoResponseMode01 = Struct(
     "clearSequenceNumber" / Int8ul,
     "programSequenceNumber" / Int8ul,
     "programmingMethod" / Int8ul,
-    "sectorInfo" / Int32ul,
+    "sectorInfo" / Int32u,
 )
 
 GetSectorInfoResponseMode2 = Struct(
