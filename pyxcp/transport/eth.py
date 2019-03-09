@@ -143,4 +143,10 @@ class Eth(BaseTransport):
         self.sock.send(frame)
 
     def closeConnection(self):
-        self.sock.close()
+        if not self.invalidSocket:
+            self.sock.shutdown(socket.SHUT_RDWR)
+            self.sock.close()
+
+    @property
+    def invalidSocket(self):
+        return self.sock.fileno() == -1
