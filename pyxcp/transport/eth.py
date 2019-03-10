@@ -50,6 +50,7 @@ class Eth(BaseTransport):
             addressFamily,
             socket.SOCK_STREAM if protocol == 'TCP' else socket.SOCK_DGRAM
         )
+        self.status = 0
         self.selector = selectors.DefaultSelector()
         self.selector.register(self.sock, selectors.EVENT_READ)
         self.use_tcp = protocol == 'TCP'
@@ -144,7 +145,8 @@ class Eth(BaseTransport):
 
     def closeConnection(self):
         if not self.invalidSocket:
-            self.sock.shutdown(socket.SHUT_RDWR)
+            if self.status == 1:
+                self.sock.shutdown(socket.SHUT_RDWR)
             self.sock.close()
 
     @property
