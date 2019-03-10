@@ -247,6 +247,12 @@ class MasterBaseType:
         response = self.transport.request(types.Command.GET_COMM_MODE_INFO)
         result = types.GetCommModeInfoResponse.parse(
             response, byteOrder=self.slaveProperties.byteOrder)
+        self.slaveProperties.interleavedMode = result.commModeOptional.interleavedMode
+        self.slaveProperties.masterBlockMode = result.commModeOptional.masterBlockMode
+        self.slaveProperties.maxbs = result.maxbs
+        self.slaveProperties.minSt = result.minSt
+        self.slaveProperties.queueSize = result.queueSize
+        self.slaveProperties.xcpDriverVersionNumber = result.xcpDriverVersionNumber
         return result
 
     @wrapped
@@ -485,6 +491,10 @@ class MasterBaseType:
         response = self.transport.request(types.Command.GET_VERSION)
         result = types.GetVersionResponse.parse(
             response, byteOrder=self.slaveProperties.byteOrder)
+        self.slaveProperties.protocolMajor = result.protocolMajor
+        self.slaveProperties.protocolMinor = result.protocolMinor
+        self.slaveProperties.transportMajor = result.transportMajor
+        self.slaveProperties.transportMinor = result.transportMinor
         return result
 
     def fetch(self, length, limitPayload=None):  # TODO: pull
