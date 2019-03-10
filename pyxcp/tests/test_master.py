@@ -873,14 +873,27 @@ class TestMaster:
 
             assert res == b''
 
-            # todo: xm.writeDaqMultiple()
+            ms.push_packet("FF")
+
+            res = xm.writeDaqMultiple([
+                dict(bitOffset=1, size=2, address=3, addressExt=4),
+                dict(bitOffset=5, size=6, address=0x12345678, addressExt=7)
+            ])
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x12, 0x00, 0x06, 0x00, 0xC7, 0x02,
+                0x01, 0x02, 0x03, 0x00, 0x00, 0x00, 0x04, 0x00,
+                0x05, 0x06, 0x78, 0x56, 0x34, 0x12, 0x07, 0x00
+            ]))
+
+            assert res == b''
 
             ms.push_frame("08 00 06 00 FF 1F 03 04 78 56 34 12")
 
             res = xm.readDaq()
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x01, 0x00, 0x06, 0x00, 0xdb]))
+                0x01, 0x00, 0x07, 0x00, 0xdb]))
 
             assert res.bitOffset == 31
             assert res.sizeofDaqElement == 3
@@ -892,7 +905,7 @@ class TestMaster:
             res = xm.getDaqClock()
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x01, 0x00, 0x07, 0x00, 0xdc]))
+                0x01, 0x00, 0x08, 0x00, 0xdc]))
 
             # todo: assert res.triggerInfo ==
             # todo: assert res.payloadFmt ==
@@ -904,7 +917,7 @@ class TestMaster:
             res = xm.getDaqProcessorInfo()
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x01, 0x00, 0x08, 0x00, 0xda]))
+                0x01, 0x00, 0x09, 0x00, 0xda]))
 
             assert res.daqProperties.overloadMsb is True
             assert res.daqProperties.bitStimSupported is False
@@ -918,7 +931,7 @@ class TestMaster:
             res = xm.getDaqResolutionInfo()
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x01, 0x00, 0x09, 0x00, 0xd9]))
+                0x01, 0x00, 0x0A, 0x00, 0xd9]))
 
             assert res.granularityOdtEntrySizeDaq == 0x12
             assert res.maxOdtEntrySizeDaq == 0x34
@@ -934,7 +947,7 @@ class TestMaster:
             res = xm.getDaqListMode(256)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x0A, 0x00, 0xdf, 0x00, 0x00, 0x01]))
+                0x04, 0x00, 0x0B, 0x00, 0xdf, 0x00, 0x00, 0x01]))
 
             assert res.currentMode.resume is True
             assert res.currentMode.selected is False
@@ -947,7 +960,7 @@ class TestMaster:
             res = xm.getDaqEventInfo(256)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x0B, 0x00, 0xd7, 0x00, 0x00, 0x01]))
+                0x04, 0x00, 0x0C, 0x00, 0xd7, 0x00, 0x00, 0x01]))
 
             assert res.daqEventProperties.consistency == "CONSISTENCY_DAQ"
             assert res.daqEventProperties.stim is True
@@ -958,14 +971,26 @@ class TestMaster:
             assert res.eventChannelTimeUnit == 0x07
             assert res.eventChannelPriority == 0xff
 
-            # todo: xm.dtoCtrProperties()
+            ms.push_packet("FF AA 34 12 02")
+
+            res = xm.dtoCtrProperties(0x05, 0x1234, 0x5678, 0x02)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x07, 0x00, 0x0D, 0x00,
+                0xc5, 0x05, 0x34, 0x12, 0x78, 0x56, 0x02]))
+
+            assert res.properties.evtCtrPresent is True
+            assert res.properties.relatedEventFixed is False
+            assert res.relatedEventChannel == 0x1234
+            assert res.mode.stimMode is True
+            assert res.mode.daqMode is False
 
             ms.push_frame([0x01, 0x00, 0x0C, 0x00, 0xff])
 
             res = xm.clearDaqList(256)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x0C, 0x00, 0xe3, 0x00, 0x00, 0x01]))
+                0x04, 0x00, 0x0E, 0x00, 0xe3, 0x00, 0x00, 0x01]))
 
             assert res == b''
 
@@ -974,7 +999,7 @@ class TestMaster:
             res = xm.getDaqListInfo(256)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x0D, 0x00, 0xd8, 0x00, 0x00, 0x01]))
+                0x04, 0x00, 0x0F, 0x00, 0xd8, 0x00, 0x00, 0x01]))
 
             assert res.daqListProperties.packed is True
             assert res.daqListProperties.eventFixed is False
@@ -988,7 +1013,7 @@ class TestMaster:
             res = xm.freeDaq()
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x01, 0x00, 0x0E, 0x00, 0xd6]))
+                0x01, 0x00, 0x10, 0x00, 0xd6]))
 
             assert res == b''
 
@@ -997,7 +1022,7 @@ class TestMaster:
             res = xm.allocDaq(258)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x0F, 0x00, 0xd5, 0x00, 0x02, 0x01]))
+                0x04, 0x00, 0x11, 0x00, 0xd5, 0x00, 0x02, 0x01]))
 
             assert res == b''
 
@@ -1006,7 +1031,7 @@ class TestMaster:
             res = xm.allocOdt(258, 3)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x05, 0x00, 0x10, 0x00, 0xd4, 0x00, 0x02, 0x01, 0x03]))
+                0x05, 0x00, 0x12, 0x00, 0xd4, 0x00, 0x02, 0x01, 0x03]))
 
             assert res == b''
 
@@ -1015,7 +1040,7 @@ class TestMaster:
             res = xm.allocOdtEntry(258, 3, 4)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x06, 0x00, 0x11, 0x00, 0xd3, 0x00, 0x02, 0x01, 0x03, 0x04]))
+                0x06, 0x00, 0x13, 0x00, 0xd3, 0x00, 0x02, 0x01, 0x03, 0x04]))
 
             assert res == b''
 
@@ -1024,7 +1049,7 @@ class TestMaster:
             res = xm.setDaqPackedMode(258, 0)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x05, 0x00, 0x12, 0x00,
+                0x05, 0x00, 0x14, 0x00,
                 0xc0, 0x01, 0x02, 0x01, 0x00]))
 
             assert res == b''
@@ -1034,7 +1059,7 @@ class TestMaster:
             res = xm.getDaqPackedMode(258)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x13, 0x00, 0xc0, 0x02, 0x02, 0x01]))
+                0x04, 0x00, 0x15, 0x00, 0xc0, 0x02, 0x02, 0x01]))
 
             assert res.daqPackedMode == types.DaqPackedMode.NONE
             assert res.dpmTimestampMode is None
@@ -1044,7 +1069,7 @@ class TestMaster:
             res = xm.setDaqPackedMode(258, 2, 0b01, 0x1234)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x08, 0x00, 0x14, 0x00,
+                0x08, 0x00, 0x16, 0x00,
                 0xc0, 0x01, 0x02, 0x01, 0x02, 0x01, 0x34, 0x12]))
 
             assert res == b''
@@ -1054,7 +1079,7 @@ class TestMaster:
             res = xm.getDaqPackedMode(258)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x15, 0x00, 0xc0, 0x02, 0x02, 0x01]))
+                0x04, 0x00, 0x17, 0x00, 0xc0, 0x02, 0x02, 0x01]))
 
             assert res.daqPackedMode == "EVENT_GROUPED"
             assert res.dpmTimestampMode == 0x01
