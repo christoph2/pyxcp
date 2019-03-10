@@ -113,7 +113,7 @@ class Command(enum.IntEnum):
     CLEAR_DAQ_LIST = 0xE3
     SET_DAQ_PTR = 0xE2
     WRITE_DAQ = 0xE1
-    WRITE_DAQ_MULTIPLE = 0xC7  # NEW IN 1.1  # todo: implement
+    WRITE_DAQ_MULTIPLE = 0xC7
     SET_DAQ_LIST_MODE = 0xE0
     GET_DAQ_LIST_MODE = 0xDF
     START_STOP_DAQ_LIST = 0xDE
@@ -126,7 +126,7 @@ class Command(enum.IntEnum):
     GET_DAQ_RESOLUTION_INFO = 0xD9
     GET_DAQ_LIST_INFO = 0xD8
     GET_DAQ_EVENT_INFO = 0xD7
-    DTO_CTR_PROPERTIES = 0xC5  # todo: implement
+    DTO_CTR_PROPERTIES = 0xC5
     SET_DAQ_PACKED_MODE = 0xC001
     GET_DAQ_PACKED_MODE = 0xC002
     FREE_DAQ = 0xD6
@@ -538,6 +538,14 @@ SetDaqListMode = BitStruct(
     Padding(1)
 )
 
+DaqElement = Struct(
+    "bitOffset" / Int8ul,
+    "size" / Int8ul,
+    "address" / Int32u,
+    "addressExt" / Int8ul,
+    Padding(1)
+)
+
 GetDaqClockResponse = Struct(
     Padding(3),
     "timestamp" / Int32u,
@@ -649,6 +657,29 @@ GetEventChannelInfoResponse = Struct(
     "eventChannelTimeCycle" / Int8ul,
     "eventChannelTimeUnit" / Int8ul,
     "eventChannelPriority" / Int8ul,
+)
+
+DtoCtrProperties = BitStruct(
+    "evtCtrPresent" / Flag,
+    "stimCtrCpyPresent" / Flag,
+    "stimModePresent" / Flag,
+    "daqModePresent" / Flag,
+    "relatedEventPresent" / Flag,
+    "stimModeFixed" / Flag,
+    "daqModeFixed" / Flag,
+    "relatedEventFixed" / Flag
+)
+
+DtoCtrMode = BitStruct(
+    Padding(6),
+    "stimMode" / Flag,
+    "daqMode" / Flag
+)
+
+DtoCtrPropertiesResponse = Struct(
+    "properties" / DtoCtrProperties,
+    "relatedEventChannel" / Int16u,
+    "mode" / DtoCtrMode
 )
 
 CommModePgm = BitStruct(

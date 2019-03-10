@@ -772,6 +772,27 @@ class MasterBaseType:
         response = self.transport.request(types.Command.START_STOP_SYNCH, mode)
         return response
 
+    @wrapped
+    def writeDaqMultiple(self, daqElements):
+        """Write multiple elements in ODT.
+
+        Parameters
+        ----------
+        daqElements : list of DAQ elements
+        """
+
+        data = bytearray()
+        data.append(len(daqElements))
+
+        for daqElement in daqElements:
+            data.extend(types.DaqElement.build(
+                daqElement,
+                byteOrder=self.slaveProperties.byteOrder))
+
+        response = self.transport.request(
+            types.Command.WRITE_DAQ_MULTIPLE, *data)
+        return response
+
     # optional
     @wrapped
     def getDaqClock(self):
@@ -854,6 +875,32 @@ class MasterBaseType:
         response = self.transport.request(
             types.Command.GET_DAQ_EVENT_INFO, 0, *ecn)
         return types.GetEventChannelInfoResponse.parse(
+            response, byteOrder=self.slaveProperties.byteOrder)
+
+    @wrapped
+    def dtoCtrProperties(
+            self, modifier, eventChannel, relatedEventChannel, mode):
+        """DTO CTR properties
+
+        Parameters
+        ----------
+        modifier :
+        eventChannel : int
+        relatedEventChannel : int
+        mode :
+
+        Returns
+        -------
+        `pyxcp.types.DtoCtrPropertiesResponse`
+        """
+        data = bytearray()
+        data.append(modifier)
+        data.extend(self.WORD_pack(eventChannel))
+        data.extend(self.WORD_pack(relatedEventChannel))
+        data.append(mode)
+        response = self.transport.request(
+            types.Command.DTO_CTR_PROPERTIES, *data)
+        return types.DtoCtrPropertiesResponse.parse(
             response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
