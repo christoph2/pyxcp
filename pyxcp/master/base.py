@@ -893,10 +893,13 @@ class MasterBaseType:
         -------
         `pyxcp.types.DtoCtrPropertiesResponse`
         """
-        ecn = self.WORD_pack(eventChannel)
-        recn = self.WORD_pack(relatedEventChannel)
+        data = bytearray()
+        data.append(modifier)
+        data.extend(self.WORD_pack(eventChannel))
+        data.extend(self.WORD_pack(relatedEventChannel))
+        data.append(mode)
         response = self.transport.request(
-            types.Command.DTO_CTR_PROPERTIES, modifier, *ecn, *recn, mode)
+            types.Command.DTO_CTR_PROPERTIES, *data)
         return types.DtoCtrPropertiesResponse.parse(
             response, byteOrder=self.slaveProperties.byteOrder)
 
