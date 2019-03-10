@@ -4,8 +4,10 @@
 """Top-level package file.
 """
 
+import sys
+
 from .master import Master
-from .transport import Eth, SxI, Can
+from .transport import Eth, SxI
 
 
 __copyright__ = """
@@ -31,3 +33,11 @@ __copyright__ = """
 """
 
 __version__ = "0.10.2"
+
+VERSION = sys.version_info
+PY36_OR_HIGHER = VERSION.major >= 3 and VERSION.minor >= 6
+
+if PY36_OR_HIGHER:
+    # only import can transport with Python 3.6 or higher because it uses
+    # variable annotations (introduced in 3.6 - PEP526)
+    from .transport import Can

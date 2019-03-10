@@ -1,7 +1,6 @@
 #!/bin/env python
 
 import os
-import sys
 from setuptools import find_packages, setup
 
 with open(os.path.join('pyxcp', 'version.py'), 'r') as f:
@@ -13,7 +12,8 @@ with open(os.path.join('pyxcp', 'version.py'), 'r') as f:
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-install_reqs = ['construct >= 2.9.0', 'mako', 'pyserial', 'sphinxcontrib-napoleon']
+install_reqs = [
+    'construct >= 2.9.0', 'mako', 'pyserial', 'sphinxcontrib-napoleon']
 
 setup(
     name='pyxcp',
