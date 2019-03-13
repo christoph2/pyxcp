@@ -1062,9 +1062,12 @@ class MasterBaseType:
         cs = self.WORD_pack(codesize)
         return self.transport.request(types.Command.PROGRAM_PREPARE, 0x00, *cs)
 
-    def programFormat(self):
-        # PROGRAM_FORMAT
-        pass
+    def programFormat(
+            self, compressionMethod, encryptionMethod, programmingMethod,
+            accessMethod):
+        return self.transport.request(
+            types.Command.PROGRAM_FORMAT, compressionMethod, encryptionMethod,
+            programmingMethod, accessMethod)
 
     def programNext(self):
         # PROGRAM_NEXT

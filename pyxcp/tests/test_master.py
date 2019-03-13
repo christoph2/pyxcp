@@ -1134,6 +1134,8 @@ class TestMaster:
                 0x06, 0x00, 0x03, 0x00,
                 0xD0, 0x04, 0x01, 0x02, 0x03, 0x04]))
 
+            assert res == b''
+
             ms.push_packet("FF")
 
             res = xm.programReset()
@@ -1184,7 +1186,15 @@ class TestMaster:
 
             assert res == b''
 
-            # todo: PROGRAM_FORMAT
+            ms.push_packet("FF")
+
+            res = xm.programFormat(0x81, 0x82, 0x83, 0x01)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x05, 0x00, 0x09, 0x00, 0xCB, 0x81, 0x82, 0x83, 0x01]))
+
+            assert res == b''
+
             # todo: PROGRAM_NEXT
             # todo: PROGRAM_MAX
             # todo: PROGRAM_VERIFY
