@@ -1069,13 +1069,27 @@ class MasterBaseType:
             types.Command.PROGRAM_FORMAT, compressionMethod, encryptionMethod,
             programmingMethod, accessMethod)
 
-    def programNext(self):
-        # PROGRAM_NEXT
-        pass
+    def programNext(self, data):
+        d = bytearray()
+        d.append(len(data))
+        if self.slaveProperties.addressGranularity == \
+                types.AddressGranularity.DWORD:
+            d.extend(b'\x00\x00')  # alignment bytes
+        for e in data:
+            d.extend(self.AG_pack(e))
+        return self.transport.request(types.Command.PROGRAM_NEXT, *d)
 
-    def programMax(self):
-        # PROGRAM_MAX
-        pass
+    def programMax(self, data):
+        d = bytearray()
+        if self.slaveProperties.addressGranularity == \
+                types.AddressGranularity.WORD:
+            d.extend(b'\x00')  # alignment bytes
+        elif self.slaveProperties.addressGranularity == \
+                types.AddressGranularity.DWORD:
+            d.extend(b'\x00\x00\x00')  # alignment bytes
+        for e in data:
+            d.extend(self.AG_pack(e))
+        return self.transport.request(types.Command.PROGRAM_MAX, *d)
 
     def programVerify(self):
         # PROGRAM_VERIFY

@@ -1195,8 +1195,26 @@ class TestMaster:
 
             assert res == b''
 
-            # todo: PROGRAM_NEXT
-            # todo: PROGRAM_MAX
+            ms.push_packet("FF")
+
+            res = xm.programNext([0x01, 0x02, 0x03, 0x04])
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x06, 0x00, 0x0A, 0x00,
+                0xCA, 0x04, 0x01, 0x02, 0x03, 0x04]))
+
+            assert res == b''
+
+            ms.push_packet("FF")
+
+            res = xm.programMax([0x01, 0x02, 0x03, 0x04])
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x05, 0x00, 0x0B, 0x00,
+                0xC9, 0x01, 0x02, 0x03, 0x04]))
+
+            assert res == b''
+
             # todo: PROGRAM_VERIFY
 
     # todo: TIME_CORRELATION_PROPERTIES
