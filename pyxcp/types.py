@@ -139,19 +139,19 @@ class Command(enum.IntEnum):
     # Mandatory Commands
     PROGRAM_START = 0xD2
     PROGRAM_CLEAR = 0xD1
-    PROGRAM = 0xD0  # todo: implement
+    PROGRAM = 0xD0
     PROGRAM_RESET = 0xCF
 
     # Optional Commands
     GET_PGM_PROCESSOR_INFO = 0xCE
     GET_SECTOR_INFO = 0xCD
     PROGRAM_PREPARE = 0xCC
-    PROGRAM_FORMAT = 0xCB  # todo: implement
-    PROGRAM_NEXT = 0xCA  # todo: implement
-    PROGRAM_MAX = 0xC9  # todo: implement
-    PROGRAM_VERIFY = 0xC8  # todo: implement
+    PROGRAM_FORMAT = 0xCB
+    PROGRAM_NEXT = 0xCA
+    PROGRAM_MAX = 0xC9
+    PROGRAM_VERIFY = 0xC8
 
-    TIME_CORRELATION_PROPERTIES = 0xC6  # todo: implement
+    TIME_CORRELATION_PROPERTIES = 0xC6
 
 
 class CommandCategory(enum.IntEnum):

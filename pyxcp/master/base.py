@@ -32,6 +32,7 @@ __copyright__ = """
 """
 
 import logging
+import struct
 import traceback
 
 from pyxcp import checksum
@@ -82,6 +83,8 @@ class MasterBaseType:
         self.WORD_unpack = None
         self.DWORD_pack = None
         self.DWORD_unpack = None
+        self.AG_pack = None
+        self.AG_unpack = None
 
     def __enter__(self):
         """Context manager entry part.
@@ -170,6 +173,20 @@ class MasterBaseType:
         self.DWORD_pack = makeDWordPacker(byteOrderPrefix)
         self.WORD_unpack = makeWordUnpacker(byteOrderPrefix)
         self.DWORD_unpack = makeDWordUnpacker(byteOrderPrefix)
+
+        if self.slaveProperties.addressGranularity == \
+                types.AddressGranularity.BYTE:
+            self.AG_pack = struct.Struct("<B").pack
+            self.AG_unpack = struct.Struct("<B").pack
+        elif self.slaveProperties.addressGranularity == \
+                types.AddressGranularity.WORD:
+            self.AG_pack = self.WORD_pack
+            self.AG_unpack = self.WORD_unpack
+        elif self.slaveProperties.addressGranularity == \
+                types.AddressGranularity.DWORD:
+            self.AG_pack = self.DWORD_pack
+            self.AG_unpack = self.DWORD_unpack
+
         return result
 
     @wrapped
@@ -999,7 +1016,7 @@ class MasterBaseType:
         return response
 
     @wrapped
-    def program(self):
+    def program(self, data):
         """
         PROGRAM
         Position Type Description
@@ -1010,6 +1027,14 @@ class MasterBaseType:
             AG>1: AG MAX_CTO-AG
         ELEMENT Data elements
         """
+        d = bytearray()
+        d.append(len(data))
+        if self.slaveProperties.addressGranularity == \
+                types.AddressGranularity.DWORD:
+            d.extend(b'\x00\x00')  # alignment bytes
+        for e in data:
+            d.extend(self.AG_pack(e))
+        return self.transport.request(types.Command.PROGRAM, *d)
 
     def programReset(self):
         """Indicate the end of a programming sequence."""
@@ -1036,6 +1061,26 @@ class MasterBaseType:
         """Prepare non-volatile memory programming."""
         cs = self.WORD_pack(codesize)
         return self.transport.request(types.Command.PROGRAM_PREPARE, 0x00, *cs)
+
+    def programFormat(self):
+        # PROGRAM_FORMAT
+        pass
+
+    def programNext(self):
+        # PROGRAM_NEXT
+        pass
+
+    def programMax(self):
+        # PROGRAM_MAX
+        pass
+
+    def programVerify(self):
+        # PROGRAM_VERIFY
+        pass
+
+    def timeCorrelationProperties(self):
+        # TIME_CORRELATION_PROPERTIES
+        pass
 
     # Convenience Functions.
     def verify(self, addr, length):
