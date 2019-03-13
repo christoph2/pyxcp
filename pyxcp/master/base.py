@@ -1091,9 +1091,12 @@ class MasterBaseType:
             d.extend(self.AG_pack(e))
         return self.transport.request(types.Command.PROGRAM_MAX, *d)
 
-    def programVerify(self):
-        # PROGRAM_VERIFY
-        pass
+    def programVerify(self, verMode, verType, verValue):
+        data = bytearray()
+        data.extend(self.WORD_pack(verType))
+        data.extend(self.DWORD_pack(verValue))
+        return self.transport.request(
+            types.Command.PROGRAM_VERIFY, verMode, *data)
 
     def timeCorrelationProperties(self):
         # TIME_CORRELATION_PROPERTIES

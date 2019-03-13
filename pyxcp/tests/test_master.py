@@ -1215,6 +1215,14 @@ class TestMaster:
 
             assert res == b''
 
-            # todo: PROGRAM_VERIFY
+            ms.push_packet("FF")
+
+            res = xm.programVerify(0x01, 0x0004, 0xCAFEBABE)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x08, 0x00, 0x0C, 0x00,
+                0xC8, 0x01, 0x04, 0x00, 0xBE, 0xBA, 0xFE, 0xCA]))
+
+            assert res == b''
 
     # todo: TIME_CORRELATION_PROPERTIES
