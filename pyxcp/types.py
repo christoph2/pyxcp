@@ -725,3 +725,12 @@ GetSectorInfoResponseMode01 = Struct(
 GetSectorInfoResponseMode2 = Struct(
     "sectorNameLength" / Int8ul
 )
+
+TimeCorrelationPropertiesResponse = Struct(
+    "slaveConfig" / Int8ul,
+    "observableClocks" / Int8ul,
+    "syncState" / Int8ul,
+    "clockInfo" / Int8ul,
+    Padding(1),
+    "clusterId" / Int16u
+)

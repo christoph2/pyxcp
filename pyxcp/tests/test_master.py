@@ -1225,4 +1225,32 @@ class TestMaster:
 
             assert res == b''
 
-    # todo: TIME_CORRELATION_PROPERTIES
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testTimeCorrelationProperties(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+
+            ms.push_packet("FF 15 25 01 1F 00 78 56")
+
+            res = xm.timeCorrelationProperties(0x15, 0x01, 0x1234)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x06, 0x00, 0x01, 0x00,
+                0xC6, 0x15, 0x01, 0x00, 0x34, 0x12]))
+
+            assert res.slaveConfig == 0x15
+            assert res.observableClocks == 0x25
+            assert res.syncState == 0x01
+            assert res.clockInfo == 0x1F
+            assert res.clusterId == 0x5678

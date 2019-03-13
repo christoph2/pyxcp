@@ -1098,9 +1098,13 @@ class MasterBaseType:
         return self.transport.request(
             types.Command.PROGRAM_VERIFY, verMode, *data)
 
-    def timeCorrelationProperties(self):
-        # TIME_CORRELATION_PROPERTIES
-        pass
+    def timeCorrelationProperties(
+            self, setProperties, getPropertiesRequest, clusterId):
+        response = self.transport.request(
+            types.Command.TIME_CORRELATION_PROPERTIES,
+            setProperties, getPropertiesRequest, 0, *self.WORD_pack(clusterId))
+        return types.TimeCorrelationPropertiesResponse.parse(
+            response, byteOrder=self.slaveProperties.byteOrder)
 
     # Convenience Functions.
     def verify(self, addr, length):
