@@ -31,15 +31,18 @@ def makeWordPacker(byteorder="@"):
     """
     return struct.Struct("{}H".format(byteorder)).pack
 
+
 def makeWordUnpacker(byteorder="@"):
     """
     """
     return struct.Struct("{}H".format(byteorder)).unpack
 
+
 def makeDWordPacker(byteorder="@"):
     """
     """
     return struct.Struct("{}I".format(byteorder)).pack
+
 
 def makeDWordUnpacker(byteorder="@"):
     """

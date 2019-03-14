@@ -1126,14 +1126,22 @@ class TestMaster:
 
             assert res == b''
 
-            # todo: PROGRAM
+            ms.push_packet("FF")
+
+            res = xm.program([0x01, 0x02, 0x03, 0x04])
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x06, 0x00, 0x03, 0x00,
+                0xD0, 0x04, 0x01, 0x02, 0x03, 0x04]))
+
+            assert res == b''
 
             ms.push_packet("FF")
 
             res = xm.programReset()
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x01, 0x00, 0x03, 0x00, 0xcf]))
+                0x01, 0x00, 0x04, 0x00, 0xcf]))
 
             assert res == b''
 
@@ -1142,7 +1150,7 @@ class TestMaster:
             res = xm.getPgmProcessorInfo()
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x01, 0x00, 0x04, 0x00, 0xce]))
+                0x01, 0x00, 0x05, 0x00, 0xce]))
 
             assert res.pgmProperties.nonSeqPgmRequired is True
             assert res.pgmProperties.nonSeqPgmSupported is False
@@ -1153,7 +1161,7 @@ class TestMaster:
             res = xm.getSectorInfo(0, 0x12)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x03, 0x00, 0x05, 0x00, 0xcd, 0, 0x12]))
+                0x03, 0x00, 0x06, 0x00, 0xcd, 0, 0x12]))
 
             assert res.clearSequenceNumber == 0xaa
             assert res.programSequenceNumber == 0xbb
@@ -1165,7 +1173,7 @@ class TestMaster:
             res = xm.getSectorInfo(2, 0x12)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x03, 0x00, 0x06, 0x00, 0xcd, 2, 0x12]))
+                0x03, 0x00, 0x07, 0x00, 0xcd, 2, 0x12]))
 
             assert res.sectorNameLength == 0xaa
 
@@ -1174,13 +1182,75 @@ class TestMaster:
             res = xm.programPrepare(0x1234)
 
             mock_socket.return_value.send.assert_called_with(bytes([
-                0x04, 0x00, 0x07, 0x00, 0xcc, 0x00, 0x34, 0x12]))
+                0x04, 0x00, 0x08, 0x00, 0xcc, 0x00, 0x34, 0x12]))
 
             assert res == b''
 
-            # todo: PROGRAM_FORMAT
-            # todo: PROGRAM_NEXT
-            # todo: PROGRAM_MAX
-            # todo: PROGRAM_VERIFY
+            ms.push_packet("FF")
 
-    # todo: TIME_CORRELATION_PROPERTIES
+            res = xm.programFormat(0x81, 0x82, 0x83, 0x01)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x05, 0x00, 0x09, 0x00, 0xCB, 0x81, 0x82, 0x83, 0x01]))
+
+            assert res == b''
+
+            ms.push_packet("FF")
+
+            res = xm.programNext([0x01, 0x02, 0x03, 0x04])
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x06, 0x00, 0x0A, 0x00,
+                0xCA, 0x04, 0x01, 0x02, 0x03, 0x04]))
+
+            assert res == b''
+
+            ms.push_packet("FF")
+
+            res = xm.programMax([0x01, 0x02, 0x03, 0x04])
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x05, 0x00, 0x0B, 0x00,
+                0xC9, 0x01, 0x02, 0x03, 0x04]))
+
+            assert res == b''
+
+            ms.push_packet("FF")
+
+            res = xm.programVerify(0x01, 0x0004, 0xCAFEBABE)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x08, 0x00, 0x0C, 0x00,
+                0xC8, 0x01, 0x04, 0x00, 0xBE, 0xBA, 0xFE, 0xCA]))
+
+            assert res == b''
+
+    @mock.patch('pyxcp.transport.eth.socket.socket')
+    @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
+    def testTimeCorrelationProperties(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+
+            ms.push_packet("FF 15 25 01 1F 00 78 56")
+
+            res = xm.timeCorrelationProperties(0x15, 0x01, 0x1234)
+
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x06, 0x00, 0x01, 0x00,
+                0xC6, 0x15, 0x01, 0x00, 0x34, 0x12]))
+
+            assert res.slaveConfig == 0x15
+            assert res.observableClocks == 0x25
+            assert res.syncState == 0x01
+            assert res.clockInfo == 0x1F
+            assert res.clusterId == 0x5678
