@@ -42,6 +42,7 @@ after_test:
   # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
   # interpreter
   - "%PYTHON%\\python.exe setup.py bdist_wheel"
+  - "%PYTHON%\\python.exe setup.py sdist --formats=zip,gztar"
 
 artifacts:
   # bdist_wheel puts your built wheel in the dist directory
@@ -56,3 +57,14 @@ on_finish:
   - ps: |
       $wc = New-Object 'System.Net.WebClient'
       $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\result.xml))
+
+deploy:
+- provider: GitHub
+  artifact: '*.*'
+  on:
+      APPVEYOR_REPO_TAG: true
+  description: Test release -- do not use
+  tag: $(APPVEYOR_REPO_TAG_NAME)
+  draft: false
+  prerelease: true
+
