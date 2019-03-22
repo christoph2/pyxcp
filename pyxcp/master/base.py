@@ -146,6 +146,7 @@ class MasterBaseType:
         more attempts to connect are silently ignored.
 
         """
+        self.transport.connect()
         response = self.transport.request(types.Command.CONNECT, 0x00)
 
         # First get byte-order
@@ -168,6 +169,8 @@ class MasterBaseType:
         self.slaveProperties.protocolLayerVersion = result.protocolLayerVersion
         self.slaveProperties.transportLayerVersion = \
             result.transportLayerVersion
+        self.slaveProperties.optionalCommMode = \
+            result.commModeBasic.optional
 
         self.WORD_pack = makeWordPacker(byteOrderPrefix)
         self.DWORD_pack = makeDWordPacker(byteOrderPrefix)
@@ -249,7 +252,7 @@ class MasterBaseType:
             response, byteOrder=self.slaveProperties.byteOrder)
         self.slaveProperties.interleavedMode = result.commModeOptional.interleavedMode
         self.slaveProperties.masterBlockMode = result.commModeOptional.masterBlockMode
-        self.slaveProperties.maxbs = result.maxbs
+        self.slaveProperties.maxBs = result.maxBs
         self.slaveProperties.minSt = result.minSt
         self.slaveProperties.queueSize = result.queueSize
         self.slaveProperties.xcpDriverVersionNumber = result.xcpDriverVersionNumber

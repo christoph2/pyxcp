@@ -50,6 +50,8 @@ class Eth(BaseTransport):
             addressFamily,
             socket.SOCK_STREAM if protocol == 'TCP' else socket.SOCK_DGRAM
         )
+        self.ipAddress = ipAddress
+        self.port = port
         self.status = 0
         self.selector = selectors.DefaultSelector()
         self.selector.register(self.sock, selectors.EVENT_READ)
@@ -58,11 +60,13 @@ class Eth(BaseTransport):
         if hasattr(socket, "SO_REUSEPORT"):
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.sock.settimeout(0.5)
-        self.sock.connect((ipAddress, port))
         super(Eth, self).__init__(config, loglevel)
-        self.startListener()
 
-        self.status = 1  # connected
+    def connect(self):
+        if self.status == 0:
+            self.sock.connect((self.ipAddress, self.port))
+            self.startListener()
+            self.status = 1  # connected
 
     def listen(self):
         HEADER_UNPACK = self.HEADER.unpack
@@ -145,8 +149,9 @@ class Eth(BaseTransport):
 
     def closeConnection(self):
         if not self.invalidSocket:
-            if self.status == 1:
-                self.sock.shutdown(socket.SHUT_RDWR)
+            # Seems to be problematic /w IPv6
+            #if self.status == 1:
+            #    self.sock.shutdown(socket.SHUT_RDWR)
             self.sock.close()
 
     @property

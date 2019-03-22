@@ -58,6 +58,11 @@ class CanInterfaceBase(metaclass=abc.ABCMeta):
         """ Must implement any required action for disconnecting from the can interface """
         pass
 
+    @abc.abstractmethod
+    def connect(self):
+        """Open connection to can interface"""
+        pass
+
 
 class EmptyHeader:
     """ There is no header for XCP on CAN  """
@@ -103,6 +108,9 @@ class Can(BaseTransport):
 
     def listen(self):
         pass
+
+    def connect(self):
+        self.CanInterface.connect()
 
     def send(self, frame):
         # XCP on CAN trailer: if required, FILL bytes must be appended

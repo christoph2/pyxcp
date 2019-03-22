@@ -46,8 +46,6 @@ class SxI(BaseTransport):
         self._stopbits = stopbits
         self._timeout = timeout
         super(SxI, self).__init__(config, loglevel)
-        self.connect()
-        self.startListener()
 
     def __del__(self):
         self.closeConnection()
@@ -67,6 +65,7 @@ class SxI(BaseTransport):
             raise
         self.logger.info("Serial port openend as '{}' @ {} Bits/Sec.".format(
             self.port.portstr, self.port.baudrate))
+        self.startListener()
 
     def output(self, enable):
         if enable:

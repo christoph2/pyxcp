@@ -67,8 +67,13 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     def close(self):
         self.finishListener()
-        self.listener.join()
+        if self.listener.isAlive():
+            self.listener.join()
         self.closeConnection()
+
+    @abc.abstractmethod
+    def connect(self):
+        pass
 
     def startListener(self):
         self.listener.start()
