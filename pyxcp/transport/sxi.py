@@ -39,8 +39,8 @@ class SxI(BaseTransport):
 
     def __init__(self, port, baudrate=9600, bytesize=8, parity='N',
                  stopbits=1, config=None, loglevel="WARN"):
-        self.port = port
-        self.port = None
+        self.portName = port
+        self.commPort = None
         self._baudrate = baudrate
         self._bytesize = bytesize
         self._parity = parity
@@ -51,50 +51,46 @@ class SxI(BaseTransport):
         self.closeConnection()
 
     def connect(self):
-        # SerialPort.counter += 1
         self.logger.debug(
-            "Trying to open serial port {}.".format(self.port))
+            "Trying to open serial commPort {}.".format(self.portName))
         try:
-            # self.port = serial.Serial(
-            #    self.port, self._baudrate, self._bytesize, self._parity,
-            #    self._stopbits, self._timeout)
-            self.port = serial.Serial(
-                self.port, self._baudrate, timeout=SxI.TIMEOUT)
+            self.commPort = serial.Serial(
+                self.portName, self._baudrate, timeout=SxI.TIMEOUT)
         except serial.SerialException as e:
             self.logger.error("{}".format(e))
             raise
-        self.logger.info("Serial port openend as '{}' @ {} Bits/Sec.".format(
-            self.port.portstr, self.port.baudrate))
+        self.logger.info("Serial commPort openend as '{}' @ {} Bits/Sec.".format(
+            self.commPort.portstr, self.commPort.baudrate))
         self.startListener()
 
     def output(self, enable):
         if enable:
-            self.port.rts = False
-            self.port.dtr = False
+            self.commPort.rts = False
+            self.commPort.dtr = False
         else:
-            self.port.rts = True
-            self.port.dtr = True
+            self.commPort.rts = True
+            self.commPort.dtr = True
 
     def flush(self):
-        self.port.flush()
+        self.commPort.flush()
 
     def listen(self):
         while True:
             if self.closeEvent.isSet():
                 return
-            if not self.port.inWaiting():
+            if not self.commPort.inWaiting():
                 continue
             length, counter = self.HEADER.unpack(
-                self.port.read(self.HEADER_SIZE))
+                self.commPort.read(self.HEADER_SIZE))
 
-            response = self.port.read(length)
+            response = self.commPort.read(length)
             self.timing.stop()
 
             self.processResponse(response, length, counter)
 
     def send(self, frame):
-        self.port.write(frame)
+        self.commPort.write(frame)
 
     def closeConnection(self):
-        if self.port and self.port.isOpen():
-            self.port.close()
+        if self.commPort and self.commPort.isOpen():
+            self.commPort.close()
