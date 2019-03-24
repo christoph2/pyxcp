@@ -37,9 +37,9 @@ class SxI(BaseTransport):
     HEADER = struct.Struct("<HH")
     HEADER_SIZE = HEADER.size
 
-    def __init__(self, portName, baudrate=9600, bytesize=8, parity='N',
+    def __init__(self, port, baudrate=9600, bytesize=8, parity='N',
                  stopbits=1, config={}, loglevel="WARN"):
-        self.portName = portName
+        self.port = port
         self.port = None
         self._baudrate = baudrate
         self._bytesize = bytesize
@@ -53,13 +53,13 @@ class SxI(BaseTransport):
     def connect(self):
         # SerialPort.counter += 1
         self.logger.debug(
-            "Trying to open serial port {}.".format(self.portName))
+            "Trying to open serial port {}.".format(self.port))
         try:
             # self.port = serial.Serial(
-            #    self.portName, self._baudrate, self._bytesize, self._parity,
+            #    self.port, self._baudrate, self._bytesize, self._parity,
             #    self._stopbits, self._timeout)
             self.port = serial.Serial(
-                self.portName, self._baudrate, timeout=SxI.TIMEOUT)
+                self.port, self._baudrate, timeout=SxI.TIMEOUT)
         except serial.SerialException as e:
             self.logger.error("{}".format(e))
             raise
