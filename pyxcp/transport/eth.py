@@ -51,7 +51,7 @@ class Eth(BaseTransport):
             socket.SOCK_STREAM if protocol == 'TCP' else socket.SOCK_DGRAM
         )
         if host.lower() == "localhost":
-            host = "::1" if ipv6 else "localhost"
+            self.host = "::1" if ipv6 else "localhost"
         else:
             self.host = host
         self.port = port
