@@ -76,7 +76,7 @@ class Can(BaseTransport):
     HEADER = EmptyHeader()
     HEADER_SIZE = 0
 
-    def __init__(self, canInterface: CanInterfaceBase, config={}, loglevel="WARN"):
+    def __init__(self, canInterface: CanInterfaceBase, config=None, loglevel="WARN"):
         super().__init__(config, loglevel)
         if not issubclass(canInterface.__class__, CanInterfaceBase):
             raise TypeError('canInterface instance must inherit from CanInterface abstract base class!')

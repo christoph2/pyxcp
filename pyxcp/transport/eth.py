@@ -40,7 +40,7 @@ class Eth(BaseTransport):
     HEADER = struct.Struct("<HH")
     HEADER_SIZE = HEADER.size
 
-    def __init__(self, host, port=DEFAULT_XCP_PORT, config={},
+    def __init__(self, host, port=DEFAULT_XCP_PORT, config=None,
                  protocol='TCP', ipv6=False, loglevel="WARN"):
         if ipv6 and not socket.has_ipv6:
             raise RuntimeError("IPv6 not supported by your platform.")

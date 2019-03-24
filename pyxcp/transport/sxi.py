@@ -38,7 +38,7 @@ class SxI(BaseTransport):
     HEADER_SIZE = HEADER.size
 
     def __init__(self, port, baudrate=9600, bytesize=8, parity='N',
-                 stopbits=1, config={}, loglevel="WARN"):
+                 stopbits=1, config=None, loglevel="WARN"):
         self.port = port
         self.port = None
         self._baudrate = baudrate
