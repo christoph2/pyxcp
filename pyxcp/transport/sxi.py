@@ -33,18 +33,18 @@ from pyxcp.transport.base import BaseTransport
 class SxI(BaseTransport):
 
     MAX_DATAGRAM_SIZE = 512
+    TIMEOUT = 0.75
     HEADER = struct.Struct("<HH")
     HEADER_SIZE = HEADER.size
 
     def __init__(self, portName, baudrate=9600, bytesize=8, parity='N',
-                 stopbits=1, timeout=0.75, config={}, loglevel="WARN"):
+                 stopbits=1, config={}, loglevel="WARN"):
         self.portName = portName
         self.port = None
         self._baudrate = baudrate
         self._bytesize = bytesize
         self._parity = parity
         self._stopbits = stopbits
-        self._timeout = timeout
         super(SxI, self).__init__(config, loglevel)
 
     def __del__(self):
@@ -59,7 +59,7 @@ class SxI(BaseTransport):
             #    self.portName, self._baudrate, self._bytesize, self._parity,
             #    self._stopbits, self._timeout)
             self.port = serial.Serial(
-                self.portName, self._baudrate, timeout=self._timeout)
+                self.portName, self._baudrate, timeout=SxI.TIMEOUT)
         except serial.SerialException as e:
             self.logger.error("{}".format(e))
             raise
