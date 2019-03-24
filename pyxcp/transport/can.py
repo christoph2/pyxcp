@@ -81,7 +81,6 @@ class Can(BaseTransport):
         if not issubclass(canInterface.__class__, CanInterfaceBase):
             raise TypeError('canInterface instance must inherit from CanInterface abstract base class!')
         self.canInterface = canInterface
-        self.status = 1  # connected
         if hasattr(self.config, 'MAX_DLC_REQUIRED'):
             if not isinstance(self.config.MAX_DLC_REQUIRED, bool):
                 raise TypeError('bool required')
@@ -111,6 +110,7 @@ class Can(BaseTransport):
 
     def connect(self):
         self.CanInterface.connect()
+        self.status = 1  # connected
 
     def send(self, frame):
         # XCP on CAN trailer: if required, FILL bytes must be appended
