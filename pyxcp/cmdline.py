@@ -7,6 +7,7 @@ and create a XCP master instance.
 
 .. note::
     There is currently no interface for further customization.
+
 """
 
 __copyright__ = """
@@ -33,10 +34,79 @@ __copyright__ = """
 
 
 import argparse
+import json
+import pathlib
+
+from pprint import pprint
+
+try:
+    import toml
+except ImportError:
+    HAS_TOML = False
+else:
+    HAS_TOML = True
 
 from pyxcp.master import Master
 from pyxcp.transport import Eth
 from pyxcp.transport import SxI
+
+
+ARGUMENTS = {
+    "can": ("driver", "loglevel"),
+    "eth": ("host", "port", "protocol", "ipv6", "loglevel"),
+    "sxi": ("port", "baudrate", "bytesize", "parity", "stopbits", "loglevel"),
+}
+
+
+def makeNonNullValuesDict(**params):
+    """Only add items with non-None values.
+    """
+    return {k: v for k, v in params.items() if not v is None}
+
+
+def readConfiguration(conf):
+    """
+
+    """
+    if conf:
+        pth = pathlib.Path(conf.name)
+        suffix = pth.suffix.lower()
+        if suffix == '.json':
+            reader = json
+        elif suffix == '.toml' and HAS_TOML:
+            reader = toml
+        else:
+            reader = None
+        if reader:
+            return reader.loads(conf.read())
+        else:
+            return {}
+    else:
+        return {}
+
+
+def mergeParameters(transport, config, params):
+    """Merge parameters from config-file and command-line.
+    The latter have precedence.
+    """
+    args = ARGUMENTS.get(transport)
+    result = {}
+    for arg in args:
+        cvalue = config.get(arg.upper())
+        if cvalue:
+            result[arg] = cvalue
+        pvalue = params.get(arg)
+        if pvalue:
+            result[arg] = pvalue
+    return result
+
+
+def removeParameters(transport, config):
+    """Remove constructor parameters from configuration.
+
+    """
+    stoplist = [arg.upper() for arg in ARGUMENTS.get(transport)]
+    return {k: v for k, v in config.items() if not k in stoplist}
 
 
 class ArgumentParser:
@@ -49,7 +119,9 @@ class ArgumentParser:
         self.parser = argparse.ArgumentParser(*args, **kws)
         subparsers = self.parser.add_subparsers(dest = "transport")
         subparsers.help = "Transport layer"
-        self.parser.add_argument('-l', '--loglevel', default = "WARN", choices = ["ERROR", "WARN", "INFO", "DEBUG"])
+        self.parser.add_argument('-c', '--config-file', type=argparse.FileType('r'), dest = "conf",
+            help = 'File to read (extended) parameters from.')
+        self.parser.add_argument('-l', '--loglevel', choices = ["ERROR", "WARN", "INFO", "DEBUG"])
         self.parser.epilog = "To get specific help on transport layers\nuse <layer> -h, e.g. {} eth -h".format(self.parser.prog)
 
         eth = subparsers.add_parser("eth", description = "XCPonEth specific options:")
@@ -59,50 +131,56 @@ class ArgumentParser:
         can = subparsers.add_parser("can", description = "XCPonCAN specific options:")
         can.set_defaults(can = True)
 
-        eth.add_argument('-p', '--port', default = 5555, type = int, metavar = "port")
+        eth.add_argument('-p', '--port', type = int, metavar = "port")
         proto = eth.add_mutually_exclusive_group()
         proto.add_argument('-t', '--tcp', default = True, const = True, metavar = "tcp", action = "store_const")
         proto.add_argument('-u', '--udp', default = False, const = True, metavar = "udp", action = "store_const")
-        eth.add_argument('-6', '--ipv6', default = False, const = True, metavar = "ipv6", action = "store_const")
-        eth.add_argument('-H', '--host', default = "localhost", help = "Host name or IP.")
 
-        sxi.add_argument('-p', '--port', required = True, help = "Name or number of your serial interface.")
-        sxi.add_argument('-b', '--baudrate', default = 9600, type = int)
-        sxi.add_argument('--bytesize', default = 8, type = int)
-        sxi.add_argument('--parity', default = "N", choices = ['N', 'E', 'O'])
-        sxi.add_argument('--stopbits', default = 1, type = int, choices = [1, 2])
+        eth.add_argument('-6', '--ipv6', const = True, metavar = "ipv6", action = "store_const")
+        eth.add_argument('-H', '--host', help = "Host name or IP.")
+
+        sxi.add_argument('-p', '--port', help = "Name or number of your serial interface.")
+        sxi.add_argument('-b', '--baudrate', type = int)
+        sxi.add_argument('--bytesize', type = int)
+        sxi.add_argument('--parity', choices = ['N', 'E', 'O'])
+        sxi.add_argument('--stopbits', type = int, choices = [1, 2])
         self._args = []
 
+
     def run(self):
+        """
+
+        """
         self._args = self.parser.parse_args()
         args = self.args
+        config = readConfiguration(args.conf)
         transport = args.transport
         if not transport:
             print("missing argument transport: choose from {}".format(['can', 'eth', 'sxi']))
             exit(1)
         if transport == "eth":
-            if args.host.lower() == "localhost":
-                ipAddress = "::1" if args.ipv6 else "localhost"
-            else:
-                ipAddress = args.host
-            params = dict(
-                ipAddress = ipAddress,
+            params = makeNonNullValuesDict(
+                host = args.host,
                 port = args.port,
-                loglevel = args.loglevel,
+                protocol = "UDP" if args.udp else "TCP",
                 ipv6 = args.ipv6,
-                protocol = "UDP" if args.udp else "TCP")
-            tr = Eth(**params)
+                loglevel = args.loglevel)
+            Klass = Eth
         elif transport == "sxi":
-            params = dict(
-                portName = args.port,
+            params = makeNonNullValuesDict(
+                port = args.port,
                 baudrate = args.baudrate,
                 bytesize = args.bytesize,
                 parity = args.parity,
-                stopbits = args.stopbits
-                )
-            tr = SxI(**params)
+                stopbits = args.stopbits,
+                loglevel = args.loglevel)
+            klass = SxI
         elif transport == "can":
             raise NotImplementedError("No CAN support for now.")
+        params = mergeParameters(transport, config, params)
+        config = removeParameters(transport, config)
+        params.update(config = config)
+        tr = Klass(**params)
         return Master(tr)
 
     @property
