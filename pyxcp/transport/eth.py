@@ -40,7 +40,7 @@ class Eth(BaseTransport):
     HEADER = struct.Struct("<HH")
     HEADER_SIZE = HEADER.size
 
-    def __init__(self, host, port=DEFAULT_XCP_PORT, config=None,
+    def __init__(self, host="localhost", port=DEFAULT_XCP_PORT, config=None,
                  protocol='TCP', ipv6=False, loglevel="WARN"):
         if ipv6 and not socket.has_ipv6:
             raise RuntimeError("IPv6 not supported by your platform.")
@@ -50,7 +50,10 @@ class Eth(BaseTransport):
             addressFamily,
             socket.SOCK_STREAM if protocol == 'TCP' else socket.SOCK_DGRAM
         )
-        self.host = host
+        if host.lower() == "localhost":
+            host = "::1" if ipv6 else "localhost"
+        else:
+            self.host = host
         self.port = port
         self.status = 0
         self.selector = selectors.DefaultSelector()
