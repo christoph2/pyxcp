@@ -2,5 +2,5 @@
     "HOST": "localhost", 
     "PORT": 5555, 
     "PROTOCOL": "TCP",
-    "IPV6": false, 
+    "IPV6": false"
 }
