@@ -109,7 +109,7 @@ class Can(BaseTransport):
         pass
 
     def connect(self):
-        self.CanInterface.connect()
+        self.canInterface.connect()
         self.status = 1  # connected
 
     def send(self, frame):
