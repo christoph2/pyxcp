@@ -10,7 +10,8 @@ home-page = "https://github.com/christoph2/pyxcp"
 requires = [
     "construct >= 2.9.0",
     "mako",
-    "pyserial"
+    "pyserial",
+    "toml"
 ]
 requires-python = ">= 3.4"
 description-file = "README.md"

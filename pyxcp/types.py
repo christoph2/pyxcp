@@ -371,7 +371,7 @@ GetCommModeInfoResponse = Struct(
     Padding(1),
     "commModeOptional" / CommModeOptional,
     Padding(1),
-    "maxbs" / Int8ul,
+    "maxBs" / Int8ul,
     "minSt" / Int8ul,
     "queueSize" / Int8ul,
     "xcpDriverVersionNumber" / Int8ul,

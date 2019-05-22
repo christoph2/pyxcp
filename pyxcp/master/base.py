@@ -146,6 +146,7 @@ class MasterBaseType:
         more attempts to connect are silently ignored.
 
         """
+        self.transport.connect()
         response = self.transport.request(types.Command.CONNECT, 0x00)
 
         # First get byte-order
@@ -168,6 +169,8 @@ class MasterBaseType:
         self.slaveProperties.protocolLayerVersion = result.protocolLayerVersion
         self.slaveProperties.transportLayerVersion = \
             result.transportLayerVersion
+        self.slaveProperties.optionalCommMode = \
+            result.commModeBasic.optional
 
         self.WORD_pack = makeWordPacker(byteOrderPrefix)
         self.DWORD_pack = makeDWordPacker(byteOrderPrefix)
@@ -247,6 +250,12 @@ class MasterBaseType:
         response = self.transport.request(types.Command.GET_COMM_MODE_INFO)
         result = types.GetCommModeInfoResponse.parse(
             response, byteOrder=self.slaveProperties.byteOrder)
+        self.slaveProperties.interleavedMode = result.commModeOptional.interleavedMode
+        self.slaveProperties.masterBlockMode = result.commModeOptional.masterBlockMode
+        self.slaveProperties.maxBs = result.maxBs
+        self.slaveProperties.minSt = result.minSt
+        self.slaveProperties.queueSize = result.queueSize
+        self.slaveProperties.xcpDriverVersionNumber = result.xcpDriverVersionNumber
         return result
 
     @wrapped
@@ -485,6 +494,10 @@ class MasterBaseType:
         response = self.transport.request(types.Command.GET_VERSION)
         result = types.GetVersionResponse.parse(
             response, byteOrder=self.slaveProperties.byteOrder)
+        self.slaveProperties.protocolMajor = result.protocolMajor
+        self.slaveProperties.protocolMinor = result.protocolMinor
+        self.slaveProperties.transportMajor = result.transportMajor
+        self.slaveProperties.transportMinor = result.transportMinor
         return result
 
     def fetch(self, length, limitPayload=None):  # TODO: pull

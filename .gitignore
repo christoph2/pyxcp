@@ -119,4 +119,7 @@ result.xml
 /docs/_templates
 /docs/_build
 /docs/_static
-
+**/*pdf
+**/*gz
+**/*tar
+**/*bz2

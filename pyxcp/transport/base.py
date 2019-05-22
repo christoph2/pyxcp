@@ -40,9 +40,9 @@ from datetime import datetime
 
 class BaseTransport(metaclass=abc.ABCMeta):
 
-    def __init__(self, config=Config({}), loglevel='WARN'):
+    def __init__(self, config=None, loglevel='WARN'):
         self.parent = None
-        self.config = Config(config)
+        self.config = Config(config or {})
         self.closeEvent = threading.Event()
         self.logger = Logger("transport.Base")
         self.logger.setLevel(loglevel)
@@ -67,8 +67,13 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     def close(self):
         self.finishListener()
-        self.listener.join()
+        if self.listener.isAlive():
+            self.listener.join()
         self.closeConnection()
+
+    @abc.abstractmethod
+    def connect(self):
+        pass
 
     def startListener(self):
         self.listener.start()

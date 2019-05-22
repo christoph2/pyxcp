@@ -58,6 +58,11 @@ class CanInterfaceBase(metaclass=abc.ABCMeta):
         """ Must implement any required action for disconnecting from the can interface """
         pass
 
+    @abc.abstractmethod
+    def connect(self):
+        """Open connection to can interface"""
+        pass
+
 
 class EmptyHeader:
     """ There is no header for XCP on CAN  """
@@ -71,12 +76,11 @@ class Can(BaseTransport):
     HEADER = EmptyHeader()
     HEADER_SIZE = 0
 
-    def __init__(self, canInterface: CanInterfaceBase, config={}, loglevel="WARN"):
+    def __init__(self, canInterface: CanInterfaceBase, config=None, loglevel="WARN"):
         super().__init__(config, loglevel)
         if not issubclass(canInterface.__class__, CanInterfaceBase):
             raise TypeError('canInterface instance must inherit from CanInterface abstract base class!')
-        self.canInterface: CanInterfaceBase = canInterface
-        self.status = 1  # connected
+        self.canInterface = canInterface
         if hasattr(self.config, 'MAX_DLC_REQUIRED'):
             if not isinstance(self.config.MAX_DLC_REQUIRED, bool):
                 raise TypeError('bool required')
@@ -103,6 +107,10 @@ class Can(BaseTransport):
 
     def listen(self):
         pass
+
+    def connect(self):
+        self.CanInterface.connect()
+        self.status = 1  # connected
 
     def send(self, frame):
         # XCP on CAN trailer: if required, FILL bytes must be appended
