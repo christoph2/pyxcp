@@ -580,28 +580,30 @@ ReadDaqResponse = Struct(
     "address" / Int32u,
 )
 
+DaqTimestampUnit = Enum(
+    BitsInteger(4),
+    DAQ_TIMESTAMP_UNIT_1NS=0b0000,
+    DAQ_TIMESTAMP_UNIT_10NS=0b0001,
+    DAQ_TIMESTAMP_UNIT_100NS=0b0010,
+    DAQ_TIMESTAMP_UNIT_1US=0b0011,
+    DAQ_TIMESTAMP_UNIT_10US=0b0100,
+    DAQ_TIMESTAMP_UNIT_100US=0b0101,
+    DAQ_TIMESTAMP_UNIT_1MS=0b0110,
+    DAQ_TIMESTAMP_UNIT_10MS=0b0111,
+    DAQ_TIMESTAMP_UNIT_100MS=0b1000,
+    DAQ_TIMESTAMP_UNIT_1S=0b1001,
+    DAQ_TIMESTAMP_UNIT_1PS=0b1010,
+    DAQ_TIMESTAMP_UNIT_10PS=0b1011,
+    DAQ_TIMESTAMP_UNIT_100PS=0b1100
+)
+
 GetDaqResolutionInfoResponse = Struct(
     "granularityOdtEntrySizeDaq" / Int8ul,
     "maxOdtEntrySizeDaq" / Int8ul,
     "granularityOdtEntrySizeStim" / Int8ul,
     "maxOdtEntrySizeStim" / Int8ul,
     "timestampMode" / BitStruct(  # Int8ul,
-        "unit" / Enum(
-            BitsInteger(4),
-            DAQ_TIMESTAMP_UNIT_1NS=0b0000,
-            DAQ_TIMESTAMP_UNIT_10NS=0b0001,
-            DAQ_TIMESTAMP_UNIT_100NS=0b0010,
-            DAQ_TIMESTAMP_UNIT_1US=0b0011,
-            DAQ_TIMESTAMP_UNIT_10US=0b0100,
-            DAQ_TIMESTAMP_UNIT_100US=0b0101,
-            DAQ_TIMESTAMP_UNIT_1MS=0b0110,
-            DAQ_TIMESTAMP_UNIT_10MS=0b0111,
-            DAQ_TIMESTAMP_UNIT_100MS=0b1000,
-            DAQ_TIMESTAMP_UNIT_1S=0b1001,
-            DAQ_TIMESTAMP_UNIT_1PS=0b1010,
-            DAQ_TIMESTAMP_UNIT_10PS=0b1011,
-            DAQ_TIMESTAMP_UNIT_100PS=0b1100,
-        ),
+        "unit" / DaqTimestampUnit,
         "fixed" / Flag,
         "size" / Enum(
             BitsInteger(3),
