@@ -547,7 +547,7 @@ class MasterBaseType:
         .. note:: Adress is set via `setMta`
         """
 
-        length = len(data)
+        length = len(*data)
         response = self.transport.request(
             types.Command.DOWNLOAD, length, *data)
         return response
@@ -561,7 +561,7 @@ class MasterBaseType:
         data : bytes
         """
 
-        length = len(data)
+        length = len(*data)
         response = self.transport.request(
             types.Command.DOWNLOAD_NEXT, length, *data)
         return response
