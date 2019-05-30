@@ -537,33 +537,44 @@ class MasterBaseType:
 
     # Calibration Commands (CAL)
     @wrapped
-    def download(self, *data):
+    def download(self, *data, block_mode_length=None):
         """Transfer data from master to slave.
 
         Parameters
         ----------
         data : bytes
+        block_mode_length : int or None
+            for block mode, this parameter has to be given the whole block length, otherwise,
+            for standard mode, we fill in the length here based on the actual data length
 
         .. note:: Adress is set via `setMta`
         """
 
-        length = len(*data)
+        if block_mode_length is None:
+            # standard mode
+            length = len(*data)
+        else:
+            # block mode
+            if not isinstance(block_mode_length, int):
+                raise TypeError('block_mode_length must be int!')
+            length = block_mode_length
         response = self.transport.request(
             types.Command.DOWNLOAD, length, *data)
         return response
 
     @wrapped
-    def downloadNext(self, *data):
+    def downloadNext(self, *data, remaining_length):
         """Transfer data from master to slave (block mode).
 
         Parameters
         ----------
         data : bytes
+        remaining_length : int
+            This parameter has to be given the remaining length in the block
         """
 
-        length = len(*data)
         response = self.transport.request(
-            types.Command.DOWNLOAD_NEXT, length, *data)
+            types.Command.DOWNLOAD_NEXT, remaining_length, *data)
         return response
 
     @wrapped
