@@ -83,14 +83,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             self.closeEvent.set()
 
     def request(self, cmd, *data):
-        self.logger.debug(cmd.name)
-        self.parent._setService(cmd)
-        cmdlen = cmd.bit_length()//8  # calculate bytes needed for cmd
-        header = self.HEADER.pack(cmdlen + len(data), self.counterSend)
-        self.counterSend = (self.counterSend + 1) & 0xffff
-
-        frame = header + bytes(flatten(cmd.to_bytes(cmdlen, 'big'), data))
-        self.logger.debug("-> {}".format(hexDump(frame)))
+        frame = self._prepare_request(cmd, *data)
         self.timing.start()
         self.send(frame)
 
@@ -111,6 +104,41 @@ class BaseTransport(metaclass=abc.ABCMeta):
         else:
             pass    # Und nu??
         return xcpPDU[1:]
+
+    def block_request(self, cmd, *data):
+        """
+        Implements packet transmission for block communication model (e.g. DOWNLOAD block mode)
+        All parameters are the same as in request(), but it does not receive response.
+        """
+
+        # check response queue before each block reauest, so that if the slave device
+        # has responded with a negative response (e.g. ACCESS_DENIED or SEQUENCE_ERROR), we can
+        # process it.
+        try:
+            xcpPDU = self.resQueue.get_nowait()
+            pid = types.Response.parse(xcpPDU).type
+            if pid == 'ERR' and cmd.name != 'SYNCH':
+                err = types.XcpError.parse(xcpPDU[1:])
+                raise types.XcpResponseError(err)
+        except queue.Empty:
+            pass
+
+        frame = self._prepare_request(cmd, *data)
+        self.send(frame)
+
+    def _prepare_request(self, cmd, *data):
+        """
+        Prepares a request to be sent
+        """
+        self.logger.debug(cmd.name)
+        self.parent._setService(cmd)
+        cmdlen = cmd.bit_length() // 8  # calculate bytes needed for cmd
+        header = self.HEADER.pack(cmdlen + len(data), self.counterSend)
+        self.counterSend = (self.counterSend + 1) & 0xffff
+
+        frame = header + bytes(flatten(cmd.to_bytes(cmdlen, 'big'), data))
+        self.logger.debug("-> {}".format(hexDump(frame)))
+        return frame
 
     def block_receive(self, length_required: int) -> bytes:
         """

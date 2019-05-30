@@ -553,17 +553,19 @@ class MasterBaseType:
         if block_mode_length is None:
             # standard mode
             length = len(*data)
+            response = self.transport.request(
+                types.Command.DOWNLOAD, length, *data)
+            return response
         else:
             # block mode
             if not isinstance(block_mode_length, int):
                 raise TypeError('block_mode_length must be int!')
-            length = block_mode_length
-        response = self.transport.request(
-            types.Command.DOWNLOAD, length, *data)
-        return response
+            self.transport.block_request(
+                types.Command.DOWNLOAD, block_mode_length, *data)
+            return None
 
     @wrapped
-    def downloadNext(self, *data, remaining_length):
+    def downloadNext(self, *data, remaining_length, last=False):
         """Transfer data from master to slave (block mode).
 
         Parameters
@@ -571,11 +573,21 @@ class MasterBaseType:
         data : bytes
         remaining_length : int
             This parameter has to be given the remaining length in the block
+        last : bool
+            The block mode implementation shall signal the last packet in the block with this parameter
         """
 
-        response = self.transport.request(
-            types.Command.DOWNLOAD_NEXT, remaining_length, *data)
-        return response
+        if last:
+            # last DOWNLOAD_NEXT packet in a block: the slave device has to send the response after this.
+            response = self.transport.request(
+                types.Command.DOWNLOAD_NEXT, remaining_length, *data)
+            return response
+        else:
+            # the slave device won't respond to consecutive DOWNLOAD_NEXT packets in block mode,
+            # so we must not wait for any response
+            self.transport.block_request(
+                types.Command.DOWNLOAD_NEXT, remaining_length, *data)
+            return None
 
     @wrapped
     def downloadMax(self, *data):
