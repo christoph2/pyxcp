@@ -26,6 +26,7 @@ __copyright__ = """
 import abc
 import queue
 import threading
+import time
 
 from ..logger import Logger
 from ..utils import flatten, hexDump, PYTHON_VERSION
@@ -197,4 +198,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         else:
             if self.first_daq_timestamp is None:
                 self.first_daq_timestamp = datetime.now()
-            self.daqQueue.put((response, counter, length))
+            # we have to save timestamp here, so that if the slave device
+            # does not provide timestamps we can have one.
+            timestamp = time.perf_counter()
+            self.daqQueue.put((response, counter, length, timestamp))
