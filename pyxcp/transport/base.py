@@ -198,7 +198,5 @@ class BaseTransport(metaclass=abc.ABCMeta):
         else:
             if self.first_daq_timestamp is None:
                 self.first_daq_timestamp = datetime.now()
-            # we have to save timestamp here, so that if the slave device
-            # does not provide timestamps we can have one.
             timestamp = time.perf_counter()
             self.daqQueue.put((response, counter, length, timestamp))
