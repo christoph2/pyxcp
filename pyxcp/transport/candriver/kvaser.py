@@ -29,6 +29,7 @@ import pyxcp.transport.can as can
 from canlib import canlib, Frame
 from canlib.canlib import ChannelData
 
+
 class Kvaser(can.CanInterfaceBase):
     """
     """
@@ -53,11 +54,12 @@ class Kvaser(can.CanInterfaceBase):
         self.tearDownChannel()
 
     def tearDownChannel(self):
-        try:
-            self.ch.busOff()
-            self.ch.close()
-        except canlib.exceptions.CanGeneralError:
-            pass
+        if hasattr(self, "ch"):
+            try:
+                self.ch.busOff()
+                self.ch.close()
+            except canlib.exceptions.CanGeneralError:
+                pass
 
     def transmit(self, payload):
         frame = Frame(id_ = self.parent.can_id_slave, data = payload, flags = canlib.canMSG_EXT)
