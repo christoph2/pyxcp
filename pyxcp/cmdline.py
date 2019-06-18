@@ -47,12 +47,16 @@ else:
     HAS_TOML = True
 
 from pyxcp.master import Master
+from pyxcp.transport.can import CanInterfaceBase, Can, register_drivers
 from pyxcp.transport import Eth
 from pyxcp.transport import SxI
 
 
+CAN_DRIVERS = register_drivers()
+
+
 ARGUMENTS = {
-    "can": ("driver", "loglevel"),
+    "can": ("canInterface", "loglevel"),
     "eth": ("host", "port", "protocol", "ipv6", "loglevel"),
     "sxi": ("port", "baudrate", "bytesize", "parity", "stopbits", "loglevel"),
 }
@@ -128,8 +132,11 @@ class ArgumentParser:
         eth.set_defaults(eth = True)
         sxi = subparsers.add_parser("sxi", description = "XCPonSxI specific options:")
         sxi.set_defaults(sxi = True)
+        # TODO: conditionally add CAN options (only if at least one driver available")
         can = subparsers.add_parser("can", description = "XCPonCAN specific options:")
         can.set_defaults(can = True)
+
+        can.add_argument('-d', '--driver', choices = CAN_DRIVERS.keys())
 
         eth.add_argument('-p', '--port', type = int, metavar = "port")
         proto = eth.add_mutually_exclusive_group()
@@ -176,7 +183,12 @@ class ArgumentParser:
                 loglevel = args.loglevel)
             klass = SxI
         elif transport == "can":
-            raise NotImplementedError("No CAN support for now.")
+            driver = CAN_DRIVERS[args.driver]
+            params = dict(
+                loglevel = args.loglevel,
+                canInterface = driver
+            )
+            Klass = Can
         params = mergeParameters(transport, config, params)
         config = removeParameters(transport, config)
         params.update(config = config)
