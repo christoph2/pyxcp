@@ -69,6 +69,18 @@ def testfilter1():
 def testfilter2():
     assert calculateFilter([0x101, 0x102 | CAN_EXTENDED_ID , 0x103]) == (0x100, 0x1ffffffc)
 
+def testfilter3():
+    assert calculateFilter([0x1567 | CAN_EXTENDED_ID]) == (0x1567, 0x1fffffff)
+
+def testfilter4():
+    assert calculateFilter([0x1560 | CAN_EXTENDED_ID, 0x1561, 0x1562, 0x1563,
+        0x1564, 0x1565, 0x1566, 0x1567, 0x1568, 0x1569, 0x156a, 0x156b,
+        0x156c, 0x156d, 0x1563, 0x156f]) == (0x1560, 0x1ffffff0)
+
+def testfilter5():
+    assert calculateFilter([0x1560 | CAN_EXTENDED_ID, 0x1561, 0x1562, 0x1563,
+        0x1564, 0x1565, 0x1566, 0x1567]) == (0x1560, 0x1ffffff8)
+
 def testIsExtendedIdentifier1():
     assert isExtendedIdentifier(0x280) == False
 
