@@ -1,6 +1,8 @@
 import pytest
 
-from pyxcp.transport.can import setDLC
+from pyxcp.transport.can import (
+    setDLC, calculateFilter, CAN_EXTENDED_ID,
+    isExtendedIdentifier, stripIdentifier, samplePointToTsegs)
 
 def testSet0():
     assert setDLC(0) == 0
@@ -61,4 +63,23 @@ def testNegative():
     with pytest.raises(ValueError):
         setDLC(-1)
 
+def testfilter1():
+    assert calculateFilter([0x101, 0x102, 0x103]) == (0x100, 0x7fc)
 
+def testfilter2():
+    assert calculateFilter([0x101, 0x102 | CAN_EXTENDED_ID , 0x103]) == (0x100, 0x1ffffffc)
+
+def testIsExtendedIdentifier1():
+    assert isExtendedIdentifier(0x280) == False
+
+def testIsExtendedIdentifier1():
+    assert isExtendedIdentifier(0x280 | CAN_EXTENDED_ID) == True
+
+def testStripIdentifier1():
+    assert stripIdentifier(0x280) == 0x280
+
+def testStripIdentifier2():
+    assert stripIdentifier(0x280 | CAN_EXTENDED_ID) == 0x280
+
+#def testSamplePointToTsegs1():
+#    samplePointToTsegs
