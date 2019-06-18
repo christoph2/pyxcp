@@ -1,14 +1,15 @@
 {
-    "DRIVER": "kvaser",
+    "DRIVER": "Kvaser",
     "KV_CHANNEL": 0,
     "CAN_ID_MASTER": 257,
     "CAN_ID_SLAVE": 258,
     "CAN_ID_BROADCAST": 256,
     "MAX_DLC_REQUIRED": false,
-    "FREQ": 250000,
-    "BTQ": 16,
+    "BAUDRATE": 250000,
+    "BTL_CYCLES": 16,
     "TSEG1": 14,
     "TSEG2": 2,
-    "NOSAMP": 1,
+    "SAMPLE_RATE": 1,
+    "SAMPLE_POINT": 87.5,
     "SJW": 2
 }
