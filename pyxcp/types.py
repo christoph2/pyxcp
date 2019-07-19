@@ -464,7 +464,11 @@ DaqProperties = BitStruct(
     "bitStimSupported" / Flag,
     "resumeSupported" / Flag,
     "prescalerSupported" / Flag,
-    "daqConfigType" / Flag,
+    "daqConfigType" / Enum(
+        BitsInteger(1),
+        STATIC  = 0b0,
+        DYNAMIC = 0b1
+    ),
 )
 
 GetDaqProcessorInfoResponse = Struct(
