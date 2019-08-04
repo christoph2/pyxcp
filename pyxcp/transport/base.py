@@ -24,35 +24,50 @@ __copyright__ = """
 """
 
 import abc
-import queue
+from collections import deque
+from datetime import datetime
 import threading
+from time import time
 
 from ..logger import Logger
 from ..utils import flatten, hexDump, PYTHON_VERSION
 
 import pyxcp.types as types
-from pyxcp.config import Config
+from pyxcp.config import Configuration
 
 from ..timing import Timing
 
-from datetime import datetime
+
+class Empty(Exception): pass
+
+
+def get(q, timeout):
+    """Get an item from a deque considering a timeout condition.
+    """
+    endtime = time() + timeout
+    while not q:
+        remaining = endtime - time()
+        if remaining <= 0.0:
+            raise Empty
+    item =q.popleft()
+    return item
 
 
 class BaseTransport(metaclass=abc.ABCMeta):
 
     def __init__(self, config=None, loglevel='WARN'):
         self.parent = None
-        self.config = Config(config or {})
+        self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
         self.closeEvent = threading.Event()
         self.logger = Logger("transport.Base")
         self.logger.setLevel(loglevel)
         self.counterSend = 0
         self.counterReceived = 0
         self.timing = Timing()
-        self.resQueue = queue.Queue()
-        self.daqQueue = queue.Queue()
-        self.evQueue = queue.Queue()
-        self.servQueue = queue.Queue()
+        self.resQueue = deque()
+        self.daqQueue = deque()
+        self.evQueue = deque()
+        self.servQueue = deque()
         self.listener = threading.Thread(
             target=self.listen,
             args=(),
@@ -95,13 +110,10 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.send(frame)
 
         try:
-            xcpPDU = self.resQueue.get(timeout=2.0)
-        except queue.Empty:
-            if PYTHON_VERSION >= (3, 3):
-                raise types.XcpTimeoutError("Response timed out.") from None
-            else:
-                raise types.XcpTimeoutError("Response timed out.")
-        self.resQueue.task_done()   # TODO: move up!?
+            xcpPDU = get(self.resQueue, timeout=2.0)
+        except Empty:
+            raise types.XcpTimeoutError("Response timed out.") from None
+
         self.timing.stop()
 
         pid = types.Response.parse(xcpPDU).type
@@ -120,11 +132,17 @@ class BaseTransport(metaclass=abc.ABCMeta):
         """
         block_response = b''
         while len(block_response) < length_required:
+            if len(self.resQueue):
+                partial_response = self.resQueue.popleft()
+                block_response += partial_response[1:]
+            """
             try:
                 partial_response = self.resQueue.get(timeout=2.0)
+                partial_response = self.resQueue.popleft()
                 block_response += partial_response[1:]
             except queue.Empty:
                 raise types.XcpTimeoutError("Response timed out.") from None
+            """
         return block_response
 
     @abc.abstractmethod
@@ -161,12 +179,16 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 )
             )
             if pid >= 0xfe:
-                self.resQueue.put(response)
+                #self.resQueue.put(response)
+                self.resQueue.append(response)
             elif pid == 0xfd:
-                self.evQueue.put(response)
+                #self.evQueue.put(response)
+                self.evQueue.append(response)
             elif pid == 0xfc:
-                self.servQueue.put(response)
+                #self.servQueue.put(response)
+                self.servQueue.append(response)
         else:
             if self.first_daq_timestamp is None:
                 self.first_daq_timestamp = datetime.now()
-            self.daqQueue.put((response, counter, length))
+            #self.daqQueue.put((response, counter, length))
+            self.daqQueue.append((response, counter, length))
