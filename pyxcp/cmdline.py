@@ -183,6 +183,9 @@ class ArgumentParser:
                 loglevel = args.loglevel)
             klass = SxI
         elif transport == "can":
+            if not args.driver in CAN_DRIVERS:
+                print("missing argument CAN driver: choose from {}".format([x for x in CAN_DRIVERS.keys()]))
+                exit(1)
             driver = CAN_DRIVERS[args.driver]
             params = dict(
                 loglevel = args.loglevel,
