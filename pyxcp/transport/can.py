@@ -31,7 +31,7 @@ import functools
 import operator
 
 from pyxcp.transport.base import BaseTransport
-
+from pyxcp.config import Configuration
 
 CAN_EXTENDED_ID = 0x80000000
 
@@ -134,22 +134,26 @@ class EmptyHeader:
         return b''
 
 
-PARAMETER_MAP = {
-    "MAX_DLC_REQUIRED": ("max_dlc_required", bool, False, False),
-    "CAN_ID_MASTER": ("can_id_master", int, True, None),
-    "CAN_ID_SLAVE": ("can_id_slave", int, True, None),
-    "CAN_ID_BROADCAST": ("can_id_broadcast", int, False, None),
-    #"": "",
-    #"": "",
-    #"": "",
-    #"": "",
-    #"": "",
-    #"": "",
-}
 
 # can.detect_available_configs()
 
 class Can(BaseTransport):
+    """
+
+    """
+
+    PARAMETER_MAP = {
+        #                         Python attribute      Type    Req'd   Default
+        "MAX_DLC_REQUIRED":     ("max_dlc_required",    bool,   False,  False),
+        "CAN_ID_MASTER":        ("can_id_master",       int,    True,   None),
+        "CAN_ID_SLAVE":         ("can_id_slave",        int,    True,   None),
+        "CAN_ID_BROADCAST":     ("can_id_broadcast",    int,    False,  None),
+        "BAUDRATE":             ("baudrate",            float,  False,  250000.0),
+        "BTL_CYCLES":           ("btl_cycles",          int,    False,  16),
+        "SAMPLE_RATE":          ("sample_rate",         int,    False,  1),
+        "SAMPLE_POINT":         ("sample_point",        float,  False,  87.5),
+        "SJW":                  ("sjw",                 int,    False,  2),
+    }
 
     MAX_DATAGRAM_SIZE = 7
     HEADER = EmptyHeader()
@@ -161,16 +165,20 @@ class Can(BaseTransport):
             raise TypeError('canInterface instance must inherit from CanInterface abstract base class!')
         self.canInterface = canInterface()
 
+        """
         for key, (attr, tp, required, default) in PARAMETER_MAP.items():
             if hasattr(self.config, key):
                 if not isinstance(getattr(self.config, key), tp):
-                    raise TypeError("{} required".format(tp))
+                    raise TypeError("Parameter {} {} required".format(attr, tp))
                 setattr(self, attr, getattr(self.config, key))
             else:
                 if required:
                     raise AttributeError("{} must be specified in config!".format(key))
                 else:
                     setattr(self, attr, default)
+        """
+
+
         self.canInterface.init(self, self.can_id_master, self.can_id_slave, self.dataReceived)
         self.startListener()
 
@@ -207,7 +215,7 @@ class Can(BaseTransport):
 def setDLC(length: int):
     """Return DLC value according to CAN-FD.
 
-    :param length: Length value to be mapped to a valid CAN-FD Dlc.
+    :param length: Length value to be mapped to a valid CAN-FD DLC.
                    ( 0 <= length <= 64)
     """
     FD_DLCS = (12, 16, 20, 24, 32, 48, 64)
