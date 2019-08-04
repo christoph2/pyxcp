@@ -5,10 +5,8 @@
     "CAN_ID_SLAVE": 258,
     "CAN_ID_BROADCAST": 256,
     "MAX_DLC_REQUIRED": false,
-    "BAUDRATE": 250000,
+    "BAUDRATE": 250000.0,
     "BTL_CYCLES": 16,
-    "TSEG1": 14,
-    "TSEG2": 2,
     "SAMPLE_RATE": 1,
     "SAMPLE_POINT": 87.5,
     "SJW": 2
