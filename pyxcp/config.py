@@ -25,6 +25,33 @@ __copyright__ = """
 
 import copy
 import json
+import pathlib
+
+try:
+    import toml
+except ImportError:
+    HAS_TOML = False
+else:
+    HAS_TOML = True
+
+def readConfiguration(conf):
+    """Read a configuration file, either in JSON or TOML format.
+    """
+    if conf:
+        pth = pathlib.Path(conf.name)
+        suffix = pth.suffix.lower()
+        if suffix == '.json':
+            reader = json
+        elif suffix == '.toml' and HAS_TOML:
+            reader = toml
+        else:
+            reader = None
+        if reader:
+            return reader.loads(conf.read())
+        else:
+            return {}
+    else:
+        return {}
 
 
 class ConfigBase:
@@ -81,3 +108,27 @@ class Config(ConfigBase):
 
     def copy(self):
         return copy.copy(self)
+
+
+class Configuration:
+
+    def __init__(self, parameters, config):
+        self.parameters = parameters
+        self.config = config
+        print(self.config)
+
+        for key, (attr, tp, required, default) in self.parameters.items():
+            print(key, attr, tp)
+            if key in self.config:
+            #if hasattr(self.config, key):
+                if not isinstance(getattr(self.config, key), tp):
+                    raise TypeError("Parameter {} {} required".format(attr, tp))
+                #setattr(self, attr, getattr(obj.config, key))
+                print("Setting {} to {}".format(attr, getattr(self.config, key)))
+            else:
+                if required:
+                    raise AttributeError("{} must be specified in config!".format(key))
+                else:
+                    #setattr(obj, attr, default)
+                    print("Using default {} for {}".format(attr, default))
+

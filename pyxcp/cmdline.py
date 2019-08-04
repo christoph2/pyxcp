@@ -34,8 +34,6 @@ __copyright__ = """
 
 
 import argparse
-import json
-import pathlib
 
 from pprint import pprint
 
@@ -46,6 +44,7 @@ except ImportError:
 else:
     HAS_TOML = True
 
+from pyxcp.config import readConfiguration
 from pyxcp.master import Master
 from pyxcp.transport.can import CanInterfaceBase, Can, register_drivers
 from pyxcp.transport import Eth
@@ -66,27 +65,6 @@ def makeNonNullValuesDict(**params):
     """Only add items with non-None values.
     """
     return {k: v for k, v in params.items() if not v is None}
-
-
-def readConfiguration(conf):
-    """
-
-    """
-    if conf:
-        pth = pathlib.Path(conf.name)
-        suffix = pth.suffix.lower()
-        if suffix == '.json':
-            reader = json
-        elif suffix == '.toml' and HAS_TOML:
-            reader = toml
-        else:
-            reader = None
-        if reader:
-            return reader.loads(conf.read())
-        else:
-            return {}
-    else:
-        return {}
 
 
 def mergeParameters(transport, config, params):
@@ -181,7 +159,7 @@ class ArgumentParser:
                 parity = args.parity,
                 stopbits = args.stopbits,
                 loglevel = args.loglevel)
-            klass = SxI
+            Klass = SxI
         elif transport == "can":
             if not args.driver in CAN_DRIVERS:
                 print("missing argument CAN driver: choose from {}".format([x for x in CAN_DRIVERS.keys()]))
