@@ -178,8 +178,11 @@ class Can(BaseTransport):
                     setattr(self, attr, default)
         """
 
-
+        self.max_dlc_required = self.config.get("MAX_DLC_REQUIRED")
+        self.can_id_master  = self.config.get("CAN_ID_MASTER")
+        self.can_id_slave = self.config.get("CAN_ID_SLAVE")
         self.canInterface.init(self, self.can_id_master, self.can_id_slave, self.dataReceived)
+
         self.startListener()
 
     def dataReceived(self, payload: bytes):

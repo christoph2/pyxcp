@@ -30,6 +30,12 @@ from canlib import canlib, Frame
 from canlib.canlib import ChannelData
 
 
+PARAMETER_MAP = {
+    #                 Python attribute      Type    Req'd   Default
+    "KV_CHANNEL":     ("kv_channel",        int,    False,  0),
+}
+
+
 class Kvaser(can.CanInterfaceBase):
     """
     """

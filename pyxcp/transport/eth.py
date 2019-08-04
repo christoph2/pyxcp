@@ -50,6 +50,7 @@ class Eth(BaseTransport):
 
     def __init__(self, host="localhost", port=DEFAULT_XCP_PORT, config=None,
                  protocol='TCP', ipv6=False, loglevel="WARN"):
+        super(Eth, self).__init__(config, loglevel)
         if ipv6 and not socket.has_ipv6:
             raise RuntimeError("IPv6 not supported by your platform.")
         else:
@@ -71,7 +72,6 @@ class Eth(BaseTransport):
         if hasattr(socket, "SO_REUSEPORT"):
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.sock.settimeout(0.5)
-        super(Eth, self).__init__(config, loglevel)
 
     def connect(self):
         if self.status == 0:
