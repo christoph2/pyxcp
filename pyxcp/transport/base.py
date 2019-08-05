@@ -27,7 +27,7 @@ import abc
 from collections import deque
 from datetime import datetime
 import threading
-from time import time
+from time import time, sleep
 
 from ..logger import Logger
 from ..utils import flatten, hexDump, PYTHON_VERSION
@@ -44,12 +44,13 @@ class Empty(Exception): pass
 def get(q, timeout):
     """Get an item from a deque considering a timeout condition.
     """
-    endtime = time() + timeout
+    start = time()
     while not q:
-        remaining = endtime - time()
-        if remaining <= 0.0:
+        if time() - start > timeout:
             raise Empty
-    item =q.popleft()
+        sleep(0.001)
+
+    item = q.popleft()
     return item
 
 
