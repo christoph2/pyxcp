@@ -30,9 +30,15 @@ from canlib import canlib, Frame
 from canlib.canlib import ChannelData
 
 
-PARAMETER_MAP = {
-    #                 Python attribute      Type    Req'd   Default
-    "KV_CHANNEL":     ("kv_channel",        int,    False,  0),
+BAUDRATE_PRESETS = {
+    1000000:    canlib.canBITRATE_1M,
+    500000:     canlib.canBITRATE_500K,
+    250000:     canlib.canBITRATE_250K,
+    125000:     canlib.canBITRATE_125K,
+    100000:     canlib.canBITRATE_100K,
+    83333:      canlib.canBITRATE_83K,
+    62500:      canlib.canBITRATE_62K,
+    50000:      canlib.canBITRATE_50K
 }
 
 
@@ -43,27 +49,42 @@ class Kvaser(can.CanInterfaceBase):
     PARAMETER_MAP = {
         #                         Python attribute      Type    Req'd   Default
         "KV_CHANNEL":           ("kv_channel",          int,    False,  0),
+        "KV_ACCEPT_VIRTUAL":    ("kv_accept_virtual",   bool,   False,  True),
+        "KV_BAUDRATE_PRESET":   ("kv_baudrate_preset",  bool,   False,  True),
     }
 
-    def __init__(self, channel = 0, openFlags = canlib.canOPEN_ACCEPT_VIRTUAL):
-        self.channel = 0
-        self.openFlags = openFlags
+    def __init__(self):
+        self.connected = False
 
     def init(self, parent, master_id_with_ext: int, slave_id_with_ext: int, receive_callback):
         self.parent = parent
-        bitrate = canlib.canBITRATE_500K
-        #bitrateFlags = canlib.canDRIVER_NORMAL
-        self.ch = canlib.openChannel(self.channel, self.openFlags)
-        self.parent.logger.debug("{} [CANLib version: {}]".format(ChannelData(self.channel).device_name, canlib.dllversion()))
-        self.ch.setBusParams(canlib.canBITRATE_250K)
-        #self.ch.setBusOutputControl(bitrateFlags)
-        self.ch.iocontrol.timer_scale = 10  # 10µS, fixed for now.
 
     def connect(self):
+        self.channel = self.config.get("KV_CHANNEL")
+        openFlags = canlib.canOPEN_ACCEPT_VIRTUAL if self.config.get("KV_ACCEPT_VIRTUAL")== True else None
+        bitrate = canlib.canBITRATE_500K
+        #bitrateFlags = canlib.canDRIVER_NORMAL
+        self.ch = canlib.openChannel(self.channel, openFlags)
+        self.parent.logger.debug("{} [CANLib version: {}]".format(ChannelData(self.channel).device_name, canlib.dllversion()))
+
+        baudrate = int(self.parent.config.get("BAUDRATE"))
+        if self.config.get("KV_BAUDRATE_PRESET"):
+            if not baudrate in BAUDRATE_PRESETS:
+                raise ValueError("No preset for baudrate '{}'".format(baudrate))
+            self.ch.setBusParams(BAUDRATE_PRESETS[baudrate])
+        else:
+            samplePoint = self.config.get("SAMPLE_POINT")
+            sjw = self.config.get("SJW")
+            tseg1 = self.config.get("TSEG1")
+            tseg2 = self.config.get("TSEG2")
+            self.ch.setBusParams(baudrate, tseg1, tseg2, sjw)
+        self.ch.iocontrol.timer_scale = 10  # 10µS, fixed for now.
         self.ch.busOn()
+        self.connected = True
 
     def close(self):
         self.tearDownChannel()
+        self.connected = False
 
     def tearDownChannel(self):
         if hasattr(self, "ch"):
@@ -78,6 +99,8 @@ class Kvaser(can.CanInterfaceBase):
         self.ch.write(frame)
 
     def read(self):
+        if not self.connected:
+            return
         try:
             frame = self.ch.read(5)
         except canlib.exceptions.CanNoMsg:

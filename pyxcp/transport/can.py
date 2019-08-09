@@ -142,14 +142,11 @@ class CanInterfaceBase(metaclass=abc.ABCMeta):
         """Get timestamp resolution in nano seconds.
         """
 
-
     def loadConfig(self, config):
         """
 
         """
-        print("\tloadConfig")
         self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
-        print(self.PARAMETER_MAP)
 
 
 class EmptyHeader:
@@ -177,6 +174,8 @@ class Can(BaseTransport):
         "SAMPLE_RATE":          ("sample_rate",         int,    False,  1),
         "SAMPLE_POINT":         ("sample_point",        float,  False,  87.5),
         "SJW":                  ("sjw",                 int,    False,  2),
+        "TSEG1":                ("tseg1"                int,    False,  5),
+        "TSEG2":                ("tseg2",               int,    False,  2),
     }
 
     MAX_DATAGRAM_SIZE = 7
@@ -287,7 +286,7 @@ def register_drivers():
     for _, modname, _ in pkgutil.walk_packages(cdr.__path__, "{}.".format(cdr.__name__)):
         try:
             importlib.import_module(modname)
-        except:
+        except Exception as e:
             pass
 
     sub_classes = CanInterfaceBase.__subclasses__()
