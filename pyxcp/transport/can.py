@@ -174,7 +174,7 @@ class Can(BaseTransport):
         "SAMPLE_RATE":          ("sample_rate",         int,    False,  1),
         "SAMPLE_POINT":         ("sample_point",        float,  False,  87.5),
         "SJW":                  ("sjw",                 int,    False,  2),
-        "TSEG1":                ("tseg1"                int,    False,  5),
+        "TSEG1":                ("tseg1",               int,    False,  5),
         "TSEG2":                ("tseg2",               int,    False,  2),
     }
 
