@@ -39,6 +39,12 @@ PARAMETER_MAP = {
 class Kvaser(can.CanInterfaceBase):
     """
     """
+
+    PARAMETER_MAP = {
+        #                         Python attribute      Type    Req'd   Default
+        "KV_CHANNEL":           ("kv_channel",          int,    False,  0),
+    }
+
     def __init__(self, channel = 0, openFlags = canlib.canOPEN_ACCEPT_VIRTUAL):
         self.channel = 0
         self.openFlags = openFlags

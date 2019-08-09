@@ -65,7 +65,18 @@ def stripIdentifier(identifier: int) -> int:
 
 
 def samplePointToTsegs(tqs: int, samplePoint: float) -> tuple:
-    """
+    """Calculate TSEG1 and TSEG2 from time-quantas and sample-point.
+
+    Parameters
+    ----------
+    tqs: int
+        Number of time-quantas
+    samplePoint: float or int
+        Sample-point as a percentage value.
+
+    Returns
+    -------
+    tuple (TSEG1, TSEG2)
     """
     factor = samplePoint / 100.0
     tseg1 = int(tqs * factor)
@@ -92,6 +103,10 @@ class CanInterfaceBase(metaclass=abc.ABCMeta):
     """
     Abstract CAN interface handler that can be implemented for any actual CAN device driver
     """
+
+    PARAMETER_MAP = {
+
+    }
 
     @abc.abstractmethod
     def init(self, parent, master_id_with_ext: int, slave_id_with_ext: int, receive_callback):
@@ -126,6 +141,15 @@ class CanInterfaceBase(metaclass=abc.ABCMeta):
     def getTimestampResolution(self):
         """Get timestamp resolution in nano seconds.
         """
+
+
+    def loadConfig(self, config):
+        """
+
+        """
+        print("\tloadConfig")
+        self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
+        print(self.PARAMETER_MAP)
 
 
 class EmptyHeader:
@@ -182,6 +206,7 @@ class Can(BaseTransport):
         self.can_id_master  = self.config.get("CAN_ID_MASTER")
         self.can_id_slave = self.config.get("CAN_ID_SLAVE")
         self.canInterface.init(self, self.can_id_master, self.can_id_slave, self.dataReceived)
+        self.canInterface.loadConfig(config)
 
         self.startListener()
 
