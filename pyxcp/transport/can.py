@@ -112,17 +112,28 @@ class CanInterfaceBase(metaclass=abc.ABCMeta):
     def init(self, parent, master_id_with_ext: int, slave_id_with_ext: int, receive_callback):
         """
         Must implement any required action for initing the can interface
-        :param master_id_with_ext: CAN ID on 32 bit, where MSB bit indicates extended ID format
-        :param slave_id_with_ext: CAN ID on 32 bit, where MSB bit indicates extended ID format
-        :param receive_callback: receive callback function to register with the following argument: payload: bytes
+
+        Parameters
+        ----------
+        parent: :class:`Can`
+            Refers to owner.
+        master_id_with_ext: int
+            CAN ID on 32 bit, where MSB bit indicates extended ID format
+        slave_id_with_ext: int
+            CAN ID on 32 bit, where MSB bit indicates extended ID format
+        receive_callback: callable
+            Receive callback function to register with the following argument: payload: bytes
         """
 
     @abc.abstractmethod
     def transmit(self, payload: bytes):
         """
         Must transmit the given payload on the master can id.
-        :param payload: payload to transmit
-        :return:
+
+        Parameters
+        ----------
+        payload: int
+            payload to transmit
         """
 
     @abc.abstractmethod
@@ -143,8 +154,7 @@ class CanInterfaceBase(metaclass=abc.ABCMeta):
         """
 
     def loadConfig(self, config):
-        """
-
+        """Load configuration data.
         """
         self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
 
@@ -187,20 +197,6 @@ class Can(BaseTransport):
         if not issubclass(canInterface, CanInterfaceBase):
             raise TypeError('canInterface instance must inherit from CanInterface abstract base class!')
         self.canInterface = canInterface()
-
-        """
-        for key, (attr, tp, required, default) in PARAMETER_MAP.items():
-            if hasattr(self.config, key):
-                if not isinstance(getattr(self.config, key), tp):
-                    raise TypeError("Parameter {} {} required".format(attr, tp))
-                setattr(self, attr, getattr(self.config, key))
-            else:
-                if required:
-                    raise AttributeError("{} must be specified in config!".format(key))
-                else:
-                    setattr(self, attr, default)
-        """
-
         self.max_dlc_required = self.config.get("MAX_DLC_REQUIRED")
         self.can_id_master  = self.config.get("CAN_ID_MASTER")
         self.can_id_slave = self.config.get("CAN_ID_SLAVE")

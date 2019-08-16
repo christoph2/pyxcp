@@ -55,6 +55,16 @@ def get(q, timeout):
 
 
 class BaseTransport(metaclass=abc.ABCMeta):
+    """Base class for transport-layers (Can, Eth, Sxi).
+
+    Parameters
+    ----------
+    config: dict-like
+        Parameters like bitrate.
+    loglevel: ["INFO", "WARN", "DEBUG", "ERROR", "CRITICAL"]
+        Controls the verbosity of log messages.
+
+    """
 
     def __init__(self, config=None, loglevel='WARN'):
         self.parent = None
@@ -82,6 +92,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.closeConnection()
 
     def close(self):
+        """Close the transport-layer connection and event-loop.
+        """
         self.finishListener()
         if self.listener.isAlive():
             self.listener.join()
@@ -128,8 +140,16 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def block_receive(self, length_required: int) -> bytes:
         """
         Implements packet reception for block communication model (e.g. for XCP on CAN)
-        :param length_required: number of bytes to be expected in block response packets
-        :return: all payload bytes received in block response packets
+
+        Parameters
+        ----------
+        length_required: int
+            number of bytes to be expected in block response packets
+
+        Returns
+        -------
+        bytes
+            all payload bytes received in block response packets
         """
         block_response = b''
         while len(block_response) < length_required:
@@ -152,6 +172,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def closeConnection(self):
+        """Does the actual connection shutdown.
+        Needs to be implemented by any sub-class.
+        """
         pass
 
     @abc.abstractmethod

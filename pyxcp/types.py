@@ -39,15 +39,21 @@ if construct.version < (2, 8):
 
 
 class FrameSizeError(Exception):
-    pass
+    """
+    A frame with an invalid size was received.
+    """
 
 
 class XcpResponseError(Exception):
-    pass
+    """
+    Raise an `exception` from an XCP error packet.
+    """
 
 
 class XcpTimeoutError(Exception):
-    pass
+    """
+    Timeout while waiting for a response occured.
+    """
 
 
 class XcpGetIdType(enum.IntEnum):

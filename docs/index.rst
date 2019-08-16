@@ -11,8 +11,8 @@ Welcome to pyXCP's documentation!
    :caption: Contents:
 
    installation
-   configuration
    tutorial
+   configuration
    modules
 
 

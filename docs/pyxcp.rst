@@ -21,6 +21,13 @@ pyxcp.checksum module
     :undoc-members:
     :show-inheritance:
 
+pyxcp.config module
+---------------------
+
+.. automodule:: pyxcp.config
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 pyxcp.errormatrix module
 ------------------------
@@ -56,15 +63,9 @@ pyxcp.utils module
     :undoc-members:
     :show-inheritance:
 
+.. py:data:: ConnectResponse
 
-pyxcp.xcptest module
---------------------
-
-.. automodule:: pyxcp.xcptest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
+   Some Doc
 
 Module contents
 ---------------
