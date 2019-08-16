@@ -42,6 +42,14 @@ from pyxcp.constants import (
 from pyxcp.master.errorhandler import wrapped
 
 
+def broadcasted(func):
+    """
+
+    """
+    return func
+
+
+
 class SlaveProperties(dict):
     """Container class for fixed parameters, like byte-order, maxCTO, ...
     """
@@ -63,8 +71,8 @@ class MasterBaseType:
     ----------
     transport : `pyxcp.transport.base` derived class.
         XCP transport layer, e.g. SxI, CAN, Ethernet
-    loglevel : ["INFO", "WARN", "ERROR", "DEBUG"]
-        to control logger output
+    loglevel: ["INFO", "WARN", "DEBUG", "ERROR", "CRITICAL"]
+        Controls the verbosity of log messages.
     """
     def __init__(self, transport, loglevel="WARN"):
         self.ctr = 0
@@ -113,8 +121,8 @@ class MasterBaseType:
         ----------
         service: `pydbc.types.Command`
 
-        Notes
-        -----
+        Note
+        ----
         Internal Function, only to be used by transport-layer.
         """
         self.service = service
@@ -199,15 +207,8 @@ class MasterBaseType:
         Thereafter, no further communication with the slave is possible
         (besides `connect`).
 
-        Parameters
-        ----------
-        None
 
-        Returns
-        -------
-        None
-
-        Notes
+        Note
         -----
         If DISCONNECT is currently not possible, ERR_CMD_BUSY will be returned.
         """
@@ -381,8 +382,9 @@ class MasterBaseType:
         ----------
         length : int
 
-        .. note:: Adress is set via `setMta` (Some services like `getID` also
-        set the MTA).
+        Note
+        ----
+        Adress is set via `setMta` (Some services like `getID` also set the MTA).
 
         Returns
         -------
@@ -1118,6 +1120,20 @@ class MasterBaseType:
             setProperties, getPropertiesRequest, 0, *self.WORD_pack(clusterId))
         return types.TimeCorrelationPropertiesResponse.parse(
             response, byteOrder=self.slaveProperties.byteOrder)
+
+    @broadcasted
+    @wrapped
+    def getSlaveID(self, mode):
+        """
+            1 BYTE Sub Command Code = 0xFF
+            2 BYTE 0x58 (A_ASCII = X )
+            3 BYTE 0x43 (A_ASCII = C )
+            4 BYTE 0x50 (A_ASCII = P )
+            5 BYTE Mode
+            0 = identify by echo
+            1 = confirm by inverse echo
+        """
+        self.transportLayerCmd(0xff, 'X', 'C', 'P', mode)
 
     # Convenience Functions.
     def verify(self, addr, length):

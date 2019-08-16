@@ -7,10 +7,13 @@ Welcome to pyXCP's documentation!
 =================================
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 2
    :caption: Contents:
 
-   pyxcp
+   installation
+   configuration
+   tutorial
+   modules
 
 
 Indices and tables
