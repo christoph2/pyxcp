@@ -95,7 +95,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         """Close the transport-layer connection and event-loop.
         """
         self.finishListener()
-        if self.listener.isAlive():
+        if self.listener.is_alive():
             self.listener.join()
         self.closeConnection()
 
