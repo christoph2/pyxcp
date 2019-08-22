@@ -30,7 +30,7 @@ import threading
 from time import time, sleep
 
 from ..logger import Logger
-from ..utils import flatten, hexDump, PYTHON_VERSION
+from ..utils import flatten, hexDump
 
 import pyxcp.types as types
 from pyxcp.config import Configuration
@@ -38,7 +38,8 @@ from pyxcp.config import Configuration
 from ..timing import Timing
 
 
-class Empty(Exception): pass
+class Empty(Exception):
+    pass
 
 
 def get(q, timeout):
@@ -139,7 +140,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     def block_receive(self, length_required: int) -> bytes:
         """
-        Implements packet reception for block communication model (e.g. for XCP on CAN)
+        Implements packet reception for block communication model
+        (e.g. for XCP on CAN)
 
         Parameters
         ----------
@@ -203,16 +205,16 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 )
             )
             if pid >= 0xfe:
-                #self.resQueue.put(response)
+                # self.resQueue.put(response)
                 self.resQueue.append(response)
             elif pid == 0xfd:
-                #self.evQueue.put(response)
+                # self.evQueue.put(response)
                 self.evQueue.append(response)
             elif pid == 0xfc:
-                #self.servQueue.put(response)
+                # self.servQueue.put(response)
                 self.servQueue.append(response)
         else:
             if self.first_daq_timestamp is None:
                 self.first_daq_timestamp = datetime.now()
-            #self.daqQueue.put((response, counter, length))
+            # self.daqQueue.put((response, counter, length))
             self.daqQueue.append((response, counter, length))
