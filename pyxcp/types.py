@@ -39,15 +39,21 @@ if construct.version < (2, 8):
 
 
 class FrameSizeError(Exception):
-    pass
+    """
+    A frame with an invalid size was received.
+    """
 
 
 class XcpResponseError(Exception):
-    pass
+    """
+    Raise an `exception` from an XCP error packet.
+    """
 
 
 class XcpTimeoutError(Exception):
-    pass
+    """
+    Timeout while waiting for a response occured.
+    """
 
 
 class XcpGetIdType(enum.IntEnum):
@@ -371,7 +377,7 @@ GetCommModeInfoResponse = Struct(
     Padding(1),
     "commModeOptional" / CommModeOptional,
     Padding(1),
-    "maxbs" / Int8ul,
+    "maxBs" / Int8ul,
     "minSt" / Int8ul,
     "queueSize" / Int8ul,
     "xcpDriverVersionNumber" / Int8ul,
@@ -464,7 +470,11 @@ DaqProperties = BitStruct(
     "bitStimSupported" / Flag,
     "resumeSupported" / Flag,
     "prescalerSupported" / Flag,
-    "daqConfigType" / Flag,
+    "daqConfigType" / Enum(
+        BitsInteger(1),
+        STATIC  = 0b0,
+        DYNAMIC = 0b1
+    ),
 )
 
 GetDaqProcessorInfoResponse = Struct(
@@ -655,7 +665,21 @@ GetEventChannelInfoResponse = Struct(
     "maxDaqList" / Int8ul,
     "eventChannelNameLength" / Int8ul,
     "eventChannelTimeCycle" / Int8ul,
-    "eventChannelTimeUnit" / Int8ul,
+    "eventChannelTimeUnit" / Enum(Int8ul,
+        EVENT_CHANNEL_TIME_UNIT_1NS    = 0,
+        EVENT_CHANNEL_TIME_UNIT_10NS   = 1,
+        EVENT_CHANNEL_TIME_UNIT_100NS  = 2,
+        EVENT_CHANNEL_TIME_UNIT_1US    = 3,
+        EVENT_CHANNEL_TIME_UNIT_10US   = 4,
+        EVENT_CHANNEL_TIME_UNIT_100US  = 5,
+        EVENT_CHANNEL_TIME_UNIT_1MS    = 6,
+        EVENT_CHANNEL_TIME_UNIT_10MS   = 7,
+        EVENT_CHANNEL_TIME_UNIT_100MS  = 8,
+        EVENT_CHANNEL_TIME_UNIT_1S     = 9,
+        EVENT_CHANNEL_TIME_UNIT_1PS    = 10,
+        EVENT_CHANNEL_TIME_UNIT_10PS   = 11,
+        EVENT_CHANNEL_TIME_UNIT_100PS  = 12,
+    ),
     "eventChannelPriority" / Int8ul,
 )
 

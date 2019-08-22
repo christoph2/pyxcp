@@ -42,6 +42,14 @@ from pyxcp.constants import (
 from pyxcp.master.errorhandler import wrapped
 
 
+def broadcasted(func):
+    """
+
+    """
+    return func
+
+
+
 class SlaveProperties(dict):
     """Container class for fixed parameters, like byte-order, maxCTO, ...
     """
@@ -63,8 +71,8 @@ class MasterBaseType:
     ----------
     transport : `pyxcp.transport.base` derived class.
         XCP transport layer, e.g. SxI, CAN, Ethernet
-    loglevel : ["INFO", "WARN", "ERROR", "DEBUG"]
-        to control logger output
+    loglevel: ["INFO", "WARN", "DEBUG", "ERROR", "CRITICAL"]
+        Controls the verbosity of log messages.
     """
     def __init__(self, transport, loglevel="WARN"):
         self.ctr = 0
@@ -113,8 +121,8 @@ class MasterBaseType:
         ----------
         service: `pydbc.types.Command`
 
-        Notes
-        -----
+        Note
+        ----
         Internal Function, only to be used by transport-layer.
         """
         self.service = service
@@ -137,7 +145,7 @@ class MasterBaseType:
 
         Returns
         -------
-        `pyxcp.types.ConnectResponse`
+        :py:obj:`pyxcp.types.ConnectResponse`
             Describes fundamental client properties.
 
         Note
@@ -146,6 +154,7 @@ class MasterBaseType:
         more attempts to connect are silently ignored.
 
         """
+        self.transport.connect()
         response = self.transport.request(types.Command.CONNECT, 0x00)
 
         # First get byte-order
@@ -168,6 +177,8 @@ class MasterBaseType:
         self.slaveProperties.protocolLayerVersion = result.protocolLayerVersion
         self.slaveProperties.transportLayerVersion = \
             result.transportLayerVersion
+        self.slaveProperties.optionalCommMode = \
+            result.commModeBasic.optional
 
         self.WORD_pack = makeWordPacker(byteOrderPrefix)
         self.DWORD_pack = makeDWordPacker(byteOrderPrefix)
@@ -196,15 +207,8 @@ class MasterBaseType:
         Thereafter, no further communication with the slave is possible
         (besides `connect`).
 
-        Parameters
-        ----------
-        None
 
-        Returns
-        -------
-        None
-
-        Notes
+        Note
         -----
         If DISCONNECT is currently not possible, ERR_CMD_BUSY will be returned.
         """
@@ -220,7 +224,7 @@ class MasterBaseType:
 
         Returns
         -------
-        `types.GetStatusResponse`
+        :obj:`pyxcp.types.GetStatusResponse`
         """
         response = self.transport.request(types.Command.GET_STATUS)
         result = types.GetStatusResponse.parse(
@@ -242,15 +246,21 @@ class MasterBaseType:
 
         Returns
         -------
-        `pyxcp.types.GetCommModeInfoResponse`
+        :obj:`pyxcp.types.GetCommModeInfoResponse`
         """
         response = self.transport.request(types.Command.GET_COMM_MODE_INFO)
         result = types.GetCommModeInfoResponse.parse(
             response, byteOrder=self.slaveProperties.byteOrder)
+        self.slaveProperties.interleavedMode = result.commModeOptional.interleavedMode
+        self.slaveProperties.masterBlockMode = result.commModeOptional.masterBlockMode
+        self.slaveProperties.maxBs = result.maxBs
+        self.slaveProperties.minSt = result.minSt
+        self.slaveProperties.queueSize = result.queueSize
+        self.slaveProperties.xcpDriverVersionNumber = result.xcpDriverVersionNumber
         return result
 
     @wrapped
-    def getId(self, mode):
+    def getId(self, mode: int):
         """This command is used for automatic session configuration and for
         slave device identification.
 
@@ -258,7 +268,6 @@ class MasterBaseType:
         ----------
         mode : int
             The following identification types may be requested:
-
             - 0        ASCII text
             - 1        ASAM-MC2 filename without path and extension
             - 2        ASAM-MC2 filename with path and extension
@@ -266,11 +275,9 @@ class MasterBaseType:
             - 4        ASAM-MC2 file to upload
             - 128..255 User defined
 
-            `types.XcpGetIdType`may be used.
-
         Returns
         -------
-        `pydbc.types.GetIDResponse`
+        :obj:`pydbc.types.GetIDResponse`
         """
         response = self.transport.request(types.Command.GET_ID, mode)
         result = types.GetIDResponse.parse(
@@ -279,21 +286,18 @@ class MasterBaseType:
         return result
 
     @wrapped
-    def setRequest(self, mode, sessionConfigurationId):
+    def setRequest(self, mode: int, sessionConfigurationId: int):
         """Request to save to non-volatile memory.
 
         Parameters
         ----------
         mode : int (bitfield)
-            - 1  Request to store cALibration data
+            - 1  Request to store calibration data
             - 2  Request to store DAQ list, no resume
             - 4  Request to store DAQ list, resume enabled
             - 8  Request to clear DAQ configuration
         sessionConfigurationId : int
 
-        Returns
-        -------
-        T.B.D
         """
         response = self.transport.request(
             types.Command.SET_REQUEST, mode,
@@ -301,21 +305,21 @@ class MasterBaseType:
         return response
 
     @wrapped
-    def getSeed(self, first, resource):
+    def getSeed(self, first: int, resource: int):
         """Get seed from slave for unlocking a protected resource.
 
         Parameters
         ----------
         first : int
-            0 - first part of seed
-            1 - remaining part
+            - 0 - first part of seed
+            - 1 - remaining part
         resource : int
-            Mode==0 - Resource
-            Mode==1 - Don’t care
+            - Mode = =0 - Resource
+            - Mode == 1 - Don't care
 
         Returns
         -------
-        TODO: `pydbc.types.GetSeedResponse`
+        `pydbc.types.GetSeedResponse`
         """
         response = self.transport.request(
             types.Command.GET_SEED, first, resource)
@@ -323,7 +327,7 @@ class MasterBaseType:
             response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
-    def unlock(self, length, key):
+    def unlock(self, length: int, key: bytes):
         """Send key to slave for unlocking a protected resource.
 
         Parameters
@@ -334,20 +338,22 @@ class MasterBaseType:
 
         Returns
         -------
-        `pydbc.types.ResourceType`
+        :obj:`pydbc.types.ResourceType`
 
-        .. note:: The master has to use `unlock` in a defined sequence together
-                  with `getSeed`. The master only can send an `unlock` sequence
-                  if previously there was a `getSeed` sequence. The master has
-                  to send the first `unlocking` after a `getSeed` sequence with
-                  a Length containing the total length of the key.
+        Note
+        ----
+        The master has to use :meth:`unlock` in a defined sequence together
+        with :meth:`getSeed`. The master only can send an :meth:`unlock` sequence
+        if previously there was a :meth:`getSeed` sequence. The master has
+        to send the first `unlocking` after a :meth:`getSeed` sequence with
+        a Length containing the total length of the key.
         """
         response = self.transport.request(types.Command.UNLOCK, length, *key)
         return types.ResourceType.parse(
             response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
-    def setMta(self, address, addressExt=0x00):
+    def setMta(self, address: int, addressExt: int = 0x00):
         """Set Memory Transfer Address in slave.
 
         Parameters
@@ -355,9 +361,12 @@ class MasterBaseType:
         address : int
         addressExt : int
 
-        .. note:: The MTA is used by `buildChecksum`, `upload`, `download`,
-                  `downloadNext`, `downloadMax`, `modifyBits`, `programClear`,
-                  `program`, `programNext` and `programMax`.
+        Note
+        ----
+        The MTA is used by :meth:`buildChecksum`, :meth:`upload`, :meth:`download`, :meth:`downloadNext`,
+        :meth:`downloadMax`, :meth:`modifyBits`, :meth:`programClear`, :meth:`program`, :meth:`programNext`
+        and :meth:`programMax`.
+
         """
         addr = self.DWORD_pack(address)
         response = self.transport.request(
@@ -365,15 +374,16 @@ class MasterBaseType:
         return response
 
     @wrapped
-    def upload(self, length):
+    def upload(self, length: int):
         """Transfer data from slave to master.
 
         Parameters
         ----------
         length : int
 
-        .. note:: Adress is set via `setMta` (Some services like `getID` also
-        set the MTA).
+        Note
+        ----
+        Adress is set via :meth:`setMta` (Some services like :meth:`getID` also set the MTA).
 
         Returns
         -------
@@ -388,9 +398,9 @@ class MasterBaseType:
         return response
 
     @wrapped
-    def shortUpload(self, length, address, addressExt=0x00):
+    def shortUpload(self, length: int, address: int, addressExt: int = 0x00):
         """Transfer data from slave to master.
-        As opposed to `upload` this service includes address information.
+        As opposed to :meth:`upload` this service also includes address information.
 
         Parameters
         ----------
@@ -407,7 +417,7 @@ class MasterBaseType:
         return response
 
     @wrapped
-    def buildChecksum(self, blocksize):
+    def buildChecksum(self, blocksize: int):
         """Build checksum over memory range.
 
         Parameters
@@ -416,13 +426,13 @@ class MasterBaseType:
 
         Returns
         -------
-        `pyxcp.types.BuildChecksumResponse`
+        :obj:`~pyxcp.types.BuildChecksumResponse`
 
         .. note:: Adress is set via `setMta`
 
         See Also
         --------
-        Module `pyxcp.checksum`
+        :mod:`~pyxcp.checksum`
         """
         bs = self.DWORD_pack(blocksize)
         response = self.transport.request(
@@ -431,7 +441,7 @@ class MasterBaseType:
             response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
-    def transportLayerCmd(self, subCommand, *data):
+    def transportLayerCmd(self, subCommand: int, *data: bytes):
         """Execute transfer-layer specific command.
 
         Parameters
@@ -439,18 +449,16 @@ class MasterBaseType:
         subCommand : int
         data : bytes
 
-        Returns
-        -------
-        Dependent on command
-
-        .. note:: For details refer to XCP specification.
+        Note
+        ----
+        For details refer to XCP specification.
         """
         response = self.transport.request(
             types.Command.TRANSPORT_LAYER_CMD, subCommand, *data)
         return response
 
     @wrapped
-    def userCmd(self, subCommand, *data):
+    def userCmd(self, subCommand: int, *data: bytes):
         """Execute proprietary command implemented in your XCP client.
 
         Parameters
@@ -458,9 +466,6 @@ class MasterBaseType:
         subCommand : int
         data : bytes
 
-        Returns
-        -------
-        Dependent on command
 
         .. note:: For details refer to your XCP client vendor.
         """
@@ -479,15 +484,19 @@ class MasterBaseType:
 
         Returns
         -------
-        `types.GetVersionResponse`
+        :obj:`~types.GetVersionResponse`
         """
 
         response = self.transport.request(types.Command.GET_VERSION)
         result = types.GetVersionResponse.parse(
             response, byteOrder=self.slaveProperties.byteOrder)
+        self.slaveProperties.protocolMajor = result.protocolMajor
+        self.slaveProperties.protocolMinor = result.protocolMinor
+        self.slaveProperties.transportMajor = result.transportMajor
+        self.slaveProperties.transportMinor = result.transportMinor
         return result
 
-    def fetch(self, length, limitPayload=None):  # TODO: pull
+    def fetch(self, length:int , limitPayload: int = None):  # TODO: pull
         """Convenience function for data-transfer from slave to master
         (Not part of the XCP Specification).
 
@@ -501,8 +510,9 @@ class MasterBaseType:
         -------
         bytes
 
-        .. note:: address information is not included because of services like
-                  `getID`.
+        Note
+        ----
+        address is not included because of services implicitly setting address information like :meth:`getID` .
         """
         if limitPayload and limitPayload < 8:
             raise ValueError(
@@ -524,14 +534,17 @@ class MasterBaseType:
 
     # Calibration Commands (CAL)
     @wrapped
-    def download(self, *data):
+    def download(self, *data: bytes):
         """Transfer data from master to slave.
 
         Parameters
         ----------
         data : bytes
+            Data to send to slave.
 
-        .. note:: Adress is set via `setMta`
+        Note
+        ----
+        Adress is set via :meth:`setMta`
         """
 
         length = len(data)
@@ -540,7 +553,7 @@ class MasterBaseType:
         return response
 
     @wrapped
-    def downloadNext(self, *data):
+    def downloadNext(self, *data: bytes):
         """Transfer data from master to slave (block mode).
 
         Parameters
@@ -554,7 +567,7 @@ class MasterBaseType:
         return response
 
     @wrapped
-    def downloadMax(self, *data):
+    def downloadMax(self, *data: bytes):
         """Transfer data from master to slave (fixed size).
 
         Parameters
@@ -566,16 +579,15 @@ class MasterBaseType:
 
     # Page Switching Commands (PAG)
     @wrapped
-    def setCalPage(self, mode, logicalDataSegment, logicalDataPage):
+    def setCalPage(self, mode: int, logicalDataSegment: int, logicalDataPage: int):
         """Set calibration page.
 
         Parameters
         ----------
         mode : int (bitfield)
-            0x01 - The given page will be used by the slave device application.
-            0x02 - The slave device XCP driver will access the given page.
-            0x80 - The logical segment number is ignored. The command applies
-                   to all segments
+            - 0x01 - The given page will be used by the slave device application.
+            - 0x02 - The slave device XCP driver will access the given page.
+            - 0x80 - The logical segment number is ignored. The command applies to all segments
         logicalDataSegment : int
         logicalDataPage : int
         """
@@ -585,7 +597,7 @@ class MasterBaseType:
         return response
 
     @wrapped
-    def getCalPage(self, mode, logicalDataSegment):
+    def getCalPage(self, mode: int , logicalDataSegment: int):
         """Get calibration page
 
         Parameters
@@ -616,24 +628,28 @@ class MasterBaseType:
         Parameters
         ----------
         mode : int
-            0 = get basic address info for this segment
-            1 = get standard info for this segment
-            2 = get address mapping info for this segment
+            - 0 = get basic address info for this segment
+            - 1 = get standard info for this segment
+            - 2 = get address mapping info for this segment
+
         segmentNumber : int
         segmentInfo : int
             Mode 0:
-                0 = address
-                1 = length
-            Mode 1: don’t care
+                - 0 = address
+                - 1 = length
+
+            Mode 1:
+                - don't care
+
             Mode 2:
-                0 = source address
-                1 = destination address
-                2 = length address
+                - 0 = source address
+                - 1 = destination address
+                - 2 = length address
+
         mappingIndex : int
-            Mode 0: don’t care
-            Mode 1: don’t care
-            Mode 2: identifier for address mapping range that mapping_info
-                    belongs to.
+            - Mode 0: don't care
+            - Mode 1: don't care
+            - Mode 2: identifier for address mapping range that mapping_info belongs to.
 
         """
         response = self.transport.request(
@@ -999,7 +1015,7 @@ class MasterBaseType:
             response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
-    def programClear(self, mode, clearRange):
+    def programClear(self, mode: int, clearRange: int):
         """Clear a part of non-volatile memory.
 
         Parameters
@@ -1016,16 +1032,8 @@ class MasterBaseType:
         return response
 
     @wrapped
-    def program(self, data):
+    def program(self, data: bytes):
         """
-        PROGRAM
-        Position Type Description
-        0 BYTE Command Code = 0xD0
-        1 BYTE Number of data elements [AG] [1..(MAX_CTO-2)/AG]
-        2..AG-1 BYTE Used for alignment, only if AG >2
-            AG=1: 2..MAX_CTO-2
-            AG>1: AG MAX_CTO-AG
-        ELEMENT Data elements
         """
         d = bytearray()
         d.append(len(data))
@@ -1105,6 +1113,11 @@ class MasterBaseType:
             setProperties, getPropertiesRequest, 0, *self.WORD_pack(clusterId))
         return types.TimeCorrelationPropertiesResponse.parse(
             response, byteOrder=self.slaveProperties.byteOrder)
+
+    @broadcasted
+    @wrapped
+    def getSlaveID(self, mode: int):
+        self.transportLayerCmd(0xff, 'X', 'C', 'P', mode)
 
     # Convenience Functions.
     def verify(self, addr, length):

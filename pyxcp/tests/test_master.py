@@ -45,6 +45,9 @@ class MockSocket:
             time.sleep(timeout)
             return []
 
+    def connect(self):
+        pass
+
 
 class TestMaster:
 
@@ -134,7 +137,7 @@ class TestMaster:
 
         assert res.commModeOptional.interleavedMode is False
         assert res.commModeOptional.masterBlockMode is True
-        assert res.maxbs == 2
+        assert res.maxBs == 2
         assert res.minSt == 0
         assert res.queueSize == 0
         assert res.xcpDriverVersionNumber == 25
@@ -297,7 +300,7 @@ class TestMaster:
 
         assert res.commModeOptional.interleavedMode is False
         assert res.commModeOptional.masterBlockMode is True
-        assert res.maxbs == 2
+        assert res.maxBs == 2
         assert res.minSt == 0
         assert res.queueSize == 0
         assert res.xcpDriverVersionNumber == 25

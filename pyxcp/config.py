@@ -4,7 +4,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -25,59 +25,53 @@ __copyright__ = """
 
 import copy
 import json
+import pathlib
+
+try:
+    import toml
+except ImportError:
+    HAS_TOML = False
+else:
+    HAS_TOML = True
 
 
-class ConfigBase:
-
-    _header = ""
-    _footer = ""
-
-    def __str__(self):
-        indent = " " * (4 * self._level)
-        result = []
-        for attr in self._attrs:
-            value = getattr(self, attr)
-            if not isinstance(value, (int, float, Attribute)):
-                value = '"{}"'.format(value)
-            result.append('{}"{}": {}'.format(indent, attr, value))
-        indent = " " * (4 * (self._level - 1))
-        return "{}{{\n{}\n{}}}{}".format(
-            self._header, ',\n'.join(result), indent, self._footer)
-
-    def asdict(self):
-        return json.loads(str(self))
-
-
-class Attribute(ConfigBase):
-    pass
-
-
-class Config(ConfigBase):
+def readConfiguration(conf):
+    """Read a configuration file either in JSON or TOML format.
     """
-    """
-
-    def __init__(self, params):
-        self._addAttrs(params, self)
-
-    def _addAttrs(self, attrs, obj, level=1):
-        obj._attrs = []
-        obj._nested = []
-        obj._level = level
-        for attr, value in attrs.items():
-            if isinstance(value, dict):
-                obj._nested.append(attr)
-                target = Attribute()
-                setattr(obj, attr, target)
-                self._addAttrs(value, target, level + 1)
-            else:
-                setattr(obj, attr, value)
-            obj._attrs.append(attr)
-
-    def __eq__(self, other):
-        if isinstance(other, dict):
-            return self.asdict() == other
+    if conf:
+        pth = pathlib.Path(conf.name)
+        suffix = pth.suffix.lower()
+        if suffix == '.json':
+            reader = json
+        elif suffix == '.toml' and HAS_TOML:
+            reader = toml
         else:
-            return self.asdict() == other.asdict()
+            reader = None
+        if reader:
+            return reader.loads(conf.read())
+        else:
+            return {}
+    else:
+        return {}
 
-    def copy(self):
-        return copy.copy(self)
+
+class Configuration:
+    """
+
+    """
+
+    def __init__(self, parameters, config):
+        self.parameters = parameters
+        self.config = config
+        for key, (attr, tp, required, default) in self.parameters.items():
+            if key in self.config:
+                if not isinstance(self.config[key], tp):
+                    raise TypeError("Parameter {} requires {}".format(attr, tp))
+            else:
+                if required:
+                    raise AttributeError("{} must be specified in config!".format(key))
+                else:
+                    self.config[key] = default
+
+    def get(self, key):
+        return self.config.get(key)
