@@ -43,19 +43,22 @@ def getTimeoutHandler(service):
 
 def execute(inst, func, arguments):
     handler = Handler(inst, func, arguments)
-    try:
-        res = func(*arguments.args, **arguments.kwargs)
-    except XcpResponseError as e:
-        errorCode = XcpResponseError(e.args[0])
-        handler.handleError(errorCode)
-        raise
-    except XcpTimeoutError as e:
-        handler.handleTimeout()
-        raise
-    except Exception:
-        raise
-    else:
-        return res
+#    print("EXECUTING:", inst, func, arguments)
+    while True:
+        try:
+            res = func(*arguments.args, **arguments.kwargs)
+        except XcpResponseError as e:
+            errorCode = XcpResponseError(e.args[0])
+            handler.handleError(errorCode)
+            raise
+        except XcpTimeoutError as e:
+            print("OOPS, TIMEOUT!")
+            handler.handleTimeout()
+            raise
+        except Exception:
+            raise
+        else:
+            return res
 
 class Arguments:
     """Container for positional and keyword arguments.
@@ -73,7 +76,12 @@ class Handler:
         self.args = args
 
     def handleError(self, errorCode):
+        errorCode = str(errorCode)
+        print("\t ERROR_CODE:", errorCode)
         eh = getErrorHandler(self.service)
+        preActions, actions = eh.get(errorCode)
+        print("\t\tHANDLER:", preActions, actions)
+        #print("\t\tHANDLER:", eh.get(errorCode))
 
     def handleTimeout(self):
         preActions, actions = getTimeoutHandler(self.service)
@@ -145,7 +153,7 @@ class Handler:
 
 
 def wrapped(func):
-    """WIP: This decorator will do XCP error-handling.
+    """WIP: This decorator does XCP error-handling.
     """
     @functools.wraps(func)
     def inner(*args, **kwargs):

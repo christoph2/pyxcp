@@ -34,8 +34,6 @@ __copyright__ = """
 
 
 import argparse
-import json
-import pathlib
 
 from pprint import pprint
 
@@ -46,13 +44,18 @@ except ImportError:
 else:
     HAS_TOML = True
 
+from pyxcp.config import readConfiguration
 from pyxcp.master import Master
+from pyxcp.transport.can import CanInterfaceBase, Can, register_drivers
 from pyxcp.transport import Eth
 from pyxcp.transport import SxI
 
 
+CAN_DRIVERS = register_drivers()
+
+
 ARGUMENTS = {
-    "can": ("driver", "loglevel"),
+    "can": ("canInterface", "loglevel"),
     "eth": ("host", "port", "protocol", "ipv6", "loglevel"),
     "sxi": ("port", "baudrate", "bytesize", "parity", "stopbits", "loglevel"),
 }
@@ -62,27 +65,6 @@ def makeNonNullValuesDict(**params):
     """Only add items with non-None values.
     """
     return {k: v for k, v in params.items() if not v is None}
-
-
-def readConfiguration(conf):
-    """
-
-    """
-    if conf:
-        pth = pathlib.Path(conf.name)
-        suffix = pth.suffix.lower()
-        if suffix == '.json':
-            reader = json
-        elif suffix == '.toml' and HAS_TOML:
-            reader = toml
-        else:
-            reader = None
-        if reader:
-            return reader.loads(conf.read())
-        else:
-            return {}
-    else:
-        return {}
 
 
 def mergeParameters(transport, config, params):
@@ -128,8 +110,11 @@ class ArgumentParser:
         eth.set_defaults(eth = True)
         sxi = subparsers.add_parser("sxi", description = "XCPonSxI specific options:")
         sxi.set_defaults(sxi = True)
+        # TODO: conditionally add CAN options (only if at least one driver available")
         can = subparsers.add_parser("can", description = "XCPonCAN specific options:")
         can.set_defaults(can = True)
+
+        can.add_argument('-d', '--driver', choices = CAN_DRIVERS.keys())
 
         eth.add_argument('-p', '--port', type = int, metavar = "port")
         proto = eth.add_mutually_exclusive_group()
@@ -174,9 +159,17 @@ class ArgumentParser:
                 parity = args.parity,
                 stopbits = args.stopbits,
                 loglevel = args.loglevel)
-            klass = SxI
+            Klass = SxI
         elif transport == "can":
-            raise NotImplementedError("No CAN support for now.")
+            if not args.driver in CAN_DRIVERS:
+                print("missing argument CAN driver: choose from {}".format([x for x in CAN_DRIVERS.keys()]))
+                exit(1)
+            driver = CAN_DRIVERS[args.driver]
+            params = dict(
+                loglevel = args.loglevel,
+                canInterface = driver
+            )
+            Klass = Can
         params = mergeParameters(transport, config, params)
         config = removeParameters(transport, config)
         params.update(config = config)

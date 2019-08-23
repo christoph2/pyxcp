@@ -24,36 +24,62 @@ __copyright__ = """
 """
 
 import abc
-import queue
+from collections import deque
+from datetime import datetime
 import threading
-import time
+from time import time, sleep, perf_counter
 
 from ..logger import Logger
-from ..utils import flatten, hexDump, PYTHON_VERSION
+from ..utils import flatten, hexDump
 
 import pyxcp.types as types
-from pyxcp.config import Config
+from pyxcp.config import Configuration
 
 from ..timing import Timing
 
-from datetime import datetime
+
+class Empty(Exception):
+    pass
+
+
+def get(q, timeout):
+    """Get an item from a deque considering a timeout condition.
+    """
+    start = time()
+    while not q:
+        if time() - start > timeout:
+            raise Empty
+        sleep(0.001)
+
+    item = q.popleft()
+    return item
 
 
 class BaseTransport(metaclass=abc.ABCMeta):
+    """Base class for transport-layers (Can, Eth, Sxi).
+
+    Parameters
+    ----------
+    config: dict-like
+        Parameters like bitrate.
+    loglevel: ["INFO", "WARN", "DEBUG", "ERROR", "CRITICAL"]
+        Controls the verbosity of log messages.
+
+    """
 
     def __init__(self, config=None, loglevel='WARN'):
         self.parent = None
-        self.config = Config(config or {})
+        self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
         self.closeEvent = threading.Event()
         self.logger = Logger("transport.Base")
         self.logger.setLevel(loglevel)
         self.counterSend = 0
         self.counterReceived = 0
         self.timing = Timing()
-        self.resQueue = queue.Queue()
-        self.daqQueue = queue.Queue()
-        self.evQueue = queue.Queue()
-        self.servQueue = queue.Queue()
+        self.resQueue = deque()
+        self.daqQueue = deque()
+        self.evQueue = deque()
+        self.servQueue = deque()
         self.listener = threading.Thread(
             target=self.listen,
             args=(),
@@ -67,8 +93,10 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.closeConnection()
 
     def close(self):
+        """Close the transport-layer connection and event-loop.
+        """
         self.finishListener()
-        if self.listener.isAlive():
+        if self.listener.is_alive():
             self.listener.join()
         self.closeConnection()
 
@@ -89,13 +117,10 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.send(frame)
 
         try:
-            xcpPDU = self.resQueue.get(timeout=2.0)
-        except queue.Empty:
-            if PYTHON_VERSION >= (3, 3):
-                raise types.XcpTimeoutError("Response timed out.") from None
-            else:
-                raise types.XcpTimeoutError("Response timed out.")
-        self.resQueue.task_done()   # TODO: move up!?
+            xcpPDU = get(self.resQueue, timeout=2.0)
+        except Empty:
+            raise types.XcpTimeoutError("Response timed out.") from None
+
         self.timing.stop()
 
         pid = types.Response.parse(xcpPDU).type
@@ -143,17 +168,32 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     def block_receive(self, length_required: int) -> bytes:
         """
-        Implements packet reception for block communication model (e.g. for XCP on CAN)
-        :param length_required: number of bytes to be expected in block response packets
-        :return: all payload bytes received in block response packets
+        Implements packet reception for block communication model
+        (e.g. for XCP on CAN)
+
+        Parameters
+        ----------
+        length_required: int
+            number of bytes to be expected in block response packets
+
+        Returns
+        -------
+        bytes
+            all payload bytes received in block response packets
         """
         block_response = b''
         while len(block_response) < length_required:
+            if len(self.resQueue):
+                partial_response = self.resQueue.popleft()
+                block_response += partial_response[1:]
+            """
             try:
                 partial_response = self.resQueue.get(timeout=2.0)
+                partial_response = self.resQueue.popleft()
                 block_response += partial_response[1:]
             except queue.Empty:
                 raise types.XcpTimeoutError("Response timed out.") from None
+            """
         return block_response
 
     @abc.abstractmethod
@@ -162,6 +202,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def closeConnection(self):
+        """Does the actual connection shutdown.
+        Needs to be implemented by any sub-class.
+        """
         pass
 
     @abc.abstractmethod
@@ -190,13 +233,16 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 )
             )
             if pid >= 0xfe:
-                self.resQueue.put(response)
+                # self.resQueue.put(response)
+                self.resQueue.append(response)
             elif pid == 0xfd:
-                self.evQueue.put(response)
+                # self.evQueue.put(response)
+                self.evQueue.append(response)
             elif pid == 0xfc:
-                self.servQueue.put(response)
+                # self.servQueue.put(response)
+                self.servQueue.append(response)
         else:
             if self.first_daq_timestamp is None:
                 self.first_daq_timestamp = datetime.now()
-            timestamp = time.perf_counter()
-            self.daqQueue.put((response, counter, length, timestamp))
+            timestamp = perf_counter()
+            self.daqQueue.append((response, counter, length, timestamp))

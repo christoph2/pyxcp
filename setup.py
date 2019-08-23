@@ -13,7 +13,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 install_reqs = [
-    'construct >= 2.9.0', 'mako', 'pyserial', 'sphinxcontrib-napoleon', 'toml']
+    'construct >= 2.9.0', 'mako', 'pyserial', 'toml']
 
 setup(
     name='pyxcp',
@@ -29,7 +29,11 @@ setup(
 
     include_package_data=True,
     install_requires=install_reqs,
-
+    extras_require={
+       "docs": [
+           'sphinxcontrib-napoleon'
+       ]
+    } ,
     package_dir={'tests': 'pyxcp/tests'},
     tests_require=["pytest", "pytest-runner"],
     test_suite="pyxcp.tests",

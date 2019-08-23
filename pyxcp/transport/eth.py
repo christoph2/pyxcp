@@ -36,12 +36,21 @@ class Eth(BaseTransport):
     """
     """
 
+    PARAMETER_MAP = {
+        #                  Python attribute       Type    Req'd   Default
+        "HOST":           ("host",                str,    False,  "localhost"),
+        "PORT":           ("port",                int,    False,  5555),
+        "PROTOCOL":       ("protocol",            str,    False,  "TCP"),
+        "IPV6":           ("ipv6",                bool,   False,  False),
+    }
+
     MAX_DATAGRAM_SIZE = 512
     HEADER = struct.Struct("<HH")
     HEADER_SIZE = HEADER.size
 
     def __init__(self, host="localhost", port=DEFAULT_XCP_PORT, config=None,
                  protocol='TCP', ipv6=False, loglevel="WARN"):
+        super(Eth, self).__init__(config, loglevel)
         if ipv6 and not socket.has_ipv6:
             raise RuntimeError("IPv6 not supported by your platform.")
         else:
@@ -63,7 +72,6 @@ class Eth(BaseTransport):
         if hasattr(socket, "SO_REUSEPORT"):
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.sock.settimeout(0.5)
-        super(Eth, self).__init__(config, loglevel)
 
     def connect(self):
         if self.status == 0:
@@ -153,8 +161,8 @@ class Eth(BaseTransport):
     def closeConnection(self):
         if not self.invalidSocket:
             # Seems to be problematic /w IPv6
-            #if self.status == 1:
-            #    self.sock.shutdown(socket.SHUT_RDWR)
+            # if self.status == 1:
+            #     self.sock.shutdown(socket.SHUT_RDWR)
             self.sock.close()
 
     @property

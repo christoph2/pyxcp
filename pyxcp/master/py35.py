@@ -33,7 +33,7 @@ class Master(MasterBaseType):
 
     @wrapped
     def shortDownload(self, address, addressExt, *data):
-        length = len(*data)
+        length = len(data)
         addr = self.DWORD_pack(address)
         response = self.transport.request(
             types.Command.SHORT_DOWNLOAD, length, 0, addressExt, *addr, *data)

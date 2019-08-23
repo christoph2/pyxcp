@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath('../pyxcp'))
 # -- Project information -----------------------------------------------------
 
 project = 'pyXCP'
-copyright = '2018, Christoph Schueler'
+copyright = '2019, Christoph Schueler'
 author = 'Christoph Schueler'
 
 # The short X.Y version

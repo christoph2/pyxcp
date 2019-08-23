@@ -45,9 +45,13 @@ class MockSocket:
             time.sleep(timeout)
             return []
 
+    def connect(self):
+        pass
+
 
 class TestMaster:
 
+    DefaultConnectCmd = bytes([0x02, 0x00, 0x00, 0x00, 0xff, 0x00])
     DefaultConnectResponse = "FF 3D C0 FF DC 05 01 01"
 
     @mock.patch("pyxcp.transport.Eth")
@@ -134,7 +138,7 @@ class TestMaster:
 
         assert res.commModeOptional.interleavedMode is False
         assert res.commModeOptional.masterBlockMode is True
-        assert res.maxbs == 2
+        assert res.maxBs == 2
         assert res.minSt == 0
         assert res.queueSize == 0
         assert res.xcpDriverVersionNumber == 25
@@ -174,8 +178,8 @@ class TestMaster:
 
             res = xm.connect()
 
-            mock_socket.return_value.send.assert_called_with(bytes(
-                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
 
             assert res.maxCto == 255
             assert res.maxDto == 1500
@@ -217,12 +221,19 @@ class TestMaster:
         mock_selector.return_value.select.side_effect = ms.select
 
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
+
             ms.push_frame("01 00 00 00 FF")
 
             res = xm.disconnect()
 
             mock_socket.return_value.send.assert_called_with(bytes(
-                [0x01, 0x00, 0x00, 0x00, 0xfe]))
+                [0x01, 0x00, 0x01, 0x00, 0xfe]))
 
         assert res == b''
 
@@ -238,6 +249,9 @@ class TestMaster:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
 
             ms.push_packet("FF 09 1D 00 34 12")
 
@@ -265,13 +279,20 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push_frame([0x02, 0x00, 0x00, 0x00, 0xfe, 0x00])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
+
+            ms.push_frame([0x02, 0x00, 0x00, 0x00, 0xfe, 0x00])
+
             res = xm.synch()
 
-        mock_socket.return_value.send.assert_called_with(bytes(
-            [0x01, 0x00, 0x00, 0x00, 0xfc]))
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x01, 0x00, 0x01, 0x00, 0xfc]))
 
         assert res == b'\x00'
 
@@ -288,6 +309,9 @@ class TestMaster:
 
             res = xm.connect()
 
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
+
             ms.push_packet("FF 00 01 FF 02 00 00 19")
 
             res = xm.getCommModeInfo()
@@ -297,7 +321,7 @@ class TestMaster:
 
         assert res.commModeOptional.interleavedMode is False
         assert res.commModeOptional.masterBlockMode is True
-        assert res.maxbs == 2
+        assert res.maxBs == 2
         assert res.minSt == 0
         assert res.queueSize == 0
         assert res.xcpDriverVersionNumber == 25
@@ -315,8 +339,8 @@ class TestMaster:
 
             res = xm.connect()
 
-            mock_socket.return_value.send.assert_called_with(bytes(
-                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
 
             ms.push_frame([
                 0x08, 0x00, 0x01, 0x00,
@@ -363,13 +387,20 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
+
+            ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
+
             res = xm.setRequest(0x15, 0x1234)
 
-        mock_socket.return_value.send.assert_called_with(bytes(
-            [0x04, 0x00, 0x00, 0x00, 0xf9, 0x15, 0x12, 0x34]))
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x04, 0x00, 0x01, 0x00, 0xf9, 0x15, 0x12, 0x34]))
 
         assert res == b''
 
@@ -385,6 +416,9 @@ class TestMaster:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
 
             ms.push_packet("FF 04 12 34 56 78")
 
@@ -408,6 +442,9 @@ class TestMaster:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
 
             ms.push_packet("FF 10")
 
@@ -434,8 +471,8 @@ class TestMaster:
 
             res = xm.connect()
 
-            mock_socket.return_value.send.assert_called_with(bytes(
-                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
 
             ms.push_frame("01 00 01 00 FF")
 
@@ -455,16 +492,23 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push_frame([
-            0x09, 0x00, 0x00, 0x00,
-            0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
+
+            ms.push_frame([
+                0x09, 0x00, 0x00, 0x00,
+                0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08])
+
             res = xm.upload(8)
 
-        mock_socket.return_value.send.assert_called_with(bytes([
-            0x02, 0x00, 0x00, 0x00,
-            0xf5, 0x08]))
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x02, 0x00, 0x01, 0x00,
+                0xf5, 0x08]))
 
         assert res == b'\x01\x02\x03\x04\x05\x06\x07\x08'
 
@@ -481,8 +525,8 @@ class TestMaster:
 
             res = xm.connect()
 
-            mock_socket.return_value.send.assert_called_with(bytes(
-                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
 
             ms.push_frame("09 00 01 00 FF 01 02 03 04 05 06 07 08")
 
@@ -507,8 +551,8 @@ class TestMaster:
 
             res = xm.connect()
 
-            mock_socket.return_value.send.assert_called_with(bytes(
-                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
 
             ms.push_frame("08 00 01 00 FF 09 00 00 04 05 06 07")
 
@@ -530,17 +574,24 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push_frame([
-            0x03, 0x00, 0x00, 0x00,
-            0xff, 0xaa, 0xbb])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
+
+            ms.push_frame([
+                0x03, 0x00, 0x00, 0x00,
+                0xff, 0xaa, 0xbb])
+
             data = [0xbe, 0xef]
             res = xm.transportLayerCmd(0x55, *data)
 
-        mock_socket.return_value.send.assert_called_with(bytes([
-            0x04, 0x00, 0x00, 0x00,
-            0xf2, 0x55, 0xbe, 0xef]))
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x04, 0x00, 0x01, 0x00,
+                0xf2, 0x55, 0xbe, 0xef]))
 
         assert res == b'\xaa\xbb'
 
@@ -552,17 +603,24 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push_frame([
-            0x03, 0x00, 0x00, 0x00,
-            0xff, 0xaa, 0xbb])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
+
+            ms.push_frame([
+                0x03, 0x00, 0x00, 0x00,
+                0xff, 0xaa, 0xbb])
+
             data = [0xbe, 0xef]
             res = xm.userCmd(0x55, *data)
 
-        mock_socket.return_value.send.assert_called_with(bytes([
-            0x04, 0x00, 0x00, 0x00,
-            0xf1, 0x55, 0xbe, 0xef]))
+            mock_socket.return_value.send.assert_called_with(bytes([
+                0x04, 0x00, 0x01, 0x00,
+                0xf1, 0x55, 0xbe, 0xef]))
 
         assert res == b'\xaa\xbb'
 
@@ -578,6 +636,9 @@ class TestMaster:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
 
             ms.push_packet("FF 00 01 05 01 04")
 
@@ -599,14 +660,21 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
+
+            ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
+
             data = [0xCA, 0xFE, 0xBA, 0xBE]
             res = xm.download(*data)
 
-        mock_socket.return_value.send.assert_called_with(bytes(
-            [0x06, 0x00, 0x00, 0x00, 0xf0, 0x04, 0xca, 0xfe, 0xba, 0xbe]))
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x06, 0x00, 0x01, 0x00, 0xf0, 0x04, 0xca, 0xfe, 0xba, 0xbe]))
 
         assert res == b''
 
@@ -618,14 +686,21 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
+
+            ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
+
             data = [0xCA, 0xFE, 0xBA, 0xBE]
             res = xm.downloadNext(*data)
 
-        mock_socket.return_value.send.assert_called_with(bytes(
-            [0x06, 0x00, 0x00, 0x00, 0xef, 0x04, 0xca, 0xfe, 0xba, 0xbe]))
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x06, 0x00, 0x01, 0x00, 0xef, 0x04, 0xca, 0xfe, 0xba, 0xbe]))
 
         assert res == b''
 
@@ -637,14 +712,21 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
-
         with Master(transport.Eth('localhost', loglevel="DEBUG")) as xm:
+            ms.push_packet(self.DefaultConnectResponse)
+
+            res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
+
+            ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
+
             data = [0xCA, 0xFE, 0xBA, 0xBE]
             res = xm.downloadMax(*data)
 
-        mock_socket.return_value.send.assert_called_with(bytes(
-            [0x05, 0x00, 0x00, 0x00, 0xee, 0xca, 0xfe, 0xba, 0xbe]))
+            mock_socket.return_value.send.assert_called_with(bytes(
+                [0x05, 0x00, 0x01, 0x00, 0xee, 0xca, 0xfe, 0xba, 0xbe]))
 
         assert res == b''
 
@@ -661,8 +743,8 @@ class TestMaster:
 
             res = xm.connect()
 
-            mock_socket.return_value.send.assert_called_with(bytes(
-                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
 
             ms.push_frame("01 00 01 00 FF")
 
@@ -688,8 +770,8 @@ class TestMaster:
 
             res = xm.connect()
 
-            mock_socket.return_value.send.assert_called_with(bytes(
-                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
 
             ms.push_frame("01 00 01 00 ff")
 
@@ -713,6 +795,9 @@ class TestMaster:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
+
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
 
             ms.push_packet("FF")
 
@@ -823,8 +908,8 @@ class TestMaster:
 
             res = xm.connect()
 
-            mock_socket.return_value.send.assert_called_with(bytes(
-                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
 
             ms.push_frame([0x01, 0x00, 0x01, 0x00, 0xff])
 
@@ -968,7 +1053,7 @@ class TestMaster:
             assert res.maxDaqList == 0xee
             assert res.eventChannelNameLength == 0x05
             assert res.eventChannelTimeCycle == 0x06
-            assert res.eventChannelTimeUnit == 0x07
+            assert res.eventChannelTimeUnit == "EVENT_CHANNEL_TIME_UNIT_10MS"
             assert res.eventChannelPriority == 0xff
 
             ms.push_packet("FF AA 34 12 02")
@@ -1098,8 +1183,8 @@ class TestMaster:
 
             res = xm.connect()
 
-            mock_socket.return_value.send.assert_called_with(bytes(
-                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
 
             ms.push_packet(b"\xFF\x00\x01\x08\x2A\xFF\x55")
 
@@ -1238,8 +1323,8 @@ class TestMaster:
 
             res = xm.connect()
 
-            mock_socket.return_value.send.assert_called_with(bytes(
-                [0x02, 0x00, 0x00, 0x00, 0xff, 0x00]))
+            mock_socket.return_value.send.assert_called_with(
+                self.DefaultConnectCmd)
 
             ms.push_packet("FF 15 25 01 1F 00 78 56")
 
