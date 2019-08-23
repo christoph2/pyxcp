@@ -440,7 +440,7 @@ class MasterBaseType:
             response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
-    def transportLayerCmd(self, subCommand: int, *data: bytes):
+    def transportLayerCmd(self, subCommand: int, data: bytes):
         """Execute transfer-layer specific command.
 
         Parameters
@@ -457,7 +457,7 @@ class MasterBaseType:
         return response
 
     @wrapped
-    def userCmd(self, subCommand: int, *data: bytes):
+    def userCmd(self, subCommand: int, data: bytes):
         """Execute proprietary command implemented in your XCP client.
 
         Parameters
@@ -533,7 +533,7 @@ class MasterBaseType:
 
     # Calibration Commands (CAL)
     @wrapped
-    def download(self, *data: bytes):
+    def download(self, data: bytes):
         """Transfer data from master to slave.
 
         Parameters
@@ -552,7 +552,7 @@ class MasterBaseType:
         return response
 
     @wrapped
-    def downloadNext(self, *data: bytes):
+    def downloadNext(self, data: bytes):
         """Transfer data from master to slave (block mode).
 
         Parameters
@@ -566,7 +566,7 @@ class MasterBaseType:
         return response
 
     @wrapped
-    def downloadMax(self, *data: bytes):
+    def downloadMax(self, data: bytes):
         """Transfer data from master to slave (fixed size).
 
         Parameters
