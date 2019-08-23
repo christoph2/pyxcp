@@ -33,7 +33,7 @@ class Master(MasterBaseType):
     # Python <= 3.4 requires nasty hack (flatten) to unpack tuples.
 
     @wrapped
-    def shortDownload(self, address, addressExt, *data):
+    def shortDownload(self, address, addressExt, data):
         length = len(data)
         addr = self.DWORD_pack(address)
         addr_data = flatten(addr, data)

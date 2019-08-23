@@ -587,7 +587,7 @@ class TestMaster:
                 0xff, 0xaa, 0xbb])
 
             data = [0xbe, 0xef]
-            res = xm.transportLayerCmd(0x55, *data)
+            res = xm.transportLayerCmd(0x55, data)
 
             mock_socket.return_value.send.assert_called_with(bytes([
                 0x04, 0x00, 0x01, 0x00,
@@ -616,7 +616,7 @@ class TestMaster:
                 0xff, 0xaa, 0xbb])
 
             data = [0xbe, 0xef]
-            res = xm.userCmd(0x55, *data)
+            res = xm.userCmd(0x55, data)
 
             mock_socket.return_value.send.assert_called_with(bytes([
                 0x04, 0x00, 0x01, 0x00,
@@ -671,7 +671,7 @@ class TestMaster:
             ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
 
             data = [0xCA, 0xFE, 0xBA, 0xBE]
-            res = xm.download(*data)
+            res = xm.download(data)
 
             mock_socket.return_value.send.assert_called_with(bytes(
                 [0x06, 0x00, 0x01, 0x00, 0xf0, 0x04, 0xca, 0xfe, 0xba, 0xbe]))
@@ -697,7 +697,7 @@ class TestMaster:
             ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
 
             data = [0xCA, 0xFE, 0xBA, 0xBE]
-            res = xm.downloadNext(*data)
+            res = xm.downloadNext(data)
 
             mock_socket.return_value.send.assert_called_with(bytes(
                 [0x06, 0x00, 0x01, 0x00, 0xef, 0x04, 0xca, 0xfe, 0xba, 0xbe]))
@@ -723,7 +723,7 @@ class TestMaster:
             ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
 
             data = [0xCA, 0xFE, 0xBA, 0xBE]
-            res = xm.downloadMax(*data)
+            res = xm.downloadMax(data)
 
             mock_socket.return_value.send.assert_called_with(bytes(
                 [0x05, 0x00, 0x01, 0x00, 0xee, 0xca, 0xfe, 0xba, 0xbe]))
@@ -749,7 +749,7 @@ class TestMaster:
             ms.push_frame("01 00 01 00 FF")
 
             data = [0xCA, 0xFE, 0xBA, 0xBE]
-            res = xm.shortDownload(0x12345678, 0x55, *data)
+            res = xm.shortDownload(0x12345678, 0x55, data)
 
             mock_socket.return_value.send.assert_called_with(bytes([
                 0x0c, 0x00, 0x01, 0x00, 0xed, 0x04, 0x00, 0x55,
