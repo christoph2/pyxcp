@@ -180,7 +180,7 @@ class MasterBaseType:
         if self.slaveProperties.addressGranularity == \
                 types.AddressGranularity.BYTE:
             self.AG_pack = struct.Struct("<B").pack
-            self.AG_unpack = struct.Struct("<B").pack
+            self.AG_unpack = struct.Struct("<B").unpack
         elif self.slaveProperties.addressGranularity == \
                 types.AddressGranularity.WORD:
             self.AG_pack = self.WORD_pack
