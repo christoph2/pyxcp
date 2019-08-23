@@ -165,8 +165,8 @@ class EmptyHeader:
         return b''
 
 
-
 # can.detect_available_configs()
+
 
 class Can(BaseTransport):
     """
@@ -198,7 +198,7 @@ class Can(BaseTransport):
             raise TypeError('canInterface instance must inherit from CanInterface abstract base class!')
         self.canInterface = canInterface()
         self.max_dlc_required = self.config.get("MAX_DLC_REQUIRED")
-        self.can_id_master  = self.config.get("CAN_ID_MASTER")
+        self.can_id_master = self.config.get("CAN_ID_MASTER")
         self.can_id_slave = self.config.get("CAN_ID_SLAVE")
         self.canInterface.init(self, self.can_id_master, self.can_id_slave, self.dataReceived)
         self.canInterface.loadConfig(config)
@@ -215,7 +215,6 @@ class Can(BaseTransport):
             frame = self.canInterface.read()
             if frame:
                 self.dataReceived(frame.data)
-
 
     def connect(self):
         self.canInterface.connect()
@@ -250,12 +249,12 @@ def setDLC(length: int):
     elif length <= 64:
         for dlc in FD_DLCS:
             if length <= dlc:
-                return dlc;
+                return dlc
     else:
         raise ValueError("DLC could be at most 64.")
 
 
-def calculateFilter(ids : list):
+def calculateFilter(ids: list):
     """
     :param ids: An iterable (usually list or tuple) containing CAN identifiers.
 

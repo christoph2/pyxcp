@@ -23,7 +23,6 @@ __copyright__ = """
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-import copy
 import json
 import pathlib
 
@@ -66,10 +65,12 @@ class Configuration:
         for key, (attr, tp, required, default) in self.parameters.items():
             if key in self.config:
                 if not isinstance(self.config[key], tp):
-                    raise TypeError("Parameter {} requires {}".format(attr, tp))
+                    raise TypeError(
+                        "Parameter {} requires {}".format(attr, tp))
             else:
                 if required:
-                    raise AttributeError("{} must be specified in config!".format(key))
+                    raise AttributeError(
+                        "{} must be specified in config!".format(key))
                 else:
                     self.config[key] = default
 

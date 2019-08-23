@@ -37,11 +37,11 @@ class Eth(BaseTransport):
     """
 
     PARAMETER_MAP = {
-        #                         Python attribute      Type    Req'd   Default
-        "HOST":                 ("host",                str,    False,  "localhost"),
-        "PORT":                 ("port",                int,    False,  5555),
-        "PROTOCOL":             ("protocol",            str,    False,  "TCP"),
-        "IPV6":                 ("ipv6",                bool,   False,  False),
+        #                  Python attribute       Type    Req'd   Default
+        "HOST":           ("host",                str,    False,  "localhost"),
+        "PORT":           ("port",                int,    False,  5555),
+        "PROTOCOL":       ("protocol",            str,    False,  "TCP"),
+        "IPV6":           ("ipv6",                bool,   False,  False),
     }
 
     MAX_DATAGRAM_SIZE = 512
@@ -161,8 +161,8 @@ class Eth(BaseTransport):
     def closeConnection(self):
         if not self.invalidSocket:
             # Seems to be problematic /w IPv6
-            #if self.status == 1:
-            #    self.sock.shutdown(socket.SHUT_RDWR)
+            # if self.status == 1:
+            #     self.sock.shutdown(socket.SHUT_RDWR)
             self.sock.close()
 
     @property

@@ -49,7 +49,6 @@ def broadcasted(func):
     return func
 
 
-
 class SlaveProperties(dict):
     """Container class for fixed parameters, like byte-order, maxCTO, ...
     """
@@ -188,7 +187,7 @@ class MasterBaseType:
         if self.slaveProperties.addressGranularity == \
                 types.AddressGranularity.BYTE:
             self.AG_pack = struct.Struct("<B").pack
-            self.AG_unpack = struct.Struct("<B").pack
+            self.AG_unpack = struct.Struct("<B").unpack
         elif self.slaveProperties.addressGranularity == \
                 types.AddressGranularity.WORD:
             self.AG_pack = self.WORD_pack
@@ -496,7 +495,7 @@ class MasterBaseType:
         self.slaveProperties.transportMinor = result.transportMinor
         return result
 
-    def fetch(self, length:int , limitPayload: int = None):  # TODO: pull
+    def fetch(self, length: int, limitPayload: int = None):  # TODO: pull
         """Convenience function for data-transfer from slave to master
         (Not part of the XCP Specification).
 
@@ -597,7 +596,7 @@ class MasterBaseType:
         return response
 
     @wrapped
-    def getCalPage(self, mode: int , logicalDataSegment: int):
+    def getCalPage(self, mode: int, logicalDataSegment: int):
         """Get calibration page
 
         Parameters
