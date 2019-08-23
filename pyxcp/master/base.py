@@ -541,8 +541,9 @@ class MasterBaseType:
         data : bytes
             Data to send to slave.
         blockModeLength : int or None
-            for block mode, this parameter has to be given the whole block length, otherwise,
-            for standard mode, we fill in the length here based on the actual data length
+            for block mode, the download request must contain the length of the whole block,
+            not just the length in the current packet. The whole block length can be given here for block-mode
+            transfers. For normal mode, the length indicates the actual packet's payload length.
 
         Note
         ----
@@ -564,28 +565,27 @@ class MasterBaseType:
             return None
 
     @wrapped
-    def downloadNext(self, data: bytes, remainingLength, last=False):
+    def downloadNext(self, data: bytes, remainingBlockLength, last=False):
         """Transfer data from master to slave (block mode).
 
         Parameters
         ----------
         data : bytes
-        remainingLength : int
+        remainingBlockLength : int
             This parameter has to be given the remaining length in the block
         last : bool
-            The block mode implementation shall signal the last packet in the block with this parameter
+            The block mode implementation shall indicate the last packet in the block with this parameter, because
+            the slave device will send the response after this.
         """
 
+        response = self.transport.request(
+                types.Command.DOWNLOAD_NEXT, remainingBlockLength, *data)
         if last:
             # last DOWNLOAD_NEXT packet in a block: the slave device has to send the response after this.
-            response = self.transport.request(
-                types.Command.DOWNLOAD_NEXT, remainingLength, *data)
             return response
         else:
             # the slave device won't respond to consecutive DOWNLOAD_NEXT packets in block mode,
             # so we must not wait for any response
-            self.transport.block_request(
-                types.Command.DOWNLOAD_NEXT, remainingLength, *data)
             return None
 
     @wrapped
