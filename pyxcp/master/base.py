@@ -539,6 +539,7 @@ class MasterBaseType:
         Parameters
         ----------
         data : bytes
+            Data to send to slave.
         blockModeLength : int or None
             for block mode, this parameter has to be given the whole block length, otherwise,
             for standard mode, we fill in the length here based on the actual data length
