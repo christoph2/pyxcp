@@ -578,14 +578,16 @@ class MasterBaseType:
             the slave device will send the response after this.
         """
 
-        response = self.transport.request(
-                types.Command.DOWNLOAD_NEXT, remainingBlockLength, *data)
         if last:
             # last DOWNLOAD_NEXT packet in a block: the slave device has to send the response after this.
+            response = self.transport.request(
+                types.Command.DOWNLOAD_NEXT, remainingBlockLength, *data)
             return response
         else:
             # the slave device won't respond to consecutive DOWNLOAD_NEXT packets in block mode,
             # so we must not wait for any response
+            self.transport.block_request(
+                types.Command.DOWNLOAD_NEXT, remainingBlockLength, *data)
             return None
 
     @wrapped
