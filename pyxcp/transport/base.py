@@ -29,6 +29,8 @@ from datetime import datetime
 import threading
 from time import time, sleep, perf_counter
 
+from typing import NamedTuple
+
 from ..logger import Logger
 from ..utils import flatten, hexDump
 
@@ -36,6 +38,16 @@ import pyxcp.types as types
 from pyxcp.config import Configuration
 
 from ..timing import Timing
+
+
+class DaqQueueElement(NamedTuple):
+    """
+    Element to be put in the DAQ queue
+    """
+    response: bytes
+    counter: int
+    length: int
+    timestamp: float
 
 
 class Empty(Exception):
@@ -137,17 +149,15 @@ class BaseTransport(metaclass=abc.ABCMeta):
         All parameters are the same as in request(), but it does not receive response.
         """
 
-        # check response queue before each block reauest, so that if the slave device
+        # check response queue before each block request, so that if the slave device
         # has responded with a negative response (e.g. ACCESS_DENIED or SEQUENCE_ERROR), we can
         # process it.
-        try:
-            xcpPDU = self.resQueue.get_nowait()
+        if self.resQueue:
+            xcpPDU = self.resQueue.popleft()
             pid = types.Response.parse(xcpPDU).type
             if pid == 'ERR' and cmd.name != 'SYNCH':
                 err = types.XcpError.parse(xcpPDU[1:])
                 raise types.XcpResponseError(err)
-        except queue.Empty:
-            pass
 
         frame = self._prepare_request(cmd, *data)
         self.send(frame)
@@ -245,4 +255,5 @@ class BaseTransport(metaclass=abc.ABCMeta):
             if self.first_daq_timestamp is None:
                 self.first_daq_timestamp = datetime.now()
             timestamp = perf_counter()
-            self.daqQueue.append((response, counter, length, timestamp))
+            element = DaqQueueElement(response, counter, length, timestamp)
+            self.daqQueue.append(element)

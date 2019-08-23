@@ -192,18 +192,29 @@ class Can(BaseTransport):
     HEADER = EmptyHeader()
     HEADER_SIZE = 0
 
-    def __init__(self, canInterface: CanInterfaceBase, config=None, loglevel="WARN"):
+    def __init__(self, canInterface: CanInterfaceBase, config=None, loglevel="WARN", useDefaultListener=True):
+        """init for CAN transport
+
+        :param canInterface: CAN interface instance
+        :param config: configuration
+        :param loglevel: logging level
+        :param useDefaultListener: defaults to True, in this case the default listener thread is used.
+                                   If the canInterface implements a listener service, this parameter
+                                   can be set to False, and the default listener thread won't be started.
+        """
         super().__init__(config, loglevel)
-        if not issubclass(canInterface, CanInterfaceBase):
+        if not issubclass(canInterface.__class__, CanInterfaceBase):
             raise TypeError('canInterface instance must inherit from CanInterface abstract base class!')
-        self.canInterface = canInterface()
+        self.canInterface = canInterface
         self.max_dlc_required = self.config.get("MAX_DLC_REQUIRED")
         self.can_id_master = self.config.get("CAN_ID_MASTER")
         self.can_id_slave = self.config.get("CAN_ID_SLAVE")
         self.canInterface.init(self, self.can_id_master, self.can_id_slave, self.dataReceived)
         self.canInterface.loadConfig(config)
+        self.canInterface.connect()
 
-        self.startListener()
+        if useDefaultListener:
+            self.startListener()
 
     def dataReceived(self, payload: bytes):
         self.processResponse(payload, len(payload), counter=0)
@@ -217,7 +228,6 @@ class Can(BaseTransport):
                 self.dataReceived(frame.data)
 
     def connect(self):
-        self.canInterface.connect()
         self.status = 1  # connected
 
     def send(self, frame):
