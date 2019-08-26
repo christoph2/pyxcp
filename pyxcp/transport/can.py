@@ -211,7 +211,6 @@ class Can(BaseTransport):
         self.can_id_slave = self.config.get("CAN_ID_SLAVE")
         self.canInterface.init(self, self.can_id_master, self.can_id_slave, self.dataReceived)
         self.canInterface.loadConfig(config)
-        self.canInterface.connect()
 
         if useDefaultListener:
             self.startListener()
@@ -228,6 +227,7 @@ class Can(BaseTransport):
                 self.dataReceived(frame.data)
 
     def connect(self):
+        self.canInterface.connect()
         self.status = 1  # connected
 
     def send(self, frame):
