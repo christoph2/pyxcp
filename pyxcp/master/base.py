@@ -92,6 +92,7 @@ class MasterBaseType:
         self.DWORD_unpack = None
         self.AG_pack = None
         self.AG_unpack = None
+        #self.connected = False
 
     def __enter__(self):
         """Context manager entry part.
@@ -101,6 +102,8 @@ class MasterBaseType:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit part.
         """
+        #if self.connected:
+        #    self.disconnect()
         self.close()
         if exc_type is None:
             return
@@ -196,7 +199,7 @@ class MasterBaseType:
                 types.AddressGranularity.DWORD:
             self.AG_pack = self.DWORD_pack
             self.AG_unpack = self.DWORD_unpack
-
+        #self.connected = True
         return result
 
     @wrapped
@@ -212,6 +215,7 @@ class MasterBaseType:
         If DISCONNECT is currently not possible, ERR_CMD_BUSY will be returned.
         """
         response = self.transport.request(types.Command.DISCONNECT)
+        self.connected = False
         return response
 
     @wrapped
@@ -390,7 +394,7 @@ class MasterBaseType:
         """
 
         response = self.transport.request(types.Command.UPLOAD, length)
-        if length > self.transport.MAX_DATAGRAM_SIZE:
+        if length > (self.slaveProperties.maxCto - 1):
             block_response = self.transport.block_receive(
                 length_required=(length - len(response)))
             response += block_response
@@ -517,7 +521,12 @@ class MasterBaseType:
             raise ValueError(
                 "Payload must be at least 8 bytes - given: {}".format(
                     limitPayload))
-        maxPayload = self.slaveProperties.maxCto - 1
+
+        slaveBlockMode = self.slaveProperties.slaveBlockMode
+        if slaveBlockMode:
+            maxPayload = 255
+        else:
+            maxPayload = self.slaveProperties.maxCto - 1
         payload = min(limitPayload, maxPayload) if limitPayload else maxPayload
         chunkSize = payload
         chunks = range(length // chunkSize)
