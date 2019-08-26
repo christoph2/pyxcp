@@ -768,12 +768,14 @@ class TestMaster:
             ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
 
             data = [0xCA, 0xFE, 0xBA, 0xBE]
-            res = xm.downloadNext(data)
+            remaining_block_length = 42
+            res = xm.downloadNext(data, remainingBlockLength=remaining_block_length)
 
             mock_socket.return_value.send.assert_called_with(bytes(
-                [0x06, 0x00, 0x01, 0x00, 0xef, 0x04, 0xca, 0xfe, 0xba, 0xbe]))
+                [0x06, 0x00, 0x01, 0x00, 0xef, remaining_block_length, 0xca, 0xfe, 0xba, 0xbe]))
 
-        assert res == b''
+        # no response shall be expected if it is not the last DOWNLOAD_NEXT packet of a block
+        assert res is None
 
     def testDownloadNextBlock(self):
         mci = MockCanInterface()
