@@ -190,20 +190,22 @@ class BaseTransport(metaclass=abc.ABCMeta):
         -------
         bytes
             all payload bytes received in block response packets
+
+        Raises
+        ------
+        :class:`pyxcp.types.XcpTimeoutError`
         """
+        TIMEOUT = 1.0   # TODO: parameter.
         block_response = b''
+        start = time()
         while len(block_response) < length_required:
             if len(self.resQueue):
                 partial_response = self.resQueue.popleft()
                 block_response += partial_response[1:]
-            """
-            try:
-                partial_response = self.resQueue.get(timeout=2.0)
-                partial_response = self.resQueue.popleft()
-                block_response += partial_response[1:]
-            except queue.Empty:
-                raise types.XcpTimeoutError("Response timed out.") from None
-            """
+            else:
+                if time() - start > TIMEOUT:
+                    raise types.XcpTimeoutError("Response timed out [block_receive].") from None
+                sleep(0.001)
         return block_response
 
     @abc.abstractmethod

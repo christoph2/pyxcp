@@ -32,6 +32,9 @@ setup(
     extras_require={
        "docs": [
            'sphinxcontrib-napoleon'
+       ],
+        "develop": [
+            "bumpversion"
        ]
     } ,
     package_dir={'tests': 'pyxcp/tests'},

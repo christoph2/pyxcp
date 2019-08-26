@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""
+"""Very basic hello-world example.
 """
 
 __copyright__ = """
@@ -40,7 +40,5 @@ with ap.run() as x:
     gid = x.getId(0x1)
     result = x.fetch(gid.length)
     print("ID: '{}'".format(result.decode("utf8")))
-
     x.disconnect()
-#print(ap.args)
-pprint(x.slaveProperties)
+    pprint(x.slaveProperties)
