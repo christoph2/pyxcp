@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+from collections import deque
 from unittest import mock
 
 import time
 import struct
+
+from pyxcp.transport.can import CanInterfaceBase
 
 from pyxcp.master import Master
 from pyxcp import (transport, types)
@@ -46,6 +48,49 @@ class MockSocket:
             return []
 
     def connect(self):
+        pass
+
+
+class MockCanInterface(CanInterfaceBase):
+
+    def __init__(self):
+        self.data = deque()
+        self.receive_callback = None
+
+    def init(self, parent, master_id_with_ext: int, slave_id_with_ext: int, receive_callback):
+        self.receive_callback = receive_callback
+
+    # push packet
+    def push_packet(self, data):
+        try:
+            data = bytes.fromhex(data)
+        except TypeError:
+            pass
+        # no header on CAN
+        self.push_frame(data)
+
+    def push_frame(self, packet):
+        self.data.append(packet)
+
+    def transmit(self, payload: bytes):
+        time.sleep(0.001)
+        try:
+            resp = self.data.popleft()
+            if resp:
+                self.receive_callback(resp)
+        except IndexError:
+            pass
+
+    def close(self):
+        pass
+
+    def connect(self):
+        pass
+
+    def read(self):
+        pass
+
+    def getTimestampResolution(self):
         pass
 
 
@@ -678,6 +723,32 @@ class TestMaster:
 
         assert res == b''
 
+    def testDownloadBlock(self):
+        mci = MockCanInterface()
+        conf = {
+            'CAN_ID_MASTER': 1,
+            'CAN_ID_SLAVE': 2
+        }
+        with Master(transport.Can(canInterface=mci, loglevel="DEBUG", useDefaultListener=False, config=conf)) as xm:
+            mci.push_packet(self.DefaultConnectResponse)
+            xm.connect()
+
+            data = bytes([i for i in range(14)])
+            # Downloading 14 bytes in block mode:
+            #                               command code    n   payload...
+            #  testing ->   DOWNLOAD:       0xF0,           14, 0, 1, 2, 3, 4, 5
+            #               DOWNLOAD_NEXT:  0xEF,           8,  6, 7, 8, 9, 10,11
+            #               DOWNLOAD_NEXT:  0xEF,           2,  12,13
+            # DOWNLOAD service with block mode, this is the first DOWNLOAD packet of a block, no response
+            # is expected from the slave device:
+            res = xm.download(data=data, blockModeLength=len(data))
+            assert res is None
+
+            # DOWNLOAD service with normal mode, normal response expected
+            mci.push_packet('FF')
+            res = xm.download(data=data, blockModeLength=None)
+            assert res == b''
+
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
     def testDownloadNext(self, mock_selector, mock_socket):
@@ -703,6 +774,32 @@ class TestMaster:
                 [0x06, 0x00, 0x01, 0x00, 0xef, 0x04, 0xca, 0xfe, 0xba, 0xbe]))
 
         assert res == b''
+
+    def testDownloadNextBlock(self):
+        mci = MockCanInterface()
+        conf = {
+            'CAN_ID_MASTER': 1,
+            'CAN_ID_SLAVE': 2
+        }
+        with Master(transport.Can(canInterface=mci, loglevel="DEBUG", useDefaultListener=False, config=conf)) as xm:
+            mci.push_packet(self.DefaultConnectResponse)
+            xm.connect()
+
+            data = bytes([i for i in range(14)])
+            #  Downloading 14 bytes in block mode:
+            #                               command code    n   payload...
+            #               DOWNLOAD:       0xF0,           14, 0, 1, 2, 3, 4, 5
+            #  testing ->   DOWNLOAD_NEXT:  0xEF,           8,  6, 7, 8, 9, 10,11
+            #  testing ->   DOWNLOAD_NEXT:  0xEF,           2,  12,13
+
+            # This is the first DOWNLOAD_NEXT packet of a block, no response is expected from the slave device.
+            res = xm.downloadNext(data=data, remainingBlockLength=8, last=False)
+            assert res is None
+
+            # This is the last DOWNLOAD_NEXT packet of a block, positive response is expected from the slave device.
+            mci.push_packet('FF')
+            res = xm.downloadNext(data=data, remainingBlockLength=2, last=True)
+            assert res == b''
 
     @mock.patch('pyxcp.transport.eth.socket.socket')
     @mock.patch('pyxcp.transport.eth.selectors.DefaultSelector')
