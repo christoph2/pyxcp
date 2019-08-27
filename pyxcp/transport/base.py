@@ -29,8 +29,6 @@ from datetime import datetime
 import threading
 from time import time, sleep, perf_counter
 
-from typing import NamedTuple
-
 from ..logger import Logger
 from ..utils import flatten, hexDump
 
@@ -38,16 +36,6 @@ import pyxcp.types as types
 from pyxcp.config import Configuration
 
 from ..timing import Timing
-
-
-class DaqQueueElement(NamedTuple):
-    """
-    Element to be put in the DAQ queue
-    """
-    response: bytes
-    counter: int
-    length: int
-    timestamp: float
 
 
 class Empty(Exception):
@@ -87,6 +75,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.logger.setLevel(loglevel)
         self.counterSend = 0
         self.counterReceived = 0
+        self.create_daq_timestamps = False
         self.timing = Timing()
         self.resQueue = deque()
         self.daqQueue = deque()
@@ -115,6 +104,12 @@ class BaseTransport(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def connect(self):
         pass
+
+    def daqTimestampingEnable(self):
+        self.create_daq_timestamps = True
+
+    def daqTimestampingDisable(self):
+        self.create_daq_timestamps = False
 
     def startListener(self):
         self.listener.start()
@@ -256,6 +251,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
         else:
             if self.first_daq_timestamp is None:
                 self.first_daq_timestamp = datetime.now()
-            timestamp = perf_counter()
-            element = DaqQueueElement(response, counter, length, timestamp)
-            self.daqQueue.append(element)
+            if self.create_daq_timestamps:
+                timestamp = perf_counter()
+            else:
+                timestamp = 0.0
+            self.daqQueue.append((response, counter, length, timestamp))
