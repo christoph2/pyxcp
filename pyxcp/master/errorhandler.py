@@ -195,8 +195,8 @@ class Handler:
         elif action == Action.REPEAT_INF_TIMES:
             print("\tREPEAT_INF_TIMES", self.func)
             # res = execute(self.instance, self.func, self.args)
-            # infinite: well, let it be only 10.
-            _repeat_count_value = 10
+            # infinite: well, let it be only 2 as well.
+            _repeat_count_value = 2
         elif action == Action.REPEAT_2_TIMES:
             _repeat_count_value = 2
         elif action == Action.DISPLAY_ERROR:
