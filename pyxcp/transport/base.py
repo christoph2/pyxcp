@@ -28,8 +28,6 @@ from collections import deque
 import threading
 from time import time, sleep, perf_counter
 
-from typing import NamedTuple
-
 from ..logger import Logger
 from ..utils import flatten, hexDump
 
@@ -76,6 +74,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.logger.setLevel(loglevel)
         self.counterSend = 0
         self.counterReceived = 0
+        self.create_daq_timestamps = False
         self.timing = Timing()
         self.resQueue = deque()
         self.daqQueue = deque()
@@ -104,6 +103,12 @@ class BaseTransport(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def connect(self):
         pass
+
+    def daqTimestampingEnable(self):
+        self.create_daq_timestamps = True
+
+    def daqTimestampingDisable(self):
+        self.create_daq_timestamps = False
 
     def startListener(self):
         self.listener.start()
@@ -245,6 +250,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
         else:
             if self.first_daq_timestamp is None:
                 self.first_daq_timestamp = perf_counter()
-            timestamp = perf_counter()
-            element = ((response, counter, length, timestamp, ))
+            if self.create_daq_timestamps:
+                timestamp = perf_counter()
+            else:
+                timestamp = 0.0
+            element = ((response, counter, length, timestamp,))
             self.daqQueue.append(element)
