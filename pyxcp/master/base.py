@@ -542,37 +542,62 @@ class MasterBaseType:
 
     # Calibration Commands (CAL)
     @wrapped
-    def download(self, data: bytes):
+    def download(self, data: bytes, blockModeLength=None):
         """Transfer data from master to slave.
 
         Parameters
         ----------
         data : bytes
             Data to send to slave.
+        blockModeLength : int or None
+            for block mode, the download request must contain the length of the whole block,
+            not just the length in the current packet. The whole block length can be given here for block-mode
+            transfers. For normal mode, the length indicates the actual packet's payload length.
 
         Note
         ----
         Adress is set via :meth:`setMta`
         """
 
-        length = len(data)
-        response = self.transport.request(
-            types.Command.DOWNLOAD, length, *data)
-        return response
+        if blockModeLength is None:
+            # standard mode
+            length = len(data)
+            response = self.transport.request(
+                types.Command.DOWNLOAD, length, *data)
+            return response
+        else:
+            # block mode
+            if not isinstance(blockModeLength, int):
+                raise TypeError('blockModeLength must be int!')
+            self.transport.block_request(
+                types.Command.DOWNLOAD, blockModeLength, *data)
+            return None
 
     @wrapped
-    def downloadNext(self, data: bytes):
+    def downloadNext(self, data: bytes, remainingBlockLength, last=False):
         """Transfer data from master to slave (block mode).
 
         Parameters
         ----------
         data : bytes
+        remainingBlockLength : int
+            This parameter has to be given the remaining length in the block
+        last : bool
+            The block mode implementation shall indicate the last packet in the block with this parameter, because
+            the slave device will send the response after this.
         """
 
-        length = len(data)
-        response = self.transport.request(
-            types.Command.DOWNLOAD_NEXT, length, *data)
-        return response
+        if last:
+            # last DOWNLOAD_NEXT packet in a block: the slave device has to send the response after this.
+            response = self.transport.request(
+                types.Command.DOWNLOAD_NEXT, remainingBlockLength, *data)
+            return response
+        else:
+            # the slave device won't respond to consecutive DOWNLOAD_NEXT packets in block mode,
+            # so we must not wait for any response
+            self.transport.block_request(
+                types.Command.DOWNLOAD_NEXT, remainingBlockLength, *data)
+            return None
 
     @wrapped
     def downloadMax(self, data: bytes):
