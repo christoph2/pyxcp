@@ -203,9 +203,9 @@ class Can(BaseTransport):
                                    can be set to False, and the default listener thread won't be started.
         """
         super().__init__(config, loglevel)
-        if not issubclass(canInterface.__class__, CanInterfaceBase):
+        if not issubclass(canInterface, CanInterfaceBase):
             raise TypeError('canInterface instance must inherit from CanInterface abstract base class!')
-        self.canInterface = canInterface
+        self.canInterface = canInterface()
         self.max_dlc_required = self.config.get("MAX_DLC_REQUIRED")
         self.can_id_master = self.config.get("CAN_ID_MASTER")
         self.can_id_slave = self.config.get("CAN_ID_SLAVE")
