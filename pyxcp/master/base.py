@@ -215,7 +215,7 @@ class MasterBaseType:
         If DISCONNECT is currently not possible, ERR_CMD_BUSY will be returned.
         """
         response = self.transport.request(types.Command.DISCONNECT)
-        self.connected = False
+        #self.connected = False
         return response
 
     @wrapped
