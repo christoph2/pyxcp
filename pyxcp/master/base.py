@@ -83,6 +83,7 @@ class MasterBaseType:
         # In some cases the transport-layer needs to communicate with us.
         self.transport.parent = self
         self.service = None
+        self.repeat_counter = None
 
         # (D)Word (un-)packers are byte-order dependent
         # -- byte-order is returned by CONNECT_Resp (COMM_MODE_BASIC)
