@@ -66,6 +66,11 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     """
 
+    PARAMETER_MAP = {
+        #                         Python attribute          Type    Req'd   Default
+        "CREATE_DAQ_TIMESTAMPS", ("create_daq_timestamps",  bool,   False,  False),
+    }
+
     def __init__(self, config=None, loglevel='WARN'):
         self.parent = None
         self.config = Configuration(self.PARAMETER_MAP or {}, config or {})

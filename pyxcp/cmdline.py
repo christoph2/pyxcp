@@ -46,12 +46,14 @@ else:
 
 from pyxcp.config import readConfiguration
 from pyxcp.master import Master
-from pyxcp.transport.can import CanInterfaceBase, Can, register_drivers
+from pyxcp.transport.can import (
+    CanInterfaceBase, Can, try_to_install_system_supplied_drivers, registered_drivers)
 from pyxcp.transport import Eth
 from pyxcp.transport import SxI
 
+try_to_install_system_supplied_drivers()
 
-CAN_DRIVERS = register_drivers()
+CAN_DRIVERS = registered_drivers()
 
 
 ARGUMENTS = {
