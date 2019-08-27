@@ -27,11 +27,4 @@ import sys
 
 from .eth import Eth
 from .sxi import SxI
-
-VERSION = sys.version_info
-PY36_OR_HIGHER = VERSION.major >= 3 and VERSION.minor >= 6
-
-if PY36_OR_HIGHER:
-    # only import can transport with Python 3.6 or higher because it uses
-    # variable annotations (introduced in 3.6 - PEP526)
-    from .can import Can
+from .can import Can
