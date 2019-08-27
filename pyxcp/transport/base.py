@@ -25,7 +25,6 @@ __copyright__ = """
 
 import abc
 from collections import deque
-from datetime import datetime
 import threading
 from time import time, sleep, perf_counter
 
@@ -250,9 +249,10 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 self.servQueue.append(response)
         else:
             if self.first_daq_timestamp is None:
-                self.first_daq_timestamp = datetime.now()
+                self.first_daq_timestamp = perf_counter()
             if self.create_daq_timestamps:
                 timestamp = perf_counter()
             else:
                 timestamp = 0.0
-            self.daqQueue.append((response, counter, length, timestamp))
+            element = ((response, counter, length, timestamp,))
+            self.daqQueue.append(element)
