@@ -25,7 +25,6 @@ __copyright__ = """
 
 import abc
 from collections import deque
-from datetime import datetime
 import threading
 from time import time, sleep, perf_counter
 
@@ -38,16 +37,6 @@ import pyxcp.types as types
 from pyxcp.config import Configuration
 
 from ..timing import Timing
-
-
-class DaqQueueElement(NamedTuple):
-    """
-    Element to be put in the DAQ queue
-    """
-    response: bytes
-    counter: int
-    length: int
-    timestamp: float
 
 
 class Empty(Exception):
@@ -255,7 +244,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 self.servQueue.append(response)
         else:
             if self.first_daq_timestamp is None:
-                self.first_daq_timestamp = datetime.now()
+                self.first_daq_timestamp = perf_counter()
             timestamp = perf_counter()
-            element = DaqQueueElement(response, counter, length, timestamp)
+            element = ((response, counter, length, timestamp, ))
             self.daqQueue.append(element)
