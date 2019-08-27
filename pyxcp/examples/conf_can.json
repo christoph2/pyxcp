@@ -13,5 +13,6 @@
     "SAMPLE_POINT": 87.5,
     "SJW": 2
     "TSEG1": 5,
-    "TSEG2": 2
+    "TSEG2": 2,
+    "CREATE_DAQ_TIMESTAMPS": false
 }

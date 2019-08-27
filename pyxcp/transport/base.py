@@ -74,7 +74,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.logger.setLevel(loglevel)
         self.counterSend = 0
         self.counterReceived = 0
-        self.create_daq_timestamps = False
+        create_daq_timestamps = self.config.get("CREATE_DAQ_TIMESTAMPS")
+        self.create_daq_timestamps = False if create_daq_timestamps is None else create_daq_timestamps
         self.timing = Timing()
         self.resQueue = deque()
         self.daqQueue = deque()
@@ -103,12 +104,6 @@ class BaseTransport(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def connect(self):
         pass
-
-    def daqTimestampingEnable(self):
-        self.create_daq_timestamps = True
-
-    def daqTimestampingDisable(self):
-        self.create_daq_timestamps = False
 
     def startListener(self):
         self.listener.start()
