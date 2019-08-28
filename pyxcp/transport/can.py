@@ -281,7 +281,7 @@ def calculateFilter(ids: list):
     return (cfilter, cmask)
 
 
-def register_drivers():
+def try_to_install_system_supplied_drivers():
     """Register available CAN drivers.
 
     :return: Dictionary containing CAN driver names and classes.
@@ -296,5 +296,6 @@ def register_drivers():
         except Exception as e:
             pass
 
+def registered_drivers():
     sub_classes = CanInterfaceBase.__subclasses__()
     return dict(zip([c.__name__ for c in sub_classes], sub_classes))

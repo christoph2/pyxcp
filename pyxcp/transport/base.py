@@ -66,6 +66,11 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     """
 
+    PARAMETER_MAP = {
+        #                         Python attribute          Type    Req'd   Default
+        "CREATE_DAQ_TIMESTAMPS", ("create_daq_timestamps",  bool,   False,  False),
+    }
+
     def __init__(self, config=None, loglevel='WARN'):
         self.parent = None
         self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
@@ -74,7 +79,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.logger.setLevel(loglevel)
         self.counterSend = 0
         self.counterReceived = 0
-        self.create_daq_timestamps = False
+        create_daq_timestamps = self.config.get("CREATE_DAQ_TIMESTAMPS")
+        self.create_daq_timestamps = False if create_daq_timestamps is None else create_daq_timestamps
         self.timing = Timing()
         self.resQueue = deque()
         self.daqQueue = deque()
@@ -103,12 +109,6 @@ class BaseTransport(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def connect(self):
         pass
-
-    def daqTimestampingEnable(self):
-        self.create_daq_timestamps = True
-
-    def daqTimestampingDisable(self):
-        self.create_daq_timestamps = False
 
     def startListener(self):
         self.listener.start()
@@ -256,3 +256,34 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 timestamp = 0.0
             element = ((response, counter, length, timestamp,))
             self.daqQueue.append(element)
+
+
+def createTransport(name, *args, **kws):
+    """Factory function for transports.
+
+    Returns
+    -------
+    :class:`BaseTransport` derived instance.
+    """
+    name = name.lower()
+    transports = availableTransports()
+    if name in transports:
+        transportClass = transports[name]
+    else:
+        raise ValueError("'{}' is an invalid transport -- please choose one of [{}].".format(name,
+                ' | '.join(transports.keys())
+            )
+        )
+    return transportClass(*args, **kws)
+
+
+def availableTransports():
+    """List all subclasses of :class:`BaseTransport`.
+
+    Returns
+    -------
+    dict
+        name: class
+    """
+    transports = BaseTransport.__subclasses__()
+    return {t.__name__.lower(): t for t in transports}
