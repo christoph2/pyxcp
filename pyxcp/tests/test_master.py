@@ -724,13 +724,14 @@ class TestMaster:
         assert res == b''
 
     def testDownloadBlock(self):
-        mci = MockCanInterface()
         conf = {
             'CAN_ID_MASTER': 1,
             'CAN_ID_SLAVE': 2
         }
-        with Master(transport.Can(canInterface=mci, loglevel="DEBUG", useDefaultListener=False, config=conf)) as xm:
-            mci.push_packet(self.DefaultConnectResponse)
+        with Master(transport.Can(canInterfaceClass=MockCanInterface,
+                                  loglevel="DEBUG", useDefaultListener=False, config=conf)) as xm:
+            mock_caninterface = xm.transport.canInterface
+            mock_caninterface.push_packet(self.DefaultConnectResponse)
             xm.connect()
 
             data = bytes([i for i in range(14)])
@@ -745,7 +746,7 @@ class TestMaster:
             assert res is None
 
             # DOWNLOAD service with normal mode, normal response expected
-            mci.push_packet('FF')
+            mock_caninterface.push_packet('FF')
             res = xm.download(data=data, blockModeLength=None)
             assert res == b''
 
@@ -783,8 +784,10 @@ class TestMaster:
             'CAN_ID_MASTER': 1,
             'CAN_ID_SLAVE': 2
         }
-        with Master(transport.Can(canInterface=mci, loglevel="DEBUG", useDefaultListener=False, config=conf)) as xm:
-            mci.push_packet(self.DefaultConnectResponse)
+        with Master(transport.Can(canInterfaceClass=MockCanInterface,
+                                  loglevel="DEBUG", useDefaultListener=False, config=conf)) as xm:
+            mock_caninterface = xm.transport.canInterface
+            mock_caninterface.push_packet(self.DefaultConnectResponse)
             xm.connect()
 
             data = bytes([i for i in range(14)])
@@ -799,7 +802,7 @@ class TestMaster:
             assert res is None
 
             # This is the last DOWNLOAD_NEXT packet of a block, positive response is expected from the slave device.
-            mci.push_packet('FF')
+            mock_caninterface.push_packet('FF')
             res = xm.downloadNext(data=data, remainingBlockLength=2, last=True)
             assert res == b''
 
