@@ -30,6 +30,8 @@ import abc
 import functools
 import operator
 
+from typing import Type
+
 from pyxcp.transport.base import BaseTransport
 from pyxcp.config import Configuration
 
@@ -289,10 +291,10 @@ class Can(BaseTransport):
     HEADER = EmptyHeader()
     HEADER_SIZE = 0
 
-    def __init__(self, canInterface: CanInterfaceBase, config=None, loglevel="WARN", useDefaultListener=True):
+    def __init__(self, canInterfaceClass: Type[CanInterfaceBase], config=None, loglevel="WARN", useDefaultListener=True):
         """init for CAN transport
 
-        :param canInterface: CAN interface instance
+        :param canInterfaceClass: CAN interface class type reference to be instantiated
         :param config: configuration
         :param loglevel: logging level
         :param useDefaultListener: defaults to True, in this case the default listener thread is used.
@@ -300,17 +302,15 @@ class Can(BaseTransport):
                                    can be set to False, and the default listener thread won't be started.
         """
         super().__init__(config, loglevel)
-        if not issubclass(canInterface, CanInterfaceBase):
-            raise TypeError('canInterface instance must inherit from CanInterface abstract base class!')
-        self.canInterface = canInterface()
+        if not issubclass(canInterfaceClass, CanInterfaceBase):
+            raise TypeError('canInterfaceClass must inherit from CanInterfaceBase abstract base class!')
+        self.canInterface = canInterfaceClass()
+        self.useDefaultListener = useDefaultListener
         self.max_dlc_required = self.config.get("MAX_DLC_REQUIRED")
         self.can_id_master = Identifier(self.config.get("CAN_ID_MASTER"))
         self.can_id_slave = Identifier(self.config.get("CAN_ID_SLAVE"))
         self.canInterface.init(self, self.can_id_master, self.can_id_slave, self.dataReceived)
         self.canInterface.loadConfig(config)
-
-        if useDefaultListener:
-            self.startListener()
 
     def dataReceived(self, payload: bytes):
         self.processResponse(payload, len(payload), counter=0)
@@ -324,6 +324,8 @@ class Can(BaseTransport):
                 self.dataReceived(frame.data)
 
     def connect(self):
+        if self.useDefaultListener:
+            self.startListener()
         self.canInterface.connect()
         self.status = 1  # connected
 
