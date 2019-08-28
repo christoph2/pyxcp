@@ -26,7 +26,8 @@ __copyright__="""
 
 import pyxcp.transport.can as can
 
-from canlib import canlib, Frame
+from canlib import canlib
+from canlib import Frame as KVFrame
 from canlib.canlib import ChannelData
 
 
@@ -95,7 +96,8 @@ class Kvaser(can.CanInterfaceBase):
                 pass
 
     def transmit(self, payload):
-        frame = Frame(id_ = self.parent.can_id_slave, data = payload, flags = canlib.canMSG_EXT)
+        frame = KVFrame(id_ = self.parent.can_id_slave.id, data = payload,
+            flags = canlib.canMSG_EXT if self.parent.can_id_slave.is_extended else canlib.canMSG_STD)
         self.ch.write(frame)
 
     def read(self):
@@ -106,7 +108,9 @@ class Kvaser(can.CanInterfaceBase):
         except canlib.exceptions.CanNoMsg:
             return None
         else:
-            return can.Frame(id_ = frame.id, dlc = frame.dlc, data = frame.data, timestamp = frame.timestamp)
+            extended = (frame.flags & canlib.canMSG_EXT) == canlib.canMSG_EXT
+            identifier = can.Identifier.make_identifier(frame.id, extended)
+            return can.Frame(id_ = identifier, dlc = frame.dlc, data = frame.data, timestamp = frame.timestamp)
 
     def getTimestampResolution(self):
         return 10 * 1000

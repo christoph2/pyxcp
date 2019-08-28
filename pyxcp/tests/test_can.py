@@ -2,7 +2,9 @@ import pytest
 
 from pyxcp.transport.can import (
     setDLC, calculateFilter, CAN_EXTENDED_ID,
-    isExtendedIdentifier, stripIdentifier, samplePointToTsegs)
+    isExtendedIdentifier, stripIdentifier, samplePointToTsegs,
+    Identifier, MAX_11_BIT_IDENTIFIER, MAX_29_BIT_IDENTIFIER,
+    IdentifierOutOfRangeError)
 
 def testSet0():
     assert setDLC(0) == 0
@@ -95,3 +97,68 @@ def testStripIdentifier2():
 
 #def testSamplePointToTsegs1():
 #    samplePointToTsegs
+
+def test_identifier_works1():
+    i = Identifier(CAN_EXTENDED_ID | 4711)
+    assert i.id == 4711
+    assert i.is_extended == True
+    assert i.raw_id == CAN_EXTENDED_ID | 4711
+
+def test_identifier_works2():
+    i = Identifier(111)
+    assert i.id == 111
+    assert i.is_extended == False
+    assert i.raw_id == 111
+
+def test_identifier_max_works1():
+    i = Identifier(CAN_EXTENDED_ID | MAX_29_BIT_IDENTIFIER)
+    assert i.id == MAX_29_BIT_IDENTIFIER
+    assert i.is_extended == True
+    assert i.raw_id == CAN_EXTENDED_ID | MAX_29_BIT_IDENTIFIER
+
+def test_identifier_max_works2():
+    i = Identifier(MAX_11_BIT_IDENTIFIER)
+    assert i.id == MAX_11_BIT_IDENTIFIER
+    assert i.is_extended == False
+    assert i.raw_id == MAX_11_BIT_IDENTIFIER
+
+def test_identifier_outof_range_raises1():
+    with pytest.raises(IdentifierOutOfRangeError):
+        i = Identifier(CAN_EXTENDED_ID | (MAX_29_BIT_IDENTIFIER + 10))
+
+def test_identifier_outof_range_raises2():
+    with pytest.raises(IdentifierOutOfRangeError):
+        i = Identifier(MAX_11_BIT_IDENTIFIER + 10)
+
+def test_identifier_str_works1(capsys):
+    i = Identifier(101)
+    print(str(i), end = "")
+    captured = capsys.readouterr()
+    assert captured.out == "Identifier(id = 0x00000065, is_extended = False)"
+
+def test_identifier_repr_works1(capsys):
+    i = Identifier(101)
+    print(repr(i), end = "")
+    captured = capsys.readouterr()
+    assert captured.out == "Identifier(0x00000065)"
+
+def test_identifier_str_works2(capsys):
+    i = Identifier(101 | CAN_EXTENDED_ID)
+    print(str(i), end = "")
+    captured = capsys.readouterr()
+    assert captured.out == "Identifier(id = 0x00000065, is_extended = True)"
+
+def test_identifier_repr_works2(capsys):
+    i = Identifier(101 | CAN_EXTENDED_ID)
+    print(repr(i), end = "")
+    captured = capsys.readouterr()
+    assert captured.out == "Identifier(0x80000065)"
+
+def test_identifier_repr_does_the_trick1(capsys):
+    i = Identifier(101)
+    assert eval(repr(i)) == Identifier(101)
+
+def test_identifier_repr_does_the_trick2(capsys):
+    i = Identifier(101 | CAN_EXTENDED_ID)
+    assert eval(repr(i)) == Identifier(101 | CAN_EXTENDED_ID)
+
