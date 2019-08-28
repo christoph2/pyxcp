@@ -58,7 +58,7 @@ CAN_DRIVERS = registered_drivers()
 
 
 ARGUMENTS = {
-    "can": ("canInterface", "loglevel"),
+    "can": ("canInterfaceClass", "loglevel"),
     "eth": ("host", "port", "protocol", "ipv6", "loglevel"),
     "sxi": ("port", "baudrate", "bytesize", "parity", "stopbits", "loglevel"),
 }
@@ -168,7 +168,7 @@ class ArgumentParser:
             driver = CAN_DRIVERS[args.driver]
             params = dict(
                 loglevel = args.loglevel,
-                canInterface = driver
+                canInterfaceClass = driver
             )
         params = mergeParameters(transport, config, params)
         config = removeParameters(transport, config)
