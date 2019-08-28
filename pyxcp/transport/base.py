@@ -256,3 +256,34 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 timestamp = 0.0
             element = ((response, counter, length, timestamp,))
             self.daqQueue.append(element)
+
+
+def createTransport(name, *args, **kws):
+    """Factory function for transports.
+
+    Returns
+    -------
+    :class:`BaseTransport` derived instance.
+    """
+    name = name.lower()
+    transports = availableTransports()
+    if name in transports:
+        transportClass = transports[name]
+    else:
+        raise ValueError("'{}' is an invalid transport -- please choose one of [{}].".format(name,
+                ' | '.join(transports.keys())
+            )
+        )
+    return transportClass(*args, **kws)
+
+
+def availableTransports():
+    """List all subclasses of :class:`BaseTransport`.
+
+    Returns
+    -------
+    dict
+        name: class
+    """
+    transports = BaseTransport.__subclasses__()
+    return {t.__name__.lower(): t for t in transports}
