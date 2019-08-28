@@ -30,6 +30,8 @@ import abc
 import functools
 import operator
 
+from typing import Type
+
 from pyxcp.transport.base import BaseTransport
 from pyxcp.config import Configuration
 
@@ -192,7 +194,7 @@ class Can(BaseTransport):
     HEADER = EmptyHeader()
     HEADER_SIZE = 0
 
-    def __init__(self, canInterface: CanInterfaceBase, config=None, loglevel="WARN", useDefaultListener=True):
+    def __init__(self, canInterfaceClass: Type[CanInterfaceBase], config=None, loglevel="WARN", useDefaultListener=True):
         """init for CAN transport
 
         :param canInterface: CAN interface instance
@@ -203,9 +205,9 @@ class Can(BaseTransport):
                                    can be set to False, and the default listener thread won't be started.
         """
         super().__init__(config, loglevel)
-        if not issubclass(canInterface.__class__, CanInterfaceBase):
-            raise TypeError('canInterface instance must inherit from CanInterface abstract base class!')
-        self.canInterface = canInterface
+        if not issubclass(canInterfaceClass, CanInterfaceBase):
+            raise TypeError('canInterfaceClass must inherit from CanInterfaceBase abstract base class!')
+        self.canInterface = canInterfaceClass()
         self.max_dlc_required = self.config.get("MAX_DLC_REQUIRED")
         self.can_id_master = self.config.get("CAN_ID_MASTER")
         self.can_id_slave = self.config.get("CAN_ID_SLAVE")
