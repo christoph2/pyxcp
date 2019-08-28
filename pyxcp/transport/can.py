@@ -208,7 +208,7 @@ class CanInterfaceBase(metaclass=abc.ABCMeta):
     }
 
     @abc.abstractmethod
-    def init(self, parent, master_id_with_ext: int, slave_id_with_ext: int, receive_callback):
+    def init(self, parent, receive_callback):
         """
         Must implement any required action for initing the can interface
 
@@ -216,10 +216,6 @@ class CanInterfaceBase(metaclass=abc.ABCMeta):
         ----------
         parent: :class:`Can`
             Refers to owner.
-        master_id_with_ext: int
-            CAN ID on 32 bit, where MSB bit indicates extended ID format
-        slave_id_with_ext: int
-            CAN ID on 32 bit, where MSB bit indicates extended ID format
         receive_callback: callable
             Receive callback function to register with the following argument: payload: bytes
         """
@@ -309,7 +305,7 @@ class Can(BaseTransport):
         self.max_dlc_required = self.config.get("MAX_DLC_REQUIRED")
         self.can_id_master = Identifier(self.config.get("CAN_ID_MASTER"))
         self.can_id_slave = Identifier(self.config.get("CAN_ID_SLAVE"))
-        self.canInterface.init(self, self.can_id_master, self.can_id_slave, self.dataReceived)
+        self.canInterface.init(self, self.dataReceived)
         self.canInterface.loadConfig(config)
 
     def dataReceived(self, payload: bytes):

@@ -57,7 +57,7 @@ class MockCanInterface(CanInterfaceBase):
         self.data = deque()
         self.receive_callback = None
 
-    def init(self, parent, master_id_with_ext: int, slave_id_with_ext: int, receive_callback):
+    def init(self, parent, receive_callback):
         self.receive_callback = receive_callback
 
     # push packet

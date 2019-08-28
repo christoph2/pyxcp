@@ -57,7 +57,7 @@ class Kvaser(can.CanInterfaceBase):
     def __init__(self):
         self.connected = False
 
-    def init(self, parent, master_id_with_ext: int, slave_id_with_ext: int, receive_callback):
+    def init(self, parent, receive_callback):
         self.parent = parent
 
     def connect(self):
