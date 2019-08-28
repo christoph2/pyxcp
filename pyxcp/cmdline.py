@@ -46,12 +46,15 @@ else:
 
 from pyxcp.config import readConfiguration
 from pyxcp.master import Master
-from pyxcp.transport.can import CanInterfaceBase, Can, register_drivers
+from pyxcp.transport.base import createTransport
+from pyxcp.transport.can import (
+    CanInterfaceBase, Can, try_to_install_system_supplied_drivers, registered_drivers)
 from pyxcp.transport import Eth
 from pyxcp.transport import SxI
 
+try_to_install_system_supplied_drivers()
 
-CAN_DRIVERS = register_drivers()
+CAN_DRIVERS = registered_drivers()
 
 
 ARGUMENTS = {
@@ -150,7 +153,6 @@ class ArgumentParser:
                 protocol = "UDP" if args.udp else "TCP",
                 ipv6 = args.ipv6,
                 loglevel = args.loglevel)
-            Klass = Eth
         elif transport == "sxi":
             params = makeNonNullValuesDict(
                 port = args.port,
@@ -159,7 +161,6 @@ class ArgumentParser:
                 parity = args.parity,
                 stopbits = args.stopbits,
                 loglevel = args.loglevel)
-            Klass = SxI
         elif transport == "can":
             if not args.driver in CAN_DRIVERS:
                 print("missing argument CAN driver: choose from {}".format([x for x in CAN_DRIVERS.keys()]))
@@ -169,11 +170,10 @@ class ArgumentParser:
                 loglevel = args.loglevel,
                 canInterface = driver
             )
-            Klass = Can
         params = mergeParameters(transport, config, params)
         config = removeParameters(transport, config)
         params.update(config = config)
-        tr = Klass(**params)
+        tr = createTransport(transport, **params)
         return Master(tr)
 
     @property
