@@ -28,7 +28,6 @@ __copyright__ = """
 
 import inspect
 import functools
-import time
 
 from pprint import pprint
 
@@ -44,35 +43,22 @@ def getTimeoutHandler(service):
 
 def execute(inst, func, arguments):
     handler = Handler(inst, func, arguments)
-    try:
-        res = func(*arguments.args, **arguments.kwargs)
-    except XcpResponseError as e:
-        errorCode = e.args[0]
-        # try to get a response in the error handler.
-        res = handler.handleError(errorCode)
-        if res is None:
-            # None means response could not be retreived in the error handler,
-            # so raise the pending error.
+#    print("EXECUTING:", inst, func, arguments)
+    while True:
+        try:
+            res = func(*arguments.args, **arguments.kwargs)
+        except XcpResponseError as e:
+            errorCode = XcpResponseError(e.args[0])
+            handler.handleError(errorCode)
+            raise
+        except XcpTimeoutError as e:
+            print("OOPS, TIMEOUT!")
+            handler.handleTimeout()
+            raise
+        except Exception:
             raise
         else:
-            # a response could be retreived in the error handler, hurray, return with that.
             return res
-    except XcpTimeoutError as e:
-        # try to get a response in the timeout handler.
-        res = handler.handleTimeout()
-        if res is None:
-            # None means response could not be retreived in the timeout handler,
-            # so raise the pending error.
-            raise
-        else:
-            # a response could be retreived in the timeout handler, hurray, return with that.
-            return res
-    except Exception:
-        # raise any other exceptions
-        raise
-    else:
-        # return with the successfully received response
-        return res
 
 class Arguments:
     """Container for positional and keyword arguments.
@@ -90,31 +76,18 @@ class Handler:
         self.args = args
 
     def handleError(self, errorCode):
+        errorCode = str(errorCode)
+        print("\t ERROR_CODE:", errorCode)
         eh = getErrorHandler(self.service)
-        if errorCode == 'ERR_GENERIC':
-            preActions = PreAction.NONE
-            actions = Action.DISPLAY_ERROR
-        else:
-            preActions, actions = eh.get(errorCode)
-        print(f"\tEH (service: {self.service})", preActions, actions)
-        # do not do the actions for error, we prefer to raise exception at once.
-        # therefore, return None, indicating to raise the pending exception.
-        return None
-        # todo: uncomment the following lines, if error actions to be performed:
-        # self.doPreActions(preActions)
-        # res = self.doActions(actions)
-        # return res
+        preActions, actions = eh.get(errorCode)
+        print("\t\tHANDLER:", preActions, actions)
+        #print("\t\tHANDLER:", eh.get(errorCode))
 
     def handleTimeout(self):
         preActions, actions = getTimeoutHandler(self.service)
         print("\tTOH", preActions, actions)
-        # actually do the actions for timeout:
-        immediate_error = self.doPreActions(preActions)
-        if immediate_error:
-            # return None, to force raising of the pending exception
-            return None
-        res = self.doActions(actions)
-        return res
+        self.doPreActions(preActions)
+        self.doActions(actions)
 
     def doPreActions(self, preActions):
         """
@@ -135,41 +108,21 @@ class Handler:
         if isinstance(preActions, (tuple, list)):
             for item in preActions:
                 print("\t", item)
-                immediate_error = self.doPreAction(item)
-                if immediate_error:
-                    break
+                self.doPreAction(item)
         else:
-            immediate_error = self.doPreAction(preActions)
-        return immediate_error
+            self.doPreAction(preActions)
 
     def doPreAction(self, preAction):
-        immediate_error = False
         if preAction == PreAction.NONE:
-            # print("\t\tNOP")
-            pass
-        elif preAction == PreAction.SYNCH:
-            self.instance.synch()
-        elif preAction == PreAction.WAIT_T7:
-            # todo: get T7 from A2L?
-            T7 = 1
-            time.sleep(T7)
-        elif preAction == PreAction.DISPLAY_ERROR:
-            immediate_error = True
-        else:
-            # todo: implement other preactions.
-            # for now, raise pending error immediately for unhandled cases.
-            immediate_error = True
-        return immediate_error
+            print("\t\tNOP")
 
     def doActions(self, actions):
         if isinstance(actions, (tuple, list)):
-            raise TypeError('Multiple error action!?! Should be only one!')
-            # for item in actions:
-            #     print("\t", item)
-            #     res = self.doAction(item)
+            for item in actions:
+                print("\t", item)
+                self.doAction(item)
         else:
-            res = self.doAction(actions)
-            return res
+            self.doAction(actions)
 
 
     def doAction(self, action):
@@ -188,41 +141,11 @@ class Handler:
             SKIP
             NEW_FLASH_WARE
         """
-        res = None
-        _repeat_count_value = None
+        #print("ACTION", action)
         if action in (Action.NONE, Action.SKIP):
             print("\t\tNOP")
         elif action == Action.REPEAT_INF_TIMES:
             print("\tREPEAT_INF_TIMES", self.func)
-            # res = execute(self.instance, self.func, self.args)
-            # infinite: well, let it be only 2 as well.
-            _repeat_count_value = 2
-        elif action == Action.REPEAT_2_TIMES:
-            _repeat_count_value = 2
-        elif action == Action.DISPLAY_ERROR:
-            # return with None to raise the pending exception at once
-            pass
-        else:
-            # todo: implement other actions
-            # return with None, that will eventually raise the pending exception.
-            pass
-
-        if _repeat_count_value is not None:
-            # action is some kind of repeat, do that,
-            # and try to get a response by repeating the request
-
-            print(f"\tREPEAT_{_repeat_count_value}_TIMES", self.func, self.instance, self.instance.repeat_counter)
-            if self.instance.repeat_counter is None:
-                self.instance.repeat_counter = _repeat_count_value
-            if self.instance.repeat_counter > 0:
-                print(f'REPEAT {_repeat_count_value - self.instance.repeat_counter + 1} / {_repeat_count_value}')
-                if self.instance.repeat_counter == 0:
-                    self.instance.repeat_counter = None
-                else:
-                    self.instance.repeat_counter -= 1
-                    res = execute(self.instance, self.func, self.args)
-        return res
-
 
     @property
     def service(self):
@@ -230,7 +153,7 @@ class Handler:
 
 
 def wrapped(func):
-    """WIP: This decorator will do XCP error-handling.
+    """WIP: This decorator does XCP error-handling.
     """
     @functools.wraps(func)
     def inner(*args, **kwargs):
