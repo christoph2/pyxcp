@@ -58,9 +58,9 @@ CAN_DRIVERS = registered_drivers()
 
 
 ARGUMENTS = {
-    "can": ("canInterfaceClass", "loglevel"),
-    "eth": ("host", "port", "protocol", "ipv6", "loglevel"),
-    "sxi": ("port", "baudrate", "bytesize", "parity", "stopbits", "loglevel"),
+    "can": ("CAN_DRIVER", "LOGLEVEL"),
+    "eth": ("HOST", "PORT", "PROTOCOL", "IPV6", "LOGLEVEL"),
+    "sxi": ("PORT", "BAUDRATE", "BYTESIZE", "PARITY", "STOPBITS", "LOGLEVEL"),
 }
 
 
@@ -75,10 +75,10 @@ def mergeParameters(transport, config, params):
     The latter have precedence.
     """
     args = ARGUMENTS.get(transport)
+    params = {k.upper(): v for k, v in params.items()}
     result = {}
     for arg in args:
-        arg = arg.upper()
-        cvalue = config.get(arg.upper())
+        cvalue = config.get(arg)
         if cvalue:
             result[arg] = cvalue
         pvalue = params.get(arg)
@@ -166,10 +166,9 @@ class ArgumentParser:
             if not args.driver in CAN_DRIVERS:
                 print("missing argument CAN driver (-d <driver>): choose from {}".format([x for x in CAN_DRIVERS.keys()]))
                 exit(1)
-            driver = CAN_DRIVERS[args.driver]
             params = dict(
                 loglevel = args.loglevel,
-                canInterfaceClass = driver
+                can_driver = args.driver
             )
         params = mergeParameters(transport, config, params)
         config = removeParameters(transport, config)
