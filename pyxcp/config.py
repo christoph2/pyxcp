@@ -62,7 +62,7 @@ class Configuration:
     def __init__(self, parameters, config):
         self.parameters = parameters
         self.config = config
-        for key, (attr, tp, required, default) in self.parameters.items():
+        for key, (tp, required, default) in self.parameters.items():
             if key in self.config:
                 if not isinstance(self.config[key], tp):
                     raise TypeError(

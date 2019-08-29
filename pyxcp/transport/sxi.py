@@ -36,12 +36,12 @@ class SxI(BaseTransport):
     """
 
     PARAMETER_MAP = {
-        #                         Python attribute      Type    Req'd   Default
-        "PORT":                 ("port",                str,    False,  "COM1"),
-        "BAUDRATE":             ("baudrate",            int,    False,  38400),
-        "BYTESIZE":             ("bytesize",            int,    False,  8),
-        "PARITY":               ("parity",              str,    False,  "N"),
-        "STOPBITS":             ("stopbits",            int,    False,  1),
+        #                        Type    Req'd   Default
+        "PORT":                 (str,    False,  "COM1"),
+        "BAUDRATE":             (int,    False,  38400),
+        "BYTESIZE":             (int,    False,  8),
+        "PARITY":               (str,    False,  "N"),
+        "STOPBITS":             (int,    False,  1),
     }
 
     MAX_DATAGRAM_SIZE = 512

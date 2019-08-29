@@ -269,18 +269,18 @@ class Can(BaseTransport):
     """
 
     PARAMETER_MAP = {
-        #                         Python attribute      Type    Req'd   Default
-        "MAX_DLC_REQUIRED":     ("max_dlc_required",    bool,   False,  False),
-        "CAN_ID_MASTER":        ("can_id_master",       int,    True,   None),
-        "CAN_ID_SLAVE":         ("can_id_slave",        int,    True,   None),
-        "CAN_ID_BROADCAST":     ("can_id_broadcast",    int,    False,  None),
-        "BAUDRATE":             ("baudrate",            float,  False,  250000.0),
-        "BTL_CYCLES":           ("btl_cycles",          int,    False,  16),
-        "SAMPLE_RATE":          ("sample_rate",         int,    False,  1),
-        "SAMPLE_POINT":         ("sample_point",        float,  False,  87.5),
-        "SJW":                  ("sjw",                 int,    False,  2),
-        "TSEG1":                ("tseg1",               int,    False,  5),
-        "TSEG2":                ("tseg2",               int,    False,  2),
+        #                        Type    Req'd   Default
+        "MAX_DLC_REQUIRED":     (bool,   False,  False),
+        "CAN_ID_MASTER":        (int,    True,   None),
+        "CAN_ID_SLAVE":         (int,    True,   None),
+        "CAN_ID_BROADCAST":     (int,    False,  None),
+        "BAUDRATE":             (float,  False,  250000.0),
+        "BTL_CYCLES":           (int,    False,  16),
+        "SAMPLE_RATE":          (int,    False,  1),
+        "SAMPLE_POINT":         (float,  False,  87.5),
+        "SJW":                  (int,    False,  2),
+        "TSEG1":                (int,    False,  5),
+        "TSEG2":                (int,    False,  2),
     }
 
     MAX_DATAGRAM_SIZE = 7

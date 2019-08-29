@@ -48,10 +48,10 @@ class Kvaser(can.CanInterfaceBase):
     """
 
     PARAMETER_MAP = {
-        #                         Python attribute      Type    Req'd   Default
-        "KV_CHANNEL":           ("kv_channel",          int,    False,  0),
-        "KV_ACCEPT_VIRTUAL":    ("kv_accept_virtual",   bool,   False,  True),
-        "KV_BAUDRATE_PRESET":   ("kv_baudrate_preset",  bool,   False,  True),
+        #                        Type    Req'd   Default
+        "KV_CHANNEL":           (int,    False,  0),
+        "KV_ACCEPT_VIRTUAL":    (bool,   False,  True),
+        "KV_BAUDRATE_PRESET":   (bool,   False,  True),
     }
 
     def __init__(self):

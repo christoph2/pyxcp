@@ -37,11 +37,11 @@ class Eth(BaseTransport):
     """
 
     PARAMETER_MAP = {
-        #                  Python attribute       Type    Req'd   Default
-        "HOST":           ("host",                str,    False,  "localhost"),
-        "PORT":           ("port",                int,    False,  5555),
-        "PROTOCOL":       ("protocol",            str,    False,  "TCP"),
-        "IPV6":           ("ipv6",                bool,   False,  False),
+        #                  Type    Req'd   Default
+        "HOST":           (str,    False,  "localhost"),
+        "PORT":           (int,    False,  5555),
+        "PROTOCOL":       (str,    False,  "TCP"),
+        "IPV6":           (bool,   False,  False),
     }
 
     MAX_DATAGRAM_SIZE = 512

@@ -163,7 +163,7 @@ class ArgumentParser:
                 loglevel = args.loglevel)
         elif transport == "can":
             if not args.driver in CAN_DRIVERS:
-                print("missing argument CAN driver: choose from {}".format([x for x in CAN_DRIVERS.keys()]))
+                print("missing argument CAN driver (-d <driver>): choose from {}".format([x for x in CAN_DRIVERS.keys()]))
                 exit(1)
             driver = CAN_DRIVERS[args.driver]
             params = dict(
