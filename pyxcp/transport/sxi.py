@@ -49,30 +49,26 @@ class SxI(BaseTransport):
     HEADER = struct.Struct("<HH")
     HEADER_SIZE = HEADER.size
 
-    def __init__(self, port, baudrate=9600, bytesize=8, parity='N',
-                 stopbits=1, config=None, loglevel="WARN"):
-        self.portName = port
-        self.commPort = None
-        self._baudrate = baudrate
-        self._bytesize = bytesize
-        self._parity = parity
-        self._stopbits = stopbits
-        super(SxI, self).__init__(config, loglevel)
+    def __init__(self, config=None):
+        super(SxI, self).__init__(config)
+        self.portName = self.config.get("PORT")
+        self.baudrate = self.config.get("BAUDRATE")
 
     def __del__(self):
         self.closeConnection()
 
     def connect(self):
+
         self.logger.debug(
             "Trying to open serial commPort {}.".format(self.portName))
         try:
             self.commPort = serial.Serial(
-                self.portName, self._baudrate, timeout=SxI.TIMEOUT)
+                self.portName, self.baudrate, timeout=SxI.TIMEOUT)
         except serial.SerialException as e:
             self.logger.error("{}".format(e))
             raise
         self.logger.info("Serial commPort openend as '{}' @ {} Bits/Sec.".format(
-            self.commPort.portstr, self.commPort.baudrate))
+            self.commPort.portstr, self.baudrate))
         self.startListener()
 
     def output(self, enable):
@@ -104,5 +100,5 @@ class SxI(BaseTransport):
         self.commPort.write(frame)
 
     def closeConnection(self):
-        if self.commPort and self.commPort.isOpen():
+        if hasattr(self, "commPort") and self.commPort.isOpen():
             self.commPort.close()

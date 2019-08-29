@@ -726,10 +726,11 @@ class TestMaster:
     def testDownloadBlock(self):
         conf = {
             'CAN_ID_MASTER': 1,
-            'CAN_ID_SLAVE': 2
+            'CAN_ID_SLAVE': 2,
+            'CAN_DRIVER': 'MockCanInterface',
+            'CAN_USE_DEFAULT_LISTENER': False
         }
-        with Master(transport.Can(canInterfaceClass=MockCanInterface,
-                                  loglevel="DEBUG", useDefaultListener=False, config=conf)) as xm:
+        with Master(transport.Can(config=conf)) as xm:
             mock_caninterface = xm.transport.canInterface
             mock_caninterface.push_packet(self.DefaultConnectResponse)
             xm.connect()
@@ -782,10 +783,11 @@ class TestMaster:
         mci = MockCanInterface()
         conf = {
             'CAN_ID_MASTER': 1,
-            'CAN_ID_SLAVE': 2
+            'CAN_ID_SLAVE': 2,
+            'CAN_DRIVER': 'MockCanInterface',
+            'CAN_USE_DEFAULT_LISTENER': False
         }
-        with Master(transport.Can(canInterfaceClass=MockCanInterface,
-                                  loglevel="DEBUG", useDefaultListener=False, config=conf)) as xm:
+        with Master(transport.Can(config=conf)) as xm:
             mock_caninterface = xm.transport.canInterface
             mock_caninterface.push_packet(self.DefaultConnectResponse)
             xm.connect()

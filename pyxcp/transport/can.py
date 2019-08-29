@@ -269,39 +269,43 @@ class Can(BaseTransport):
     """
 
     PARAMETER_MAP = {
-        #                        Type    Req'd   Default
-        "MAX_DLC_REQUIRED":     (bool,   False,  False),
-        "CAN_ID_MASTER":        (int,    True,   None),
-        "CAN_ID_SLAVE":         (int,    True,   None),
-        "CAN_ID_BROADCAST":     (int,    False,  None),
-        "BAUDRATE":             (float,  False,  250000.0),
-        "BTL_CYCLES":           (int,    False,  16),
-        "SAMPLE_RATE":          (int,    False,  1),
-        "SAMPLE_POINT":         (float,  False,  87.5),
-        "SJW":                  (int,    False,  2),
-        "TSEG1":                (int,    False,  5),
-        "TSEG2":                (int,    False,  2),
+        #                           Type    Req'd   Default
+        "CAN_DRIVER":               (str,    True,   None),
+        "MAX_DLC_REQUIRED":         (bool,   False,  False),
+        "CAN_USE_DEFAULT_LISTENER": (bool,   False,  True),
+            # defaults to True, in this case the default listener thread is used.
+            # If the canInterface implements a listener service, this parameter
+            # can be set to False, and the default listener thread won't be started.
+        "CAN_ID_MASTER":            (int,    True,   None),
+        "CAN_ID_SLAVE":             (int,    True,   None),
+        "CAN_ID_BROADCAST":         (int,    False,  None),
+        "BAUDRATE":                 (float,  False,  250000.0),
+        "BTL_CYCLES":               (int,    False,  16),   # a.k.a TQs
+        "SAMPLE_RATE":              (int,    False,  1),
+        "SAMPLE_POINT":             (float,  False,  87.5),
+        "SJW":                      (int,    False,  2),
+        "TSEG1":                    (int,    False,  5),
+        "TSEG2":                    (int,    False,  2),
     }
 
     MAX_DATAGRAM_SIZE = 7
     HEADER = EmptyHeader()
     HEADER_SIZE = 0
 
-    def __init__(self, canInterfaceClass: Type[CanInterfaceBase], config=None, loglevel="WARN", useDefaultListener=True):
+    def __init__(self, config=None):
         """init for CAN transport
-
-        :param canInterfaceClass: CAN interface class type reference to be instantiated
         :param config: configuration
-        :param loglevel: logging level
-        :param useDefaultListener: defaults to True, in this case the default listener thread is used.
-                                   If the canInterface implements a listener service, this parameter
-                                   can be set to False, and the default listener thread won't be started.
         """
-        super().__init__(config, loglevel)
-        if not issubclass(canInterfaceClass, CanInterfaceBase):
-            raise TypeError('canInterfaceClass must inherit from CanInterfaceBase abstract base class!')
+        super().__init__(config)
+        drivers = registered_drivers()
+        interfaceName = self.config.get("CAN_DRIVER")
+        if not interfaceName in drivers:
+            raise ValueError("{} is an invalid driver name -- choose from {}".format(
+                interfaceName, [x for x in drivers.keys()])
+                )
+        canInterfaceClass = drivers[interfaceName]
         self.canInterface = canInterfaceClass()
-        self.useDefaultListener = useDefaultListener
+        self.useDefaultListener = self.config.get("CAN_USE_DEFAULT_LISTENER")
         self.max_dlc_required = self.config.get("MAX_DLC_REQUIRED")
         self.can_id_master = Identifier(self.config.get("CAN_ID_MASTER"))
         self.can_id_slave = Identifier(self.config.get("CAN_ID_SLAVE"))

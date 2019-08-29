@@ -68,13 +68,15 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     PARAMETER_MAP = {
         #                         Type    Req'd   Default
-        "CREATE_DAQ_TIMESTAMPS", (bool,   False,  False),
+        "CREATE_DAQ_TIMESTAMPS": (bool,   False,  False),
+        "LOGLEVEL":              (str,    False,  "WARN"),
     }
 
-    def __init__(self, config=None, loglevel='WARN'):
+    def __init__(self, config=None):
         self.parent = None
-        self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
+        self.config = Configuration(BaseTransport.PARAMETER_MAP or {}, config or {})
         self.closeEvent = threading.Event()
+        loglevel = self.config.get("LOGLEVEL")
         self.logger = Logger("transport.Base")
         self.logger.setLevel(loglevel)
         self.counterSend = 0

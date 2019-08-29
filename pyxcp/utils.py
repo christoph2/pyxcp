@@ -27,17 +27,19 @@ import ctypes
 import mmap
 import os
 import sys
-import subprocess
+#import subprocess
 import threading
 
-try:
-    import win32api
-    import win32process
-    import win32con
-except ImportError:
-    WINAPI = False
-else:
-    WINAPI = True
+##
+##try:
+##    import win32api
+##    import win32process
+##    import win32con
+##except ImportError:
+##    WINAPI = False
+##else:
+##    WINAPI = True
+##
 
 
 def hexDump(arr):

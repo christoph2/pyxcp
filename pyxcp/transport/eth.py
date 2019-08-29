@@ -50,7 +50,12 @@ class Eth(BaseTransport):
 
     def __init__(self, host="localhost", port=DEFAULT_XCP_PORT, config=None,
                  protocol='TCP', ipv6=False, loglevel="WARN"):
-        super(Eth, self).__init__(config, loglevel)
+        super(Eth, self).__init__(config)
+        self.host = self.config.get("HOST")
+        self.port = self.config.get("PORT")
+        self.protocol = self.config.get("PROTOCOL")
+        self.ipv6 = self.config.get("IPV6")
+
         if ipv6 and not socket.has_ipv6:
             raise RuntimeError("IPv6 not supported by your platform.")
         else:

@@ -77,6 +77,7 @@ def mergeParameters(transport, config, params):
     args = ARGUMENTS.get(transport)
     result = {}
     for arg in args:
+        arg = arg.upper()
         cvalue = config.get(arg.upper())
         if cvalue:
             result[arg] = cvalue
@@ -172,8 +173,8 @@ class ArgumentParser:
             )
         params = mergeParameters(transport, config, params)
         config = removeParameters(transport, config)
-        params.update(config = config)
-        tr = createTransport(transport, **params)
+        config.update(params)
+        tr = createTransport(transport, config = config)
         return Master(tr)
 
     @property
