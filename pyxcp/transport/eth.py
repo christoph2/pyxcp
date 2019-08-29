@@ -48,31 +48,29 @@ class Eth(BaseTransport):
     HEADER = struct.Struct("<HH")
     HEADER_SIZE = HEADER.size
 
-    def __init__(self, host="localhost", port=DEFAULT_XCP_PORT, config=None,
-                 protocol='TCP', ipv6=False, loglevel="WARN"):
+    def __init__(self, config=None):
         super(Eth, self).__init__(config)
         self.host = self.config.get("HOST")
         self.port = self.config.get("PORT")
         self.protocol = self.config.get("PROTOCOL")
         self.ipv6 = self.config.get("IPV6")
 
-        if ipv6 and not socket.has_ipv6:
+        if self.ipv6 and not socket.has_ipv6:
             raise RuntimeError("IPv6 not supported by your platform.")
         else:
-            addressFamily = socket.AF_INET6 if ipv6 else socket.AF_INET
+            addressFamily = socket.AF_INET6 if self.ipv6 else socket.AF_INET
         self.sock = socket.socket(
             addressFamily,
-            socket.SOCK_STREAM if protocol == 'TCP' else socket.SOCK_DGRAM
+            socket.SOCK_STREAM if self.protocol == 'TCP' else socket.SOCK_DGRAM
         )
-        if host.lower() == "localhost":
-            self.host = "::1" if ipv6 else "localhost"
+        if self.host.lower() == "localhost":
+            self.host = "::1" if self.ipv6 else "localhost"
         else:
             self.host = host
-        self.port = port
         self.status = 0
         self.selector = selectors.DefaultSelector()
         self.selector.register(self.sock, selectors.EVENT_READ)
-        self.use_tcp = protocol == 'TCP'
+        self.use_tcp = (self.protocol == 'TCP')
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if hasattr(socket, "SO_REUSEPORT"):
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
