@@ -2,6 +2,7 @@
 pyXCP
 =====
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/85f774708b2542d98d02df55c743d24a)](https://app.codacy.com/app/christoph2/pyxcp?utm_source=github.com&utm_medium=referral&utm_content=christoph2/pyxcp&utm_campaign=Badge_Grade_Settings)
 [![Maintainability](https://api.codeclimate.com/v1/badges/4c639f3695f2725e392a/maintainability)](https://codeclimate.com/github/christoph2/pyxcp/maintainability)
 [![Build Status](https://travis-ci.org/christoph2/pyxcp.svg)](https://travis-ci.org/christoph2/pyxcp)
 [![Build status](https://ci.appveyor.com/api/projects/status/r00l4i4co095e9ht?svg=true)](https://ci.appveyor.com/project/christoph2/pyxcp)
