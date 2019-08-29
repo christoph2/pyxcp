@@ -38,6 +38,8 @@ def readConfiguration(conf):
     """Read a configuration file either in JSON or TOML format.
     """
     if conf:
+        if isinstance(conf, dict):
+            return dict(conf)
         pth = pathlib.Path(conf.name)
         suffix = pth.suffix.lower()
         if suffix == '.json':
