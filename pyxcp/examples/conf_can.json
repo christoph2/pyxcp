@@ -12,7 +12,7 @@
     "BTL_CYCLES": 16,
     "SAMPLE_RATE": 1,
     "SAMPLE_POINT": 87.5,
-    "SJW": 2
+    "SJW": 2,
     "TSEG1": 5,
     "TSEG2": 2,
     "CREATE_DAQ_TIMESTAMPS": false

@@ -68,7 +68,7 @@ class Configuration:
             if key in self.config:
                 if not isinstance(self.config[key], tp):
                     raise TypeError(
-                        "Parameter {} requires {}".format(attr, tp))
+                        "Parameter {} requires {}".format(key, tp))
             else:
                 if required:
                     raise AttributeError(

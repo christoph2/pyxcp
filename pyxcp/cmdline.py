@@ -35,22 +35,11 @@ __copyright__ = """
 
 import argparse
 
-from pprint import pprint
-
-try:
-    import toml
-except ImportError:
-    HAS_TOML = False
-else:
-    HAS_TOML = True
 
 from pyxcp.config import readConfiguration
 from pyxcp.master import Master
 from pyxcp.transport.base import createTransport
-from pyxcp.transport.can import (
-    CanInterfaceBase, Can, try_to_install_system_supplied_drivers, registered_drivers)
-from pyxcp.transport import Eth
-from pyxcp.transport import SxI
+from pyxcp.transport.can import (try_to_install_system_supplied_drivers, registered_drivers)
 
 try_to_install_system_supplied_drivers()
 
