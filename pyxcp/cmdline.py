@@ -38,7 +38,6 @@ import argparse
 
 from pyxcp.config import readConfiguration
 from pyxcp.master import Master
-from pyxcp.transport.base import createTransport
 from pyxcp.transport.can import (try_to_install_system_supplied_drivers, registered_drivers)
 
 try_to_install_system_supplied_drivers()
@@ -46,42 +45,44 @@ try_to_install_system_supplied_drivers()
 CAN_DRIVERS = registered_drivers()
 
 
-ARGUMENTS = {
+CMD_LINE_ARGUMENTS = {
     "can": ("CAN_DRIVER", "LOGLEVEL"),
     "eth": ("HOST", "PORT", "PROTOCOL", "IPV6", "LOGLEVEL"),
     "sxi": ("PORT", "BAUDRATE", "BYTESIZE", "PARITY", "STOPBITS", "LOGLEVEL"),
 }
+
+def merge_parameters(transport, params_from_cfg_file, params_from_cmd_line):
+    """Merge parameters from config-file and command-line.
+    The latter have precedence.
+
+    Parameters
+    ----------
+    params_from_cfg_file: dict
+
+    params_from_cmd_line: dict
+
+    Returns
+    -------
+    dict
+    """
+    args = CMD_LINE_ARGUMENTS.get(transport)
+    params_from_cmd_line = {k.upper(): v for k, v in params_from_cmd_line.items()}
+    result = {}
+    for arg in args:
+        cvalue = params_from_cfg_file.get(arg)
+        if cvalue:
+            result[arg] = cvalue
+        pvalue = params_from_cmd_line.get(arg)
+        if pvalue:
+            result[arg] = pvalue
+    return result
+
 
 
 def makeNonNullValuesDict(**params):
     """Only add items with non-None values.
     """
     return {k: v for k, v in params.items() if not v is None}
-
-
-def mergeParameters(transport, config, params):
-    """Merge parameters from config-file and command-line.
-    The latter have precedence.
-    """
-    args = ARGUMENTS.get(transport)
-    params = {k.upper(): v for k, v in params.items()}
-    result = {}
-    for arg in args:
-        cvalue = config.get(arg)
-        if cvalue:
-            result[arg] = cvalue
-        pvalue = params.get(arg)
-        if pvalue:
-            result[arg] = pvalue
-    return result
-
-
-def removeParameters(transport, config):
-    """Remove constructor parameters from configuration.
-
-    """
-    stoplist = [arg.upper() for arg in ARGUMENTS.get(transport)]
-    return {k: v for k, v in config.items() if not k in stoplist}
 
 
 class ArgumentParser:
@@ -107,7 +108,7 @@ class ArgumentParser:
         can = subparsers.add_parser("can", description = "XCPonCAN specific options:")
         can.set_defaults(can = True)
 
-        can.add_argument('-d', '--driver', choices = CAN_DRIVERS.keys())
+        can.add_argument('-d', '--driver', choices = CAN_DRIVERS.keys(), dest = "can_driver")
 
         eth.add_argument('-p', '--port', type = int, metavar = "port")
         proto = eth.add_mutually_exclusive_group()
@@ -136,6 +137,7 @@ class ArgumentParser:
         if not transport:
             print("missing argument transport: choose from {}".format(['can', 'eth', 'sxi']))
             exit(1)
+
         if transport == "eth":
             params = makeNonNullValuesDict(
                 host = args.host,
@@ -152,19 +154,19 @@ class ArgumentParser:
                 stopbits = args.stopbits,
                 loglevel = args.loglevel)
         elif transport == "can":
-            if not args.driver in CAN_DRIVERS:
+            if not args.can_driver in CAN_DRIVERS:
                 print("missing argument CAN driver (-d <driver>): choose from {}".format([x for x in CAN_DRIVERS.keys()]))
                 exit(1)
             params = dict(
                 loglevel = args.loglevel,
-                can_driver = args.driver
+                can_driver = args.can_driver
             )
-        params = mergeParameters(transport, config, params)
-        config = removeParameters(transport, config)
+
+        params = merge_parameters(transport, config, params)
         config.update(params)
-        tr = createTransport(transport, config = config)
-        return Master(tr)
+        return Master(transport, config = config)
 
     @property
     def args(self):
         return self._args
+

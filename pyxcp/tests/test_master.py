@@ -6,6 +6,7 @@ from unittest import mock
 import time
 import struct
 
+from pyxcp.transport.base import createTransport
 from pyxcp.transport.can import CanInterfaceBase
 
 from pyxcp.master import Master
@@ -127,23 +128,20 @@ class TestMaster:
 
     @mock.patch("pyxcp.transport.Eth")
     def testDisconnect(self, Eth):
-        tr = Eth()
-        tr.request.return_value = bytes([])
-        with Master(tr) as xm:
+        with Master("eth") as xm:
+            xm.transport.request.return_value = bytes([])
             res = xm.disconnect()
         assert res == b''
 
     @mock.patch("pyxcp.transport.Eth")
     def testGetStatus(self, Eth):
-        tr = Eth()
-
-        with Master(tr) as xm:
-            tr.request.return_value = bytes(
+        with Master("eth") as xm:
+            xm.transport.request.return_value = bytes(
                 [0x1d, 0xc0, 0xff, 0xdc, 0x05, 0x01, 0x01])
 
             res = xm.connect()
 
-            tr.request.return_value = bytes([0x00, 0x1d, 0xff, 0x00, 0x00])
+            xm.transport.request.return_value = bytes([0x00, 0x1d, 0xff, 0x00, 0x00])
 
             res = xm.getStatus()
 
@@ -160,23 +158,20 @@ class TestMaster:
 
     @mock.patch("pyxcp.transport.Eth")
     def testSync(self, Eth):
-        tr = Eth()
-        tr.request.return_value = bytes([0x00])
-        with Master(tr) as xm:
+        with Master("eth") as xm:
+            xm.transport.request.return_value = bytes([0x00])
             res = xm.synch()
         assert len(res) == 1
 
     @mock.patch("pyxcp.transport.Eth")
     def testGetCommModeInfo(self, Eth):
-        tr = Eth()
-
-        with Master(tr) as xm:
-            tr.request.return_value = bytes(
+        with Master("eth") as xm:
+            xm.transport.request.return_value = bytes(
                 [0x1d, 0xc0, 0xff, 0xdc, 0x05, 0x01, 0x01])
 
             res = xm.connect()
 
-            tr.request.return_value = bytes(
+            xm.transport.request.return_value = bytes(
                 [0x00, 0x01, 0xff, 0x02, 0x00, 0x00, 0x19])
 
             res = xm.getCommModeInfo()
@@ -190,20 +185,19 @@ class TestMaster:
 
     @mock.patch("pyxcp.transport.Eth")
     def testGetId(self, Eth):
-        tr = Eth()
-        tr.MAX_DATAGRAM_SIZE = 512
-        with Master(tr) as xm:
-            tr.request.return_value = bytes(
+        with Master("eth") as xm:
+            xm.transport.MAX_DATAGRAM_SIZE = 512
+            xm.transport.request.return_value = bytes(
                 [0x1d, 0xc0, 0xff, 0xdc, 0x05, 0x01, 0x01])
 
             res = xm.connect()
 
-            tr.request.return_value = bytes(
+            xm.transport.request.return_value = bytes(
                 [0x00, 0x01, 0xff, 0x06, 0x00, 0x00, 0x00])
 
             gid = xm.getId(0x01)
-            tr.DATAGRAM_SIZE = 512
-            tr.request.return_value = bytes(
+            xm.transport.DATAGRAM_SIZE = 512
+            xm.transport.request.return_value = bytes(
                 [0x58, 0x43, 0x50, 0x73, 0x69, 0x6d])
             res = xm.upload(gid.length)
         assert gid.mode == 0
@@ -218,7 +212,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -265,7 +259,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -290,7 +284,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -324,7 +318,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -349,7 +343,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -379,7 +373,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -432,7 +426,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -457,7 +451,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -483,7 +477,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -511,7 +505,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -537,7 +531,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -565,7 +559,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -591,7 +585,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -619,7 +613,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -648,7 +642,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -677,7 +671,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -705,7 +699,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -759,7 +753,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -816,7 +810,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -842,7 +836,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -869,7 +863,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -895,7 +889,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -1007,7 +1001,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -1282,7 +1276,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
@@ -1422,7 +1416,7 @@ class TestMaster:
         mock_socket.return_value.recv.side_effect = ms.recv
         mock_selector.return_value.select.side_effect = ms.select
 
-        with Master(transport.Eth({"HOST": 'localhost', "LOGLEVEL": "DEBUG"})) as xm:
+        with Master("eth", config = {"HOST": 'localhost', "LOGLEVEL": "DEBUG"}) as xm:
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()

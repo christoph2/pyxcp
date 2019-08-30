@@ -37,9 +37,11 @@ import traceback
 
 from pyxcp import checksum
 from pyxcp import types
+from pyxcp.config import Configuration
 from pyxcp.constants import (
     makeWordPacker, makeDWordPacker, makeWordUnpacker, makeDWordUnpacker)
 from pyxcp.master.errorhandler import wrapped
+from pyxcp.transport.base import createTransport
 
 
 def broadcasted(func):
@@ -68,17 +70,23 @@ class MasterBaseType:
 
     Parameters
     ----------
-    transport : `pyxcp.transport.base` derived class.
-        XCP transport layer, e.g. SxI, CAN, Ethernet
-    loglevel: ["INFO", "WARN", "DEBUG", "ERROR", "CRITICAL"]
-        Controls the verbosity of log messages.
+    transportName : str
+        XCP transport layer name ['can', 'eth', 'sxi']
+    config: dict
     """
-    def __init__(self, transport, loglevel="WARN"):
+
+    PARAMETER_MAP = {
+        #                         Type    Req'd   Default
+        "LOGLEVEL":              (str,    False,  "WARN"),
+    }
+
+    def __init__(self, transportName, config = None):
         self.ctr = 0
         self.succeeded = True
+        self.config = Configuration(MasterBaseType.PARAMETER_MAP or {}, config or {})
         self.logger = logging.getLogger("pyXCP")
-        self.logger.setLevel(loglevel)
-        self.transport = transport
+        self.logger.setLevel(self.config.get("LOGLEVEL"))
+        self.transport = createTransport(transportName, config)
 
         # In some cases the transport-layer needs to communicate with us.
         self.transport.parent = self
