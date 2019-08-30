@@ -297,6 +297,7 @@ class Can(BaseTransport):
         :param config: configuration
         """
         super().__init__(config)
+        self.loadConfig(config)
         drivers = registered_drivers()
         interfaceName = self.config.get("CAN_DRIVER")
         if not interfaceName in drivers:

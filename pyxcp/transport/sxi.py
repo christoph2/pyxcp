@@ -51,6 +51,7 @@ class SxI(BaseTransport):
 
     def __init__(self, config=None):
         super(SxI, self).__init__(config)
+        self.loadConfig(config)
         self.portName = self.config.get("PORT")
         self.baudrate = self.config.get("BAUDRATE")
 

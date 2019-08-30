@@ -50,6 +50,7 @@ class Eth(BaseTransport):
 
     def __init__(self, config=None):
         super(Eth, self).__init__(config)
+        self.loadConfig(config)
         self.host = self.config.get("HOST")
         self.port = self.config.get("PORT")
         self.protocol = self.config.get("PROTOCOL")

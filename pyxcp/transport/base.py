@@ -100,6 +100,11 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.finishListener()
         self.closeConnection()
 
+    def loadConfig(self, config):
+        """Load configuration data.
+        """
+        self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
+
     def close(self):
         """Close the transport-layer connection and event-loop.
         """
