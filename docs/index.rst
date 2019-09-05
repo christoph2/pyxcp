@@ -13,6 +13,7 @@ Welcome to pyXCP's documentation!
    installation
    tutorial
    configuration
+   howto
    modules
 
 
