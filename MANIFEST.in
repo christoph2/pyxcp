@@ -2,3 +2,19 @@ include LICENSE
 recursive-include pyxcp *.c
 recursive-include pyxcp *.a2l
 recursive-include pyxcp *.aml
+
+include *.cmd
+include *.md
+include *.sh
+include *.toml
+include *.txt
+include *.yml
+include .bumpversion.cfg
+include CONTRIBUTORS
+recursive-include docs *.py
+recursive-include docs *.rst
+recursive-include docs *.txt
+recursive-include docs Makefile
+recursive-include pyxcp *.json
+recursive-include pyxcp *.py
+recursive-include pyxcp *.toml
