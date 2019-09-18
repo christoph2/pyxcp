@@ -38,6 +38,8 @@ if construct.version < (2, 8):
     exit(1)
 
 
+NumericType = (int, float)
+
 class FrameSizeError(Exception):
     """
     A frame with an invalid size was received.

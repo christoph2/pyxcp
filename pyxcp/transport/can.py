@@ -34,6 +34,7 @@ from typing import Type
 
 from pyxcp.transport.base import BaseTransport
 from pyxcp.config import Configuration
+from pyxcp.types import NumericType
 
 
 CAN_EXTENDED_ID = 0x80000000
@@ -270,22 +271,22 @@ class Can(BaseTransport):
 
     PARAMETER_MAP = {
         #                           Type    Req'd   Default
-        "CAN_DRIVER":               (str,    True,   None),
-        "MAX_DLC_REQUIRED":         (bool,   False,  False),
-        "CAN_USE_DEFAULT_LISTENER": (bool,   False,  True),
+        "CAN_DRIVER":               (str,           True,   None),
+        "MAX_DLC_REQUIRED":         (bool,          False,  False),
+        "CAN_USE_DEFAULT_LISTENER": (bool,          False,  True),
             # defaults to True, in this case the default listener thread is used.
             # If the canInterface implements a listener service, this parameter
             # can be set to False, and the default listener thread won't be started.
-        "CAN_ID_MASTER":            (int,    True,   None),
-        "CAN_ID_SLAVE":             (int,    True,   None),
-        "CAN_ID_BROADCAST":         (int,    False,  None),
-        "BAUDRATE":                 (float,  False,  250000.0),
-        "BTL_CYCLES":               (int,    False,  16),   # a.k.a TQs
-        "SAMPLE_RATE":              (int,    False,  1),
-        "SAMPLE_POINT":             (float,  False,  87.5),
-        "SJW":                      (int,    False,  2),
-        "TSEG1":                    (int,    False,  5),
-        "TSEG2":                    (int,    False,  2),
+        "CAN_ID_MASTER":            (int,           True,   None),
+        "CAN_ID_SLAVE":             (int,           True,   None),
+        "CAN_ID_BROADCAST":         (int,           False,  None),
+        "BAUDRATE":                 (NumericType,   False,  250000.0),
+        "BTL_CYCLES":               (int,           False,  16),   # a.k.a TQs
+        "SAMPLE_RATE":              (int,           False,  1),
+        "SAMPLE_POINT":             (NumericType,   False,  87.5),
+        "SJW":                      (int,           False,  2),
+        "TSEG1":                    (int,           False,  5),
+        "TSEG2":                    (int,           False,  2),
     }
 
     MAX_DATAGRAM_SIZE = 7
