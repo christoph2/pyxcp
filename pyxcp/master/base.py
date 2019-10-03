@@ -80,7 +80,7 @@ class MasterBaseType:
         "LOGLEVEL":              (str,    False,  "WARN"),
     }
 
-    def __init__(self, transportName, config = None):
+    def __init__(self, transportName, config=None):
         self.ctr = 0
         self.succeeded = True
         self.config = Configuration(MasterBaseType.PARAMETER_MAP or {}, config or {})
@@ -100,7 +100,7 @@ class MasterBaseType:
         self.DWORD_unpack = None
         self.AG_pack = None
         self.AG_unpack = None
-        #self.connected = False
+        # self.connected = False
 
     def __enter__(self):
         """Context manager entry part.
@@ -110,7 +110,7 @@ class MasterBaseType:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit part.
         """
-        #if self.connected:
+        # if self.connected:
         #    self.disconnect()
         self.close()
         if exc_type is None:
@@ -207,7 +207,7 @@ class MasterBaseType:
                 types.AddressGranularity.DWORD:
             self.AG_pack = self.DWORD_pack
             self.AG_unpack = self.DWORD_unpack
-        #self.connected = True
+        # self.connected = True
         return result
 
     @wrapped
@@ -223,7 +223,7 @@ class MasterBaseType:
         If DISCONNECT is currently not possible, ERR_CMD_BUSY will be returned.
         """
         response = self.transport.request(types.Command.DISCONNECT)
-        #self.connected = False
+        # self.connected = False
         return response
 
     @wrapped

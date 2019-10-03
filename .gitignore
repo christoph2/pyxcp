@@ -123,3 +123,6 @@ result.xml
 **/*gz
 **/*tar
 **/*bz2
+
+.vscode/
+
