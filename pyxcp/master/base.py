@@ -101,6 +101,7 @@ class MasterBaseType:
         self.AG_pack = None
         self.AG_unpack = None
         # self.connected = False
+        self.mta = types.MtaType(None, None)
 
     def __enter__(self):
         """Context manager entry part.
@@ -379,6 +380,7 @@ class MasterBaseType:
         and :meth:`programMax`.
 
         """
+        self.mta = types.MtaType(address, addressExt)     # Keep track of MTA (needed for error-handling).
         addr = self.DWORD_pack(address)
         response = self.transport.request(
             types.Command.SET_MTA, 0, 0, addressExt, *addr)

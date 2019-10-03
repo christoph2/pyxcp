@@ -23,6 +23,7 @@ __copyright__ = """
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
+from collections import namedtuple
 import enum
 
 import construct
@@ -39,6 +40,7 @@ if construct.version < (2, 8):
 
 
 NumericType = (int, float)
+MtaType = namedtuple("MtaType", "address ext")
 
 class FrameSizeError(Exception):
     """
