@@ -28,11 +28,20 @@ __copyright__ = """
 
 import inspect
 import functools
-
 from pprint import pprint
+import time
 
 from pyxcp.types import XcpResponseError, XcpTimeoutError
 from pyxcp.errormatrix import ERROR_MATRIX, TIMEOUT, PreAction, Action
+
+
+def UnhandledError(Exception):
+    """
+    """
+
+def UnrecoverableError(Exception):
+    """
+    """
 
 def getErrorHandler(service):
     return ERROR_MATRIX.get(service)
@@ -50,11 +59,12 @@ def execute(inst, func, arguments):
         except XcpResponseError as e:
             errorCode = XcpResponseError(e.args[0])
             handler.handleError(errorCode)
-            raise
         except XcpTimeoutError as e:
-            print("OOPS, TIMEOUT!")
             handler.handleTimeout()
             raise
+        except ConnectionError :
+            #print("ConnectionError ()")
+            return None
         except Exception:
             raise
         else:
@@ -63,9 +73,16 @@ def execute(inst, func, arguments):
 class Arguments:
     """Container for positional and keyword arguments.
     """
-    def __init__(self, args, kwargs):
+    def __init__(self, args = (), kwargs = {}):
         self.args = args
         self.kwargs = kwargs
+
+    def __str__(self):
+        res = "{}(ARGS = {}, KWS = {})".format(self.__class__.__name__, self.args, self.kwargs)
+
+        return res
+
+    __repr__ = __str__
 
 
 class Handler:
@@ -77,15 +94,17 @@ class Handler:
 
     def handleError(self, errorCode):
         errorCode = str(errorCode)
-        print("\t ERROR_CODE:", errorCode)
+        #print("\t ERROR_CODE:", errorCode)
         eh = getErrorHandler(self.service)
         preActions, actions = eh.get(errorCode)
-        print("\t\tHANDLER:", preActions, actions)
+        #print("\t\tHANDLER:", preActions, actions)
+        self.doPreAction(preActions)
+        self.doActions(actions)
         #print("\t\tHANDLER:", eh.get(errorCode))
 
     def handleTimeout(self):
         preActions, actions = getTimeoutHandler(self.service)
-        print("\tTOH", preActions, actions)
+        #print("\tTOH", preActions, actions)
         self.doPreActions(preActions)
         self.doActions(actions)
 
@@ -107,19 +126,27 @@ class Handler:
         """
         if isinstance(preActions, (tuple, list)):
             for item in preActions:
-                print("\t", item)
+                #print("\t", item)
                 self.doPreAction(item)
         else:
             self.doPreAction(preActions)
 
     def doPreAction(self, preAction):
+        #print("\t\tPRE-ACTION", preAction)
         if preAction == PreAction.NONE:
-            print("\t\tNOP")
+            pass
+        elif preAction == PreAction.WAIT_T7:
+            time.sleep(0.02)    # Completely arbitrary for now.
+        elif preAction == PreAction.SYNCH:
+            pass
+        elif preAction == PreAction.SET_MTA:
+            execute(self.instance, self.instance.setMta, Arguments(self.instance.mta, {}))
 
     def doActions(self, actions):
+        #print("\t\tACTIONS", actions)
         if isinstance(actions, (tuple, list)):
             for item in actions:
-                print("\t", item)
+                #print("\t", item)
                 self.doAction(item)
         else:
             self.doAction(actions)
@@ -143,9 +170,27 @@ class Handler:
         """
         #print("ACTION", action)
         if action in (Action.NONE, Action.SKIP):
-            print("\t\tNOP")
+            pass
         elif action == Action.REPEAT_INF_TIMES:
-            print("\tREPEAT_INF_TIMES", self.func)
+            #print("\tREPEAT_INF_TIMES", self.func)
+            while (True):
+                try:
+                    #print("\t\tRETRY", self.func)
+                    res = self.func(*self.args.args, **self.args.kwargs)
+                #except XcpResponseError as e:
+                #    errorCode = XcpResponseError(e.args[0])
+                #    handler.handleError(errorCode)
+                #    raise
+                except XcpTimeoutError as e:
+                    self.handleTimeout()
+                    raise
+                #except Exception:
+                #    raise
+                else:
+                    return res
+        elif action == Action.REPEAT_2_TIMES:
+            #print("\tREPEAT_2_TIMES", self.func)
+            pass
 
     @property
     def service(self):
