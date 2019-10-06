@@ -44,6 +44,7 @@ class Eth(BaseTransport):
         "PORT":           (int,    False,  5555),
         "PROTOCOL":       (str,    False,  "TCP"),
         "IPV6":           (bool,   False,  False),
+        "TCP_NODELAY":    (bool,   False,  False),
     }
 
     MAX_DATAGRAM_SIZE = 512
@@ -57,6 +58,7 @@ class Eth(BaseTransport):
         self.port = self.config.get("PORT")
         self.protocol = self.config.get("PROTOCOL")
         self.ipv6 = self.config.get("IPV6")
+        self.use_tcp_no_delay = self.config.get("TCP_NODELAY")
 
         if self.ipv6 and not socket.has_ipv6:
             raise RuntimeError("IPv6 not supported by your platform.")
@@ -74,6 +76,8 @@ class Eth(BaseTransport):
         self.selector.register(self.sock, selectors.EVENT_READ)
         self.use_tcp = (self.protocol == 'TCP')
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if self.use_tcp and self.use_tcp_no_delay:
+            self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         if hasattr(socket, "SO_REUSEPORT"):
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.sock.settimeout(0.5)
