@@ -226,16 +226,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     def processResponse(self, response, length, counter):
         self.counterReceived = counter
-        if hasattr(self, 'use_tcp'):
-            use_tcp = self.use_tcp
-        else:
-            use_tcp = False
-        if not use_tcp:
-            # for TCP this error cannot occur, instead a timeout
-            # will be reaised while waiting for the correct number
-            # of bytes to be received to complete the message
-            if len(response) != length:
-                raise types.FrameSizeError("Size mismatch.")
+
         pid = response[0]
         if pid >= 0xFC:
             self.logger.debug(
@@ -261,7 +252,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 timestamp = perf_counter()
             else:
                 timestamp = 0.0
-            element = ((response, counter, length, timestamp,))
+            element = (response, counter, length, timestamp)
             self.daqQueue.append(element)
 
 
