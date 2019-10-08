@@ -1,17 +1,14 @@
 # https://travis-ci.org/christoph2/pyxcp
-dist: xenial
+dist: bionic
 language: python
-sudo: required
 python:
-    - 3.4
-    - 3.5
-    - 3.6
-    - 3.7
-    - 3.8-dev
+  - 3.5
+  - 3.6
+  - 3.7
+  - 3.8-dev
 
 os:
   - linux
-#  - osx
 
 notifications:
   email: false
