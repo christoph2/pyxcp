@@ -125,6 +125,7 @@ class Eth(BaseTransport):
                                         sock_recv(HEADER_SIZE - len(header))
                                     )
                                     if perf_counter() - start > 2:
+                                        raise types.XcpTimeoutError("Eth frame header read timed out.") from None
 
                             length, counter = HEADER_UNPACK(header)
 
