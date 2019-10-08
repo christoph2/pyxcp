@@ -28,6 +28,7 @@ import struct
 import serial
 
 from pyxcp.transport.base import BaseTransport
+import pyxcp.types as types
 
 
 class SxI(BaseTransport):
@@ -94,6 +95,9 @@ class SxI(BaseTransport):
 
             response = self.commPort.read(length)
             self.timing.stop()
+
+            if len(response) != length:
+                raise types.FrameSizeError("Size mismatch.")
 
             self.processResponse(response, length, counter)
 

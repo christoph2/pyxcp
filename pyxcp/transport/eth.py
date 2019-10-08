@@ -26,8 +26,10 @@ __copyright__ = """
 import selectors
 import socket
 import struct
+from time import perf_counter
 
 from pyxcp.transport.base import BaseTransport
+import pyxcp.types as types
 
 DEFAULT_XCP_PORT = 5555
 
@@ -66,8 +68,7 @@ class Eth(BaseTransport):
         )
         if self.host.lower() == "localhost":
             self.host = "::1" if self.ipv6 else "localhost"
-        else:
-            self.host = host
+
         self.status = 0
         self.selector = selectors.DefaultSelector()
         self.selector.register(self.sock, selectors.EVENT_READ)
@@ -115,12 +116,15 @@ class Eth(BaseTransport):
                             size = len(header)
                             if size != HEADER_SIZE:
 
+                                start = perf_counter()
+
                                 header = bytearray(header)
 
                                 while len(header) != HEADER_SIZE:
                                     header.extend(
                                         sock_recv(HEADER_SIZE - len(header))
                                     )
+                                    if perf_counter() - start > 2:
 
                             length, counter = HEADER_UNPACK(header)
 
@@ -132,11 +136,16 @@ class Eth(BaseTransport):
 
                                 if size != length:
 
+                                    start = perf_counter()
+
                                     response = bytearray(response)
                                     while len(response) != length:
                                         response.extend(
                                             sock_recv(length - len(response))
                                         )
+
+                                        if perf_counter() - start > 2:
+                                            raise types.XcpTimeoutError("Eth frame payload read timed out.") from None
 
                             except Exception as e:
                                 self.logger.error(str(e))
@@ -150,6 +159,10 @@ class Eth(BaseTransport):
                                     response[:HEADER_SIZE]
                                 )
                                 response = response[HEADER_SIZE:]
+
+                                if len(response) != length:
+                                    raise types.FrameSizeError("Size mismatch.")
+
                             except Exception as e:
                                 self.logger.error(str(e))
                                 continue
