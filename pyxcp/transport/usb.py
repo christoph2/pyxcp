@@ -71,7 +71,7 @@ class Usb(BaseTransport):
             except:
                 continue
         else:
-            raise Exception(f"Device with serial {self.serial_number} not found")
+            raise Exception("Device with serial {} not found".format(self.serial_number))
 
         cfg = self.device.set_configuration(self.configuration_number)
         cfg = self.device.get_active_configuration()
