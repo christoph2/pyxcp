@@ -13,7 +13,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 install_reqs = [
-    'construct >= 2.9.0', 'mako', 'pyserial', 'toml', 'pysub']
+    'construct >= 2.9.0', 'mako', 'pyserial', 'toml', 'pyusb']
 
 setup(
     name='pyxcp',
