@@ -1,0 +1,126 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+__copyright__ = """
+    pySART - Simplified AUTOSAR-Toolkit for Python.
+
+   (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
+
+   All Rights Reserved
+
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along
+  with this program; if not, write to the Free Software Foundation, Inc.,
+  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+"""
+
+import usb.core
+import usb.util
+import struct
+from time import perf_counter, sleep
+from array import array
+from collections import deque
+
+from pyxcp.transport.base import BaseTransport
+import pyxcp.types as types
+
+
+class Usb(BaseTransport):
+    """
+    """
+
+    PARAMETER_MAP = {
+        #                            Type    Req'd   Default
+        "serial_number":             (str,    True,  ""),
+        "configuration_number":      (int,    True,  1),
+        "interface_number":          (int,    True,  2),
+        "command_endpoint_number":   (int,    True,  0),
+        "reply_endpoint_number":     (int,    True,  1),
+    }
+    HEADER = struct.Struct("<2H")
+    HEADER_SIZE = HEADER.size
+
+    def __init__(self, config=None):
+        super(Usb, self).__init__(config)
+        self.loadConfig(config)
+        self.serial_number = self.config.get("serial_number").strip()
+        self.configuration_number = self.config.get("configuration_number")
+        self.interface_number = self.config.get("interface_number")
+        self.command_endpoint_number = self.config.get("command_endpoint_number")
+        self.reply_endpoint_number = self.config.get("reply_endpoint_number")
+
+        self.status = 0
+
+    def connect(self):
+        for device in usb.core.find(find_all=True):
+            try:
+                if device.serial_number.strip().strip('\0').lower() == self.serial_number.lower():
+                    self.device = device
+                    break
+                else:
+                    print(device.serial_number.strip().strip('\0').lower(), self.serial_number.lower())
+            except:
+                continue
+        else:
+            raise Exception(f"Device with serial {self.serial_number} not found")
+
+        cfg = self.device.set_configuration(self.configuration_number)
+        cfg = self.device.get_active_configuration()
+
+        interface = cfg[(self.interface_number, 0)]
+
+        self.command_endpoint = interface[self.command_endpoint_number]
+        self.reply_endpoint = interface[self.reply_endpoint_number]
+
+        self.startListener()
+        self.status = 1  # connected
+
+    def listen(self):
+        HEADER_UNPACK = self.HEADER.unpack
+        HEADER_SIZE = self.HEADER_SIZE
+
+        processResponse = self.processResponse
+        close_event_set = self.closeEvent.isSet
+
+        read = self.reply_endpoint.read
+
+        header = array('B', bytes(HEADER_SIZE))
+
+        while 1:
+
+            try:
+                if close_event_set():
+                    break
+
+                try:
+                    read(header, 1)
+                except:
+                    sleep(0.001)
+                    continue
+
+                length, counter = HEADER_UNPACK(header)
+
+                response = read(length)
+
+                processResponse(response, length, counter)
+
+#                print(f'took {(stop-start)*1000:.1f} ms\t {(stop2-stop1)*1000:.1f} ms')
+            except Exception as err:
+                print('recv loop error', err)
+                self.status = 0  # disconnected
+                break
+
+    def send(self, frame):
+        self.command_endpoint.write(frame)
+
+    def closeConnection(self):
+        usb.util.dispose_resources(self.device)
