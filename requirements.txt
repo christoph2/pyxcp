@@ -6,3 +6,4 @@ pyserial
 numpydoc
 sphinxcontrib-napoleon
 toml
+pyusb

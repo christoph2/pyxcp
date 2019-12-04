@@ -7,7 +7,7 @@
 import sys
 
 from .master import Master
-from .transport import Eth, SxI
+from .transport import Eth, SxI, Usb
 
 
 __copyright__ = """
