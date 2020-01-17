@@ -63,15 +63,18 @@ class Eth(BaseTransport):
         if self.ipv6 and not socket.has_ipv6:
             raise RuntimeError("IPv6 not supported by your platform.")
         else:
-            addressFamily = socket.AF_INET6 if self.ipv6 else socket.AF_INET
-        self.sock = socket.socket(
-            addressFamily,
-            socket.SOCK_STREAM if self.protocol == 'TCP' else socket.SOCK_DGRAM
-        )
+           address_family = socket.AF_INET6 if self.ipv6 else socket.AF_INET
+        proto = socket.SOCK_STREAM if self.protocol == 'TCP' else socket.SOCK_DGRAM
         if self.host.lower() == "localhost":
             self.host = "::1" if self.ipv6 else "localhost"
-
+        addrinfo = socket.getaddrinfo(self.host, self.port, address_family, proto)
+        (self.address_family, self.socktype, self.proto, self.canonname, self.sockaddr) = addrinfo[0]
         self.status = 0
+        self.sock = socket.socket(
+            self.address_family,
+            self.socktype,
+            self.proto
+        )
         self.selector = selectors.DefaultSelector()
         self.selector.register(self.sock, selectors.EVENT_READ)
         self.use_tcp = (self.protocol == 'TCP')
@@ -84,7 +87,7 @@ class Eth(BaseTransport):
 
     def connect(self):
         if self.status == 0:
-            self.sock.connect((self.host, self.port))
+            self.sock.connect(self.sockaddr)
             self.startListener()
             self.status = 1  # connected
 
