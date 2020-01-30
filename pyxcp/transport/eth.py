@@ -192,4 +192,4 @@ class Eth(BaseTransport):
 
     @property
     def invalidSocket(self):
-        return self.sock.fileno() == -1
+        return not hasattr(self, 'sock') or self.sock.fileno() == -1
