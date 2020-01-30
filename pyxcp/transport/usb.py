@@ -57,6 +57,7 @@ class Usb(BaseTransport):
         self.interface_number = self.config.get("interface_number")
         self.command_endpoint_number = self.config.get("command_endpoint_number")
         self.reply_endpoint_number = self.config.get("reply_endpoint_number")
+        self.device = None
 
         self.status = 0
 
@@ -123,4 +124,5 @@ class Usb(BaseTransport):
         self.command_endpoint.write(frame)
 
     def closeConnection(self):
-        usb.util.dispose_resources(self.device)
+        if self.device is not None:
+            usb.util.dispose_resources(self.device)
