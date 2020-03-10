@@ -1089,16 +1089,19 @@ class MasterBaseType:
             d.extend(self.AG_pack(e))
         return self.transport.request(types.Command.PROGRAM, *d)
 
+    @wrapped
     def programReset(self):
         """Indicate the end of a programming sequence."""
         return self.transport.request(types.Command.PROGRAM_RESET)
 
+    @wrapped
     def getPgmProcessorInfo(self):
         """Get general information on PGM processor."""
         response = self.transport.request(types.Command.GET_PGM_PROCESSOR_INFO)
         return types.GetPgmProcessorInfoResponse.parse(
             response, byteOrder=self.slaveProperties.byteOrder)
 
+    @wrapped
     def getSectorInfo(self, mode, sectorNumber):
         """Get specific information for a sector."""
         response = self.transport.request(
@@ -1110,11 +1113,13 @@ class MasterBaseType:
             return types.GetSectorInfoResponseMode2.parse(
                 response, byteOrder=self.slaveProperties.byteOrder)
 
+    @wrapped
     def programPrepare(self, codesize):
         """Prepare non-volatile memory programming."""
         cs = self.WORD_pack(codesize)
         return self.transport.request(types.Command.PROGRAM_PREPARE, 0x00, *cs)
 
+    @wrapped
     def programFormat(
             self, compressionMethod, encryptionMethod, programmingMethod,
             accessMethod):
@@ -1122,6 +1127,7 @@ class MasterBaseType:
             types.Command.PROGRAM_FORMAT, compressionMethod, encryptionMethod,
             programmingMethod, accessMethod)
 
+    @wrapped
     def programNext(self, data):
         d = bytearray()
         d.append(len(data))
@@ -1132,6 +1138,7 @@ class MasterBaseType:
             d.extend(self.AG_pack(e))
         return self.transport.request(types.Command.PROGRAM_NEXT, *d)
 
+    @wrapped
     def programMax(self, data):
         d = bytearray()
         if self.slaveProperties.addressGranularity == \
@@ -1144,6 +1151,7 @@ class MasterBaseType:
             d.extend(self.AG_pack(e))
         return self.transport.request(types.Command.PROGRAM_MAX, *d)
 
+    @wrapped
     def programVerify(self, verMode, verType, verValue):
         data = bytearray()
         data.extend(self.WORD_pack(verType))
@@ -1151,6 +1159,7 @@ class MasterBaseType:
         return self.transport.request(
             types.Command.PROGRAM_VERIFY, verMode, *data)
 
+    @wrapped
     def timeCorrelationProperties(
             self, setProperties, getPropertiesRequest, clusterId):
         response = self.transport.request(
