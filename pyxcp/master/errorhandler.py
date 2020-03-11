@@ -57,11 +57,9 @@ def execute(inst, func, arguments):
         try:
             res = func(*arguments.args, **arguments.kwargs)
         except XcpResponseError as e:
-            errorCode = XcpResponseError(e.args[0])
-            handler.handleError(errorCode)
+            raise XcpResponseError(e.args)
         except XcpTimeoutError as e:
-            handler.handleTimeout()
-            raise
+            raise XcpTimeoutError("ErrorHandler/Execute")
         except ConnectionError :
             #print("ConnectionError ()")
             return None
