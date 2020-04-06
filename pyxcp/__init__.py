@@ -32,7 +32,7 @@ __copyright__ = """
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-__version__ = "0.10.2"
+from .version import __version__
 
 VERSION = sys.version_info
 PY36_OR_HIGHER = VERSION.major >= 3 and VERSION.minor >= 6
