@@ -28,4 +28,4 @@ import sys
 from .eth import Eth
 from .sxi import SxI
 from .can import Can
-from .usb import Usb
+from .usb_transport import Usb

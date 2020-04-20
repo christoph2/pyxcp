@@ -13,7 +13,9 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 install_reqs = [
-    'construct >= 2.9.0', 'mako', 'pyserial', 'toml', 'pyusb']
+    'pyusb', 'construct >= 2.9.0', 'mako', 'pyserial', 'toml', ]
+setup_reqs = [
+    'pyusb', 'construct >= 2.9.0', 'mako', 'pyserial', 'toml', ]
 
 setup(
     name='pyxcp',
@@ -29,6 +31,7 @@ setup(
 
     include_package_data=True,
     install_requires=install_reqs,
+    setup_requires=setup_reqs,
     extras_require={
        "docs": [
            'sphinxcontrib-napoleon'

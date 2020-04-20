@@ -145,14 +145,15 @@ class MasterBaseType:
 
     # Mandatory Commands.
     @wrapped
-    def connect(self):
+    def connect(self, mode=0x00):
         """Build up connection to an XCP slave.
 
         Before the actual XCP traffic starts a connection is required.
 
         Parameters
         ----------
-        None
+        mode : int
+            connection mode; default is 0x00 (normal mode)
 
         Returns
         -------
@@ -166,7 +167,7 @@ class MasterBaseType:
 
         """
         self.transport.connect()
-        response = self.transport.request(types.Command.CONNECT, 0x00)
+        response = self.transport.request(types.Command.CONNECT, mode & 0xFF)
 
         # First get byte-order
         resultPartial = types.ConnectResponsePartial.parse(response)
