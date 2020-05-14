@@ -167,6 +167,7 @@ class MasterBaseType:
 
         """
         self.transport.connect()
+
         response = self.transport.request(types.Command.CONNECT, mode & 0xFF)
 
         # First get byte-order

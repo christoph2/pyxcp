@@ -114,6 +114,7 @@ class Eth(BaseTransport):
                 sel = select(0.1)
                 for _, events in sel:
                     if events & EVENT_READ:
+                        recv_timestamp = perf_counter()
                         if use_tcp:
 
                             # first try to get the header in one go
@@ -175,13 +176,15 @@ class Eth(BaseTransport):
                                 self.logger.error(str(e))
                                 continue
 
-                        processResponse(response, length, counter)
+                        processResponse(response, length, counter, recv_timestamp)
             except Exception:
                 self.status = 0  # disconnected
                 break
 
     def send(self, frame):
+        self.pre_send_timestamp = perf_counter()
         self.sock.send(frame)
+        self.post_send_timestamp = perf_counter()
 
     def closeConnection(self):
         if not self.invalidSocket:
