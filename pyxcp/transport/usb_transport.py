@@ -103,6 +103,7 @@ class Usb(BaseTransport):
                     break
 
                 try:
+                    recv_timestamp = perf_counter()
                     read(header, 1)
                 except:
                     sleep(0.001)
@@ -112,7 +113,7 @@ class Usb(BaseTransport):
 
                 response = read(length)
 
-                processResponse(response, length, counter)
+                processResponse(response, length, counter, recv_timestamp)
 
 #                print(f'took {(stop-start)*1000:.1f} ms\t {(stop2-stop1)*1000:.1f} ms')
             except Exception as err:
@@ -121,7 +122,9 @@ class Usb(BaseTransport):
                 break
 
     def send(self, frame):
+        self.pre_send_timestamp = perf_counter()
         self.command_endpoint.write(frame)
+        self.post_send_timestamp = perf_counter()
 
     def closeConnection(self):
         if self.device is not None:

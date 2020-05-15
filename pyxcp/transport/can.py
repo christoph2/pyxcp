@@ -29,6 +29,7 @@ __copyright__ = """
 import abc
 import functools
 import operator
+from time import perf_counter
 
 from typing import Type
 
@@ -314,8 +315,8 @@ class Can(BaseTransport):
         self.canInterface.init(self, self.dataReceived)
         self.canInterface.loadConfig(config)
 
-    def dataReceived(self, payload: bytes):
-        self.processResponse(payload, len(payload), counter=0)
+    def dataReceived(self, payload: bytes, recv_timestamp: float = None):
+        self.processResponse(payload, len(payload), counter=0, recv_timestamp=recv_timestamp)
 
     def listen(self):
         while True:
@@ -323,7 +324,7 @@ class Can(BaseTransport):
                 return
             frame = self.canInterface.read()
             if frame:
-                self.dataReceived(frame.data)
+                self.dataReceived(frame.data, frame.timestamp)
 
     def connect(self):
         if self.useDefaultListener:
@@ -338,7 +339,10 @@ class Can(BaseTransport):
             if len(frame) < 8:
                 frame += b'\x00' * (8 - len(frame))
         # send the request
+        self.pre_send_timestamp = perf_counter()
         self.canInterface.transmit(payload=frame)
+        self.post_send_timestamp = perf_counter()
+
 
     def closeConnection(self):
         if hasattr(self, "canInterface"):

@@ -26,6 +26,7 @@ __copyright__ = """
 import abc
 from collections import deque
 import threading
+from datetime import datetime
 from time import time, sleep, perf_counter
 
 from ..logger import Logger
@@ -95,6 +96,11 @@ class BaseTransport(metaclass=abc.ABCMeta):
         )
 
         self.first_daq_timestamp = None
+
+        self.datetime_origin, self.timestamp_origin = datetime.now(), perf_counter()
+        self.pre_send_timestamp = perf_counter()
+        self.post_send_timestamp = perf_counter()
+        self.recv_timestamp = perf_counter()
 
     def __del__(self):
         self.finishListener()
@@ -224,7 +230,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def listen(self):
         pass
 
-    def processResponse(self, response, length, counter):
+    def processResponse(self, response, length, counter, recv_timestamp=None):
         self.counterReceived = counter
 
         pid = response[0]
@@ -239,6 +245,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             if pid >= 0xfe:
                 # self.resQueue.put(response)
                 self.resQueue.append(response)
+                self.recv_timestamp = recv_timestamp
             elif pid == 0xfd:
                 # self.evQueue.put(response)
                 self.evQueue.append(response)
@@ -247,9 +254,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 self.servQueue.append(response)
         else:
             if self.first_daq_timestamp is None:
-                self.first_daq_timestamp = perf_counter()
+                self.first_daq_timestamp = recv_timestamp
             if self.create_daq_timestamps:
-                timestamp = perf_counter()
+                timestamp = recv_timestamp
             else:
                 timestamp = 0.0
             element = (response, counter, length, timestamp)

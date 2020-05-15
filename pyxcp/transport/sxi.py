@@ -24,6 +24,7 @@ __copyright__ = """
 """
 
 import struct
+from time import perf_counter
 
 import serial
 
@@ -90,6 +91,7 @@ class SxI(BaseTransport):
                 return
             if not self.commPort.inWaiting():
                 continue
+            recv_timestamp = perf_counter()
             length, counter = self.HEADER.unpack(
                 self.commPort.read(self.HEADER_SIZE))
 
@@ -99,10 +101,12 @@ class SxI(BaseTransport):
             if len(response) != length:
                 raise types.FrameSizeError("Size mismatch.")
 
-            self.processResponse(response, length, counter)
+            self.processResponse(response, length, counter, recv_timestamp)
 
     def send(self, frame):
+        self.pre_send_timestamp = perf_counter()
         self.commPort.write(frame)
+        self.post_send_timestamp = perf_counter()
 
     def closeConnection(self):
         if hasattr(self, "commPort") and self.commPort.isOpen():
