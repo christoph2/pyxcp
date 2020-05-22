@@ -81,7 +81,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.logger = Logger("transport.Base")
         self.logger.setLevel(loglevel)
         self.counterSend = 0
-        self.counterReceived = 0
+        self.counterReceived = -1
         create_daq_timestamps = self.config.get("CREATE_DAQ_TIMESTAMPS")
         self.create_daq_timestamps = False if create_daq_timestamps is None else create_daq_timestamps
         self.timing = Timing()
@@ -231,6 +231,10 @@ class BaseTransport(metaclass=abc.ABCMeta):
         pass
 
     def processResponse(self, response, length, counter, recv_timestamp=None):
+        if counter == self.counterReceived:
+            self.logger.warn("Duplicate message counter {} received from the XCP slave".format(counter))
+            return
+
         self.counterReceived = counter
 
         pid = response[0]
