@@ -82,8 +82,8 @@ def test():
     xm.setMta(0x1C0000)
     print("CS:", xm.buildChecksum(4742))
 
-    unlock(xm, 1)
-    verify(xm, 0x1C0000, 128)
+#    unlock(xm, 1)
+#    verify(xm, 0x1C0000, 128)
 
     #print("PS:", xm.programStart()) # ERR_ACCESS_LOCKED
 
@@ -228,6 +228,7 @@ from pprint import pprint
 #import pandas as pd
 
 def bench(xm):
+    import pandas as pd
     result = OrderedDict()
     for pn in range(8, 257, 8):
     #for pn in range(8, 257, 32):
