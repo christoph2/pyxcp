@@ -777,7 +777,7 @@ class TestMaster:
         # no response shall be expected if it is not the last DOWNLOAD_NEXT packet of a block
         assert res is None
 
-    def _testDownloadNextBlock(self):
+    def testDownloadNextBlock(self):
         conf = {
             'CAN_ID_MASTER': 1,
             'CAN_ID_SLAVE': 2,
