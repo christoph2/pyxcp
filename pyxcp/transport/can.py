@@ -316,7 +316,7 @@ class Can(BaseTransport):
         self.canInterface.loadConfig(config)
 
     def dataReceived(self, payload: bytes, recv_timestamp: float = None):
-        self.processResponse(payload, len(payload), counter=0, recv_timestamp=recv_timestamp)
+        self.processResponse(payload, len(payload), counter=self.counterReceived+1, recv_timestamp=recv_timestamp)
 
     def listen(self):
         while True:
