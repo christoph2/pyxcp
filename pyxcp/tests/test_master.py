@@ -271,7 +271,7 @@ class TestMaster:
             mock_socket.return_value.send.assert_called_with(
                 self.DefaultConnectCmd)
 
-            ms.push_frame("01 00 00 00 FF")
+            ms.push_frame("01 00 01 00 FF")
 
             res = xm.disconnect()
 
@@ -330,7 +330,7 @@ class TestMaster:
             mock_socket.return_value.send.assert_called_with(
                 self.DefaultConnectCmd)
 
-            ms.push_frame([0x02, 0x00, 0x00, 0x00, 0xfe, 0x00])
+            ms.push_frame([0x02, 0x00, 0x01, 0x00, 0xfe, 0x00])
 
             res = xm.synch()
 
@@ -438,7 +438,7 @@ class TestMaster:
             mock_socket.return_value.send.assert_called_with(
                 self.DefaultConnectCmd)
 
-            ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x01, 0x00, 0xff])
 
             res = xm.setRequest(0x15, 0x1234)
 
@@ -544,7 +544,7 @@ class TestMaster:
                 self.DefaultConnectCmd)
 
             ms.push_frame([
-                0x09, 0x00, 0x00, 0x00,
+                0x09, 0x00, 0x01, 0x00,
                 0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08])
 
             res = xm.upload(8)
@@ -626,7 +626,7 @@ class TestMaster:
                 self.DefaultConnectCmd)
 
             ms.push_frame([
-                0x03, 0x00, 0x00, 0x00,
+                0x03, 0x00, 0x01, 0x00,
                 0xff, 0xaa, 0xbb])
 
             data = [0xbe, 0xef]
@@ -655,7 +655,7 @@ class TestMaster:
                 self.DefaultConnectCmd)
 
             ms.push_frame([
-                0x03, 0x00, 0x00, 0x00,
+                0x03, 0x00, 0x01, 0x00,
                 0xff, 0xaa, 0xbb])
 
             data = [0xbe, 0xef]
@@ -711,7 +711,7 @@ class TestMaster:
             mock_socket.return_value.send.assert_called_with(
                 self.DefaultConnectCmd)
 
-            ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x01, 0x00, 0xff])
 
             data = [0xCA, 0xFE, 0xBA, 0xBE]
             res = xm.download(data)
@@ -765,7 +765,7 @@ class TestMaster:
             mock_socket.return_value.send.assert_called_with(
                 self.DefaultConnectCmd)
 
-            ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x01, 0x00, 0xff])
 
             data = [0xCA, 0xFE, 0xBA, 0xBE]
             remaining_block_length = 42
@@ -821,7 +821,7 @@ class TestMaster:
             mock_socket.return_value.send.assert_called_with(
                 self.DefaultConnectCmd)
 
-            ms.push_frame([0x01, 0x00, 0x00, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x01, 0x00, 0xff])
 
             data = [0xCA, 0xFE, 0xBA, 0xBE]
             res = xm.downloadMax(data)
@@ -1074,7 +1074,7 @@ class TestMaster:
 
             assert res == b''
 
-            ms.push_frame("08 00 06 00 FF 1F 03 04 78 56 34 12")
+            ms.push_frame("08 00 07 00 FF 1F 03 04 78 56 34 12")
 
             res = xm.readDaq()
 
@@ -1086,7 +1086,7 @@ class TestMaster:
             assert res.adressExtension == 4
             assert res.address == 0x12345678
 
-            ms.push_frame("08 00 07 00 FF 00 03 04 78 56 34 12")
+            ms.push_frame("08 00 08 00 FF 00 03 04 78 56 34 12")
 
             res = xm.getDaqClock()
 
@@ -1098,7 +1098,7 @@ class TestMaster:
             # todo: assert res.timestamp == 0x12345678
             assert res == 0x12345678
 
-            ms.push_frame("08 00 08 00 FF 55 00 01 34 12 22 03")
+            ms.push_frame("08 00 09 00 FF 55 00 01 34 12 22 03")
 
             res = xm.getDaqProcessorInfo()
 
@@ -1112,7 +1112,7 @@ class TestMaster:
             assert res.minDaq == 0x22
             assert res.daqKeyByte.Optimisation_Type == "OM_ODT_TYPE_64"
 
-            ms.push_frame("08 00 09 00 FF 12 34 56 78 AA 34 12")
+            ms.push_frame("08 00 0A 00 FF 12 34 56 78 AA 34 12")
 
             res = xm.getDaqResolutionInfo()
 
@@ -1128,7 +1128,7 @@ class TestMaster:
             assert res.timestampMode.unit == "DAQ_TIMESTAMP_UNIT_1PS"
             assert res.timestampTicks == 0x1234
 
-            ms.push_frame("08 00 0A 00 FF AA 00 00 34 12 56 78")
+            ms.push_frame("08 00 0B 00 FF AA 00 00 34 12 56 78")
 
             res = xm.getDaqListMode(256)
 
@@ -1141,7 +1141,7 @@ class TestMaster:
             assert res.currentPrescaler == 0x56
             assert res.currentPriority == 0x78
 
-            ms.push_frame("07 00 0B 00 FF 48 EE 05 06 07 FF")
+            ms.push_frame("07 00 0C 00 FF 48 EE 05 06 07 FF")
 
             res = xm.getDaqEventInfo(256)
 
@@ -1171,7 +1171,7 @@ class TestMaster:
             assert res.mode.stimMode is True
             assert res.mode.daqMode is False
 
-            ms.push_frame([0x01, 0x00, 0x0C, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x0E, 0x00, 0xff])
 
             res = xm.clearDaqList(256)
 
@@ -1180,7 +1180,7 @@ class TestMaster:
 
             assert res == b''
 
-            ms.push_frame("06 00 0D 00 FF 15 10 20 34 12")
+            ms.push_frame("06 00 0F 00 FF 15 10 20 34 12")
 
             res = xm.getDaqListInfo(256)
 
@@ -1194,7 +1194,7 @@ class TestMaster:
             assert res.maxOdtEntries == 0x20
             assert res.fixedEvent == 0x1234
 
-            ms.push_frame([0x01, 0x00, 0x0E, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x10, 0x00, 0xff])
 
             res = xm.freeDaq()
 
@@ -1203,7 +1203,7 @@ class TestMaster:
 
             assert res == b''
 
-            ms.push_frame([0x01, 0x00, 0x0F, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x11, 0x00, 0xff])
 
             res = xm.allocDaq(258)
 
@@ -1212,7 +1212,7 @@ class TestMaster:
 
             assert res == b''
 
-            ms.push_frame([0x01, 0x00, 0x10, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x12, 0x00, 0xff])
 
             res = xm.allocOdt(258, 3)
 
@@ -1221,7 +1221,7 @@ class TestMaster:
 
             assert res == b''
 
-            ms.push_frame([0x01, 0x00, 0x11, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x13, 0x00, 0xff])
 
             res = xm.allocOdtEntry(258, 3, 4)
 
@@ -1230,7 +1230,7 @@ class TestMaster:
 
             assert res == b''
 
-            ms.push_frame([0x01, 0x00, 0x12, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x14, 0x00, 0xff])
 
             res = xm.setDaqPackedMode(258, 0)
 
@@ -1240,7 +1240,7 @@ class TestMaster:
 
             assert res == b''
 
-            ms.push_frame([0x03, 0x00, 0x13, 0x00, 0xff, 0x00, 0x00])
+            ms.push_frame([0x03, 0x00, 0x15, 0x00, 0xff, 0x00, 0x00])
 
             res = xm.getDaqPackedMode(258)
 
@@ -1250,7 +1250,7 @@ class TestMaster:
             assert res.daqPackedMode == types.DaqPackedMode.NONE
             assert res.dpmTimestampMode is None
 
-            ms.push_frame([0x01, 0x00, 0x14, 0x00, 0xff])
+            ms.push_frame([0x01, 0x00, 0x16, 0x00, 0xff])
 
             res = xm.setDaqPackedMode(258, 2, 0b01, 0x1234)
 
@@ -1260,7 +1260,7 @@ class TestMaster:
 
             assert res == b''
 
-            ms.push_frame("06 00 15 00 FF 00 02 01 34 12")
+            ms.push_frame("06 00 17 00 FF 00 02 01 34 12")
 
             res = xm.getDaqPackedMode(258)
 
