@@ -4,7 +4,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2020 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -52,6 +52,9 @@ class XcpResponseError(Exception):
     """
     Raise an `exception` from an XCP error packet.
     """
+
+    def get_error_code(self):
+        return self.args[0]
 
 
 class XcpTimeoutError(Exception):
@@ -271,8 +274,10 @@ XcpError = Enum(
                       # error. S3
 
     # NEW IN 1.1
-    ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE=0x33
+    ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE=0x33,
     # Access to the requested resource is temporary not possible. S3
+
+    ERR_TIMEOUT=0xff,   # Used by errorhandler; not an offical errorcode.
 )
 
 Response = Struct(
