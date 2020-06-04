@@ -7,7 +7,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2020 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -271,8 +271,9 @@ class Can(BaseTransport):
     """
 
     PARAMETER_MAP = {
-        #                           Type    Req'd   Default
+        #                           Type            Req'd   Default
         "CAN_DRIVER":               (str,           True,   None),
+        "CHANNEL":                  (int,           False,  0),
         "MAX_DLC_REQUIRED":         (bool,          False,  False),
         "CAN_USE_DEFAULT_LISTENER": (bool,          False,  True),
             # defaults to True, in this case the default listener thread is used.

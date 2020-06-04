@@ -49,7 +49,6 @@ class Kvaser(can.CanInterfaceBase):
 
     PARAMETER_MAP = {
         #                        Type    Req'd   Default
-        "KV_CHANNEL":           (int,    False,  0),
         "KV_ACCEPT_VIRTUAL":    (bool,   False,  True),
         "KV_BAUDRATE_PRESET":   (bool,   False,  True),
     }
@@ -61,7 +60,7 @@ class Kvaser(can.CanInterfaceBase):
         self.parent = parent
 
     def connect(self):
-        self.channel = self.config.get("KV_CHANNEL")
+        self.channel = self.parent.config.get("CHANNEL")
         openFlags = canlib.canOPEN_ACCEPT_VIRTUAL if self.config.get("KV_ACCEPT_VIRTUAL")== True else None
         bitrate = canlib.canBITRATE_500K
         #bitrateFlags = canlib.canDRIVER_NORMAL
