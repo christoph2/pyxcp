@@ -78,3 +78,8 @@ class Configuration:
 
     def get(self, key):
         return self.config.get(key)
+
+    def __repr__(self):
+        return "{}".format(self.config)
+
+    __str__ = __repr__
