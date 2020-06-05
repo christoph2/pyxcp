@@ -108,7 +108,7 @@ class ArgumentParser:
         can = subparsers.add_parser("can", description = "XCPonCAN specific options:")
         can.set_defaults(can = True)
 
-        can.add_argument('-d', '--driver', choices = [" {}".format(d) for d in CAN_DRIVERS.keys()], dest = "can_driver")
+        can.add_argument('-d', '--driver', choices = CAN_DRIVERS.keys(), dest = "can_driver")
 
         eth.add_argument('-p', '--port', type = int, metavar = "port")
         proto = eth.add_mutually_exclusive_group()
