@@ -40,7 +40,7 @@ class SxI(BaseTransport):
     PARAMETER_MAP = {
         #                        Type    Req'd   Default
         "PORT":                 (str,    False,  "COM1"),
-        "BAUDRATE":             (int,    False,  38400),
+        "BITRATE":             (int,    False,  38400),
         "BYTESIZE":             (int,    False,  8),
         "PARITY":               (str,    False,  "N"),
         "STOPBITS":             (int,    False,  1),
@@ -55,7 +55,7 @@ class SxI(BaseTransport):
         super(SxI, self).__init__(config)
         self.loadConfig(config)
         self.portName = self.config.get("PORT")
-        self.baudrate = self.config.get("BAUDRATE")
+        self.baudrate = self.config.get("BITRATE")
 
     def __del__(self):
         self.closeConnection()

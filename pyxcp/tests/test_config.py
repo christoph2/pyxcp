@@ -5,7 +5,7 @@ from pyxcp.config import readConfiguration
 
 JSON = """{
     "PORT": "COM10",
-    "BAUDRATE": 38400,
+    "BITRATE": 38400,
     "BYTESIZE": 8,
     "PARITY": "N",
     "STOPBITS": 1,
@@ -13,7 +13,7 @@ JSON = """{
 }"""
 
 TOML = """PORT = "COM10"
-BAUDRATE = 38400
+BITRATE = 38400
 PARITY = "N"
 BYTESIZE = 8
 STOPBITS = 1
@@ -33,7 +33,7 @@ def test_read_empty_config():
 
 
 def test_read_json_config():
-    assert readConfiguration(CONF_JSON) == {'BAUDRATE': 38400,
+    assert readConfiguration(CONF_JSON) == {'BITRATE': 38400,
                                             'BYTESIZE': 8,
                                             'CREATE_DAQ_TIMESTAMPS': False,
                                             'PARITY': 'N',
@@ -42,7 +42,7 @@ def test_read_json_config():
 
 
 def test_read_toml_config():
-    assert readConfiguration(CONF_TOML) == {'BAUDRATE': 38400,
+    assert readConfiguration(CONF_TOML) == {'BITRATE': 38400,
                                             'BYTESIZE': 8,
                                             'CREATE_DAQ_TIMESTAMPS': False,
                                             'PARITY': 'N',

@@ -27,6 +27,7 @@ __copyright__ = """
 """
 
 import abc
+from collections import OrderedDict
 import functools
 import operator
 from time import perf_counter
@@ -273,7 +274,7 @@ class Can(BaseTransport):
     PARAMETER_MAP = {
         #                           Type            Req'd   Default
         "CAN_DRIVER":               (str,           True,   None),
-        "CHANNEL":                  (int,           False,  0),
+        "CHANNEL":                  (str,           False,  ""),
         "MAX_DLC_REQUIRED":         (bool,          False,  False),
         "CAN_USE_DEFAULT_LISTENER": (bool,          False,  True),
             # defaults to True, in this case the default listener thread is used.
@@ -282,13 +283,14 @@ class Can(BaseTransport):
         "CAN_ID_MASTER":            (int,           True,   None),
         "CAN_ID_SLAVE":             (int,           True,   None),
         "CAN_ID_BROADCAST":         (int,           False,  None),
-        "BAUDRATE":                 (NumericType,   False,  250000.0),
-        "BTL_CYCLES":               (int,           False,  16),   # a.k.a TQs
-        "SAMPLE_RATE":              (int,           False,  1),
-        "SAMPLE_POINT":             (NumericType,   False,  87.5),
-        "SJW":                      (int,           False,  2),
-        "TSEG1":                    (int,           False,  5),
-        "TSEG2":                    (int,           False,  2),
+        "BITRATE":                  (int,           False,  250000),
+        "RECEIVE_OWN_MESSAGES":     (bool,          False,  False),
+    }
+
+    PARAMETER_TO_KW_ARG_MAP = {
+        "RECEIVE_OWN_MESSAGES":     "receive_own_messages",
+        "CHANNEL":                  "channel",
+        "BITRATE":                  "bitrate",
     }
 
     MAX_DATAGRAM_SIZE = 7
@@ -407,4 +409,4 @@ def registered_drivers():
         available drivers (pyxcp supplied and user-defined).
     """
     sub_classes = CanInterfaceBase.__subclasses__()
-    return dict(zip([c.__name__ for c in sub_classes], sub_classes))
+    return OrderedDict(zip(sorted([c.__name__ for c in sub_classes]), sub_classes))

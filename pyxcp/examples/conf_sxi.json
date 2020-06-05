@@ -1,6 +1,6 @@
 {
     "PORT": "COM10",
-    "BAUDRATE": 38400,
+    "BITRATE": 38400,
     "BYTESIZE": 8,
     "PARITY": "N",
     "STOPBITS": 1,
