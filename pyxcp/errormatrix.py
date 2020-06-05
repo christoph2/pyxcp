@@ -33,6 +33,7 @@ from pyxcp.types import Command, XcpError
 
 Handler = namedtuple("Handler", "preAction  action")
 
+TIMEOUT = 255
 
 class PreAction(enum.IntEnum):
     """Pre-action to be taken, s. XCP spec.
