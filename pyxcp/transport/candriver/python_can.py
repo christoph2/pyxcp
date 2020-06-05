@@ -67,7 +67,6 @@ class PythonCAN:
             value = base.config.get(param)
             #if param == "CHANNEL":
             #    value = self._handle_channel(value)
-            print("ARG", param, arg, value, type(value))
             self.kwargs[arg] = value
 
     def _handle_channel(self, value):
