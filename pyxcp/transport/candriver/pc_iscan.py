@@ -48,4 +48,4 @@ class IsCAN(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(IsCan, self).__init__(bustype = "iscan")
+        super(IsCAN, self).__init__(bustype = "iscan")
