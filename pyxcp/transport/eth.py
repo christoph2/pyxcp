@@ -26,7 +26,7 @@ __copyright__ = """
 import selectors
 import socket
 import struct
-from time import perf_counter
+from time import perf_counter, time
 
 from pyxcp.transport.base import BaseTransport
 import pyxcp.types as types
@@ -114,7 +114,7 @@ class Eth(BaseTransport):
                 sel = select(0.1)
                 for _, events in sel:
                     if events & EVENT_READ:
-                        recv_timestamp = perf_counter()
+                        recv_timestamp = time()
                         if use_tcp:
 
                             # first try to get the header in one go
@@ -182,9 +182,9 @@ class Eth(BaseTransport):
                 break
 
     def send(self, frame):
-        self.pre_send_timestamp = perf_counter()
+        self.pre_send_timestamp = time()
         self.sock.send(frame)
-        self.post_send_timestamp = perf_counter()
+        self.post_send_timestamp = time()
 
     def closeConnection(self):
         if not self.invalidSocket:

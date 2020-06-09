@@ -97,10 +97,10 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
         self.first_daq_timestamp = None
 
-        self.datetime_origin, self.timestamp_origin = datetime.now(), perf_counter()
-        self.pre_send_timestamp = perf_counter()
-        self.post_send_timestamp = perf_counter()
-        self.recv_timestamp = perf_counter()
+        self.datetime_origin, self.timestamp_origin = datetime.now(), time()
+        self.pre_send_timestamp = time()
+        self.post_send_timestamp = time()
+        self.recv_timestamp = time()
 
     def __del__(self):
         self.finishListener()

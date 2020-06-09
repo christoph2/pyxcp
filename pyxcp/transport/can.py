@@ -30,7 +30,7 @@ import abc
 from collections import OrderedDict
 import functools
 import operator
-from time import perf_counter
+from time import perf_counter, time
 
 from typing import Type
 
@@ -342,9 +342,9 @@ class Can(BaseTransport):
             if len(frame) < 8:
                 frame += b'\x00' * (8 - len(frame))
         # send the request
-        self.pre_send_timestamp = perf_counter()
+        self.pre_send_timestamp = time()
         self.canInterface.transmit(payload=frame)
-        self.post_send_timestamp = perf_counter()
+        self.post_send_timestamp = time()
 
 
     def closeConnection(self):
