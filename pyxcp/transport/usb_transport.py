@@ -26,7 +26,7 @@ __copyright__ = """
 import usb.core
 import usb.util
 import struct
-from time import perf_counter, sleep
+from time import perf_counter, sleep, time
 from array import array
 from collections import deque
 
@@ -103,7 +103,7 @@ class Usb(BaseTransport):
                     break
 
                 try:
-                    recv_timestamp = perf_counter()
+                    recv_timestamp = time()
                     read(header, 1)
                 except:
                     sleep(0.001)
@@ -122,9 +122,9 @@ class Usb(BaseTransport):
                 break
 
     def send(self, frame):
-        self.pre_send_timestamp = perf_counter()
+        self.pre_send_timestamp = time()
         self.command_endpoint.write(frame)
-        self.post_send_timestamp = perf_counter()
+        self.post_send_timestamp = time()
 
     def closeConnection(self):
         if self.device is not None:
