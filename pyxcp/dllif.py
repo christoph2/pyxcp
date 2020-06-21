@@ -4,7 +4,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2020 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -24,8 +24,9 @@ __copyright__ = """
 """
 
 import binascii
+import ctypes
+import enum
 import platform
-from pprint import pprint
 import re
 import subprocess
 import sys
@@ -34,56 +35,56 @@ import sys
 CMD_GET_KEY = 0x20
 CMD_QUIT    = 0x30
 
-ACK                         = 0 # o.k.
-ERR_PRIVILEGE_NOT_AVAILABLE = 1 # the requested privilege can not be unlocked with this DLL
-ERR_INVALID_SEED_LENGTH     = 2 # the seed length is wrong, key could not be computed
-ERR_UNSUFFICIENT_KEY_LENGTH = 3 # the space for the key is too small
 
-ERR_COULD_NOT_LOAD_DLL      = 16
-ERR_COULD_NOT_LOAD_FUNC     = 17
+class SeedNKeyResult(enum.IntEnum):
+    ACK                         = 0 # o.k.
+    ERR_PRIVILEGE_NOT_AVAILABLE = 1 # the requested privilege can not be unlocked with this DLL
+    ERR_INVALID_SEED_LENGTH     = 2 # the seed length is wrong, key could not be computed
+    ERR_UNSUFFICIENT_KEY_LENGTH = 3 # the space for the key is too small
+
+    ERR_COULD_NOT_LOAD_DLL      = 16
+    ERR_COULD_NOT_LOAD_FUNC     = 17
+
+
+class SeedNKeyError(Exception):
+    """
+    """
+
+LOADER = "asamkeydll"
 
 bwidth, _ = platform.architecture()
 
-if sys.platform == 'win32' and bwidth == '64bit':
-  prgName = "asamkeydll64"
-elif sys.platform == 'win32' and bwidth == '32bit':
-  prgName = "asamkeydll32"
+if sys.platform in ('win32', "linux"):
+    if bwidth == '64bit':
+        use_ctypes = False
+    elif  bwidth == '32bit':
+        use_ctypes = True
 else:
   raise RuntimeError("Platform '{}' currently not supported.".format(sys.platform))
-    
+
+
 def getKey(dllName, privilege, seed):
-    p0 = subprocess.Popen([prgName, dllName, str(privilege), binascii.hexlify(seed).decode("ascii")], stdout=subprocess.PIPE, shell = True)
-    key = p0.stdout.read()
-    res = re.split(b"\r?\n", key)
-    returnCode = int(res[0])
-    if len(res) < 2:
-        return (returnCode, None)
-    key = binascii.unhexlify(res[1])
+    if use_ctypes:
+        lib = ctypes.cdll.LoadLibrary(dllName)
+        func = lib.XCP_ComputeKeyFromSeed
+        func.restype = ctypes.c_uint32
+        func.argtypes = [ctypes.c_uint8, ctypes.c_uint8, ctypes.c_char_p, ctypes.POINTER(ctypes.c_uint8), ctypes.c_char_p]
+
+        kb = ctypes.create_string_buffer(b'\000' * 128)
+        kl = ctypes.c_uint8()
+
+        retCode = func(privilege, len(seed), ctypes.c_char_p(seed), ctypes.byref(kl), kb)
+        if retCode != SeedNKeyResult.ACK:
+            raise SeedNKeyError("{}".format(SeedNKeyResult(retCode).name))
+        for idx in range(kl.value):
+            print(hex(ord(kb[idx])), end = " ")
+        return (retCode, kb.value)
+    else:
+        p0 = subprocess.Popen([LOADER, dllName, str(privilege), binascii.hexlify(seed).decode("ascii")], stdout=subprocess.PIPE, shell = True)
+        key = p0.stdout.read()
+        res = re.split(b"\r?\n", key)
+        returnCode = int(res[0])
+        if len(res) < 2:
+            return (returnCode, None)
+        key = binascii.unhexlify(res[1])
     return (returnCode, key)
-#elif sys.platform == 'win32' and bwidth == '32bit':
-#  """
-#  uint32_t XCP_ComputeKeyFromSeed (uint8_t resource, uint8_t seedLen, uint8_t const *seedPtr, uint8_t * keyLenPtr, uint8_t * keyPtr);
-#                                                  
-#  """
-#  import ctypes
-#  
-#  def getKey(dllName, privilege, seed):
-#    print("D: {} P: {} S: {}".format(dllName, privilege, seed))
-#    dll = ctypes.cdll.LoadLibrary(dllName)
-#    print(dll)
-#    func = dll.XCP_ComputeKeyFromSeed
-#    func.restype = ctypes.c_uint32
-##    func.argtypes = [ctypes.c_uint8, ctypes.c_uint8, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
-#    print(func)
-#    
-#    kb = ctypes.create_string_buffer(b'\000' * 128)
-#    kl = ctypes.c_uint8(128)
-#    
-#    retCode = func(privilege, len(seed), ctypes.c_char_p(seed), ctypes.byref(kl), kb)
-#    print("RES", retCode)
-#    print("KEY", kl, kb.value)
-#    return (retCode, kb.value)
-
-#getKey("SeedNKeyXcp.dll", "1", b'\xa9\xe0\x7fSm;\xa3-;M')   # "a9e07f536d3ba32d3b4d"
-#getKey("SeedNKeyXcp.dll", "1", bytes((0x61, 0x2b, 0x8d, 0xbb, 0x4d, 0x65, 0xdb, 0x78, 0x49, 0xb5)))
-

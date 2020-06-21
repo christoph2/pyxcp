@@ -1,7 +1,7 @@
 /*
  * pySART - Simplified AUTOSAR-Toolkit for Python.
  *
- * (C) 2007-2018 by Christoph Schueler <github.com/Christoph2,
+ * (C) 2007-2020 by Christoph Schueler <github.com/Christoph2,
  *                                      cpu12.gems@googlemail.com>
  *
  * All Rights Reserved
@@ -23,14 +23,33 @@
  * s. FLOSS-EXCEPTION.txt
  */
 
-
-#include <windows.h>
-
+#include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
 
-// TODO: asamdll
+#if defined(_WIN32)
+#include <windows.h>
+
+#define LOAD_LIB(name)  LoadLibrary((name))
+#define GET_SYM(module, sym) GetProcAddress((module), (sym))
+
+#else
+
+#define _GNU_SOURCE
+#include <dlfcn.h>
+
+typedef uint8_t BYTE;
+typedef uint32_t DWORD;
+typedef void * HANDLE;
+
+#define LOAD_LIB(name)  dlopen((name), RTLD_LAZY)
+#define GET_SYM(module, sym) dlsym((module), (sym))
+
+
+#endif
+
+
 
 
 #define NP_BUFSIZE  (4096)
@@ -69,11 +88,12 @@ void hexlify(uint8_t const * const buf, uint16_t len)
 
 DWORD GetKey(char * const dllName, BYTE privilege, BYTE lenSeed, BYTE * seed, BYTE * lenKey, BYTE * key)
 {
-    HANDLE hModule = LoadLibrary(dllName);
+    HANDLE hModule = LOAD_LIB(dllName);
     XCP_ComputeKeyFromSeedType XCP_ComputeKeyFromSeed;
 
     if (hModule != NULL) {
-        XCP_ComputeKeyFromSeed = (XCP_ComputeKeyFromSeedType)GetProcAddress(hModule, "XCP_ComputeKeyFromSeed");
+        XCP_ComputeKeyFromSeed = (XCP_ComputeKeyFromSeedType)GET_SYM(hModule, "XCP_ComputeKeyFromSeed");
+        printf("fp: %p\n", XCP_ComputeKeyFromSeed);
         if (XCP_ComputeKeyFromSeed != NULL) {
             return XCP_ComputeKeyFromSeed(privilege, lenSeed, seed, lenKey, key);
         } else {
