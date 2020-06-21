@@ -4,7 +4,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2020 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -50,6 +50,7 @@ class Master(MasterBaseType):
 
     @wrapped
     def setDaqPtr(self, daqListNumber, odtNumber, odtEntryNumber):
+        self.currentDaqPtr = types.DaqPtr(daqListNumber, odtNumber, odtEntryNumber) # Needed for errorhandling.
         daqList = self.WORD_pack(daqListNumber)
         response = self.transport.request(
             types.Command.SET_DAQ_PTR, 0, *daqList, odtNumber, odtEntryNumber)

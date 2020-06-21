@@ -12,7 +12,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2020 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -102,6 +102,7 @@ class MasterBaseType:
         self.AG_unpack = None
         # self.connected = False
         self.mta = types.MtaType(None, None)
+        self.currentDaqPtr = None
 
     def __enter__(self):
         """Context manager entry part.
