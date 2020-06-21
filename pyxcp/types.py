@@ -168,11 +168,14 @@ class Command(enum.IntEnum):
 
 
 class CommandCategory(enum.IntEnum):
-    STD = 0
-    CAL = 1
-    PAG = 2
-    DAQ = 3
-    PGM = 4
+    """Values reflect resources (resource protection status / unlock).
+    """
+    STD     = 0
+    CAL_PAG = 1
+    DAQ     = 4
+    STIM    = 8
+    PGM     = 16
+
 
 
 COMMAND_CATEGORIES = {  # Mainly needed to automatically UNLOCK.
@@ -193,20 +196,20 @@ COMMAND_CATEGORIES = {  # Mainly needed to automatically UNLOCK.
     Command.USER_CMD: CommandCategory.STD,
     Command.GET_VERSION: CommandCategory.STD,
 
-    Command.DOWNLOAD: CommandCategory.CAL,
-    Command.DOWNLOAD_NEXT: CommandCategory.CAL,
-    Command.DOWNLOAD_MAX: CommandCategory.CAL,
-    Command.SHORT_DOWNLOAD: CommandCategory.CAL,
-    Command.MODIFY_BITS: CommandCategory.CAL,
+    Command.DOWNLOAD: CommandCategory.CAL_PAG,
+    Command.DOWNLOAD_NEXT: CommandCategory.CAL_PAG,
+    Command.DOWNLOAD_MAX: CommandCategory.CAL_PAG,
+    Command.SHORT_DOWNLOAD: CommandCategory.CAL_PAG,
+    Command.MODIFY_BITS: CommandCategory.CAL_PAG,
 
-    Command.SET_CAL_PAGE: CommandCategory.PAG,
-    Command.GET_CAL_PAGE: CommandCategory.PAG,
-    Command.GET_PAG_PROCESSOR_INFO: CommandCategory.PAG,
-    Command.GET_SEGMENT_INFO: CommandCategory.PAG,
-    Command.GET_PAGE_INFO: CommandCategory.PAG,
-    Command.SET_SEGMENT_MODE: CommandCategory.PAG,
-    Command.GET_SEGMENT_MODE: CommandCategory.PAG,
-    Command.COPY_CAL_PAGE: CommandCategory.PAG,
+    Command.SET_CAL_PAGE: CommandCategory.CAL_PAG,
+    Command.GET_CAL_PAGE: CommandCategory.CAL_PAG,
+    Command.GET_PAG_PROCESSOR_INFO: CommandCategory.CAL_PAG,
+    Command.GET_SEGMENT_INFO: CommandCategory.CAL_PAG,
+    Command.GET_PAGE_INFO: CommandCategory.CAL_PAG,
+    Command.SET_SEGMENT_MODE: CommandCategory.CAL_PAG,
+    Command.GET_SEGMENT_MODE: CommandCategory.CAL_PAG,
+    Command.COPY_CAL_PAGE: CommandCategory.CAL_PAG,
     Command.CLEAR_DAQ_LIST: CommandCategory.DAQ,
     Command.CLEAR_DAQ_LIST: CommandCategory.DAQ,
     Command.SET_DAQ_PTR: CommandCategory.DAQ,
@@ -769,3 +772,5 @@ TimeCorrelationPropertiesResponse = Struct(
     Padding(1),
     "clusterId" / Int16u
 )
+
+DaqPtr = namedtuple("DaqPtr", "daqListNumber odtNumber odtEntryNumber")
