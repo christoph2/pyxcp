@@ -327,7 +327,7 @@ class Executor(SingletonBase):
     arguments = None
 
     def __call__(self, inst, func, arguments):
-        self.logger.debug(("__call__({})".format(func.__qualname__))
+        self.logger.debug("__call__({})".format(func.__qualname__))
         self.inst = inst
         self.func = func
         self.arguments = arguments
