@@ -27,7 +27,7 @@ __copyright__="""
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-from can import Bus, CanError, Message
+from can import Bus, CanError, Message, BusState
 
 import pyxcp.transport.can as can
 
@@ -40,7 +40,7 @@ class PCan(python_can.PythonCAN, can.CanInterfaceBase):
 
     PARAMETER_MAP = {
         #                           Type    Req'd   Default
-        "STATE":                    (str,    False,  "ACTIVE"),
+        "STATE":                    (BusState,    False,  BusState.ACTIVE),
     }
 
     PARAMETER_TO_KW_ARG_MAP = {
