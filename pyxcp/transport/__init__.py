@@ -4,7 +4,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2018 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2020 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -28,4 +28,8 @@ import sys
 from .eth import Eth
 from .sxi import SxI
 from .can import Can
-from .usb_transport import Usb
+try:
+    from .usb_transport import Usb # ReadTheDocs fails on this.
+except ImportError:
+    pass
+
