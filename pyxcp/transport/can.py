@@ -409,4 +409,4 @@ def registered_drivers():
         available drivers (pyxcp supplied and user-defined).
     """
     sub_classes = CanInterfaceBase.__subclasses__()
-    return OrderedDict(zip(sorted([c.__name__ for c in sub_classes]), sub_classes))
+    return OrderedDict(zip(([c.__name__ for c in sub_classes]), sub_classes))
