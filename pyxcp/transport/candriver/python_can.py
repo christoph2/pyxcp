@@ -53,8 +53,14 @@ class PythonCAN:
         # Fetch driver keyword arguments.
         self._fetch_kwargs(False)
         self._fetch_kwargs(True)
+        can_id = self.parent.can_id_master
+        can_filter = {
+            "can_id": can_id.id,
+            "can_mask": can.MAX_29_BIT_IDENTIFIER if can_id.is_extended else can.MAX_11_BIT_IDENTIFIER,
+            "extended": can_id.is_extended
+        }
         self.bus = Bus(bustype = self.bustype, **self.kwargs)
-        self.bus.set_filters(None)
+        self.bus.set_filters([can_filter])
         self.parent.logger.debug("Python-CAN driver: {} - {}]".format(self.bustype, self.bus))
         self.connected = True
 
