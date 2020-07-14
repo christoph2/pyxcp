@@ -1197,3 +1197,66 @@ class MasterBaseType:
         cc = checksum.check(data, cs.checksumType)
         self.logger.debug("Our checksum          : 0x{:08X}".format(cc))
         return cs.checksum == cc
+
+    def getDaqInfo(self):
+        """Get DAQ information: processor, resolution, events.
+        """
+        result = {}
+        dpi = self.getDaqProcessorInfo()
+        processorInfo = {
+            "minDaq": dpi["minDaq"],
+            "maxDaq": dpi["maxDaq"],
+            "properties": {
+                "configType": dpi["daqProperties"]["daqConfigType"],
+                "overloadEvent": dpi["daqProperties"]["overloadEvent"],
+                "overloadMsb": dpi["daqProperties"]["overloadMsb"],
+                "prescalerSupported": dpi["daqProperties"]["prescalerSupported"],
+                "pidOffSupported": dpi["daqProperties"]["pidOffSupported"],
+                "timestampSupported": dpi["daqProperties"]["timestampSupported"],
+                "bitStimSupported": dpi["daqProperties"]["bitStimSupported"],
+                "resumeSupported": dpi["daqProperties"]["resumeSupported"],
+
+            },
+            "keyByte": {
+                "IdentificationField": dpi["daqKeyByte"]["Identification_Field"],
+                "AddressExtension": dpi["daqKeyByte"]["Address_Extension"],
+                "OptimisationType": dpi["daqKeyByte"]["Optimisation_Type"],
+            },
+        }
+        result["processor"] = processorInfo
+
+        dri = self.getDaqResolutionInfo()
+        resolutionInfo = {
+            "timestampTicks": dri["timestampTicks"],
+            "maxOdtEntrySizeDaq": dri["maxOdtEntrySizeDaq"],
+            "maxOdtEntrySizeStim": dri["maxOdtEntrySizeStim"],
+            "granularityOdtEntrySizeDaq": dri["granularityOdtEntrySizeDaq"],
+            "granularityOdtEntrySizeStim": dri["granularityOdtEntrySizeStim"],
+            "timestampMode": {
+                "unit": dri["timestampMode"]["unit"],
+                "fixed": dri["timestampMode"]["fixed"],
+                "size": dri["timestampMode"]["size"],
+            }
+        }
+        result["resolution"] = resolutionInfo
+
+        channels = []
+        for ecn in range(dpi.maxEventChannel):
+            eci = self.getDaqEventInfo(ecn)
+            data = self.upload(eci.eventChannelNameLength)
+            channel = {
+                "name": data.decode("latin-1"),
+                "priority": eci["eventChannelPriority"],
+                "unit": eci["eventChannelTimeUnit"],
+                "cycle": eci["eventChannelTimeCycle"],
+                "maxDaqList": eci["maxDaqList"],
+                "properties": {
+                    "consistency": eci["daqEventProperties"]["consistency"],
+                    "daq": eci["daqEventProperties"]["daq"],
+                    "stim": eci["daqEventProperties"]["stim"],
+                    "packed": eci["daqEventProperties"]["packed"],
+                }
+            }
+            channels.append(channel)
+        result["channels"] = channels
+        return result
