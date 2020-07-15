@@ -1,4 +1,5 @@
 {
+    "TRANSPORT": "SXI",
     "PORT": "COM10",
     "BITRATE": 38400,
     "BYTESIZE": 8,

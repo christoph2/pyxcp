@@ -1,4 +1,5 @@
 {
+    "TRANSPORT": "CAN",
     "CAN_DRIVER": "Kvaser",
     "CAN_USE_DEFAULT_LISTENER": true,
     "CHANNEL": 0,

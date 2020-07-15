@@ -1,4 +1,5 @@
 {
+    "TRANSPORT": "ETH",
     "HOST": "localhost",
     "PORT": 5555,
     "PROTOCOL": "TCP",
