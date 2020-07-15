@@ -1243,9 +1243,9 @@ class MasterBaseType:
         channels = []
         for ecn in range(dpi.maxEventChannel):
             eci = self.getDaqEventInfo(ecn)
-            data = self.upload(eci.eventChannelNameLength)
+            name = self.fetch(eci.eventChannelNameLength)
             channel = {
-                "name": data.decode("latin-1"),
+                "name": name.decode("latin-1"),
                 "priority": eci["eventChannelPriority"],
                 "unit": eci["eventChannelTimeUnit"],
                 "cycle": eci["eventChannelTimeCycle"],
