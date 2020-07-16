@@ -65,11 +65,11 @@ class ArgumentParser:
         args = self.args
         config = readConfiguration(args.conf)
         config["LOGLEVEL"] = args.loglevel
-        print("***CONFIG", config)
+        if not "TRANSPORT" in config:
+            raise AttributeError("TRANSPORT must be specified in config!")
         transport = config['TRANSPORT'].lower()
         return Master(transport, config = config)
 
     @property
     def args(self):
         return self._args
-
