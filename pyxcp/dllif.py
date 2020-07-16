@@ -69,15 +69,9 @@ def getKey(dllName, privilege, seed):
         func = lib.XCP_ComputeKeyFromSeed
         func.restype = ctypes.c_uint32
         func.argtypes = [ctypes.c_uint8, ctypes.c_uint8, ctypes.c_char_p, ctypes.POINTER(ctypes.c_uint8), ctypes.c_char_p]
-
         kb = ctypes.create_string_buffer(b'\000' * 128)
-        kl = ctypes.c_uint8()
-
+        kl = ctypes.c_uint8(128)
         retCode = func(privilege, len(seed), ctypes.c_char_p(seed), ctypes.byref(kl), kb)
-        if retCode != SeedNKeyResult.ACK:
-            raise SeedNKeyError("{}".format(SeedNKeyResult(retCode).name))
-        for idx in range(kl.value):
-            print(hex(ord(kb[idx])), end = " ")
         return (retCode, kb.value)
     else:
         p0 = subprocess.Popen([LOADER, dllName, str(privilege), binascii.hexlify(seed).decode("ascii")], stdout=subprocess.PIPE, shell = True)

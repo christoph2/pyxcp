@@ -103,6 +103,8 @@ class MasterBaseType:
         # self.connected = False
         self.mta = types.MtaType(None, None)
         self.currentDaqPtr = None
+        self.currentProtectionStatus = None
+        self._seedNKeyDLL = None
 
     def __enter__(self):
         """Context manager entry part.
@@ -244,6 +246,7 @@ class MasterBaseType:
         response = self.transport.request(types.Command.GET_STATUS)
         result = types.GetStatusResponse.parse(
             response, byteOrder=self.slaveProperties.byteOrder)
+        self._setProtectionStatus(result.resourceProtectionStatus)
         return result
 
     @wrapped
@@ -364,8 +367,10 @@ class MasterBaseType:
         a Length containing the total length of the key.
         """
         response = self.transport.request(types.Command.UNLOCK, length, *key)
-        return types.ResourceType.parse(
+        result = types.ResourceType.parse(
             response, byteOrder=self.slaveProperties.byteOrder)
+        self._setProtectionStatus(result)
+        return result
 
     @wrapped
     def setMta(self, address: int, addressExt: int = 0x00):
@@ -1218,9 +1223,9 @@ class MasterBaseType:
 
             },
             "keyByte": {
-                "IdentificationField": dpi["daqKeyByte"]["Identification_Field"],
-                "AddressExtension": dpi["daqKeyByte"]["Address_Extension"],
-                "OptimisationType": dpi["daqKeyByte"]["Optimisation_Type"],
+                "identificationField": dpi["daqKeyByte"]["Identification_Field"],
+                "addressExtension": dpi["daqKeyByte"]["Address_Extension"],
+                "optimisationType": dpi["daqKeyByte"]["Optimisation_Type"],
             },
         }
         result["processor"] = processorInfo
@@ -1260,3 +1265,115 @@ class MasterBaseType:
             channels.append(channel)
         result["channels"] = channels
         return result
+
+    def getCurrentProtectionStatus(self):
+        """
+        """
+        if self.currentProtectionStatus is None:
+            status = self.getStatus()
+            self._setProtectionStatus(status.resourceProtectionStatus)
+        return self.currentProtectionStatus
+
+    def _setProtectionStatus(self, protection):
+        """
+        """
+        self.currentProtectionStatus = {
+            "dbg": protection.dbg,
+            "pgm": protection.pgm,
+            "stim": protection.stim,
+            "daq": protection.daq,
+            "calpag": protection.calpag,
+        }
+
+    def cond_unlock(self, resources = None):
+        """Conditionally unlock resources, i.e. only unlock locked resources.
+
+        Precondition: Must assign :attr:`seedNKeyDLL`, e.g. ``master.seedNKeyDLL = "SeedNKeyXcp.dll"``
+
+        Parameters
+        ----------
+        resources: str
+            Comma or space separated list of resources, e.g. "DAQ, CALPAG".
+            The names are not case-sensitive.
+            Valid identifiers are: "calpag", "daq", "dbg", "pgm", "stim".
+
+            If omitted, try to unlock every available resource.
+
+        Raises
+        ------
+        ValueError
+            Invalid resource name.
+
+        `dllif.SeedNKeyError`
+            In case of DLL related issues.
+        """
+        import re
+        from pyxcp.dllif import getKey, SeedNKeyResult, SeedNKeyError
+
+        MAX_PAYLOAD = self.slaveProperties["maxCto"] - 2
+
+        if self._seedNKeyDLL is None:
+            raise RuntimeError("No seed and key DLL specified, cannot proceed.")
+        if resources is  None:
+            result = []
+            if self.slaveProperties['supportsCalpag']:
+                result.append("calpag")
+            if self.slaveProperties['supportsDaq']:
+                result.append("daq")
+            if self.slaveProperties['supportsStim']:
+                result.append("stim")
+            if self.slaveProperties['supportsPgm']:
+                result.append("pgm")
+            resources = ",".join(result)
+        protection_status = self.getCurrentProtectionStatus()
+        resource_names = [r.lower() for r in re.split(r"[ ,]", resources) if r]
+        for name in resource_names:
+            if not name in types.RESOURCE_VALUES:
+                raise ValueError("Invalid resource name '{}'.".format(name))
+            if protection_status[name] == False:
+                continue
+            resource_value = types.RESOURCE_VALUES[name]
+            result = self.getSeed(types.XcpGetSeedMode.FIRST_PART, resource_value)
+            seed = list(result.seed)
+            length = result.length
+            if length == 0:
+                continue
+            if length > MAX_PAYLOAD:
+                remaining = length - len(seed)
+                while remaining > 0:
+                    result = self.getSeed(types.XcpGetSeedMode.REMAINING, resource_value)
+                    seed.extend(list(result.seed))
+                    remaining = result.length
+            result, key = getKey(self._seedNKeyDLL, resource_value, bytes(seed))
+            if result == SeedNKeyResult.ACK:
+                key = list(key)
+                total_length = len(key)
+                offset = 0
+                while offset < total_length:
+                    data = key[offset : offset + MAX_PAYLOAD]
+                    key_length = len(data)
+                    offset += key_length
+                    res = self.unlock(key_length, data)
+            else:
+                raise SeedNKeyError("SeedAndKey DLL returned: {}".format(SeedNKeyResult(retCode).name))
+
+    @property
+    def seedNKeyDLL(self):
+        return self._seedNKeyDLL
+
+    @seedNKeyDLL.setter
+    def seedNKeyDLL(self, name):
+        self._seedNKeyDLL = name
+
+
+
+def ticks_to_seconds(ticks, resolution):
+    """Convert DAQ timestamp/tick value to seconds.
+
+    Parameters
+    ----------
+    ticks: int
+
+    unit: `GetDaqResolutionInfoResponse` as returned by :meth:`getDaqResolutionInfo`
+    """
+    return (10 ** types.DAQ_TIMESTAMP_UNIT_TO_EXP[resolution.timestampMode.unit]) * resolution.timestampTicks * ticks

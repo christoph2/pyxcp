@@ -309,6 +309,14 @@ ResourceType = BitStruct(
     "calpag" / Flag,
 )
 
+RESOURCE_VALUES = {
+    "dbg": 32,
+    "pgm": 16,
+    "stim": 8,
+    "daq": 4,
+    "calpag": 1,
+}
+
 AddressGranularity = Enum(
     BitsInteger(2),
     BYTE=0b00,
@@ -774,3 +782,23 @@ TimeCorrelationPropertiesResponse = Struct(
 )
 
 DaqPtr = namedtuple("DaqPtr", "daqListNumber odtNumber odtEntryNumber")
+
+DAQ_TIMESTAMP_UNIT_TO_EXP = {
+    "DAQ_TIMESTAMP_UNIT_1PS"  : -12,
+    "DAQ_TIMESTAMP_UNIT_10PS" : -11,
+    "DAQ_TIMESTAMP_UNIT_100PS": -10,
+    "DAQ_TIMESTAMP_UNIT_1NS"  : -9,
+    "DAQ_TIMESTAMP_UNIT_10NS" : -8,
+    "DAQ_TIMESTAMP_UNIT_100NS": -7,
+    "DAQ_TIMESTAMP_UNIT_1US"  : -6,
+    "DAQ_TIMESTAMP_UNIT_10US" : -5,
+    "DAQ_TIMESTAMP_UNIT_100US": -4,
+    "DAQ_TIMESTAMP_UNIT_1MS"  : -3,
+    "DAQ_TIMESTAMP_UNIT_10MS" : -2,
+    "DAQ_TIMESTAMP_UNIT_100MS": -1,
+    "DAQ_TIMESTAMP_UNIT_1S"   : 0,
+}
+
+class XcpGetSeedMode(enum.IntEnum):
+    FIRST_PART = 0
+    REMAINING  = 1
