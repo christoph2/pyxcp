@@ -96,7 +96,8 @@ def getActions(service, error_code):
     else:
         eh = getErrorHandler(service)
         if eh is None:
-            raise InternalError("Invalid Service")
+            raise InternalError("Invalid Service 0x{:02x}".format(service))
+        print("Try to handle error -- Service: {} Error-Code: {}".format(service.name, error_code))
         handler = eh.get(error_str)
         if handler is None:
             raise UnhandledError("Service '{}' has no handler for '{}'.".format(service, error_code))
@@ -180,6 +181,14 @@ class Repeater:
             return False
 
 
+def display_error():
+    """Display error information.
+
+    TODO: callback.
+
+    """
+
+
 class Handler:
     """
     """
@@ -252,15 +261,15 @@ class Handler:
             if item == Action.NONE:
                 pass
             elif item == Action.DISPLAY_ERROR:
-                pass
+                raise UnhandledError("Could not proceed due to unhandled error.")
             elif item == Action.RETRY_SYNTAX:
-                pass
+                raise UnhandledError("Could not proceed due to unhandled error.")
             elif item == Action.RETRY_PARAM:
-                pass
+                raise UnhandledError("Could not proceed due to unhandled error.")
             elif item == Action.USE_A2L:
-                pass
+                raise UnhandledError("Could not proceed due to unhandled error.")
             elif item == Action.USE_ALTERATIVE:
-                pass    # TODO: check alternatives.
+                raise UnhandledError("Could not proceed due to unhandled error.") # TODO: check alternatives.
             elif item == Action.REPEAT:
                 repetitionCount = Repeater.REPEAT
             elif item == Action.REPEAT_2_TIMES:
@@ -268,13 +277,13 @@ class Handler:
             elif item == Action.REPEAT_INF_TIMES:
                 repetitionCount = Repeater.INFINITE
             elif item == Action.RESTART_SESSION:
-                pass
+                raise UnhandledError("Could not proceed due to unhandled error.")
             elif item == Action.TERMINATE_SESSION:
-                pass
+                raise UnhandledError("Could not proceed due to unhandled error.")
             elif item == Action.SKIP:
                 pass
             elif item == Action.NEW_FLASH_WARE:
-                pass
+                raise UnhandledError("Could not proceed due to unhandled error")
         return result_pre_actions, result_actions, Repeater(repetitionCount)
 
 
