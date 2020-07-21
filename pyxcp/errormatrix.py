@@ -433,6 +433,7 @@ ERROR_MATRIX = {
                                  XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.NONE, Action.SKIP),
                                },
     Command.WRITE_DAQ_MULTIPLE: { XcpError.ERR_TIMEOUT: ((PreAction.SYNCH, PreAction.SET_DAQ_PTR), Action.REPEAT_2_TIMES),
+                                  XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.DISPLAY_ERROR),
                                   XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
                                   XcpError.ERR_DAQ_ACTIVE: ((PreAction.START_STOP_X), Action.REPEAT_2_TIMES),
                                   XcpError.ERR_PGM_ACTIVE: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
