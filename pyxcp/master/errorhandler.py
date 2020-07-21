@@ -97,7 +97,10 @@ def getActions(service, error_code):
         eh = getErrorHandler(service)
         if eh is None:
             raise InternalError("Invalid Service")
-        preActions, actions = eh.get(error_str)
+        handler = eh.get(error_str)
+        if handler is None:
+            raise UnhandledError("Service '{}' has no handler for '{}'.".format(service, error_code))
+        preActions, actions = handler
     return preActions, actions
 
 def actionIter(actions):
