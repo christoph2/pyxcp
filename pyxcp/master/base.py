@@ -195,6 +195,8 @@ class MasterBaseType:
             result.transportLayerVersion
         self.slaveProperties.optionalCommMode = \
             result.commModeBasic.optional
+        self.slaveProperties.maxWriteDaqMultipleElements = \
+            0 if self.slaveProperties.maxCto < 10 else int((self.slaveProperties.maxCto - 2) // 8)
 
         self.WORD_pack = makeWordPacker(byteOrderPrefix)
         self.DWORD_pack = makeDWordPacker(byteOrderPrefix)
@@ -864,7 +866,8 @@ class MasterBaseType:
         ----------
         daqElements : list of DAQ elements
         """
-
+        if len(daqElements) > self.slaveProperties.maxWriteDaqMultipleElements:
+            raise ValueError("At most {} daqElements are permitted.".format(self.slaveProperties.maxWriteDaqMultipleElements))
         data = bytearray()
         data.append(len(daqElements))
 
