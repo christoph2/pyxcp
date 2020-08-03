@@ -560,7 +560,84 @@ class MasterBaseType:
             result.extend(data)
         return bytes(result)
 
-    # Calibration Commands (CAL)
+    pull = fetch    # fetch() may be completely replaced by pull() someday.
+
+    def push(self, data: bytes):
+        """Convenience function for data-transfer from master to slave.
+        (Not part of the XCP Specification).
+
+        Parameters
+        ----------
+        data : bytes
+            Arbitrary number of bytes.
+
+        Returns
+        -------
+
+        Note
+        ----
+        address is not included because of services implicitly setting address information like :meth:`getID` .
+        """
+        # TODO: consider minST.
+
+        total_length = len(data)
+        master_block_mode = self.slaveProperties.masterBlockMode
+        if master_block_mode:
+            max_payload = min(self.slaveProperties.maxBs * (self.slaveProperties.maxCto - 2), 255)
+        else:
+            max_payload = self.slaveProperties.maxCto - 2
+        offset = 0
+        if master_block_mode:
+            payload_length = self.slaveProperties.maxCto - 2
+            rem2 = total_length
+            blocks = range(total_length // max_payload)
+            remaining_block_size = total_length % max_payload
+            for idx in blocks:
+                data_slice = data[offset : offset + max_payload]
+                self._block_downloader(data_slice)
+                offset += max_payload
+                rem2 -= max_payload
+            if remaining_block_size:
+                data_slice = data[offset : offset + remaining_block_size]
+                self._block_downloader(data_slice)
+        else:
+            chunk_size = max_payload
+            chunks = range(total_length // chunk_size)
+            remaining = total_length % chunk_size
+            for _ in chunks:
+                frame_data = data[offset : offset + max_payload]
+                self.download(frame_data, max_payload)
+                offset += max_payload
+            if remaining:
+                frame_data = data[offset : offset + remaining]
+                self.download(frame_data, remaining)
+
+    def _block_downloader(self, data: bytes):
+        """
+        """
+        length = len(data)
+        payload_length = self.slaveProperties.maxCto - 2
+        chunks = range(length // payload_length)
+        offset = 0
+        remaining = length % payload_length
+        rem2 = length
+        idx = 0
+        for idx in chunks:
+            frame_data = data[offset : offset + payload_length]
+            if idx == 0:
+                self.download(frame_data, length)   # Transmit the complete length in the first CTO.
+            else:
+                self.downloadNext(frame_data, rem2)
+            offset += payload_length
+            rem2 -= payload_length
+        if remaining:
+            frame_data = data[offset : offset + remaining]
+            if idx == 0:
+                # length of data is smaller than maxCto - 2
+                self.download(frame_data, remaining)
+            else:
+                self.downloadNext(frame_data, remaining)
+
     @wrapped
     def download(self, data: bytes, blockModeLength=None):
         """Transfer data from master to slave.
