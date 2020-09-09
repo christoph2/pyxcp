@@ -1435,7 +1435,7 @@ class MasterBaseType:
                     offset += key_length
                     res = self.unlock(key_length, data)
             else:
-                raise SeedNKeyError("SeedAndKey DLL returned: {}".format(SeedNKeyResult(retCode).name))
+                raise SeedNKeyError("SeedAndKey DLL returned: {}".format(SeedNKeyResult(result).name))
 
     @property
     def seedNKeyDLL(self):

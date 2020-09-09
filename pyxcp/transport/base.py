@@ -233,6 +233,13 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def processResponse(self, response, length, counter, recv_timestamp=None):
         if counter == self.counterReceived:
             self.logger.warn("Duplicate message counter {} received from the XCP slave".format(counter))
+            self.logger.debug(
+                "<- L{} C{} {}".format(
+                    length,
+                    counter,
+                    hexDump(response[:20]),
+                )
+            )
             return
 
         self.counterReceived = counter
