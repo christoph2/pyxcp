@@ -31,8 +31,7 @@ __copyright__ = """
   with this program; if not, write to the Free Software Foundation, Inc.,
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
-# from .version import __version__
-__version__ = '0.12.0'
+from .version import __version__
 
 VERSION = sys.version_info
 PY36_OR_HIGHER = VERSION.major >= 3 and VERSION.minor >= 6
