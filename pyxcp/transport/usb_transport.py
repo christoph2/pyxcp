@@ -29,6 +29,7 @@ import struct
 from time import perf_counter, sleep, time
 from array import array
 from collections import deque
+from traceback import format_exc
 
 from pyxcp.transport.base import BaseTransport
 import pyxcp.types as types
@@ -111,13 +112,12 @@ class Usb(BaseTransport):
 
                 length, counter = HEADER_UNPACK(header)
 
-                response = read(length)
+                response = bytes(read(length))
 
                 processResponse(response, length, counter, recv_timestamp)
 
-#                print(f'took {(stop-start)*1000:.1f} ms\t {(stop2-stop1)*1000:.1f} ms')
-            except Exception as err:
-                print('recv loop error', err)
+            except:
+                print('recv loop error', format_exc())
                 self.status = 0  # disconnected
                 break
 
