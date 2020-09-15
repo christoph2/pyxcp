@@ -63,7 +63,7 @@ typedef void * HANDLE;
 #define ERR_COULD_NOT_LOAD_FUNC     (17)
 
 
-uint8_t dllname[NP_BUFSIZE] = {0};
+char dllname[NP_BUFSIZE] = {0};
 
 DWORD GetKey(char * const dllName, BYTE privilege, BYTE lenSeed, BYTE * seed, BYTE * lenKey, BYTE * key);
 void hexlify(uint8_t const * const buf, uint16_t len);
@@ -133,7 +133,6 @@ int main(int argc, char ** argv)
     }
 
     res = GetKey((char *)&dllname, privilege, seedlen, (BYTE *)&seedBuffer, &keylen, (BYTE *)&keyBuffer);
-    printf("%d\n", res);
     if (res == 0) {
         hexlify(keyBuffer, keylen);
     }
