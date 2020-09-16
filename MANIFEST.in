@@ -9,6 +9,7 @@ include *.sh
 include *.toml
 include *.txt
 include *.yml
+include pyxcp/*.exe
 include .bumpversion.cfg
 include CONTRIBUTORS
 recursive-include docs *.py

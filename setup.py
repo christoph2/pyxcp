@@ -1,7 +1,13 @@
 #!/bin/env python
 
+import distutils
 import os
-from setuptools import find_packages, setup
+import platform
+from setuptools import command, find_packages, setup
+from setuptools.command.build_py import build_py
+from setuptools.command.develop import develop
+import subprocess
+import sys
 
 with open(os.path.join('pyxcp', 'version.py'), 'r') as f:
     for line in f:
@@ -17,6 +23,45 @@ install_reqs = [
 setup_reqs = [
     'pyusb', 'construct >= 2.9.0', 'mako', 'pyserial', 'toml', ]
 
+class AsamKeyDllAutogen(distutils.cmd.Command):
+    """Custom command to compile `asamkeydll.exe`."""
+
+    description = "Compile `asamkeydll.exe`."
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        """Post-process options."""
+        asamkeydll = os.path.join("pyxcp", "asamkeydll.c")
+        target = os.path.join("pyxcp", "asamkeydll.exe")
+        self.arguments = [asamkeydll, "-o{}".format(target)]
+
+    def run(self):
+        """Run gcc"""
+        word_width, _ = platform.architecture()
+        if sys.platform == "win32" and word_width == "64bit":
+            gccCmd = ["gcc", "-m32", "-O3", "-Wall"]
+            self.announce(" ".join(gccCmd + self.arguments), level = distutils.log.INFO)
+            try:
+                subprocess.check_call(gccCmd + self.arguments)
+            except Exception as e:
+                print("Building pyxcp/asamkeydll.exe failed: '{}'".format(str(e)))
+            else:
+                print("Successfully  build pyxcp/asamkeydll.exe")
+
+class CustomBuildPy(command.build_py.build_py):
+
+    def run(self):
+        self.run_command("asamkeydll")
+        super().run()
+
+class CustomDevelop(command.develop.develop):
+
+    def run(self):
+        self.run_command("asamkeydll")
+        super().run()
+
 setup(
     name='pyxcp',
     version=version,
@@ -28,7 +73,11 @@ setup(
     author_email='cpu12.gems@googlemail.com',
     url='https://github.com/christoph2/pyxcp',
     packages=find_packages(),
-
+    cmdclass={
+        "asamkeydll": AsamKeyDllAutogen,
+        "build_py": CustomBuildPy,
+        "develop": CustomDevelop,
+    },
     include_package_data=True,
     install_requires=install_reqs,
     setup_requires=setup_reqs,

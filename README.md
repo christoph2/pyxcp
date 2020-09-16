@@ -27,8 +27,13 @@ pyXCP is hosted on Github, get the latest release: [https://github.com/christoph
 
 ### Requirements
 
-- Python >= 3.5
+- Python >= 3.4
 - A running XCP slave (of cause).
+- If you are using a 64bit Windows version and want to use seed-and-key .dlls (to unlock resources), a GCC compiler capable of creating 32bit
+  executables is required:
+
+  These .dlls almost always ship as 32bit versions, but you can't load a 32bit .dll into a 64bit process, so a small bridging program (asamkeydll.exe) is
+  required.
 
 ## First steps
 
