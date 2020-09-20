@@ -4,10 +4,6 @@
 """
 Parse (transport-layer specific) command line parameters
 and create a XCP master instance.
-
-.. note::
-    There is currently no interface for further customization.
-
 """
 
 __copyright__ = """
@@ -42,20 +38,29 @@ try_to_install_system_supplied_drivers()
 
 CAN_DRIVERS = registered_drivers()
 
+
 class ArgumentParser:
     """
 
+    Parameter
+    ---------
+    callout: callable
+        Process user-supplied arguments.
     """
 
-    def __init__(self, *args, **kws):
-        kws.update(formatter_class = argparse.RawDescriptionHelpFormatter)
-        self.parser = argparse.ArgumentParser(*args, **kws)
-        self.parser.add_argument('-c', '--config-file', type=argparse.FileType('r'), dest = "conf",
+    def __init__(self, callout = None, *args, **kws):
+        self.callout = callout
+        kws.update(formatter_class = argparse.RawDescriptionHelpFormatter, add_help = True)
+        self._parser = argparse.ArgumentParser(*args, **kws)
+        self._parser.add_argument('-c', '--config-file', type=argparse.FileType('r'), dest = "conf",
             help = 'File to read (extended) parameters from.')
-        self.parser.add_argument('-l', '--loglevel', choices = ["ERROR", "WARN", "INFO", "DEBUG"], default = "INFO")
-        self.parser.epilog = "To get specific help on transport layers\nuse <layer> -h, e.g. {} eth -h".format(self.parser.prog)
+        self._parser.add_argument('-l', '--loglevel', choices = ["ERROR", "WARN", "INFO", "DEBUG"], default = "INFO")
+        self._parser.epilog = "To get specific help on transport layers\nuse <layer> -h, e.g. {} eth -h".format(self._parser.prog)
         self._args = []
 
+    @property
+    def args(self):
+        return self._args
 
     def run(self):
         """
@@ -68,8 +73,11 @@ class ArgumentParser:
         if not "TRANSPORT" in config:
             raise AttributeError("TRANSPORT must be specified in config!")
         transport = config['TRANSPORT'].lower()
-        return Master(transport, config = config)
+        master = Master(transport, config = config)
+        if self.callout:
+            self.callout(master, args)
+        return master
 
     @property
-    def args(self):
-        return self._args
+    def parser(self):
+        return self._parser
