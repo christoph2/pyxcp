@@ -31,14 +31,14 @@ __copyright__ = """
 
 from pyxcp.cmdline import ArgumentParser
 
+def callout(master, args):
+    if args.sk_dll:
+        master.seedNKeyDLL = args.sk_dll
 
-ap = ArgumentParser(description = "XCP slave UNLOCK demonstration.")
-
-
-SEED_N_KEY_DLL = "SeedNKeyXcp.dll"    # Hardcoded for now.
+ap = ArgumentParser(callout)
+ap.parser.add_argument("-s", "--sk-dll", dest = "sk_dll", help = "Seed-and-Key .DLL name", type = str, default = None)
 
 with ap.run() as x:
-    x.seedNKeyDLL = SEED_N_KEY_DLL
     x.connect()
 
     print("")
