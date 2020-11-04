@@ -100,7 +100,7 @@ def getActions(service, error_code):
         print("Try to handle error -- Service: {} Error-Code: {}".format(service.name, error_code))
         handler = eh.get(error_str)
         if handler is None:
-            raise UnhandledError("Service '{}' has no handler for '{}'.".format(service, error_code))
+            raise UnhandledError("Service '{}' has no handler for '{}'.".format(service.name, error_code))
         preActions, actions = handler
     return preActions, actions
 
