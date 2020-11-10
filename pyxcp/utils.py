@@ -43,7 +43,17 @@ import threading
 
 
 def hexDump(arr):
-    return "[{}]".format(' '.join(["{:02x}".format(x) for x in arr]))
+    if isinstance(arr, (bytes, bytearray)):
+        size = len(arr)
+        arr = arr.hex()
+        return "[{}]".format(' '.join([arr[i*2: (i+1)*2] for i in range(size)]))
+    elif isinstance(arr, (list, tuple)):
+        arr = bytes(arr)
+        size = len(arr)
+        arr = arr.hex()
+        return "[{}]".format(' '.join([arr[i*2: (i+1)*2] for i in range(size)]))
+    else:
+        return "[{}]".format(' '.join(["{:02x}".format(x) for x in arr]))
 
 
 def slicer(iterable, sliceLength, converter=None):
