@@ -273,13 +273,14 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 # self.servQueue.put(response)
                 self.servQueue.append(response)
         else:
-            self.logger.debug(
-                "<- L{} C{} ODT_Data[0:8] {}".format(
-                    length,
-                    counter,
-                    hexDump(response[:8]),
+            if self._debug:
+                self.logger.debug(
+                    "<- L{} C{} ODT_Data[0:8] {}".format(
+                        length,
+                        counter,
+                        hexDump(response[:8]),
+                    )
                 )
-            )
             return
             if self.first_daq_timestamp is None:
                 self.first_daq_timestamp = recv_timestamp
