@@ -79,6 +79,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.config = Configuration(BaseTransport.PARAMETER_MAP or {}, config or {})
         self.closeEvent = threading.Event()
         loglevel = self.config.get("LOGLEVEL")
+        self._debug = loglevel == "DEBUG"
+
         self.logger = Logger("transport.Base")
         self.logger.setLevel(loglevel)
         self.counterSend = 0
@@ -176,14 +178,16 @@ class BaseTransport(metaclass=abc.ABCMeta):
         """
         Prepares a request to be sent
         """
-        self.logger.debug(cmd.name)
+        if self._debug:
+            self.logger.debug(cmd.name)
         self.parent._setService(cmd)
         cmdlen = cmd.bit_length() // 8  # calculate bytes needed for cmd
         header = self.HEADER.pack(cmdlen + len(data), self.counterSend)
         self.counterSend = (self.counterSend + 1) & 0xffff
 
         frame = header + bytes(flatten(cmd.to_bytes(cmdlen, 'big'), data))
-        self.logger.debug("-> {}".format(hexDump(frame)))
+        if self._debug:
+            self.logger.debug("-> {}".format(hexDump(frame)))
         return frame
 
     def block_receive(self, length_required: int) -> bytes:
@@ -236,26 +240,28 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def processResponse(self, response, length, counter, recv_timestamp=None):
         if counter == self.counterReceived:
             self.logger.warn("Duplicate message counter {} received from the XCP slave".format(counter))
-            self.logger.debug(
-                "<- L{} C{} {}".format(
-                    length,
-                    counter,
-                    hexDump(response[:20]),
+            if self._debug:
+                self.logger.debug(
+                    "<- L{} C{} {}".format(
+                        length,
+                        counter,
+                        hexDump(response[:512]),
+                    )
                 )
-            )
             return
 
         self.counterReceived = counter
 
         pid = response[0]
         if pid >= 0xFC:
-            self.logger.debug(
-                "<- L{} C{} {}".format(
-                    length,
-                    counter,
-                    hexDump(response),
+            if self._debug:
+                self.logger.debug(
+                    "<- L{} C{} {}".format(
+                        length,
+                        counter,
+                        hexDump(response),
+                    )
                 )
-            )
             if pid >= 0xfe:
                 # self.resQueue.put(response)
                 self.resQueue.append(response)
@@ -267,6 +273,14 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 # self.servQueue.put(response)
                 self.servQueue.append(response)
         else:
+            self.logger.debug(
+                "<- L{} C{} ODT_Data[0:8] {}".format(
+                    length,
+                    counter,
+                    hexDump(response[:8]),
+                )
+            )
+            return
             if self.first_daq_timestamp is None:
                 self.first_daq_timestamp = recv_timestamp
             if self.create_daq_timestamps:
