@@ -281,7 +281,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                         hexDump(response[:8]),
                     )
                 )
-            return
+
             if self.first_daq_timestamp is None:
                 self.first_daq_timestamp = recv_timestamp
             if self.create_daq_timestamps:
