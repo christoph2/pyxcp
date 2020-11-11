@@ -27,7 +27,7 @@ import abc
 from collections import deque
 import threading
 from datetime import datetime
-from time import time, sleep, perf_counter
+from time import time, sleep
 
 from ..logger import Logger
 from ..utils import flatten, hexDump
@@ -71,6 +71,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         #                         Type    Req'd   Default
         "CREATE_DAQ_TIMESTAMPS": (bool,   False,  False),
         "LOGLEVEL":              (str,    False,  "WARN"),
+        "TIMEOUT":               (float,  False,  2.0),
     }
 
     def __init__(self, config=None):
@@ -84,6 +85,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.counterReceived = -1
         create_daq_timestamps = self.config.get("CREATE_DAQ_TIMESTAMPS")
         self.create_daq_timestamps = False if create_daq_timestamps is None else create_daq_timestamps
+        timeout = self.config.get("TIMEOUT")
+        self.timeout = 2.0 if timeout is None else timeout
         self.timing = Timing()
         self.resQueue = deque()
         self.daqQueue = deque()
@@ -136,7 +139,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.send(frame)
 
         try:
-            xcpPDU = get(self.resQueue, timeout=2.0)
+            xcpPDU = get(self.resQueue, timeout=self.timeout)
         except Empty:
             raise types.XcpTimeoutError("Response timed out.") from None
 
