@@ -27,7 +27,7 @@ import abc
 from collections import deque
 import threading
 from datetime import datetime
-from time import time, sleep, perf_counter
+from time import time, sleep
 
 from ..logger import Logger
 from ..utils import flatten, hexDump
@@ -71,6 +71,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         #                         Type    Req'd   Default
         "CREATE_DAQ_TIMESTAMPS": (bool,   False,  False),
         "LOGLEVEL":              (str,    False,  "WARN"),
+        "TIMEOUT":               (float,  False,  2.0),
     }
 
     def __init__(self, config=None):
@@ -78,12 +79,16 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.config = Configuration(BaseTransport.PARAMETER_MAP or {}, config or {})
         self.closeEvent = threading.Event()
         loglevel = self.config.get("LOGLEVEL")
+        self._debug = loglevel == "DEBUG"
+
         self.logger = Logger("transport.Base")
         self.logger.setLevel(loglevel)
         self.counterSend = 0
         self.counterReceived = -1
         create_daq_timestamps = self.config.get("CREATE_DAQ_TIMESTAMPS")
         self.create_daq_timestamps = False if create_daq_timestamps is None else create_daq_timestamps
+        timeout = self.config.get("TIMEOUT")
+        self.timeout = 2.0 if timeout is None else timeout
         self.timing = Timing()
         self.resQueue = deque()
         self.daqQueue = deque()
@@ -136,9 +141,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.send(frame)
 
         try:
-            xcpPDU = get(self.resQueue, timeout=2.0)
+            xcpPDU = get(self.resQueue, timeout=self.timeout)
         except Empty:
-            raise types.XcpTimeoutError("Response timed out.") from None
+            raise types.XcpTimeoutError("Response timed out (timeout={}s)".format(self.timeout)) from None
 
         self.timing.stop()
 
@@ -173,14 +178,16 @@ class BaseTransport(metaclass=abc.ABCMeta):
         """
         Prepares a request to be sent
         """
-        self.logger.debug(cmd.name)
+        if self._debug:
+            self.logger.debug(cmd.name)
         self.parent._setService(cmd)
         cmdlen = cmd.bit_length() // 8  # calculate bytes needed for cmd
         header = self.HEADER.pack(cmdlen + len(data), self.counterSend)
         self.counterSend = (self.counterSend + 1) & 0xffff
 
         frame = header + bytes(flatten(cmd.to_bytes(cmdlen, 'big'), data))
-        self.logger.debug("-> {}".format(hexDump(frame)))
+        if self._debug:
+            self.logger.debug("-> {}".format(hexDump(frame)))
         return frame
 
     def block_receive(self, length_required: int) -> bytes:
@@ -233,26 +240,28 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def processResponse(self, response, length, counter, recv_timestamp=None):
         if counter == self.counterReceived:
             self.logger.warn("Duplicate message counter {} received from the XCP slave".format(counter))
-            self.logger.debug(
-                "<- L{} C{} {}".format(
-                    length,
-                    counter,
-                    hexDump(response[:20]),
+            if self._debug:
+                self.logger.debug(
+                    "<- L{} C{} {}".format(
+                        length,
+                        counter,
+                        hexDump(response[:512]),
+                    )
                 )
-            )
             return
 
         self.counterReceived = counter
 
         pid = response[0]
         if pid >= 0xFC:
-            self.logger.debug(
-                "<- L{} C{} {}".format(
-                    length,
-                    counter,
-                    hexDump(response),
+            if self._debug:
+                self.logger.debug(
+                    "<- L{} C{} {}".format(
+                        length,
+                        counter,
+                        hexDump(response),
+                    )
                 )
-            )
             if pid >= 0xfe:
                 # self.resQueue.put(response)
                 self.resQueue.append(response)
@@ -264,6 +273,15 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 # self.servQueue.put(response)
                 self.servQueue.append(response)
         else:
+            if self._debug:
+                self.logger.debug(
+                    "<- L{} C{} ODT_Data[0:8] {}".format(
+                        length,
+                        counter,
+                        hexDump(response[:8]),
+                    )
+                )
+
             if self.first_daq_timestamp is None:
                 self.first_daq_timestamp = recv_timestamp
             if self.create_daq_timestamps:
