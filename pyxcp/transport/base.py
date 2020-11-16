@@ -27,10 +27,10 @@ import abc
 from collections import deque
 import threading
 from datetime import datetime
-from time import time, sleep
+from time import time, sleep, get_clock_info
 
 from ..logger import Logger
-from ..utils import flatten, hexDump
+from ..utils import flatten, hexDump, time_perfcounter_correlation
 
 import pyxcp.types as types
 from pyxcp.config import Configuration
@@ -102,7 +102,19 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
         self.first_daq_timestamp = None
 
-        self.datetime_origin, self.timestamp_origin = datetime.now(), time()
+        if time.get_clock_info('time') > 1e-5:
+            ts, pc = time_perfcounter_correlation()
+            self.timestamp_origin = ts
+            self.datetime_origin = datetime.fromtimestamp(ts)
+            self.perf_counter_origin = pc
+        else:
+            self.timestamp_origin  = time()
+            self.datetime_origin = datetime.fromtimestamp(self.timestamp_origin)
+
+            # we will later use this to know if the current platform has a high
+            # resolution time.time implementation
+            self.perf_counter_origin = -1
+
         self.pre_send_timestamp = time()
         self.post_send_timestamp = time()
         self.recv_timestamp = time()

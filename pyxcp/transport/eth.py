@@ -102,6 +102,10 @@ class Eth(BaseTransport):
         socket_fileno = self.sock.fileno
         select = self.selector.select
 
+        high_resolution_time = self.perf_counter_origin > 0
+        timestamp_origin = self.timestamp_origin
+        perf_counter_origin = self.perf_counter_origin
+
         if use_tcp:
             sock_recv = self.sock.recv
         else:
@@ -114,7 +118,10 @@ class Eth(BaseTransport):
                 sel = select(0.1)
                 for _, events in sel:
                     if events & EVENT_READ:
-                        recv_timestamp = time()
+                        if high_resolution_time:
+                            recv_timestamp = time()
+                        else:
+                            recv_timestamp = timestamp_origin + perf_counter() - perf_counter_origin
                         if use_tcp:
 
                             # first try to get the header in one go
@@ -182,9 +189,16 @@ class Eth(BaseTransport):
                 break
 
     def send(self, frame):
-        self.pre_send_timestamp = time()
-        self.sock.send(frame)
-        self.post_send_timestamp = time()
+        if self.perf_counter_origin > 0:
+            self.pre_send_timestamp = time()
+            self.sock.send(frame)
+            self.post_send_timestamp = time()
+        else:
+            pre_send_timestamp = perf_counter()
+            self.sock.send(frame)
+            post_send_timestamp = perf_counter()
+            self.pre_send_timestamp = self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
+            self.post_send_timestamp = self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
 
     def closeConnection(self):
         if not self.invalidSocket:
