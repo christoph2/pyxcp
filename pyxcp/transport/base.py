@@ -102,7 +102,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
         self.first_daq_timestamp = None
 
-        if get_clock_info('time') > 1e-5:
+        if get_clock_info('time').resolution > 1e-5:
             ts, pc = time_perfcounter_correlation()
             self.timestamp_origin = ts
             self.datetime_origin = datetime.fromtimestamp(ts)
