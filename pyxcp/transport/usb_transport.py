@@ -90,6 +90,10 @@ class Usb(BaseTransport):
         HEADER_UNPACK = self.HEADER.unpack
         HEADER_SIZE = self.HEADER_SIZE
 
+        high_resolution_time = self.perf_counter_origin > 0
+        timestamp_origin = self.timestamp_origin
+        perf_counter_origin = self.perf_counter_origin
+
         processResponse = self.processResponse
         close_event_set = self.closeEvent.isSet
 
@@ -104,7 +108,10 @@ class Usb(BaseTransport):
                     break
 
                 try:
-                    recv_timestamp = time()
+                    if high_resolution_time:
+                        recv_timestamp = time()
+                    else:
+                        recv_timestamp = timestamp_origin + perf_counter() - perf_counter_origin
                     read(header, 1)
                 except:
                     sleep(0.001)
@@ -122,9 +129,16 @@ class Usb(BaseTransport):
                 break
 
     def send(self, frame):
-        self.pre_send_timestamp = time()
-        self.command_endpoint.write(frame)
-        self.post_send_timestamp = time()
+        if self.perf_counter_origin > 0:
+            self.pre_send_timestamp = time()
+            self.command_endpoint.write(frame)
+            self.post_send_timestamp = time()
+        else:
+            pre_send_timestamp = perf_counter()
+            self.command_endpoint.write(frame)
+            post_send_timestamp = perf_counter()
+            self.pre_send_timestamp = self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
+            self.post_send_timestamp = self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
 
     def closeConnection(self):
         if self.device is not None:

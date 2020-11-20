@@ -29,6 +29,7 @@ import os
 import sys
 #import subprocess
 import threading
+from time import time, perf_counter, get_clock_info
 
 ##
 ##try:
@@ -115,6 +116,36 @@ else:
         from cStringIO import StringIO
     except ImportError:
         from StringIO import StringIO
+
+
+def time_perfcounter_correlation():
+    """ Get the `perf_counter` value nearest to when time.time() is updated if the `time.time` on
+    this platform has a resolution higher than 10us. This is tipical for the Windows platform
+    were the beste resolution is ~500us.
+
+    On non Windows platforms the current time and perf_counter is directly returned since the
+    resolution is tipical ~1us.
+
+    Note this value is based on when `time.time()` is observed to update from Python, it is not
+    directly returned by the operating system.
+
+    :return:
+        (t, performance_counter) time.time value and perf_counter value when the time.time
+        is updated
+
+    """
+
+    # use this if the resolution is higher than 10us
+    if get_clock_info("time").resolution > 1e-5:
+        t0 = time()
+        while True:
+            t1, performance_counter = time(), perf_counter()
+            if t1 != t0:
+                break
+    else:
+        return time(), perf_counter()
+    return t1, performance_counter
+
 
 
 ##
