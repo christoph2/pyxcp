@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Very basic hello-world example.
+"""User supplied CAN driver.
 """
 
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2020 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -31,7 +31,7 @@ from pyxcp.transport.can import CanInterfaceBase
 
 class MyCI(CanInterfaceBase):
 
-    def init(self, parent, master_id_with_ext: int, slave_id_with_ext: int, receive_callback):
+    def init(self, parent, receive_callback):
         self.parent = parent
 
     def connect(self):
@@ -46,12 +46,12 @@ class MyCI(CanInterfaceBase):
     def read(self):
         pass
 
-    def transmit(self, payload):
-        pass
+    def transmit(self, payload: bytes):
+        print("\tTX-PAYLOAD", payload)
 
 from pyxcp.cmdline import ArgumentParser
 
-ap = ArgumentParser(description = "Howto install a user supplied CAN driver.")
+ap = ArgumentParser(description = "User supplied CAN driver.")
 with ap.run() as x:
     x.connect()
     x.disconnect()

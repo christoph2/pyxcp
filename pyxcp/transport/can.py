@@ -230,7 +230,7 @@ class CanInterfaceBase(metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        payload: int
+        payload: bytes
             payload to transmit
         """
 
