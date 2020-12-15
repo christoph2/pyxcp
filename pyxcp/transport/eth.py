@@ -23,6 +23,7 @@ __copyright__ = """
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
+from collections import deque
 import selectors
 import socket
 import struct
