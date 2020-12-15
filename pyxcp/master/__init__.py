@@ -39,6 +39,6 @@ PRE35 = VERSION.major >= 3 and VERSION.minor < 5
 # We need some pre-3.5 fixes, e.g. flatten() function.
 
 if PRE35:
-    from pyxcp.master.pre35 import Master
+    from .pre35 import Master
 else:
-    from pyxcp.master.py35 import Master
+    from .py35 import Master

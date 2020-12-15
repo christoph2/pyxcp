@@ -85,17 +85,25 @@ class Eth(BaseTransport):
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.sock.settimeout(0.5)
 
+        self._packet_listener = threading.Thread(
+            target=self._packet_listen,
+            args=(),
+            kwargs={},
+        )
+        self._packets = deque()
+
     def connect(self):
         if self.status == 0:
             self.sock.connect(self.sockaddr)
             self.startListener()
             self.status = 1  # connected
 
-    def listen(self):
-        HEADER_UNPACK = self.HEADER.unpack
-        HEADER_SIZE = self.HEADER_SIZE
+    def startListener(self):
+        self._packet_listener.start()
+        self.listener.start()
+
+    def _packet_listen(self):
         use_tcp = self.use_tcp
-        processResponse = self.processResponse
         EVENT_READ = selectors.EVENT_READ
 
         close_event_set = self.closeEvent.isSet
@@ -106,6 +114,8 @@ class Eth(BaseTransport):
         timestamp_origin = self.timestamp_origin
         perf_counter_origin = self.perf_counter_origin
 
+        _packets = self._packets
+
         if use_tcp:
             sock_recv = self.sock.recv
         else:
@@ -115,78 +125,77 @@ class Eth(BaseTransport):
             try:
                 if close_event_set() or socket_fileno() == -1:
                     return
-                sel = select(0.1)
+                sel = select(0.02)
                 for _, events in sel:
                     if events & EVENT_READ:
                         if high_resolution_time:
                             recv_timestamp = time()
                         else:
                             recv_timestamp = timestamp_origin + perf_counter() - perf_counter_origin
+
                         if use_tcp:
-
-                            # first try to get the header in one go
-                            # if we are lucky this will avoid creating a
-                            # bytearray and extending it
-                            header = sock_recv(HEADER_SIZE)
-                            size = len(header)
-                            if size != HEADER_SIZE:
-
-                                start = perf_counter()
-
-                                header = bytearray(header)
-
-                                while len(header) != HEADER_SIZE:
-                                    header.extend(
-                                        sock_recv(HEADER_SIZE - len(header))
-                                    )
-                                    if perf_counter() - start > 2:
-                                        raise types.XcpTimeoutError("Eth frame header read timed out.") from None
-
-                            length, counter = HEADER_UNPACK(header)
-
-                            try:
-                                # first try to get the response in one go
-                                # similar to the header
-                                response = sock_recv(length)
-                                size = len(response)
-
-                                if size != length:
-
-                                    start = perf_counter()
-
-                                    response = bytearray(response)
-                                    while len(response) != length:
-                                        response.extend(
-                                            sock_recv(length - len(response))
-                                        )
-
-                                        if perf_counter() - start > 2:
-                                            raise types.XcpTimeoutError("Eth frame payload read timed out.") from None
-
-                            except Exception as e:
-                                self.logger.error(str(e))
-                                continue
+                            _packets.append((sock_recv(RECV_SIZE), recv_timestamp))
                         else:
-                            try:
-                                response, _ = sock_recv(
-                                    Eth.MAX_DATAGRAM_SIZE
-                                )
-                                length, counter = HEADER_UNPACK(
-                                    response[:HEADER_SIZE]
-                                )
-                                response = response[HEADER_SIZE:]
-
-                                if len(response) != length:
-                                    raise types.FrameSizeError("Size mismatch.")
-
-                            except Exception as e:
-                                self.logger.error(str(e))
-                                continue
-
-                        processResponse(response, length, counter, recv_timestamp)
-            except Exception:
+                            response, _ = sock_recv(Eth.MAX_DATAGRAM_SIZE)
+                            _packets.append((response, recv_timestamp))
+            except:
                 self.status = 0  # disconnected
                 break
+
+    def listen(self):
+        HEADER_UNPACK_FROM = self.HEADER.unpack_from
+        HEADER_SIZE = self.HEADER_SIZE
+        processResponse = self.processResponse
+        popleft = self._packets.popleft
+
+        close_event_set = self.closeEvent.isSet
+        socket_fileno = self.sock.fileno
+
+        _packets = self._packets
+        length, counter = None, None
+
+        data = b''
+
+        while True:
+            if close_event_set() or socket_fileno() == -1:
+                return
+
+            count = len(_packets)
+
+            if not count:
+                sleep(0.002)
+                continue
+
+            for _ in range(count):
+                bts, timestamp = popleft()
+
+                data += bts
+                current_size = len(data)
+                current_position = 0
+
+                while True:
+                    if length is None:
+                        if current_size >= HEADER_SIZE:
+                            length, counter = HEADER_UNPACK_FROM(data, current_position)
+                            current_position += HEADER_SIZE
+                            current_size -= HEADER_SIZE
+                        else:
+                            data = data[current_position:]
+                            break
+                    else:
+                        if current_size >= length:
+                            response = data[current_position: current_position + length]
+                            processResponse(response, length, counter, timestamp)
+
+                            current_size -= length
+                            current_position += length
+
+                            length = None
+
+                        else:
+
+                            data = data[current_position:]
+                            break
 
     def send(self, frame):
         if self.perf_counter_origin > 0:
