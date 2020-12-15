@@ -27,13 +27,14 @@ from collections import deque
 import selectors
 import socket
 import struct
-from time import perf_counter, time
+from time import perf_counter, time, sleep
 import threading
 
 from pyxcp.transport.base import BaseTransport
 import pyxcp.types as types
 
 DEFAULT_XCP_PORT = 5555
+RECV_SIZE = 8196
 
 
 class Eth(BaseTransport):
