@@ -27,6 +27,7 @@ import selectors
 import socket
 import struct
 from time import perf_counter, time
+import threading
 
 from pyxcp.transport.base import BaseTransport
 import pyxcp.types as types
