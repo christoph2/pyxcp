@@ -386,7 +386,7 @@ def wrapped(func):
     """
     @functools.wraps(func)
     def inner(*args, **kwargs):
-        handle_errors = os.environ.get("PYXCP_HANDLE_ERRORS")
+        handle_errors = os.environ.get("PYXCP_HANDLE_ERRORS", True)
         if handle_errors:
             inst = args[0] # First parameter is 'self'.
             arguments = Arguments(args[ 1 : ], kwargs)
