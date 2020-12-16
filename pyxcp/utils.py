@@ -47,7 +47,10 @@ from binascii import hexlify
 def hexDump(arr):
     if isinstance(arr, (bytes, bytearray)):
         size = len(arr)
-        arr = arr.hex()
+        try:
+            arr = arr.hex()
+        except:
+            arr = hexlify(arr).decode('ascii')
         return "[{}]".format(' '.join([arr[i*2: (i+1)*2] for i in range(size)]))
     elif isinstance(arr, (list, tuple)):
         arr = bytes(arr)
