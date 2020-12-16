@@ -387,12 +387,14 @@ def wrapped(func):
     @functools.wraps(func)
     def inner(*args, **kwargs):
         handle_errors = os.environ.get("PYXCP_HANDLE_ERRORS", True)
+        if handle_errors in (False, "False", "false"):
+            handle_errors = False
         if handle_errors:
             inst = args[0] # First parameter is 'self'.
             arguments = Arguments(args[ 1 : ], kwargs)
             executor = Executor()
             res = executor(inst, func, arguments)
         else:
-            res = func
+            res = func(*args, **kwargs)
         return res
     return inner
