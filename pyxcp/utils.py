@@ -30,6 +30,7 @@ import sys
 #import subprocess
 import threading
 from time import time, perf_counter, get_clock_info
+from binascii import hexlify
 
 ##
 ##try:
@@ -46,12 +47,18 @@ from time import time, perf_counter, get_clock_info
 def hexDump(arr):
     if isinstance(arr, (bytes, bytearray)):
         size = len(arr)
-        arr = arr.hex()
+        try:
+            arr = arr.hex()
+        except:
+            arr = hexlify(arr).decode('ascii')
         return "[{}]".format(' '.join([arr[i*2: (i+1)*2] for i in range(size)]))
     elif isinstance(arr, (list, tuple)):
         arr = bytes(arr)
         size = len(arr)
-        arr = arr.hex()
+        try:
+            arr = arr.hex()
+        except:
+            arr = hexlify(arr).decode('ascii')
         return "[{}]".format(' '.join([arr[i*2: (i+1)*2] for i in range(size)]))
     else:
         return "[{}]".format(' '.join(["{:02x}".format(x) for x in arr]))
