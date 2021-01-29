@@ -187,7 +187,7 @@ class Eth(BaseTransport):
                             break
                     else:
                         if current_size >= length:
-                            response = data[current_position: current_position + length]
+                            response = memoryview(data[current_position: current_position + length])
                             processResponse(response, length, counter, timestamp)
 
                             current_size -= length
