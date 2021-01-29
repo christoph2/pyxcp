@@ -4,7 +4,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2021 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -157,7 +157,7 @@ class Eth(BaseTransport):
         _packets = self._packets
         length, counter = None, None
 
-        data = b''
+        data = bytearray(b'')
 
         while True:
             if close_event_set() or socket_fileno() == -1:
