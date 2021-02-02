@@ -43,8 +43,7 @@ class Empty(Exception):
 
 
 def get(q, timeout):
-    """Get an item from a deque considering a timeout condition.
-    """
+    """Get an item from a deque considering a timeout condition."""
     start = time()
     while not q:
         if time() - start > timeout:
@@ -69,9 +68,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     PARAMETER_MAP = {
         #                         Type    Req'd   Default
-        "CREATE_DAQ_TIMESTAMPS": (bool,   False,  False),
-        "LOGLEVEL":              (str,    False,  "WARN"),
-        "TIMEOUT":               (float,  False,  2.0),
+        "CREATE_DAQ_TIMESTAMPS": (bool, False, False),
+        "LOGLEVEL": (str, False, "WARN"),
+        "TIMEOUT": (float, False, 2.0),
     }
 
     def __init__(self, config=None):
@@ -102,13 +101,13 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
         self.first_daq_timestamp = None
 
-        if get_clock_info('time').resolution > 1e-5:
+        if get_clock_info("time").resolution > 1e-5:
             ts, pc = time_perfcounter_correlation()
             self.timestamp_origin = ts
             self.datetime_origin = datetime.fromtimestamp(ts)
             self.perf_counter_origin = pc
         else:
-            self.timestamp_origin  = time()
+            self.timestamp_origin = time()
             self.datetime_origin = datetime.fromtimestamp(self.timestamp_origin)
 
             # we will later use this to know if the current platform has a high
@@ -124,13 +123,11 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.closeConnection()
 
     def loadConfig(self, config):
-        """Load configuration data.
-        """
+        """Load configuration data."""
         self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
 
     def close(self):
-        """Close the transport-layer connection and event-loop.
-        """
+        """Close the transport-layer connection and event-loop."""
         self.finishListener()
         if self.listener.is_alive():
             self.listener.join()
@@ -160,11 +157,11 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.timing.stop()
 
         pid = types.Response.parse(xcpPDU).type
-        if pid == 'ERR' and cmd.name != 'SYNCH':
+        if pid == "ERR" and cmd.name != "SYNCH":
             err = types.XcpError.parse(xcpPDU[1:])
             raise types.XcpResponseError(err)
         else:
-            pass    # Und nu??
+            pass  # Und nu??
         return xcpPDU[1:]
 
     def block_request(self, cmd, *data):
@@ -179,7 +176,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         if self.resQueue:
             xcpPDU = self.resQueue.popleft()
             pid = types.Response.parse(xcpPDU).type
-            if pid == 'ERR' and cmd.name != 'SYNCH':
+            if pid == "ERR" and cmd.name != "SYNCH":
                 err = types.XcpError.parse(xcpPDU[1:])
                 raise types.XcpResponseError(err)
 
@@ -195,9 +192,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.parent._setService(cmd)
         cmdlen = cmd.bit_length() // 8  # calculate bytes needed for cmd
         header = self.HEADER.pack(cmdlen + len(data), self.counterSend)
-        self.counterSend = (self.counterSend + 1) & 0xffff
+        self.counterSend = (self.counterSend + 1) & 0xFFFF
 
-        frame = header + bytes(flatten(cmd.to_bytes(cmdlen, 'big'), data))
+        frame = header + bytes(flatten(cmd.to_bytes(cmdlen, "big"), data))
         if self._debug:
             self.logger.debug("-> {}".format(hexDump(frame)))
         return frame
@@ -221,8 +218,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
         ------
         :class:`pyxcp.types.XcpTimeoutError`
         """
-        TIMEOUT = 1.0   # TODO: parameter.
-        block_response = b''
+        TIMEOUT = 1.0  # TODO: parameter.
+        block_response = b""
         start = time()
         while len(block_response) < length_required:
             if len(self.resQueue):
@@ -274,14 +271,14 @@ class BaseTransport(metaclass=abc.ABCMeta):
                         hexDump(response),
                     )
                 )
-            if pid >= 0xfe:
+            if pid >= 0xFE:
                 # self.resQueue.put(response)
                 self.resQueue.append(response)
                 self.recv_timestamp = recv_timestamp
-            elif pid == 0xfd:
+            elif pid == 0xFD:
                 # self.evQueue.put(response)
                 self.evQueue.append(response)
-            elif pid == 0xfc:
+            elif pid == 0xFC:
                 # self.servQueue.put(response)
                 self.servQueue.append(response)
         else:
@@ -316,9 +313,8 @@ def createTransport(name, *args, **kws):
     if name in transports:
         transportClass = transports[name]
     else:
-        raise ValueError("'{}' is an invalid transport -- please choose one of [{}].".format(name,
-                ' | '.join(transports.keys())
-            )
+        raise ValueError(
+            "'{}' is an invalid transport -- please choose one of [{}].".format(name, " | ".join(transports.keys()))
         )
     return transportClass(*args, **kws)
 

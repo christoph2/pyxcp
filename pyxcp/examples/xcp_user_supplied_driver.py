@@ -35,6 +35,7 @@ __copyright__ = """
 
 from pyxcp.transport.can import CanInterfaceBase
 
+
 class MyCI(CanInterfaceBase):
     """
 
@@ -44,6 +45,7 @@ class MyCI(CanInterfaceBase):
     CAN_DRIVER = "MyCI"     # The name of your custom driver class.
 
     """
+
     def init(self, parent, receive_callback):
         self.parent = parent
 
@@ -62,9 +64,10 @@ class MyCI(CanInterfaceBase):
     def transmit(self, payload: bytes):
         print("\tTX-PAYLOAD", payload)
 
+
 from pyxcp.cmdline import ArgumentParser
 
-ap = ArgumentParser(description = "User supplied CAN driver.")
+ap = ArgumentParser(description="User supplied CAN driver.")
 with ap.run() as x:
     x.connect()
     x.disconnect()
@@ -76,5 +79,3 @@ This do-nothing example will output
 
 and then timeout (0xff is the service code for CONNECT_REQ).
 """
-
-

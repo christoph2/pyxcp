@@ -38,8 +38,7 @@ NUMBER = re.compile(r"(?P<hex>0[x|X])?(?P<number>[0-9]+)", re.VERBOSE)
 
 
 class PythonCAN:
-    """
-    """
+    """"""
 
     def __init__(self, bustype):
         self.bustype = bustype
@@ -57,9 +56,9 @@ class PythonCAN:
         can_filter = {
             "can_id": can_id.id,
             "can_mask": can.MAX_29_BIT_IDENTIFIER if can_id.is_extended else can.MAX_11_BIT_IDENTIFIER,
-            "extended": can_id.is_extended
+            "extended": can_id.is_extended,
         }
-        self.bus = Bus(bustype = self.bustype, **self.kwargs)
+        self.bus = Bus(bustype=self.bustype, **self.kwargs)
         self.bus.set_filters([can_filter])
         self.parent.logger.debug("Python-CAN driver: {} - {}]".format(self.bustype, self.bus))
         self.connected = True
@@ -71,7 +70,7 @@ class PythonCAN:
             base = self.parent
         for param, arg in base.PARAMETER_TO_KW_ARG_MAP.items():
             value = base.config.get(param)
-            #if param == "CHANNEL":
+            # if param == "CHANNEL":
             #    value = self._handle_channel(value)
             self.kwargs[arg] = value
 
@@ -89,8 +88,9 @@ class PythonCAN:
 
     def transmit(self, payload):
         frame = Message(
-                arbitration_id = self.parent.can_id_slave.id, is_extended_id = True
-                if self.parent.can_id_slave.is_extended else False, data = payload
+            arbitration_id=self.parent.can_id_slave.id,
+            is_extended_id=True if self.parent.can_id_slave.is_extended else False,
+            data=payload,
         )
         self.bus.send(frame)
 
@@ -103,11 +103,10 @@ class PythonCAN:
             return None
         else:
             if frame is None:
-                return None # Timeout condition.
+                return None  # Timeout condition.
             extended = frame.is_extended_id
             identifier = can.Identifier.make_identifier(frame.arbitration_id, extended)
-            return can.Frame(id_ = identifier, dlc = frame.dlc, data = frame.data, timestamp = frame.timestamp)
+            return can.Frame(id_=identifier, dlc=frame.dlc, data=frame.data, timestamp=frame.timestamp)
 
     def getTimestampResolution(self):
         return 10 * 1000
-

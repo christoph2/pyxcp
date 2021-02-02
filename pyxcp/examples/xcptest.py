@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-__copyright__="""
+__copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
    (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
@@ -34,8 +34,9 @@ from pyxcp.dllif import getKey
 from pyxcp.master import Master
 from pyxcp.utils import hexDump
 
+
 def test():
-    xm = Master(transport.Eth('localhost', connected = False))
+    xm = Master(transport.Eth("localhost", connected=False))
     xm.connect()
 
     print("calpag ?", xm.supportsCalpag)
@@ -49,21 +50,20 @@ def test():
 
     result = xm.getID(0x04)
     print(result)
-    #xm.upload(result.length)
+    # xm.upload(result.length)
 
     #    unlock(xm, 4)
-    #length, seed = xm.getSeed(0x7ba, 0, 4)
-    #print("SEED: ", hexDump(seed), flush = True)
-    #_, kee = skloader.getKey(b"SeedNKeyXcp.dll", 4, seed)
-    #print("KEE:", kee)
-    #print(xm.unlock(0x7a, len(kee), kee))
-
+    # length, seed = xm.getSeed(0x7ba, 0, 4)
+    # print("SEED: ", hexDump(seed), flush = True)
+    # _, kee = skloader.getKey(b"SeedNKeyXcp.dll", 4, seed)
+    # print("KEE:", kee)
+    # print(xm.unlock(0x7a, len(kee), kee))
 
     print("DAQ_PROC_INFO: ", xm.getDaqProcessorInfo())
 
     print("TIMESTAMP: {:04X}".format(xm.getDaqClock()))
 
-    #print("readDAQ:", xm.readDaq())
+    # print("readDAQ:", xm.readDaq())
 
     print("daqResolutionInfo", xm.getDaqResolutionInfo())
 
@@ -75,17 +75,17 @@ def test():
         data = xm.upload(eci.eventChannelNameLength)
         print("EventChannelName:", data.decode("latin1"))
 
-    #print("GetDAQListInfo", xm.getDaqListInfo(0))
+    # print("GetDAQListInfo", xm.getDaqListInfo(0))
     xm.freeDaq()
     print("AllocDAQ:", xm.allocDaq(2))
 
     xm.setMta(0x1C0000)
     print("CS:", xm.buildChecksum(4742))
 
-#    unlock(xm, 1)
-#    verify(xm, 0x1C0000, 128)
+    #    unlock(xm, 1)
+    #    verify(xm, 0x1C0000, 128)
 
-    #print("PS:", xm.programStart()) # ERR_ACCESS_LOCKED
+    # print("PS:", xm.programStart()) # ERR_ACCESS_LOCKED
 
     xm.disconnect()
     xm.close()
@@ -93,74 +93,74 @@ def test():
 
 def timecode(ticks, mode):
     units = {
-        "DAQ_TIMESTAMP_UNIT_1PS"  : -12,
-        "DAQ_TIMESTAMP_UNIT_10PS" : -11,
+        "DAQ_TIMESTAMP_UNIT_1PS": -12,
+        "DAQ_TIMESTAMP_UNIT_10PS": -11,
         "DAQ_TIMESTAMP_UNIT_100PS": -10,
-        "DAQ_TIMESTAMP_UNIT_1NS"  : -9,
-        "DAQ_TIMESTAMP_UNIT_10NS" : -8,
+        "DAQ_TIMESTAMP_UNIT_1NS": -9,
+        "DAQ_TIMESTAMP_UNIT_10NS": -8,
         "DAQ_TIMESTAMP_UNIT_100NS": -7,
-        "DAQ_TIMESTAMP_UNIT_1US"  : -6,
-        "DAQ_TIMESTAMP_UNIT_10US" : -5,
+        "DAQ_TIMESTAMP_UNIT_1US": -6,
+        "DAQ_TIMESTAMP_UNIT_10US": -5,
         "DAQ_TIMESTAMP_UNIT_100US": -4,
-        "DAQ_TIMESTAMP_UNIT_1MS"  : -3,
-        "DAQ_TIMESTAMP_UNIT_10MS" : -2,
+        "DAQ_TIMESTAMP_UNIT_1MS": -3,
+        "DAQ_TIMESTAMP_UNIT_10MS": -2,
         "DAQ_TIMESTAMP_UNIT_100MS": -1,
-        "DAQ_TIMESTAMP_UNIT_1S"   : 0,
+        "DAQ_TIMESTAMP_UNIT_1S": 0,
     }
     return (10 ** units[mode.timestampMode.unit]) * mode.timestampTicks * ticks
 
 
 def cstest():
-    tr = transport.Eth('localhost', port= 5555, protocol = 'UDP', loglevel = "WARN")  # "DEBUG"
-    #tr = transport.SxI("COM27", 115200, loglevel = "WARN")
+    tr = transport.Eth("localhost", port=5555, protocol="UDP", loglevel="WARN")  # "DEBUG"
+    # tr = transport.SxI("COM27", 115200, loglevel = "WARN")
     with Master(tr) as xm:
-    #    tm = Timing()
+        #    tm = Timing()
 
         conn = xm.connect()
-        print(conn, flush = True)
+        print(conn, flush=True)
 
         print("calpag ?", xm.supportsCalpag)
         print("daq ?", xm.supportsDaq)
         print("pgm ?", xm.supportsPgm)
         print("stim ?", xm.supportsStim)
 
-        print(xm.getStatus(), flush = True)
+        print(xm.getStatus(), flush=True)
         xm.synch()
 
         if conn.commModeBasic.optional:
-            print(xm.getCommModeInfo(), flush = True)
+            print(xm.getCommModeInfo(), flush=True)
         else:
             print("No details on connection.")
 
         gid = xm.getID(0x1)
-        #gid = xm.getID(0xdb)
-        print("GET_ID:", gid, flush = True)
+        # gid = xm.getID(0xdb)
+        print("GET_ID:", gid, flush=True)
         result = xm.fetch(gid.length)
         print(result.decode("utf8"))
 
-#        bench(xm)
+        #        bench(xm)
 
-        #gid = xm.getID(0xdb)
-        #print("DB", gid)
-#        result = xm.upload()
-#        print("ID: '{}'".format(result.decode("utf8")))
+        # gid = xm.getID(0xdb)
+        # print("DB", gid)
+        #        result = xm.upload()
+        #        print("ID: '{}'".format(result.decode("utf8")))
 
-#        start = time.perf_counter()
-#        result = xm.fetch(gid.length, 252)
-#        stop = time.perf_counter()
-#        print("ETA: {:.2f} s - rate: {:.2f} kB/s".format(stop - start, (gid.length / (stop - start)) / 1000 ) )
+        #        start = time.perf_counter()
+        #        result = xm.fetch(gid.length, 252)
+        #        stop = time.perf_counter()
+        #        print("ETA: {:.2f} s - rate: {:.2f} kB/s".format(stop - start, (gid.length / (stop - start)) / 1000 ) )
 
-#        print("ID: '{}'".format(result.decode("utf8")))
+        #        print("ID: '{}'".format(result.decode("utf8")))
 
-        xm.setMta(0x0040c280)
+        xm.setMta(0x0040C280)
         bhv = xm.fetch(0x100, 16)
         print(bhv)
 
         resInfo = xm.getDaqResolutionInfo()
-        print(resInfo, flush = True)
+        print(resInfo, flush=True)
         xm.getDaqProcessorInfo()
 
-    #    print("CS:", xm.buildChecksum(4711))
+        #    print("CS:", xm.buildChecksum(4711))
 
         start = xm.getDaqClock()
         print("Timestamp / Start: {}".format(start))
@@ -173,65 +173,69 @@ def cstest():
             print(res)
         """
 
-
         startMeasurement(xm)
-    ##
-    ##    xm.freeDaq()
-    ##    print("AllocDAQ:", xm.allocDaq(2))
-    ##
-    ##    print("allocOdt", xm.allocOdt(1, 5))
-    ##    print("allocOdt", xm.allocOdt(0, 4))
-    ##    print("allocOdt", xm.allocOdt(1, 3))
-    ##
-    ##    print("allocOdt", xm.allocOdtEntry(1, 3, 5))
-    ##    print("allocOdt", xm.allocOdtEntry(0, 1, 2))
-    ##    print("allocOdt", xm.allocOdtEntry(0, 3, 6))
-    ##    print("allocOdt", xm.allocOdtEntry(1, 1, 5))
-    ##
+        ##
+        ##    xm.freeDaq()
+        ##    print("AllocDAQ:", xm.allocDaq(2))
+        ##
+        ##    print("allocOdt", xm.allocOdt(1, 5))
+        ##    print("allocOdt", xm.allocOdt(0, 4))
+        ##    print("allocOdt", xm.allocOdt(1, 3))
+        ##
+        ##    print("allocOdt", xm.allocOdtEntry(1, 3, 5))
+        ##    print("allocOdt", xm.allocOdtEntry(0, 1, 2))
+        ##    print("allocOdt", xm.allocOdtEntry(0, 3, 6))
+        ##    print("allocOdt", xm.allocOdtEntry(1, 1, 5))
+        ##
 
-        #xm.freeDaq()
+        # xm.freeDaq()
 
-    #    for _ in range(10):
-    #        tm.start()
-    #        time.sleep(0.250)
-    #        tm.stop()
-    #        stop = xm.getDaqClock()
-    #        print("trueValue: {}".format(timecode(stop - start, resInfo)))
-    #        print("Timestamp / Diff: {}".format(stop - start))
+        #    for _ in range(10):
+        #        tm.start()
+        #        time.sleep(0.250)
+        #        tm.stop()
+        #        stop = xm.getDaqClock()
+        #        print("trueValue: {}".format(timecode(stop - start, resInfo)))
+        #        print("Timestamp / Diff: {}".format(stop - start))
 
         print("Timer")
         print("=====")
-    #    print(tm)
+        #    print(tm)
 
-        print(xm.setMta(0x1C0000), flush = True)
-        #print(xm.setRequest(0x3, 1))
-        print(xm.disconnect(), flush = True)
-        #xm.close()
+        print(xm.setMta(0x1C0000), flush=True)
+        # print(xm.setRequest(0x3, 1))
+        print(xm.disconnect(), flush=True)
+        # xm.close()
         print("XCP roundtrip timing")
         print("=" * 20)
     for _ in range(tr.daqQueue.qsize()):
-        daq = tr.daqQueue.get(timeout = 1.0)
+        daq = tr.daqQueue.get(timeout=1.0)
         print(types.DAQ.parse(daq))
 
-    #dq = construct.Struct(
+    # dq = construct.Struct(
     #     "odt" / construct.Byte,
     #     "dl" / construct.Byte,
     #     "data" / construct.GreedyBytes,
-    #)
+    # )
 
-    #ev = tr.evQueue.get(timeout = 1.0)
-    #print(ev)
- #   print(tr.timing)
+    # ev = tr.evQueue.get(timeout = 1.0)
+    # print(ev)
+
+
+#   print(tr.timing)
 
 from collections import OrderedDict
 from pprint import pprint
-#import pandas as pd
+
+# import pandas as pd
+
 
 def bench(xm):
     import pandas as pd
+
     result = OrderedDict()
     for pn in range(8, 257, 8):
-    #for pn in range(8, 257, 32):
+        # for pn in range(8, 257, 32):
         result[pn] = list()
         for i in range(10):
             gid = xm.getID(0x4)
@@ -244,20 +248,20 @@ def bench(xm):
     df = pd.DataFrame(result)
     df.to_csv("payloads01.csv")
 
+
 # A2L linearizer
 
 
-
-
 DaqEntry = namedtuple("DaqEntry", "daq odt entry bitoff size ext addr")
+
 
 def startMeasurement(cl):
     print(cl.getDaqProcessorInfo())
     cl.freeDaq()
     cl.allocDaq(2)
 
-    #cl.allocOdt(1, 13)
-    #cl.allocOdt(0, 2)
+    # cl.allocOdt(1, 13)
+    # cl.allocOdt(0, 2)
 
     cl.allocOdt(0, 13)
     cl.allocOdt(1, 2)
@@ -280,16 +284,16 @@ def startMeasurement(cl):
     cl.allocOdtEntry(1, 1, 1)
 
     de0 = (
-        DaqEntry(daq=0, odt=0,  entry=0, bitoff=255, size=2, ext=0, addr=0x001BE068),
-        DaqEntry(daq=0, odt=1,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE06A),
-        DaqEntry(daq=0, odt=2,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE070),
-        DaqEntry(daq=0, odt=3,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE076),
-        DaqEntry(daq=0, odt=4,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE07C),
-        DaqEntry(daq=0, odt=5,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE082),
-        DaqEntry(daq=0, odt=6,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE088),
-        DaqEntry(daq=0, odt=7,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE08E),
-        DaqEntry(daq=0, odt=8,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE094),
-        DaqEntry(daq=0, odt=9,  entry=0, bitoff=255, size=6, ext=0, addr=0x001BE09A),
+        DaqEntry(daq=0, odt=0, entry=0, bitoff=255, size=2, ext=0, addr=0x001BE068),
+        DaqEntry(daq=0, odt=1, entry=0, bitoff=255, size=6, ext=0, addr=0x001BE06A),
+        DaqEntry(daq=0, odt=2, entry=0, bitoff=255, size=6, ext=0, addr=0x001BE070),
+        DaqEntry(daq=0, odt=3, entry=0, bitoff=255, size=6, ext=0, addr=0x001BE076),
+        DaqEntry(daq=0, odt=4, entry=0, bitoff=255, size=6, ext=0, addr=0x001BE07C),
+        DaqEntry(daq=0, odt=5, entry=0, bitoff=255, size=6, ext=0, addr=0x001BE082),
+        DaqEntry(daq=0, odt=6, entry=0, bitoff=255, size=6, ext=0, addr=0x001BE088),
+        DaqEntry(daq=0, odt=7, entry=0, bitoff=255, size=6, ext=0, addr=0x001BE08E),
+        DaqEntry(daq=0, odt=8, entry=0, bitoff=255, size=6, ext=0, addr=0x001BE094),
+        DaqEntry(daq=0, odt=9, entry=0, bitoff=255, size=6, ext=0, addr=0x001BE09A),
         DaqEntry(daq=0, odt=10, entry=0, bitoff=255, size=6, ext=0, addr=0x001BE0A0),
         DaqEntry(daq=0, odt=11, entry=0, bitoff=255, size=2, ext=0, addr=0x001BE0A6),
         DaqEntry(daq=0, odt=11, entry=1, bitoff=255, size=1, ext=0, addr=0x001BE0CF),
@@ -299,8 +303,8 @@ def startMeasurement(cl):
         DaqEntry(daq=0, odt=12, entry=2, bitoff=255, size=1, ext=0, addr=0x001BE269),
         DaqEntry(daq=0, odt=12, entry=3, bitoff=255, size=1, ext=0, addr=0x001BE5A3),
         DaqEntry(daq=0, odt=12, entry=4, bitoff=255, size=1, ext=0, addr=0x001C0003),
-        DaqEntry(daq=1, odt=0 , entry=0, bitoff=255, size=2, ext=0, addr=0x001C002C),
-        DaqEntry(daq=1, odt=1 , entry=0, bitoff=255, size=2, ext=0, addr=0x001C002E),
+        DaqEntry(daq=1, odt=0, entry=0, bitoff=255, size=2, ext=0, addr=0x001C002C),
+        DaqEntry(daq=1, odt=1, entry=0, bitoff=255, size=2, ext=0, addr=0x001C002E),
     )
     """
 -> CONNECT mode=0
@@ -586,7 +590,7 @@ Queue:
     """
 
     for daq, odt, entry, bitoff, size, ext, addr in de0:
-        cl.setDaqPtr(daq, odt,  entry)
+        cl.setDaqPtr(daq, odt, entry)
         cl.writeDaq(bitoff, size, ext, addr)
     """
     SET_DAQ_LIST_MODE mode=10h daq=0 event=1 prescaler=1 priority=1
@@ -597,9 +601,9 @@ Queue:
     GET_DAQ_CLOCK
     START_STOP_SYNCH mode=01h
     """
-    cl.setDaqListMode(0x10, 0, 1, 1, 0) # , 1)
+    cl.setDaqListMode(0x10, 0, 1, 1, 0)  # , 1)
     print("startStopDaqList #0", cl.startStopDaqList(0x02, 0))
-    cl.setDaqListMode(0x10, 1, 2, 1, 0) # , 2)
+    cl.setDaqListMode(0x10, 1, 2, 1, 0)  # , 2)
     print("startStopDaqList #1", cl.startStopDaqList(0x02, 1))
     cl.startStopSynch(0x01)
 
@@ -607,7 +611,8 @@ Queue:
 
     cl.startStopSynch(0x00)
 
-if __name__=='__main__':
+
+if __name__ == "__main__":
     cstest()
 
 """
@@ -678,4 +683,3 @@ GET_DAQ_CLOCK
 GET_DAQ_CLOCK
 START_STOP_SYNCH mode=01h
 """
-
