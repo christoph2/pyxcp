@@ -33,34 +33,34 @@ import sys
 
 
 CMD_GET_KEY = 0x20
-CMD_QUIT    = 0x30
+CMD_QUIT = 0x30
 
 
 class SeedNKeyResult(enum.IntEnum):
-    ACK                         = 0 # o.k.
-    ERR_PRIVILEGE_NOT_AVAILABLE = 1 # the requested privilege can not be unlocked with this DLL
-    ERR_INVALID_SEED_LENGTH     = 2 # the seed length is wrong, key could not be computed
-    ERR_UNSUFFICIENT_KEY_LENGTH = 3 # the space for the key is too small
+    ACK = 0  # o.k.
+    ERR_PRIVILEGE_NOT_AVAILABLE = 1  # the requested privilege can not be unlocked with this DLL
+    ERR_INVALID_SEED_LENGTH = 2  # the seed length is wrong, key could not be computed
+    ERR_UNSUFFICIENT_KEY_LENGTH = 3  # the space for the key is too small
 
-    ERR_COULD_NOT_LOAD_DLL      = 16
-    ERR_COULD_NOT_LOAD_FUNC     = 17
+    ERR_COULD_NOT_LOAD_DLL = 16
+    ERR_COULD_NOT_LOAD_FUNC = 17
 
 
 class SeedNKeyError(Exception):
-    """
-    """
+    """"""
+
 
 LOADER = "asamkeydll"
 
 bwidth, _ = platform.architecture()
 
-if sys.platform in ('win32', "linux"):
-    if bwidth == '64bit':
+if sys.platform in ("win32", "linux"):
+    if bwidth == "64bit":
         use_ctypes = False
-    elif  bwidth == '32bit':
+    elif bwidth == "32bit":
         use_ctypes = True
 else:
-  raise RuntimeError("Platform '{}' currently not supported.".format(sys.platform))
+    raise RuntimeError("Platform '{}' currently not supported.".format(sys.platform))
 
 
 def getKey(dllName, privilege, seed):
@@ -68,13 +68,23 @@ def getKey(dllName, privilege, seed):
         lib = ctypes.cdll.LoadLibrary(dllName)
         func = lib.XCP_ComputeKeyFromSeed
         func.restype = ctypes.c_uint32
-        func.argtypes = [ctypes.c_uint8, ctypes.c_uint8, ctypes.c_char_p, ctypes.POINTER(ctypes.c_uint8), ctypes.c_char_p]
-        kb = ctypes.create_string_buffer(b'\000' * 128)
+        func.argtypes = [
+            ctypes.c_uint8,
+            ctypes.c_uint8,
+            ctypes.c_char_p,
+            ctypes.POINTER(ctypes.c_uint8),
+            ctypes.c_char_p,
+        ]
+        kb = ctypes.create_string_buffer(b"\000" * 128)
         kl = ctypes.c_uint8(128)
         retCode = func(privilege, len(seed), ctypes.c_char_p(seed), ctypes.byref(kl), kb)
         return (retCode, kb.value)
     else:
-        p0 = subprocess.Popen([LOADER, dllName, str(privilege), binascii.hexlify(seed).decode("ascii")], stdout=subprocess.PIPE, shell = True)
+        p0 = subprocess.Popen(
+            [LOADER, dllName, str(privilege), binascii.hexlify(seed).decode("ascii")],
+            stdout=subprocess.PIPE,
+            shell=True,
+        )
         key = p0.stdout.read()
         res = re.split(b"\r?\n", key)
         returnCode = int(res[0])

@@ -5,7 +5,7 @@
 python-can driver for Systec interfaces.
 """
 
-__copyright__="""
+__copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
    (C) 2009-2020 by Christoph Schueler <cpu12.gems@googlemail.com>
@@ -35,23 +35,22 @@ import pyxcp.transport.candriver.python_can as python_can
 
 
 class Systec(python_can.PythonCAN, can.CanInterfaceBase):
-    """
-    """
+    """"""
 
     PARAMETER_MAP = {
         #                      Type    Req'd   Default
-        "DEVICE_NUMBER":       (int,   False,  255),
-        "RX_BUFFER_ENTRIES":   (int,   False,  4096),
-        "TX_BUFFER_ENTRIES":   (int,   False,  4096),
-        "STATE":               (str,   False,  "ACTIVE"),
+        "DEVICE_NUMBER": (int, False, 255),
+        "RX_BUFFER_ENTRIES": (int, False, 4096),
+        "TX_BUFFER_ENTRIES": (int, False, 4096),
+        "STATE": (str, False, "ACTIVE"),
     }
 
     PARAMETER_TO_KW_ARG_MAP = {
-        "DEVICE_NUMBER":                  "device_number",
-        "RX_BUFFER_ENTRIES":              "rx_buffer_entries",
-        "TX_BUFFER_ENTRIES":              "tx_buffer_entries",
-        "STATE":                          "state",
+        "DEVICE_NUMBER": "device_number",
+        "RX_BUFFER_ENTRIES": "rx_buffer_entries",
+        "TX_BUFFER_ENTRIES": "tx_buffer_entries",
+        "STATE": "state",
     }
 
     def __init__(self):
-        super(Systec, self).__init__(bustype = "systec")
+        super(Systec, self).__init__(bustype="systec")

@@ -27,12 +27,11 @@ __copyright__ = """
 """
 
 
-
 from pprint import pprint
 
 from pyxcp.cmdline import ArgumentParser
 
-ap = ArgumentParser(description = "pyXCP hello world.")
+ap = ArgumentParser(description="pyXCP hello world.")
 with ap.run() as x:
     x.connect()
     if x.slaveProperties.optionalCommMode:

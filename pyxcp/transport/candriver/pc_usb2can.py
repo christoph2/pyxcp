@@ -5,7 +5,7 @@
 python-can driver for 8devices USB2CAN interfaces.
 """
 
-__copyright__="""
+__copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
    (C) 2009-2020 by Christoph Schueler <cpu12.gems@googlemail.com>
@@ -35,16 +35,15 @@ import pyxcp.transport.candriver.python_can as python_can
 
 
 class Usb2Can(python_can.PythonCAN, can.CanInterfaceBase):
-    """
-    """
+    """"""
 
     PARAMETER_MAP = {
         #                           Type    Req'd   Default
-        "FLAGS":                    (int,   False,  0),
+        "FLAGS": (int, False, 0),
     }
 
     PARAMETER_TO_KW_ARG_MAP = {
-        "FLAGS":                    "flags",
+        "FLAGS": "flags",
     }
 
     """
@@ -55,4 +54,4 @@ class Usb2Can(python_can.PythonCAN, can.CanInterfaceBase):
     """
 
     def __init__(self):
-        super(Usb2Can, self).__init__(bustype = "usb2can")
+        super(Usb2Can, self).__init__(bustype="usb2can")

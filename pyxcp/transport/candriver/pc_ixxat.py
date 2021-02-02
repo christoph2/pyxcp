@@ -5,7 +5,7 @@
 python-can driver for Ixxat interfaces.
 """
 
-__copyright__="""
+__copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
    (C) 2009-2020 by Christoph Schueler <cpu12.gems@googlemail.com>
@@ -32,23 +32,22 @@ from can import Bus, CanError, Message
 import pyxcp.transport.can as can
 import pyxcp.transport.candriver.python_can as python_can
 
+
 class Ixxat(python_can.PythonCAN, can.CanInterfaceBase):
-    """
-    """
+    """"""
 
     PARAMETER_MAP = {
         #                           Type    Req'd   Default
-        "UNIQUE_HARDWARE_ID":       (str,    False,  None),
-        "RX_FIFO_SIZE":             (int,    False,  16),
-        "TX_FIFO_SIZE":             (int,    False,  16),
+        "UNIQUE_HARDWARE_ID": (str, False, None),
+        "RX_FIFO_SIZE": (int, False, 16),
+        "TX_FIFO_SIZE": (int, False, 16),
     }
 
     PARAMETER_TO_KW_ARG_MAP = {
-        "UNIQUE_HARDWARE_ID":     "UniqueHardwareId",
-        "RX_FIFO_SIZE":           "rxFifoSize",
-        "TX_FIFO_SIZE":           "txFifoSize",
+        "UNIQUE_HARDWARE_ID": "UniqueHardwareId",
+        "RX_FIFO_SIZE": "rxFifoSize",
+        "TX_FIFO_SIZE": "txFifoSize",
     }
 
-
     def __init__(self):
-        super(Ixxat, self).__init__(bustype = "ixxat")
+        super(Ixxat, self).__init__(bustype="ixxat")

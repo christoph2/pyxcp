@@ -36,16 +36,15 @@ import pyxcp.types as types
 
 
 class Usb(BaseTransport):
-    """
-    """
+    """"""
 
     PARAMETER_MAP = {
         #                            Type    Req'd   Default
-        "serial_number":             (str,    True,  ""),
-        "configuration_number":      (int,    True,  1),
-        "interface_number":          (int,    True,  2),
-        "command_endpoint_number":   (int,    True,  0),
-        "reply_endpoint_number":     (int,    True,  1),
+        "serial_number": (str, True, ""),
+        "configuration_number": (int, True, 1),
+        "interface_number": (int, True, 2),
+        "command_endpoint_number": (int, True, 0),
+        "reply_endpoint_number": (int, True, 1),
     }
     HEADER = struct.Struct("<2H")
     HEADER_SIZE = HEADER.size
@@ -65,11 +64,11 @@ class Usb(BaseTransport):
     def connect(self):
         for device in usb.core.find(find_all=True):
             try:
-                if device.serial_number.strip().strip('\0').lower() == self.serial_number.lower():
+                if device.serial_number.strip().strip("\0").lower() == self.serial_number.lower():
                     self.device = device
                     break
                 else:
-                    print(device.serial_number.strip().strip('\0').lower(), self.serial_number.lower())
+                    print(device.serial_number.strip().strip("\0").lower(), self.serial_number.lower())
             except:
                 continue
         else:
@@ -99,7 +98,7 @@ class Usb(BaseTransport):
 
         read = self.reply_endpoint.read
 
-        header = array('B', bytes(HEADER_SIZE))
+        header = array("B", bytes(HEADER_SIZE))
 
         while 1:
 
@@ -124,7 +123,7 @@ class Usb(BaseTransport):
                 processResponse(response, length, counter, recv_timestamp)
 
             except:
-                print('recv loop error', format_exc())
+                print("recv loop error", format_exc())
                 self.status = 0  # disconnected
                 break
 

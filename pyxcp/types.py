@@ -29,9 +29,27 @@ import enum
 import construct
 
 from construct import (
-    Struct, Enum, Padding, Int8ul, GreedyBytes, Byte, Int16ul, Int32ul,
-    BitStruct, BitsInteger, Flag, If, this, Int16ub, Int32ub, IfThenElse,
-    Int16sl, Int32sl, Int16sb, Int32sb)
+    Struct,
+    Enum,
+    Padding,
+    Int8ul,
+    GreedyBytes,
+    Byte,
+    Int16ul,
+    Int32ul,
+    BitStruct,
+    BitsInteger,
+    Flag,
+    If,
+    this,
+    Int16ub,
+    Int32ub,
+    IfThenElse,
+    Int16sl,
+    Int32sl,
+    Int16sb,
+    Int32sb,
+)
 
 
 if construct.version < (2, 8):
@@ -41,6 +59,7 @@ if construct.version < (2, 8):
 
 NumericType = (int, float)
 MtaType = namedtuple("MtaType", "address ext")
+
 
 class FrameSizeError(Exception):
     """
@@ -168,14 +187,13 @@ class Command(enum.IntEnum):
 
 
 class CommandCategory(enum.IntEnum):
-    """Values reflect resources (resource protection status / unlock).
-    """
-    STD     = 0
-    CAL_PAG = 1
-    DAQ     = 4
-    STIM    = 8
-    PGM     = 16
+    """Values reflect resources (resource protection status / unlock)."""
 
+    STD = 0
+    CAL_PAG = 1
+    DAQ = 4
+    STIM = 8
+    PGM = 16
 
 
 COMMAND_CATEGORIES = {  # Mainly needed to automatically UNLOCK.
@@ -195,13 +213,11 @@ COMMAND_CATEGORIES = {  # Mainly needed to automatically UNLOCK.
     Command.TRANSPORT_LAYER_CMD: CommandCategory.STD,
     Command.USER_CMD: CommandCategory.STD,
     Command.GET_VERSION: CommandCategory.STD,
-
     Command.DOWNLOAD: CommandCategory.CAL_PAG,
     Command.DOWNLOAD_NEXT: CommandCategory.CAL_PAG,
     Command.DOWNLOAD_MAX: CommandCategory.CAL_PAG,
     Command.SHORT_DOWNLOAD: CommandCategory.CAL_PAG,
     Command.MODIFY_BITS: CommandCategory.CAL_PAG,
-
     Command.SET_CAL_PAGE: CommandCategory.CAL_PAG,
     Command.GET_CAL_PAGE: CommandCategory.CAL_PAG,
     Command.GET_PAG_PROCESSOR_INFO: CommandCategory.CAL_PAG,
@@ -232,7 +248,6 @@ COMMAND_CATEGORIES = {  # Mainly needed to automatically UNLOCK.
     Command.ALLOC_DAQ: CommandCategory.DAQ,
     Command.ALLOC_ODT: CommandCategory.DAQ,
     Command.ALLOC_ODT_ENTRY: CommandCategory.DAQ,
-
     Command.PROGRAM_START: CommandCategory.PGM,
     Command.PROGRAM_CLEAR: CommandCategory.PGM,
     Command.PROGRAM: CommandCategory.PGM,
@@ -244,7 +259,6 @@ COMMAND_CATEGORIES = {  # Mainly needed to automatically UNLOCK.
     Command.PROGRAM_NEXT: CommandCategory.PGM,
     Command.PROGRAM_MAX: CommandCategory.PGM,
     Command.PROGRAM_VERIFY: CommandCategory.PGM,
-
     # Well... ?
     # TIME_CORRELATION_PROPERTIES
 }
@@ -252,16 +266,14 @@ COMMAND_CATEGORIES = {  # Mainly needed to automatically UNLOCK.
 XcpError = Enum(
     Int8ul,
     ERR_CMD_SYNCH=0x00,  # Command processor synchronization. S0
-
     ERR_CMD_BUSY=0x10,  # Command was not executed. S2
     ERR_DAQ_ACTIVE=0x11,  # Command rejected because DAQ is running. S2
     ERR_PGM_ACTIVE=0x12,  # Command rejected because PGM is running. S2
-
     ERR_CMD_UNKNOWN=0x20,  # Unknown command or not implemented optional
-                           # command. S2
+    # command. S2
     ERR_CMD_SYNTAX=0x21,  # Command syntax invalid. S2
     ERR_OUT_OF_RANGE=0x22,  # Command syntax valid but command parameter(s)
-                            # out of range. S2
+    # out of range. S2
     ERR_WRITE_PROTECTED=0x23,  # The memory location is write protected. S2
     ERR_ACCESS_DENIED=0x24,  # The memory location is not accessible. S2
     ERR_ACCESS_LOCKED=0x25,  # Access denied, Seed & Key is required. S2
@@ -270,26 +282,24 @@ XcpError = Enum(
     ERR_SEGMENT_NOT_VALID=0x28,  # Selected segment not valid. S2
     ERR_SEQUENCE=0x29,  # Sequence error. S2
     ERR_DAQ_CONFIG=0x2A,  # DAQ configuration not valid. S2
-
     ERR_MEMORY_OVERFLOW=0x30,  # Memory overflow error. S2
     ERR_GENERIC=0x31,  # Generic error. S2
     ERR_VERIFY=0x32,  # The slave internal program verify routine detects an
-                      # error. S3
-
+    # error. S3
     # NEW IN 1.1
     ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE=0x33,
     # Access to the requested resource is temporary not possible. S3
-
-    ERR_TIMEOUT=0xff,   # Used by errorhandler; not an offical errorcode.
+    ERR_TIMEOUT=0xFF,  # Used by errorhandler; not an offical errorcode.
 )
 
 Response = Struct(
-    "type" / Enum(
+    "type"
+    / Enum(
         Int8ul,
-        OK=0xff,
-        ERR=0xfe,
-        EV=0xfd,
-        SERV=0xfc,
+        OK=0xFF,
+        ERR=0xFE,
+        EV=0xFD,
+        SERV=0xFC,
     )
 )
 
@@ -317,19 +327,9 @@ RESOURCE_VALUES = {
     "calpag": 1,
 }
 
-AddressGranularity = Enum(
-    BitsInteger(2),
-    BYTE=0b00,
-    WORD=0b01,
-    DWORD=0b10,
-    RESERVED=0b11
-)
+AddressGranularity = Enum(BitsInteger(2), BYTE=0b00, WORD=0b01, DWORD=0b10, RESERVED=0b11)
 
-ByteOrder = Enum(
-    BitsInteger(1),
-    INTEL=0,
-    MOTOROLA=1
-)
+ByteOrder = Enum(BitsInteger(1), INTEL=0, MOTOROLA=1)
 
 # byte-order dependent types
 Int16u = IfThenElse(this._.byteOrder == ByteOrder.INTEL, Int16ul, Int16ub)
@@ -339,19 +339,16 @@ Int32s = IfThenElse(this._.byteOrder == ByteOrder.INTEL, Int32sl, Int32sb)
 
 CommModeBasic = BitStruct(
     "optional" / Flag,  # The OPTIONAL flag indicates whether additional
-                        # information on supported types of Communication mode
-                        # is available. The master can get that additional
-                        # information with GET_COMM_MODE_INFO
+    # information on supported types of Communication mode
+    # is available. The master can get that additional
+    # information with GET_COMM_MODE_INFO
     "slaveBlockMode" / Flag,
     Padding(3),
     "addressGranularity" / AddressGranularity,
-    "byteOrder" / ByteOrder
+    "byteOrder" / ByteOrder,
 )
 
-ConnectResponsePartial = Struct(
-    "resource" / ResourceType,
-    "commModeBasic" / CommModeBasic
-)
+ConnectResponsePartial = Struct("resource" / ResourceType, "commModeBasic" / CommModeBasic)
 
 ConnectResponse = Struct(
     "resource" / ResourceType,
@@ -359,7 +356,7 @@ ConnectResponse = Struct(
     "maxCto" / Int8ul,
     "maxDto" / Int16u,
     "protocolLayerVersion" / Int8ul,
-    "transportLayerVersion" / Int8ul
+    "transportLayerVersion" / Int8ul,
 )
 
 GetVersionResponse = Struct(
@@ -404,16 +401,10 @@ GetCommModeInfoResponse = Struct(
 )
 
 GetIDResponse = Struct(
-    "mode" / Int8ul,
-    Padding(2),
-    "length" / Int32u,
-    "identification" / If(this.mode == 1, Byte[this.length])
+    "mode" / Int8ul, Padding(2), "length" / Int32u, "identification" / If(this.mode == 1, Byte[this.length])
 )
 
-GetSeedResponse = Struct(
-    "length" / Int8ul,
-    "seed" / If(this.length > 0, Byte[this.length])
-)
+GetSeedResponse = Struct("length" / Int8ul, "seed" / If(this.length > 0, Byte[this.length]))
 
 SetRequestMode = BitStruct(
     Padding(4),
@@ -424,7 +415,8 @@ SetRequestMode = BitStruct(
 )
 
 BuildChecksumResponse = Struct(
-    "checksumType" / Enum(
+    "checksumType"
+    / Enum(
         Int8ul,
         XCP_NONE=0x00,
         XCP_ADD_11=0x01,
@@ -490,11 +482,7 @@ DaqProperties = BitStruct(
     "bitStimSupported" / Flag,
     "resumeSupported" / Flag,
     "prescalerSupported" / Flag,
-    "daqConfigType" / Enum(
-        BitsInteger(1),
-        STATIC  = 0b0,
-        DYNAMIC = 0b1
-    ),
+    "daqConfigType" / Enum(BitsInteger(1), STATIC=0b0, DYNAMIC=0b1),
 )
 
 GetDaqProcessorInfoResponse = Struct(
@@ -502,22 +490,26 @@ GetDaqProcessorInfoResponse = Struct(
     "maxDaq" / Int16u,
     "maxEventChannel" / Int16u,
     "minDaq" / Int8ul,
-    "daqKeyByte" / BitStruct(
-        "Identification_Field" / Enum(
+    "daqKeyByte"
+    / BitStruct(
+        "Identification_Field"
+        / Enum(
             BitsInteger(2),
             IDF_ABS_ODT_NUMBER=0b00,
             IDF_REL_ODT_NUMBER_ABS_DAQ_LIST_NUMBER_BYTE=0b01,
             IDF_REL_ODT_NUMBER_ABS_DAQ_LIST_NUMBER_WORD=0b10,
             IDF_REL_ODT_NUMBER_ABS_DAQ_LIST_NUMBER_WORD_ALIGNED=0b11,
         ),
-        "Address_Extension" / Enum(
+        "Address_Extension"
+        / Enum(
             BitsInteger(2),
             AE_DIFFERENT_WITHIN_ODT=0b00,
             AE_SAME_FOR_ALL_ODT=0b01,
             _NOT_ALLOWED=0b10,
             AE_SAME_FOR_ALL_DAQ=0b11,
         ),
-        "Optimisation_Type" / Enum(
+        "Optimisation_Type"
+        / Enum(
             BitsInteger(4),
             OM_DEFAULT=0b0000,
             OM_ODT_TYPE_16=0b0001,
@@ -529,17 +521,9 @@ GetDaqProcessorInfoResponse = Struct(
     ),
 )
 
-DAQ_DIRECTION = Enum(
-    BitsInteger(1),
-    DAQ=0,
-    STIM=1
-)
+DAQ_DIRECTION = Enum(BitsInteger(1), DAQ=0, STIM=1)
 
-PID_OFF = Enum(
-    BitsInteger(1),
-    DTO_WITH_ID_FIELD=0,
-    DTO_WITHOUT_ID_FIELD=1
-)
+PID_OFF = Enum(BitsInteger(1), DTO_WITH_ID_FIELD=0, DTO_WITHOUT_ID_FIELD=1)
 
 CurrentMode = BitStruct(
     "resume" / Flag,
@@ -560,47 +544,24 @@ GetDaqListModeResponse = Struct(
 )
 
 SetDaqListMode = BitStruct(
-    Padding(2),
-    "pid_off" / PID_OFF,
-    "enable_timestamp" / Flag,
-    Padding(2),
-    "direction" / DAQ_DIRECTION,
-    Padding(1)
+    Padding(2), "pid_off" / PID_OFF, "enable_timestamp" / Flag, Padding(2), "direction" / DAQ_DIRECTION, Padding(1)
 )
 
-DaqElement = Struct(
-    "bitOffset" / Int8ul,
-    "size" / Int8ul,
-    "address" / Int32u,
-    "addressExt" / Int8ul,
-    Padding(1)
-)
+DaqElement = Struct("bitOffset" / Int8ul, "size" / Int8ul, "address" / Int32u, "addressExt" / Int8ul, Padding(1))
 
 GetDaqClockResponse = Struct(
     Padding(3),
     "timestamp" / Int32u,
 )
 
-DaqPackedMode = Enum(
-    Int8ul,
-    NONE=0,
-    ELEMENT_GROUPED=1,
-    EVENT_GROUPED=2
-)
+DaqPackedMode = Enum(Int8ul, NONE=0, ELEMENT_GROUPED=1, EVENT_GROUPED=2)
 
 GetDaqPackedModeResponse = Struct(
     Padding(1),
     "daqPackedMode" / DaqPackedMode,
-    "dpmTimestampMode" / If(
-        (this.daqPackedMode == "ELEMENT_GROUPED")
-        | (this.daqPackedMode == "EVENT_GROUPED"),
-        Int8ul
-    ),
-    "dpmSampleCount" / If(
-        (this.daqPackedMode == "ELEMENT_GROUPED")
-        | (this.daqPackedMode == "EVENT_GROUPED"),
-        Int16u
-    )
+    "dpmTimestampMode"
+    / If((this.daqPackedMode == "ELEMENT_GROUPED") | (this.daqPackedMode == "EVENT_GROUPED"), Int8ul),
+    "dpmSampleCount" / If((this.daqPackedMode == "ELEMENT_GROUPED") | (this.daqPackedMode == "EVENT_GROUPED"), Int16u),
 )
 
 ReadDaqResponse = Struct(
@@ -624,7 +585,7 @@ DaqTimestampUnit = Enum(
     DAQ_TIMESTAMP_UNIT_1S=0b1001,
     DAQ_TIMESTAMP_UNIT_1PS=0b1010,
     DAQ_TIMESTAMP_UNIT_10PS=0b1011,
-    DAQ_TIMESTAMP_UNIT_100PS=0b1100
+    DAQ_TIMESTAMP_UNIT_100PS=0b1100,
 )
 
 GetDaqResolutionInfoResponse = Struct(
@@ -632,10 +593,12 @@ GetDaqResolutionInfoResponse = Struct(
     "maxOdtEntrySizeDaq" / Int8ul,
     "granularityOdtEntrySizeStim" / Int8ul,
     "maxOdtEntrySizeStim" / Int8ul,
-    "timestampMode" / BitStruct(  # Int8ul,
+    "timestampMode"
+    / BitStruct(  # Int8ul,
         "unit" / DaqTimestampUnit,
         "fixed" / Flag,
-        "size" / Enum(
+        "size"
+        / Enum(
             BitsInteger(3),
             NO_TIME_STAMP=0b000,
             S1=0b001,
@@ -663,12 +626,11 @@ GetDaqListInfoResponse = Struct(
     "fixedEvent" / Int16u,
 )
 
-StartStopDaqListResponse = Struct(
-    "firstPid" / Int8ul
-)
+StartStopDaqListResponse = Struct("firstPid" / Int8ul)
 
 DaqEventProperties = BitStruct(
-    "consistency" / Enum(
+    "consistency"
+    / Enum(
         BitsInteger(2),
         CONSISTENCY_ODT=0b00,
         CONSISTENCY_DAQ=0b01,
@@ -679,7 +641,7 @@ DaqEventProperties = BitStruct(
     "packed" / Flag,
     "stim" / Flag,
     "daq" / Flag,
-    Padding(2)
+    Padding(2),
 )
 
 GetEventChannelInfoResponse = Struct(
@@ -687,20 +649,22 @@ GetEventChannelInfoResponse = Struct(
     "maxDaqList" / Int8ul,
     "eventChannelNameLength" / Int8ul,
     "eventChannelTimeCycle" / Int8ul,
-    "eventChannelTimeUnit" / Enum(Int8ul,
-        EVENT_CHANNEL_TIME_UNIT_1NS    = 0,
-        EVENT_CHANNEL_TIME_UNIT_10NS   = 1,
-        EVENT_CHANNEL_TIME_UNIT_100NS  = 2,
-        EVENT_CHANNEL_TIME_UNIT_1US    = 3,
-        EVENT_CHANNEL_TIME_UNIT_10US   = 4,
-        EVENT_CHANNEL_TIME_UNIT_100US  = 5,
-        EVENT_CHANNEL_TIME_UNIT_1MS    = 6,
-        EVENT_CHANNEL_TIME_UNIT_10MS   = 7,
-        EVENT_CHANNEL_TIME_UNIT_100MS  = 8,
-        EVENT_CHANNEL_TIME_UNIT_1S     = 9,
-        EVENT_CHANNEL_TIME_UNIT_1PS    = 10,
-        EVENT_CHANNEL_TIME_UNIT_10PS   = 11,
-        EVENT_CHANNEL_TIME_UNIT_100PS  = 12,
+    "eventChannelTimeUnit"
+    / Enum(
+        Int8ul,
+        EVENT_CHANNEL_TIME_UNIT_1NS=0,
+        EVENT_CHANNEL_TIME_UNIT_10NS=1,
+        EVENT_CHANNEL_TIME_UNIT_100NS=2,
+        EVENT_CHANNEL_TIME_UNIT_1US=3,
+        EVENT_CHANNEL_TIME_UNIT_10US=4,
+        EVENT_CHANNEL_TIME_UNIT_100US=5,
+        EVENT_CHANNEL_TIME_UNIT_1MS=6,
+        EVENT_CHANNEL_TIME_UNIT_10MS=7,
+        EVENT_CHANNEL_TIME_UNIT_100MS=8,
+        EVENT_CHANNEL_TIME_UNIT_1S=9,
+        EVENT_CHANNEL_TIME_UNIT_1PS=10,
+        EVENT_CHANNEL_TIME_UNIT_10PS=11,
+        EVENT_CHANNEL_TIME_UNIT_100PS=12,
     ),
     "eventChannelPriority" / Int8ul,
 )
@@ -713,20 +677,12 @@ DtoCtrProperties = BitStruct(
     "relatedEventPresent" / Flag,
     "stimModeFixed" / Flag,
     "daqModeFixed" / Flag,
-    "relatedEventFixed" / Flag
+    "relatedEventFixed" / Flag,
 )
 
-DtoCtrMode = BitStruct(
-    Padding(6),
-    "stimMode" / Flag,
-    "daqMode" / Flag
-)
+DtoCtrMode = BitStruct(Padding(6), "stimMode" / Flag, "daqMode" / Flag)
 
-DtoCtrPropertiesResponse = Struct(
-    "properties" / DtoCtrProperties,
-    "relatedEventChannel" / Int16u,
-    "mode" / DtoCtrMode
-)
+DtoCtrPropertiesResponse = Struct("properties" / DtoCtrProperties, "relatedEventChannel" / Int16u, "mode" / DtoCtrMode)
 
 CommModePgm = BitStruct(
     Padding(1),
@@ -753,13 +709,10 @@ PgmProperties = BitStruct(
     "compressionRequired" / Flag,
     "compressionSupported" / Flag,
     "functionalMode" / Flag,
-    "absoluteMode" / Flag
+    "absoluteMode" / Flag,
 )
 
-GetPgmProcessorInfoResponse = Struct(
-    "pgmProperties" / PgmProperties,
-    "maxSector" / Int8ul
-)
+GetPgmProcessorInfoResponse = Struct("pgmProperties" / PgmProperties, "maxSector" / Int8ul)
 
 GetSectorInfoResponseMode01 = Struct(
     "clearSequenceNumber" / Int8ul,
@@ -768,9 +721,7 @@ GetSectorInfoResponseMode01 = Struct(
     "sectorInfo" / Int32u,
 )
 
-GetSectorInfoResponseMode2 = Struct(
-    "sectorNameLength" / Int8ul
-)
+GetSectorInfoResponseMode2 = Struct("sectorNameLength" / Int8ul)
 
 TimeCorrelationPropertiesResponse = Struct(
     "slaveConfig" / Int8ul,
@@ -778,27 +729,28 @@ TimeCorrelationPropertiesResponse = Struct(
     "syncState" / Int8ul,
     "clockInfo" / Int8ul,
     Padding(1),
-    "clusterId" / Int16u
+    "clusterId" / Int16u,
 )
 
 DaqPtr = namedtuple("DaqPtr", "daqListNumber odtNumber odtEntryNumber")
 
 DAQ_TIMESTAMP_UNIT_TO_EXP = {
-    "DAQ_TIMESTAMP_UNIT_1PS"  : -12,
-    "DAQ_TIMESTAMP_UNIT_10PS" : -11,
+    "DAQ_TIMESTAMP_UNIT_1PS": -12,
+    "DAQ_TIMESTAMP_UNIT_10PS": -11,
     "DAQ_TIMESTAMP_UNIT_100PS": -10,
-    "DAQ_TIMESTAMP_UNIT_1NS"  : -9,
-    "DAQ_TIMESTAMP_UNIT_10NS" : -8,
+    "DAQ_TIMESTAMP_UNIT_1NS": -9,
+    "DAQ_TIMESTAMP_UNIT_10NS": -8,
     "DAQ_TIMESTAMP_UNIT_100NS": -7,
-    "DAQ_TIMESTAMP_UNIT_1US"  : -6,
-    "DAQ_TIMESTAMP_UNIT_10US" : -5,
+    "DAQ_TIMESTAMP_UNIT_1US": -6,
+    "DAQ_TIMESTAMP_UNIT_10US": -5,
     "DAQ_TIMESTAMP_UNIT_100US": -4,
-    "DAQ_TIMESTAMP_UNIT_1MS"  : -3,
-    "DAQ_TIMESTAMP_UNIT_10MS" : -2,
+    "DAQ_TIMESTAMP_UNIT_1MS": -3,
+    "DAQ_TIMESTAMP_UNIT_10MS": -2,
     "DAQ_TIMESTAMP_UNIT_100MS": -1,
-    "DAQ_TIMESTAMP_UNIT_1S"   : 0,
+    "DAQ_TIMESTAMP_UNIT_1S": 0,
 }
+
 
 class XcpGetSeedMode(enum.IntEnum):
     FIRST_PART = 0
-    REMAINING  = 1
+    REMAINING = 1

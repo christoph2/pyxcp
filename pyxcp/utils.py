@@ -27,7 +27,8 @@ import ctypes
 import mmap
 import os
 import sys
-#import subprocess
+
+# import subprocess
 import threading
 from time import time, perf_counter, get_clock_info
 from binascii import hexlify
@@ -50,33 +51,31 @@ def hexDump(arr):
         try:
             arr = arr.hex()
         except:
-            arr = hexlify(arr).decode('ascii')
-        return "[{}]".format(' '.join([arr[i*2: (i+1)*2] for i in range(size)]))
+            arr = hexlify(arr).decode("ascii")
+        return "[{}]".format(" ".join([arr[i * 2 : (i + 1) * 2] for i in range(size)]))
     elif isinstance(arr, (list, tuple)):
         arr = bytes(arr)
         size = len(arr)
         try:
             arr = arr.hex()
         except:
-            arr = hexlify(arr).decode('ascii')
-        return "[{}]".format(' '.join([arr[i*2: (i+1)*2] for i in range(size)]))
+            arr = hexlify(arr).decode("ascii")
+        return "[{}]".format(" ".join([arr[i * 2 : (i + 1) * 2] for i in range(size)]))
     else:
-        return "[{}]".format(' '.join(["{:02x}".format(x) for x in arr]))
+        return "[{}]".format(" ".join(["{:02x}".format(x) for x in arr]))
 
 
 def slicer(iterable, sliceLength, converter=None):
     if converter is None:
         converter = type(iterable)
     length = len(iterable)
-    return [
-        converter((iterable[item:item + sliceLength]))
-        for item in range(0, length, sliceLength)]
+    return [converter((iterable[item : item + sliceLength])) for item in range(0, length, sliceLength)]
 
 
 def flatten(*args):
     result = []
     for arg in list(args):
-        if hasattr(arg, '__iter__'):
+        if hasattr(arg, "__iter__"):
             result.extend(flatten(*arg))
         else:
             result.append(arg)
@@ -110,6 +109,7 @@ def flatten(*args):
 ##        return self.fun(*(self.pending + args), **kw)
 ##
 
+
 def getPythonVersion():
     return sys.version_info
 
@@ -126,7 +126,7 @@ else:
 
 
 def time_perfcounter_correlation():
-    """ Get the `perf_counter` value nearest to when time.time() is updated if the `time.time` on
+    """Get the `perf_counter` value nearest to when time.time() is updated if the `time.time` on
     this platform has a resolution higher than 10us. This is tipical for the Windows platform
     were the beste resolution is ~500us.
 
@@ -152,7 +152,6 @@ def time_perfcounter_correlation():
     else:
         return time(), perf_counter()
     return t1, performance_counter
-
 
 
 ##
