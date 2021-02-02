@@ -28,8 +28,4 @@ import sys
 from .eth import Eth
 from .sxi import SxI
 from .can import Can
-try:
-    from .usb_transport import Usb # ReadTheDocs fails on this.
-except ImportError:
-    pass
-
+from .usb_transport import Usb

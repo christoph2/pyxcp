@@ -11,6 +11,7 @@ requires = [
     "construct >= 2.9.0",
     "mako",
     "pyserial",
+    "pyusb",
     "toml"
 ]
 requires-python = ">= 3.4"
