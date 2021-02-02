@@ -1,4 +1,4 @@
 # -*- coding: utf-8 -*-
 """ pyxcp version module """
 
-__version__ = "0.14.1"
+__version__ = "0.14.2"
