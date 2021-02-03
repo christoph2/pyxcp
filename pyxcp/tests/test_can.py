@@ -1,10 +1,16 @@
 import pytest
 
 from pyxcp.transport.can import (
-    setDLC, calculateFilter, CAN_EXTENDED_ID,
-    isExtendedIdentifier, stripIdentifier,
-    Identifier, MAX_11_BIT_IDENTIFIER, MAX_29_BIT_IDENTIFIER,
-    IdentifierOutOfRangeError)
+    setDLC,
+    calculateFilter,
+    CAN_EXTENDED_ID,
+    isExtendedIdentifier,
+    stripIdentifier,
+    Identifier,
+    MAX_11_BIT_IDENTIFIER,
+    MAX_29_BIT_IDENTIFIER,
+    IdentifierOutOfRangeError,
+)
 
 
 def testSet0():
@@ -86,28 +92,48 @@ def testNegative():
 
 
 def testfilter1():
-    assert calculateFilter([0x101, 0x102, 0x103]) == (0x100, 0x7fc)
+    assert calculateFilter([0x101, 0x102, 0x103]) == (0x100, 0x7FC)
 
 
 def testfilter2():
-    assert calculateFilter([0x101, 0x102 | CAN_EXTENDED_ID, 0x103]) == (0x100, 0x1ffffffc)
+    assert calculateFilter([0x101, 0x102 | CAN_EXTENDED_ID, 0x103]) == (0x100, 0x1FFFFFFC)
 
 
 def testfilter3():
-    assert calculateFilter([0x1567 | CAN_EXTENDED_ID]) == (0x1567, 0x1fffffff)
+    assert calculateFilter([0x1567 | CAN_EXTENDED_ID]) == (0x1567, 0x1FFFFFFF)
 
 
 def testfilter4():
-    assert calculateFilter([
-        0x1560 | CAN_EXTENDED_ID, 0x1561, 0x1562, 0x1563,
-        0x1564, 0x1565, 0x1566, 0x1567, 0x1568, 0x1569, 0x156a, 0x156b,
-        0x156c, 0x156d, 0x1563, 0x156f]) == (0x1560, 0x1ffffff0)
+    assert (
+        calculateFilter(
+            [
+                0x1560 | CAN_EXTENDED_ID,
+                0x1561,
+                0x1562,
+                0x1563,
+                0x1564,
+                0x1565,
+                0x1566,
+                0x1567,
+                0x1568,
+                0x1569,
+                0x156A,
+                0x156B,
+                0x156C,
+                0x156D,
+                0x1563,
+                0x156F,
+            ]
+        )
+        == (0x1560, 0x1FFFFFF0)
+    )
 
 
 def testfilter5():
-    assert calculateFilter([
-        0x1560 | CAN_EXTENDED_ID, 0x1561, 0x1562, 0x1563,
-        0x1564, 0x1565, 0x1566, 0x1567]) == (0x1560, 0x1ffffff8)
+    assert calculateFilter([0x1560 | CAN_EXTENDED_ID, 0x1561, 0x1562, 0x1563, 0x1564, 0x1565, 0x1566, 0x1567]) == (
+        0x1560,
+        0x1FFFFFF8,
+    )
 
 
 def testIsExtendedIdentifier1():

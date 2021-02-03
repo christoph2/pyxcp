@@ -45,8 +45,8 @@ MAX_29_BIT_IDENTIFIER = (1 << 29) - 1
 
 
 class IdentifierOutOfRangeError(Exception):
-    """Signals an identifier greater then :obj:`MAX_11_BIT_IDENTIFIER` or :obj:`MAX_29_BIT_IDENTIFIER`.
-    """
+    """Signals an identifier greater then :obj:`MAX_11_BIT_IDENTIFIER` or :obj:`MAX_29_BIT_IDENTIFIER`."""
+
     pass
 
 
@@ -111,7 +111,7 @@ class Identifier:
     :class:`IdentifierOutOfRangeError`
     """
 
-    def __init__ (self, raw_id: int):
+    def __init__(self, raw_id: int):
         self._raw_id = raw_id
         self._id = stripIdentifier(raw_id)
         self._is_extended = isExtendedIdentifier(raw_id)
@@ -179,16 +179,16 @@ class Identifier:
     def __eq__(self, other):
         return (self.id == other.id) and (self.is_extended == other.is_extended)
 
-    def __str__ (self):
+    def __str__(self):
         return "Identifier(id = 0x{:08x}, is_extended = {})".format(self.id, self.is_extended)
 
-    def __repr__ (self):
+    def __repr__(self):
         return "Identifier(0x{:08x})".format(self.raw_id)
 
 
 class Frame:
-    """
-    """
+    """"""
+
     def __init__(self, id_: Identifier, dlc: int, data: bytes, timestamp: int):
         self.id = id_
         self.dlc = dlc
@@ -196,7 +196,9 @@ class Frame:
         self.timestamp = timestamp
 
     def __repr__(self):
-        return "Frame(id = 0x{:08x}, dlc = {}, data = {}, timestamp = {})".format(self.id, self.dlc, self.data, self.timestamp)
+        return "Frame(id = 0x{:08x}, dlc = {}, data = {}, timestamp = {})".format(
+            self.id, self.dlc, self.data, self.timestamp
+        )
 
     __str__ = __repr__
 
@@ -206,9 +208,7 @@ class CanInterfaceBase(metaclass=abc.ABCMeta):
     Abstract CAN interface handler that can be implemented for any actual CAN device driver
     """
 
-    PARAMETER_MAP = {
-
-    }
+    PARAMETER_MAP = {}
 
     @abc.abstractmethod
     def init(self, parent, receive_callback):
@@ -248,49 +248,46 @@ class CanInterfaceBase(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def getTimestampResolution(self):
-        """Get timestamp resolution in nano seconds.
-        """
+        """Get timestamp resolution in nano seconds."""
 
     def loadConfig(self, config):
-        """Load configuration data.
-        """
+        """Load configuration data."""
         self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
 
 
 class EmptyHeader:
     """ There is no header for XCP on CAN  """
+
     def pack(self, *args, **kwargs):
-        return b''
+        return b""
 
 
 # can.detect_available_configs()
 
 
 class Can(BaseTransport):
-    """
-
-    """
+    """"""
 
     PARAMETER_MAP = {
         #                           Type            Req'd   Default
-        "CAN_DRIVER":               (str,           True,   None),
-        "CHANNEL":                  (str,           False,  ""),
-        "MAX_DLC_REQUIRED":         (bool,          False,  False),
-        "CAN_USE_DEFAULT_LISTENER": (bool,          False,  True),
-            # defaults to True, in this case the default listener thread is used.
-            # If the canInterface implements a listener service, this parameter
-            # can be set to False, and the default listener thread won't be started.
-        "CAN_ID_MASTER":            (int,           True,   None),
-        "CAN_ID_SLAVE":             (int,           True,   None),
-        "CAN_ID_BROADCAST":         (int,           False,  None),
-        "BITRATE":                  (int,           False,  250000),
-        "RECEIVE_OWN_MESSAGES":     (bool,          False,  False),
+        "CAN_DRIVER": (str, True, None),
+        "CHANNEL": (str, False, ""),
+        "MAX_DLC_REQUIRED": (bool, False, False),
+        "CAN_USE_DEFAULT_LISTENER": (bool, False, True),
+        # defaults to True, in this case the default listener thread is used.
+        # If the canInterface implements a listener service, this parameter
+        # can be set to False, and the default listener thread won't be started.
+        "CAN_ID_MASTER": (int, True, None),
+        "CAN_ID_SLAVE": (int, True, None),
+        "CAN_ID_BROADCAST": (int, False, None),
+        "BITRATE": (int, False, 250000),
+        "RECEIVE_OWN_MESSAGES": (bool, False, False),
     }
 
     PARAMETER_TO_KW_ARG_MAP = {
-        "RECEIVE_OWN_MESSAGES":     "receive_own_messages",
-        "CHANNEL":                  "channel",
-        "BITRATE":                  "bitrate",
+        "RECEIVE_OWN_MESSAGES": "receive_own_messages",
+        "CHANNEL": "channel",
+        "BITRATE": "bitrate",
     }
 
     MAX_DATAGRAM_SIZE = 7
@@ -306,9 +303,9 @@ class Can(BaseTransport):
         drivers = registered_drivers()
         interfaceName = self.config.get("CAN_DRIVER")
         if not interfaceName in drivers:
-            raise ValueError("{} is an invalid driver name -- choose from {}".format(
-                interfaceName, [x for x in drivers.keys()])
-                )
+            raise ValueError(
+                "{} is an invalid driver name -- choose from {}".format(interfaceName, [x for x in drivers.keys()])
+            )
         canInterfaceClass = drivers[interfaceName]
         self.canInterface = canInterfaceClass()
         self.useDefaultListener = self.config.get("CAN_USE_DEFAULT_LISTENER")
@@ -319,7 +316,7 @@ class Can(BaseTransport):
         self.canInterface.loadConfig(config)
 
     def dataReceived(self, payload: bytes, recv_timestamp: float = None):
-        self.processResponse(payload, len(payload), counter=self.counterReceived+1, recv_timestamp=recv_timestamp)
+        self.processResponse(payload, len(payload), counter=self.counterReceived + 1, recv_timestamp=recv_timestamp)
 
     def listen(self):
         while True:
@@ -340,7 +337,7 @@ class Can(BaseTransport):
         if self.max_dlc_required:
             # append fill bytes up to MAX DLC (=8)
             if len(frame) < 8:
-                frame += b'\x00' * (8 - len(frame))
+                frame += b"\x00" * (8 - len(frame))
         # send the request
         if self.perf_counter_origin > 0:
             self.pre_send_timestamp = time()
@@ -389,13 +386,12 @@ def calculateFilter(ids: list):
     raw_ids = [stripIdentifier(i) for i in ids]
     cfilter = functools.reduce(operator.and_, raw_ids)
     cmask = functools.reduce(operator.or_, raw_ids) ^ cfilter
-    cmask ^= 0x1FFFFFFF if any_extended_ids else 0x7ff
+    cmask ^= 0x1FFFFFFF if any_extended_ids else 0x7FF
     return (cfilter, cmask)
 
 
 def try_to_install_system_supplied_drivers():
-    """Register available pyxcp CAN drivers.
-    """
+    """Register available pyxcp CAN drivers."""
     import importlib
     import pkgutil
     import pyxcp.transport.candriver as cdr
@@ -405,6 +401,7 @@ def try_to_install_system_supplied_drivers():
             importlib.import_module(modname)
         except Exception as e:
             pass
+
 
 def registered_drivers():
     """

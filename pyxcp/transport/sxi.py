@@ -33,17 +33,15 @@ import pyxcp.types as types
 
 
 class SxI(BaseTransport):
-    """
-
-    """
+    """"""
 
     PARAMETER_MAP = {
         #                        Type    Req'd   Default
-        "PORT":                 (str,    False,  "COM1"),
-        "BITRATE":             (int,    False,  38400),
-        "BYTESIZE":             (int,    False,  8),
-        "PARITY":               (str,    False,  "N"),
-        "STOPBITS":             (int,    False,  1),
+        "PORT": (str, False, "COM1"),
+        "BITRATE": (int, False, 38400),
+        "BYTESIZE": (int, False, 8),
+        "PARITY": (str, False, "N"),
+        "STOPBITS": (int, False, 1),
     }
 
     MAX_DATAGRAM_SIZE = 512
@@ -62,16 +60,13 @@ class SxI(BaseTransport):
 
     def connect(self):
 
-        self.logger.debug(
-            "Trying to open serial commPort {}.".format(self.portName))
+        self.logger.debug("Trying to open serial commPort {}.".format(self.portName))
         try:
-            self.commPort = serial.Serial(
-                self.portName, self.baudrate, timeout=SxI.TIMEOUT)
+            self.commPort = serial.Serial(self.portName, self.baudrate, timeout=SxI.TIMEOUT)
         except serial.SerialException as e:
             self.logger.error("{}".format(e))
             raise
-        self.logger.info("Serial commPort openend as '{}' @ {} Bits/Sec.".format(
-            self.commPort.portstr, self.baudrate))
+        self.logger.info("Serial commPort openend as '{}' @ {} Bits/Sec.".format(self.commPort.portstr, self.baudrate))
         self.startListener()
 
     def output(self, enable):
@@ -99,8 +94,7 @@ class SxI(BaseTransport):
                 recv_timestamp = time()
             else:
                 recv_timestamp = timestamp_origin + perf_counter() - perf_counter_origin
-            length, counter = self.HEADER.unpack(
-                self.commPort.read(self.HEADER_SIZE))
+            length, counter = self.HEADER.unpack(self.commPort.read(self.HEADER_SIZE))
 
             response = self.commPort.read(length)
             self.timing.stop()

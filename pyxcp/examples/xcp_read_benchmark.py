@@ -40,7 +40,7 @@ ADDR = 0x4000
 LENGTH = 0x1000
 ITERATIONS = 100
 
-ap = ArgumentParser(description = "pyXCP hello world.")
+ap = ArgumentParser(description="pyXCP hello world.")
 with ap.run() as x:
     xs = []
     ys = []

@@ -38,16 +38,15 @@ RECV_SIZE = 8196
 
 
 class Eth(BaseTransport):
-    """
-    """
+    """"""
 
     PARAMETER_MAP = {
         #                  Type    Req'd   Default
-        "HOST":           (str,    False,  "localhost"),
-        "PORT":           (int,    False,  5555),
-        "PROTOCOL":       (str,    False,  "TCP"),
-        "IPV6":           (bool,   False,  False),
-        "TCP_NODELAY":    (bool,   False,  False),
+        "HOST": (str, False, "localhost"),
+        "PORT": (int, False, 5555),
+        "PROTOCOL": (str, False, "TCP"),
+        "IPV6": (bool, False, False),
+        "TCP_NODELAY": (bool, False, False),
     }
 
     MAX_DATAGRAM_SIZE = 512
@@ -66,21 +65,17 @@ class Eth(BaseTransport):
         if self.ipv6 and not socket.has_ipv6:
             raise RuntimeError("IPv6 not supported by your platform.")
         else:
-           address_family = socket.AF_INET6 if self.ipv6 else socket.AF_INET
-        proto = socket.SOCK_STREAM if self.protocol == 'TCP' else socket.SOCK_DGRAM
+            address_family = socket.AF_INET6 if self.ipv6 else socket.AF_INET
+        proto = socket.SOCK_STREAM if self.protocol == "TCP" else socket.SOCK_DGRAM
         if self.host.lower() == "localhost":
             self.host = "::1" if self.ipv6 else "localhost"
         addrinfo = socket.getaddrinfo(self.host, self.port, address_family, proto)
         (self.address_family, self.socktype, self.proto, self.canonname, self.sockaddr) = addrinfo[0]
         self.status = 0
-        self.sock = socket.socket(
-            self.address_family,
-            self.socktype,
-            self.proto
-        )
+        self.sock = socket.socket(self.address_family, self.socktype, self.proto)
         self.selector = selectors.DefaultSelector()
         self.selector.register(self.sock, selectors.EVENT_READ)
-        self.use_tcp = (self.protocol == 'TCP')
+        self.use_tcp = self.protocol == "TCP"
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if self.use_tcp and self.use_tcp_no_delay:
             self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -157,7 +152,7 @@ class Eth(BaseTransport):
         _packets = self._packets
         length, counter = None, None
 
-        data = bytearray(b'')
+        data = bytearray(b"")
 
         while True:
             if close_event_set() or socket_fileno() == -1:
@@ -187,7 +182,7 @@ class Eth(BaseTransport):
                             break
                     else:
                         if current_size >= length:
-                            response = memoryview(data[current_position: current_position + length])
+                            response = memoryview(data[current_position : current_position + length])
                             processResponse(response, length, counter, timestamp)
 
                             current_size -= length
@@ -221,4 +216,4 @@ class Eth(BaseTransport):
 
     @property
     def invalidSocket(self):
-        return not hasattr(self, 'sock') or self.sock.fileno() == -1
+        return not hasattr(self, "sock") or self.sock.fileno() == -1

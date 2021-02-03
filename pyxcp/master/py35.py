@@ -35,8 +35,7 @@ class Master(MasterBaseType):
     def shortDownload(self, address, addressExt, data):
         length = len(data)
         addr = self.DWORD_pack(address)
-        response = self.transport.request(
-            types.Command.SHORT_DOWNLOAD, length, 0, addressExt, *addr, *data)
+        response = self.transport.request(types.Command.SHORT_DOWNLOAD, length, 0, addressExt, *addr, *data)
         return response
 
     @wrapped
@@ -44,38 +43,31 @@ class Master(MasterBaseType):
         # A = ( (A) & ((~((dword)(((word)~MA)<<S))) )^((dword)(MX<<S)) )
         am = self.WORD_pack(andMask)
         xm = self.WORD_pack(xorMask)
-        response = self.transport.request(
-            types.Command.MODIFY_BITS, shiftValue, *am, *xm)
+        response = self.transport.request(types.Command.MODIFY_BITS, shiftValue, *am, *xm)
         return response
 
     @wrapped
     def setDaqPtr(self, daqListNumber, odtNumber, odtEntryNumber):
-        self.currentDaqPtr = types.DaqPtr(daqListNumber, odtNumber, odtEntryNumber) # Needed for errorhandling.
+        self.currentDaqPtr = types.DaqPtr(daqListNumber, odtNumber, odtEntryNumber)  # Needed for errorhandling.
         daqList = self.WORD_pack(daqListNumber)
-        response = self.transport.request(
-            types.Command.SET_DAQ_PTR, 0, *daqList, odtNumber, odtEntryNumber)
+        response = self.transport.request(types.Command.SET_DAQ_PTR, 0, *daqList, odtNumber, odtEntryNumber)
         return response
 
     @wrapped
-    def setDaqListMode(self, mode, daqListNumber, eventChannelNumber,
-                       prescaler, priority):
+    def setDaqListMode(self, mode, daqListNumber, eventChannelNumber, prescaler, priority):
         dln = self.WORD_pack(daqListNumber)
         ecn = self.WORD_pack(eventChannelNumber)
-        response = self.transport.request(
-            types.Command.SET_DAQ_LIST_MODE,
-            mode, *dln, *ecn, prescaler, priority)
+        response = self.transport.request(types.Command.SET_DAQ_LIST_MODE, mode, *dln, *ecn, prescaler, priority)
         return response
 
     @wrapped
     def allocOdt(self, daqListNumber, odtCount):
         dln = self.WORD_pack(daqListNumber)
-        response = self.transport.request(
-            types.Command.ALLOC_ODT, 0, *dln, odtCount)
+        response = self.transport.request(types.Command.ALLOC_ODT, 0, *dln, odtCount)
         return response
 
     @wrapped
     def allocOdtEntry(self, daqListNumber, odtNumber, odtEntriesCount):
         dln = self.WORD_pack(daqListNumber)
-        response = self.transport.request(
-            types.Command.ALLOC_ODT_ENTRY, 0, *dln, odtNumber, odtEntriesCount)
+        response = self.transport.request(types.Command.ALLOC_ODT_ENTRY, 0, *dln, odtNumber, odtEntriesCount)
         return response

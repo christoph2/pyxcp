@@ -48,10 +48,10 @@ class SingletonBase(object):
 
     def __new__(cls, *args, **kws):
         # Double-Checked Locking
-        if not hasattr(cls, '_instance'):
+        if not hasattr(cls, "_instance"):
             try:
                 cls._lock.acquire()
-                if not hasattr(cls, '_instance'):
+                if not hasattr(cls, "_instance"):
                     cls._instance = super(SingletonBase, cls).__new__(cls)
             finally:
                 cls._lock.release()
@@ -60,37 +60,38 @@ class SingletonBase(object):
 
 Function = namedtuple("Function", "fun arguments")  # store: var | load: var
 
+
 class InternalError(Exception):
-    """Indicates an internal error, like invalid service.
-    """
+    """Indicates an internal error, like invalid service."""
+
 
 class UnhandledError(Exception):
-    """
-    """
+    """"""
+
 
 class UnrecoverableError(Exception):
-    """
-    """
+    """"""
+
 
 def func_name(func):
     return func.__qualname__ if func is not None else None
 
+
 def getErrorHandler(service):
-    """
-    """
+    """"""
     return ERROR_MATRIX.get(service)
 
+
 def getTimeoutHandler(service):
-    """
-    """
+    """"""
     handler = getErrorHandler(service)
     if handler is None:
         raise InternalError("Invalid Service")
     return handler.get(XcpError.ERR_TIMEOUT)
 
+
 def getActions(service, error_code):
-    """
-    """
+    """"""
     error_str = str(error_code)
     if error_code == XcpError.ERR_TIMEOUT:
         preActions, actions = getTimeoutHandler(service)
@@ -105,9 +106,9 @@ def getActions(service, error_code):
         preActions, actions = handler
     return preActions, actions
 
+
 def actionIter(actions):
-    """Iterate over action from :file:`errormatrix.py`
-    """
+    """Iterate over action from :file:`errormatrix.py`"""
     if isinstance(actions, (tuple, list)):
         for item in actions:
             yield item
@@ -125,12 +126,13 @@ class Arguments:
         kwargs: dict
             Keyword arguments.
     """
-    def __init__(self, args = None, kwargs = {}):
+
+    def __init__(self, args=None, kwargs={}):
         if args is None:
             self.args = []
         else:
-            if not hasattr(args, '__iter__'):
-                self.args = args,
+            if not hasattr(args, "__iter__"):
+                self.args = (args,)
             else:
                 self.args = tuple(args)
         self.kwargs = kwargs
@@ -140,8 +142,8 @@ class Arguments:
         return res
 
     def __eq__(self, other):
-        return ((self.args   == other.args if other is not None else ())
-            and (self.kwargs == other.kwargs if other is not None else {})
+        return (self.args == other.args if other is not None else ()) and (
+            self.kwargs == other.kwargs if other is not None else {}
         )
 
     __repr__ = __str__
@@ -158,9 +160,10 @@ class Repeater:
                 - REPEAT_2_TIMES (two times)
                 - REPEAT_INF_TIMES ("forever")
     """
-    REPEAT          = 1
-    REPEAT_2_TIMES  = 2
-    INFINITE        = -1
+
+    REPEAT = 1
+    REPEAT_2_TIMES = 2
+    INFINITE = -1
 
     def __init__(self, initial_value: int):
         self._counter = initial_value
@@ -172,7 +175,7 @@ class Repeater:
         -------
             bool
         """
-        #print("\t\tCOUNTER:", self._counter)
+        # print("\t\tCOUNTER:", self._counter)
         if self._counter == Repeater.INFINITE:
             return True
         elif self._counter > 0:
@@ -191,16 +194,15 @@ def display_error():
 
 
 class Handler:
-    """
-    """
+    """"""
 
     logger = Logger(__name__)
 
-    def __init__(self, instance, func, arguments, error_code = None):
+    def __init__(self, instance, func, arguments, error_code=None):
         self.instance = instance
         if hasattr(func, "__closure__") and func.__closure__:
-            self.func = func.__closure__[0].cell_contents   # Use original, undecorated function to prevent
-                                                            # nasty recursion problems.
+            self.func = func.__closure__[0].cell_contents  # Use original, undecorated function to prevent
+            # nasty recursion problems.
         else:
             self.func = func
         self.arguments = arguments
@@ -223,8 +225,7 @@ class Handler:
             return self.func(self.instance, *self.arguments.args, **self.arguments.kwargs)
 
     def actions(self, preActions, actions):
-        """Preprocess errorhandling pre-actions and actions.
-        """
+        """Preprocess errorhandling pre-actions and actions."""
         result_pre_actions = []
         result_actions = []
         repetitionCount = 0
@@ -232,7 +233,7 @@ class Handler:
             if item == PreAction.NONE:
                 pass
             elif item == PreAction.WAIT_T7:
-                time.sleep(0.02)   # Completely arbitrary for now.
+                time.sleep(0.02)  # Completely arbitrary for now.
             elif item == PreAction.SYNCH:
                 fn = Function(self.instance.synch, Arguments())
                 result_pre_actions.append(fn)
@@ -270,7 +271,7 @@ class Handler:
             elif item == Action.USE_A2L:
                 raise UnhandledError("Could not proceed due to unhandled error.")
             elif item == Action.USE_ALTERATIVE:
-                raise UnhandledError("Could not proceed due to unhandled error.") # TODO: check alternatives.
+                raise UnhandledError("Could not proceed due to unhandled error.")  # TODO: check alternatives.
             elif item == Action.REPEAT:
                 repetitionCount = Repeater.REPEAT
             elif item == Action.REPEAT_2_TIMES:
@@ -289,8 +290,7 @@ class Handler:
 
 
 class HandlerStack:
-    """
-    """
+    """"""
 
     def __init__(self):
         self._stack = []
@@ -327,8 +327,7 @@ class HandlerStack:
 
 
 class Executor(SingletonBase):
-    """
-    """
+    """"""
 
     handlerStack = HandlerStack()
     repeater = None
@@ -362,10 +361,10 @@ class Executor(SingletonBase):
                 raise UnrecoverableError("Don't know how to handle exception '{}'".format(repr(e))) from e
             else:
                 self.error_code = None
-                #print("\t\t\t*** SUCCESS ***")
+                # print("\t\t\t*** SUCCESS ***")
                 self.handlerStack.pop()
                 if self.handlerStack.empty():
-                    #print("OK, all handlers passed: '{}'.".format(res))
+                    # print("OK, all handlers passed: '{}'.".format(res))
                     return res
             if self.error_code != None:
                 preActions, actions, repeater = handler.actions(*getActions(inst.service, self.error_code))
@@ -381,20 +380,22 @@ class Executor(SingletonBase):
                 else:
                     raise UnrecoverableError("Finish for now.")
 
+
 def wrapped(func):
-    """This decorator is XCP error-handling enabled.
-    """
+    """This decorator is XCP error-handling enabled."""
+
     @functools.wraps(func)
     def inner(*args, **kwargs):
         handle_errors = os.environ.get("PYXCP_HANDLE_ERRORS", True)
         if handle_errors in (False, "False", "false"):
             handle_errors = False
         if handle_errors:
-            inst = args[0] # First parameter is 'self'.
-            arguments = Arguments(args[ 1 : ], kwargs)
+            inst = args[0]  # First parameter is 'self'.
+            arguments = Arguments(args[1:], kwargs)
             executor = Executor()
             res = executor(inst, func, arguments)
         else:
             res = func(*args, **kwargs)
         return res
+
     return inner
