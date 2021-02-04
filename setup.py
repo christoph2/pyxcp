@@ -3,9 +3,7 @@
 import distutils
 import os
 import platform
-from setuptools import command, find_packages, setup
-from setuptools.command.build_py import build_py
-from setuptools.command.develop import develop
+import setuptools, setuptools.command.build_py, setuptools.command.develop
 import subprocess
 import sys
 
@@ -62,19 +60,19 @@ class AsamKeyDllAutogen(distutils.cmd.Command):
                 print("Successfully  build pyxcp/asamkeydll.exe")
 
 
-class CustomBuildPy(command.build_py.build_py):
+class CustomBuildPy(setuptools.command.build_py.build_py):
     def run(self):
         self.run_command("asamkeydll")
         super().run()
 
 
-class CustomDevelop(command.develop.develop):
+class CustomDevelop(setuptools.command.develop.develop):
     def run(self):
         self.run_command("asamkeydll")
         super().run()
 
 
-setup(
+setuptools.setup(
     name="pyxcp",
     version=version,
     provides=["pyxcp"],
@@ -84,7 +82,7 @@ setup(
     author="Christoph Schueler",
     author_email="cpu12.gems@googlemail.com",
     url="https://github.com/christoph2/pyxcp",
-    packages=find_packages(),
+    packages=setuptools.find_packages(),
     cmdclass={
         "asamkeydll": AsamKeyDllAutogen,
         "build_py": CustomBuildPy,
@@ -113,9 +111,9 @@ setup(
         "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        "Programming Language :: Python :: 3.4",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
 )

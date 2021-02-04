@@ -14,7 +14,7 @@ requires = [
     "pyusb",
     "toml"
 ]
-requires-python = ">= 3.4"
+requires-python = ">= 3.6"
 description-file = "README.md"
 # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
 classifiers = [
@@ -34,10 +34,10 @@ classifiers = [
 
     # Specify the Python versions you support here. In particular, ensure
     # that you indicate whether you support Python 2, Python 3 or both.
-    "Programming Language :: Python :: 3.4",
-    "Programming Language :: Python :: 3.5",
     "Programming Language :: Python :: 3.6",
-    "Programming Language :: Python :: 3.7"
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9"
 ]
 license = "GPLv2"
 keywords = "automotive ecu xcp asam autosar"
