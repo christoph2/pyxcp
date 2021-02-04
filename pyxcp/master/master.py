@@ -61,7 +61,7 @@ class SlaveProperties(dict):
         self[name] = value
 
 
-class MasterBaseType:
+class Master:
     """Common part of lowlevel XCP API.
 
     Parameters
@@ -72,14 +72,14 @@ class MasterBaseType:
     """
 
     PARAMETER_MAP = {
-        #                         Type    Req'd   Default
+        #            Type Req'd  Default
         "LOGLEVEL": (str, False, "WARN"),
     }
 
     def __init__(self, transportName, config=None):
         self.ctr = 0
         self.succeeded = True
-        self.config = Configuration(MasterBaseType.PARAMETER_MAP or {}, config or {})
+        self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
         self.logger = logging.getLogger("pyXCP")
         self.logger.setLevel(self.config.get("LOGLEVEL"))
         self.transport = createTransport(transportName, config)
@@ -669,6 +669,21 @@ class MasterBaseType:
         response = self.transport.request(types.Command.DOWNLOAD_MAX, *data)
         return response
 
+    @wrapped
+    def shortDownload(self, address, addressExt, data):
+        length = len(data)
+        addr = self.DWORD_pack(address)
+        response = self.transport.request(types.Command.SHORT_DOWNLOAD, length, 0, addressExt, *addr, *data)
+        return response
+
+    @wrapped
+    def modifyBits(self, shiftValue, andMask, xorMask):
+        # A = ( (A) & ((~((dword)(((word)~MA)<<S))) )^((dword)(MX<<S)) )
+        am = self.WORD_pack(andMask)
+        xm = self.WORD_pack(xorMask)
+        response = self.transport.request(types.Command.MODIFY_BITS, shiftValue, *am, *xm)
+        return response
+
     # Page Switching Commands (PAG)
     @wrapped
     def setCalPage(self, mode: int, logicalDataSegment: int, logicalDataPage: int):
@@ -801,6 +816,14 @@ class MasterBaseType:
         return response
 
     # DAQ
+
+    @wrapped
+    def setDaqPtr(self, daqListNumber, odtNumber, odtEntryNumber):
+        self.currentDaqPtr = types.DaqPtr(daqListNumber, odtNumber, odtEntryNumber)  # Needed for errorhandling.
+        daqList = self.WORD_pack(daqListNumber)
+        response = self.transport.request(types.Command.SET_DAQ_PTR, 0, *daqList, odtNumber, odtEntryNumber)
+        return response
+
     @wrapped
     def clearDaqList(self, daqListNumber):
         """Clear DAQ list configuration.
@@ -828,6 +851,13 @@ class MasterBaseType:
         """
         addr = self.DWORD_pack(address)
         response = self.transport.request(types.Command.WRITE_DAQ, bitOffset, entrySize, addressExt, *addr)
+        return response
+
+    @wrapped
+    def setDaqListMode(self, mode, daqListNumber, eventChannelNumber, prescaler, priority):
+        dln = self.WORD_pack(daqListNumber)
+        ecn = self.WORD_pack(eventChannelNumber)
+        response = self.transport.request(types.Command.SET_DAQ_LIST_MODE, mode, *dln, *ecn, prescaler, priority)
         return response
 
     @wrapped
@@ -1051,6 +1081,18 @@ class MasterBaseType:
         """
         dq = self.WORD_pack(daqCount)
         response = self.transport.request(types.Command.ALLOC_DAQ, 0, *dq)
+        return response
+
+    @wrapped
+    def allocOdt(self, daqListNumber, odtCount):
+        dln = self.WORD_pack(daqListNumber)
+        response = self.transport.request(types.Command.ALLOC_ODT, 0, *dln, odtCount)
+        return response
+
+    @wrapped
+    def allocOdtEntry(self, daqListNumber, odtNumber, odtEntriesCount):
+        dln = self.WORD_pack(daqListNumber)
+        response = self.transport.request(types.Command.ALLOC_ODT_ENTRY, 0, *dln, odtNumber, odtEntriesCount)
         return response
 
     # PGM
