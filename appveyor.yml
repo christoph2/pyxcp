@@ -1,3 +1,5 @@
+image: Visual Studio 2019
+
 environment:
 
   matrix:
@@ -67,4 +69,3 @@ deploy:
   tag: $(APPVEYOR_REPO_TAG_NAME)
   draft: false
   prerelease: true
-
