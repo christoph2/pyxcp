@@ -12,7 +12,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2020 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2021 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -34,6 +34,7 @@ __copyright__ = """
 import logging
 import struct
 import traceback
+import warnings
 
 from pyxcp import checksum
 from pyxcp import types
@@ -1391,7 +1392,6 @@ class Master:
     def seedNKeyDLL(self, name):
         self._seedNKeyDLL = name
 
-
 def ticks_to_seconds(ticks, resolution):
     """Convert DAQ timestamp/tick value to seconds.
 
@@ -1401,4 +1401,31 @@ def ticks_to_seconds(ticks, resolution):
 
     unit: `GetDaqResolutionInfoResponse` as returned by :meth:`getDaqResolutionInfo`
     """
+    warnings.warn("ticks_to_seconds() deprecated, use factory :func:`make_tick_converter` instead.", Warning)
     return (10 ** types.DAQ_TIMESTAMP_UNIT_TO_EXP[resolution.timestampMode.unit]) * resolution.timestampTicks * ticks
+
+def make_tick_converter(resolution):
+    """Make a function that converts tick count from XCP slave to seconds.
+
+    Parameters
+    ----------
+    resolution: `GetDaqResolutionInfoResponse` as returned by :meth:`getDaqResolutionInfo`
+
+    """
+    exponent = types.DAQ_TIMESTAMP_UNIT_TO_EXP[resolution.timestampMode.unit]
+    tick_resolution = resolution.timestampTicks
+    base = (10 ** exponent) * tick_resolution
+
+    def ticks_to_seconds(ticks):
+        """Convert DAQ timestamp/tick value to seconds.
+
+        Parameters
+        ----------
+        ticks: int
+
+        Returns
+        -------
+        float
+        """
+        return base * ticks
+    return ticks_to_seconds
