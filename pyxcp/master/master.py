@@ -61,6 +61,11 @@ class SlaveProperties(dict):
     def __setattr__(self, name, value):
         self[name] = value
 
+    def __getstate__(self):
+        return self
+
+    def __setstate__(self, state):
+        self = state
 
 class Master:
     """Common part of lowlevel XCP API.
@@ -913,7 +918,7 @@ class Master:
 
         Parameters
         ----------
-        daqElements : list of DAQ elements
+        daqElements : list of `dict` containing the following keys: *bitOffset*, *size*, *address*, *addressExt*.
         """
         if len(daqElements) > self.slaveProperties.maxWriteDaqMultipleElements:
             raise ValueError(
