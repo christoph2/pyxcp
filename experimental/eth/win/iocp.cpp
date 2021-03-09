@@ -145,7 +145,7 @@ static DWORD WINAPI WorkerThread(LPVOID lpParameter)
     printf("Entering thread with [%p] [%d]...\n", iocp, iocp->getHandle());
     while (!exitLoop) {
         if (::GetQueuedCompletionStatus(iocp->getHandle(), &numBytesRecv, &CompletionKey, (LPOVERLAPPED*)&olap, INFINITE)) {
-            if ((numBytesRecv == 0) &&  (CompletionKey == NULL)) {
+            if ((numBytesRecv == 0) &&  (CompletionKey == static_cast<ULONG_PTR>(NULL))) {
                 iocp->postQuitMessage();    // "Broadcast"
                 exitLoop = TRUE;
             } else {
