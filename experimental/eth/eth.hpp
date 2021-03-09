@@ -52,7 +52,7 @@
     #include <arpa/inet.h>
     #include <sys/wait.h>
 
-    #include "utils.h"
+    #include "utils.hpp"
 #endif
 
 #include "timestamp.hpp"
