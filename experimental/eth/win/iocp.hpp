@@ -25,13 +25,7 @@
 #if !defined(__IOCP_HPP)
 #define __IOCP_HPP
 
-#include <WinSock2.h>
-#include <Ws2tcpip.h>
-#include <Mstcpip.h>
-#include <MSWSock.h>
-
-#include <Windows.h>
-
+#include "eth.hpp"
 #include <vector>
 
 #if !defined(__GNUC__)

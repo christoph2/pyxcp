@@ -23,8 +23,7 @@
  * s. FLOSS-EXCEPTION.txt
  */
 
-#include "timestamp.hpp"
-#include <unistd.h>
+#include "eth.hpp"
 
 
 Timestamp::Timestamp() {

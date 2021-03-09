@@ -25,8 +25,7 @@
 #if !defined(__TIMESTAMP_HPP)
 #define __TIMESTAMP_HPP
 
-#include <time.h>
-#include <cstdint>
+#include "eth.hpp"
 #include "itimestamp.hpp"
 
 class Timestamp : public ITimestamp {

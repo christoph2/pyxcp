@@ -23,9 +23,7 @@
  * s. FLOSS-EXCEPTION.txt
  */
 
-#include "timestamp.hpp"
-#include <Windows.h>
-
+#include "eth.hpp"
 
 Timestamp::Timestamp() {
     LARGE_INTEGER tps;

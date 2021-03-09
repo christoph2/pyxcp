@@ -26,11 +26,6 @@
 #if !defined(__SOCKET_HPP)
 #define __SOCKET_HPP
 
-#include <WinSock2.h>
-#include <Ws2tcpip.h>
-#include <Mstcpip.h>
-#include <MSWSock.h>
-
 #include "iocp.hpp"
 
 struct CAddress {
