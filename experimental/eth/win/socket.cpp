@@ -35,7 +35,7 @@ public:
         WSAData data;
 
         if (WSAStartup(MAKEWORD(2, 2), &data) != 0) {
-            throw WindowsException();
+            throw OsException();
         }
     }
 
@@ -131,7 +131,6 @@ bool Socket::disconnect()
 bool Socket::listen(int backlog)
 {
     if (::listen(m_socket, backlog) == SOCKET_ERROR) {
-        //Win_ErrorMsg("Socket::listen()", WSAGetLastError());
         return false;
     }
     return true;
@@ -145,7 +144,6 @@ bool Socket::accept(CAddress & peerAddress)
     sock = ::accept(m_socket, (sockaddr *)&peerAddress.address, &peerAddress.length);
 
     if (sock  == INVALID_SOCKET) {
-        //Win_ErrorMsg("Socket::accept()", WSAGetLastError());
         return false;
     }
     return true;
@@ -203,7 +201,6 @@ void Socket::write(char * buf, unsigned int len)
             (LPWSAOVERLAPPED)&iod->m_overlapped,
             NULL
         ) == SOCKET_ERROR) {
-            //Win_ErrorMsg("Socket:WSASendTo()", WSAGetLastError());
         }
     } else if (m_socktype == SOCK_STREAM) {
         if (::WSASend(
@@ -214,7 +211,6 @@ void Socket::write(char * buf, unsigned int len)
             0,
             (LPWSAOVERLAPPED)&iod->m_overlapped,
             NULL) == SOCKET_ERROR) {
-            //Win_ErrorMsg("Socket:WSASend()", WSAGetLastError());
             closesocket(m_socket);
         }
     }
@@ -246,7 +242,6 @@ void Socket::triggerRead(unsigned int len)
                     (LPWSAOVERLAPPED_COMPLETION_ROUTINE)NULL)  == SOCKET_ERROR) {
             err = WSAGetLastError();
             if (err != WSA_IO_PENDING) {
-                //Win_ErrorMsg("Socket::WSARecv()", err);
             }
         }
     } else if (m_socktype == SOCK_DGRAM) {
@@ -262,7 +257,6 @@ void Socket::triggerRead(unsigned int len)
                     (LPWSAOVERLAPPED_COMPLETION_ROUTINE)NULL)) {
             err = WSAGetLastError();
             if (err != WSA_IO_PENDING) {
-                //Win_ErrorMsg("Socket::WSARecvFrom()", WSAGetLastError());
             }
         }
     }
