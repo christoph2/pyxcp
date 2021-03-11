@@ -1,4 +1,0 @@
-
-import common
-
-common.run()
