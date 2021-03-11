@@ -34,7 +34,7 @@ class IResource {
 public:
 
     virtual ~IResource() = default;
-    virtual void reset();
+    virtual void reset() = 0;
 
 };
 
