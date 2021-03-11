@@ -27,7 +27,7 @@
 
 #include "eth.hpp"
 #include <cassert>
-//#include <cstdint>
+#include <cstdint>
 #include <vector>
 
 #if !defined(__GNUC__)

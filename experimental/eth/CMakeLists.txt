@@ -16,7 +16,7 @@ message(STATUS ${MY_INCLUDES})
 if(WIN32)
     add_library(eth
         win/iocp.cpp
-        win/socket.cpp
+#        win/socket.cpp
         win/timestamp.cpp
     )
 elseif(UNIX)
@@ -36,15 +36,15 @@ target_include_directories(
 )
 target_link_libraries(test_timestamp eth)
 
-if (WIN32)
-add_executable(test_basic_socket tests/test_basic_socket.cpp)
-target_include_directories(
-    test_basic_socket PUBLIC
-    ${eth_booster_SOURCE_DIR}
-    ${eth_booster_SOURCE_DIR}/${_PS}
-)
-target_link_libraries(test_basic_socket eth ws2_32)
-endif(WIN32)
+#if (WIN32)
+#add_executable(test_basic_socket tests/test_basic_socket.cpp)
+#target_include_directories(
+#    test_basic_socket PUBLIC
+#    ${eth_booster_SOURCE_DIR}
+#    ${eth_booster_SOURCE_DIR}/${_PS}
+#)
+#target_link_libraries(test_basic_socket eth ws2_32)
+#endif(UNIX)
 
 add_executable(test_pool tests/test_pool.cpp)
 target_include_directories(
@@ -52,5 +52,5 @@ target_include_directories(
     ${eth_booster_SOURCE_DIR}
     ${eth_booster_SOURCE_DIR}/${_PS}
 )
-
+target_link_libraries(test_pool eth ws2_32)
 # ${CMAKE_CURRENT_SOURCE_DIR}
