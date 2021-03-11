@@ -26,6 +26,8 @@
 #define __IOCP_HPP
 
 #include "eth.hpp"
+#include <cassert>
+//#include <cstdint>
 #include <vector>
 
 #if !defined(__GNUC__)
@@ -64,26 +66,22 @@ struct PerHandleData {
 
 };
 
-struct PerIoData {
+class PerIoData {
 
-    PerIoData(const PerIoData&) = delete;
-    operator=(const PerIoData&) = delete;
+public:
 
-    OVERLAPPED m_overlapped;
-    IoType m_opcode;
-    WSABUF m_wsabuf;
-    char * m_xferBuffer;
-    size_t m_bytesToXfer;
-    size_t m_bytesRemaining;
-
-    PerIoData(size_t bufferSize) {
+    explicit PerIoData(size_t bufferSize) {
         m_xferBuffer = NULL;
         m_xferBuffer = new char[bufferSize];
         m_wsabuf.buf = m_xferBuffer;
+
         m_wsabuf.len = bufferSize;
         m_bytesRemaining = 0;
-        m_bytesToXfer = 0;
+        m_bytes_to_xfer = 0;
     }
+
+    PerIoData(const PerIoData&) = delete;
+    operator=(const PerIoData&) = delete;
 
     ~PerIoData() {
         if (m_xferBuffer) {
@@ -91,9 +89,38 @@ struct PerIoData {
         }
     }
 
-    void reset() {
-        SecureZeroMemory(&m_overlapped, sizeof(OVERLAPPED));
+    IoType get_opcode() const {
+        return m_opcode;
     }
+
+    size_t get_bytes_to_xfer() const {
+
+    }
+
+    void decr_bytes_to_xfer(size_t amount) {
+        assert((static_cast<int64_t>(m_bytesRemaining) - static_cast<int64_t>(amount)) > 0);
+
+        m_bytesRemaining -= amount;
+    }
+
+    bool xfer_finished() const {
+        return m_bytesRemaining == 0;
+    }
+
+    void reset() {
+        ::SecureZeroMemory(&m_overlapped, sizeof(OVERLAPPED));
+        m_wsabuf.len = 0;
+        m_bytesRemaining = 0;
+        m_bytes_to_xfer = 0;
+    }
+
+private:
+    OVERLAPPED m_overlapped;
+    IoType m_opcode;
+    WSABUF m_wsabuf;
+    char * m_xferBuffer;
+    size_t m_bytes_to_xfer;
+    size_t m_bytesRemaining;
 };
 
 struct ThreadType {

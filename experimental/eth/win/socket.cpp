@@ -23,11 +23,30 @@
  * s. FLOSS-EXCEPTION.txt
  */
 #include <cstdio>
+#include "exceptions.hpp"
 #include "socket.hpp"
 
 #include <MSWSock.h>
 
 
+class WinSockBoilerplate {
+public:
+    WinSockBoilerplate() {
+        WSAData data;
+
+        if (WSAStartup(MAKEWORD(2, 2), &data) != 0) {
+            throw WindowsException();
+        }
+    }
+
+    ~WinSockBoilerplate()
+    {
+        WSACleanup();
+    }
+};
+
+
+static WinSockBoilerplate boilerplate; // Ensure WinSock startup/shutdown.
 
 Socket::Socket(IOCP * iocp, int family, int socktype, int protocol, int options)
 {
@@ -39,6 +58,7 @@ Socket::Socket(IOCP * iocp, int family, int socktype, int protocol, int options)
     m_addr = NULL;
     loadFunctions();
     m_socket = ::WSASocket(family, socktype, protocol, NULL, 0, WSA_FLAG_OVERLAPPED | options);
+    printf("m_socket: %x %d\n", m_socket, m_socket == INVALID_SOCKET);
     SecureZeroMemory(&m_peerAddress, sizeof(SOCKADDR_STORAGE));
 }
 

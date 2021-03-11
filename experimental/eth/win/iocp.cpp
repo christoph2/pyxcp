@@ -44,7 +44,7 @@ IOCP::IOCP(DWORD numProcessors)
 {
     m_port.handle  = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, static_cast<ULONG_PTR>(0), numProcessors);
     if (m_port.handle == NULL) {
-        throw WindowsException();
+        throw OSException();
     }
 
     m_numWorkerThreads = numProcessors * 2; // Hard-coded for now.
@@ -104,7 +104,7 @@ bool IOCP::registerHandle(PerHandleData * object)
     handle = ::CreateIoCompletionPort(object->m_socket->getHandle(), m_port.handle, reinterpret_cast<ULONG_PTR>(object), 0);
     printf("Registered Handle: %p\n", handle);
     if (handle == NULL) {
-        throw WindowsException();
+        throw OSException();
     }
     return (handle == m_port.handle);
 }
@@ -112,7 +112,7 @@ bool IOCP::registerHandle(PerHandleData * object)
 void IOCP::postQuitMessage() const
 {
     if (!::PostQueuedCompletionStatus(m_port.handle, 0, static_cast<ULONG_PTR>(NULL), NULL)) {
-        throw WindowsException();
+        throw OSException();
     }
 }
 
@@ -141,7 +141,6 @@ static DWORD WINAPI WorkerThread(LPVOID lpParameter)
     DWORD flags = (DWORD)0;
     DWORD error;
 
-
     printf("Entering thread with [%p] [%d]...\n", iocp, iocp->getHandle());
     while (!exitLoop) {
         if (::GetQueuedCompletionStatus(iocp->getHandle(), &numBytesRecv, &CompletionKey, (LPOVERLAPPED*)&olap, INFINITE)) {
@@ -151,16 +150,16 @@ static DWORD WINAPI WorkerThread(LPVOID lpParameter)
             } else {
                 phd = reinterpret_cast<PerHandleData *>(CompletionKey);
                 iod = reinterpret_cast<PerIoData* >(olap);
-                printf("\tOPCODE: %d bytes: %d\n", iod->m_opcode, numBytesRecv);
-                switch (iod->m_opcode) {
+                printf("\tOPCODE: %d bytes: %d\n", iod->get_opcode(), numBytesRecv);
+                switch (iod->get_opcode()) {
                     case IoType::IO_WRITE:
-                        iod->m_bytesRemaining -= numBytesRecv;
+                        iod->decr_bytes_to_xfer(numBytesRecv);
                         phd->m_socket->triggerRead(1024);
-                        if (iod->m_bytesRemaining == 0) {
+                        if (iod->xfer_finished()) {
                             delete iod;
                         } else {
-                            iod->m_wsabuf.buf = iod->m_wsabuf.buf + (iod->m_bytesToXfer - iod->m_bytesRemaining);
-                            iod->m_wsabuf.len = iod->m_bytesRemaining;
+                            //iod->m_wsabuf.buf = iod->m_wsabuf.buf + (iod->get_bytes_to_xfer() - iod->m_bytesRemaining);
+                            //iod->m_wsabuf.len = iod->m_bytesRemaining;
                             iod->reset();
                         }
                         break;
@@ -184,5 +183,5 @@ static DWORD WINAPI WorkerThread(LPVOID lpParameter)
     }
     printf("Exiting thread...\n");
     ExitThread(0);
-    return 0;
 }
+

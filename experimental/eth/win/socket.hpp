@@ -37,7 +37,7 @@ class Socket {
 public:
 
     Socket(IOCP * iocp, int family = PF_INET, int socktype = SOCK_STREAM, int protocol = IPPROTO_TCP, int options = 0);
-    Socket(const Socket&) = delete;
+    Socket(const Socket&) = default;
     operator=(const Socket&) = delete;
     ~Socket();
 
