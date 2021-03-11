@@ -35,7 +35,7 @@ public:
         WSAData data;
 
         if (WSAStartup(MAKEWORD(2, 2), &data) != 0) {
-            throw OsException();
+            throw OSException();
         }
     }
 
