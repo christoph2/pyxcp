@@ -30,9 +30,12 @@ from time import perf_counter, sleep, time
 from array import array
 from collections import deque
 from traceback import format_exc
+import threading
 
 from pyxcp.transport.base import BaseTransport
 import pyxcp.types as types
+
+RECV_SIZE = 4096
 
 
 class Usb(BaseTransport):
@@ -61,6 +64,13 @@ class Usb(BaseTransport):
 
         self.status = 0
 
+        self._packet_listener = threading.Thread(
+            target=self._packet_listen,
+            args=(),
+            kwargs={},
+        )
+        self._packets = deque()
+
     def connect(self):
         for device in usb.core.find(find_all=True):
             try:
@@ -85,47 +95,101 @@ class Usb(BaseTransport):
         self.startListener()
         self.status = 1  # connected
 
-    def listen(self):
-        HEADER_UNPACK = self.HEADER.unpack
-        HEADER_SIZE = self.HEADER_SIZE
+    def startListener(self):
+        self._packet_listener.start()
+        self.listener.start()
+
+    def _packet_listen(self):
+
+        close_event_set = self.closeEvent.isSet
 
         high_resolution_time = self.perf_counter_origin > 0
         timestamp_origin = self.timestamp_origin
         perf_counter_origin = self.perf_counter_origin
 
-        processResponse = self.processResponse
-        close_event_set = self.closeEvent.isSet
-
+        _packets = self._packets
         read = self.reply_endpoint.read
 
-        header = array("B", bytes(HEADER_SIZE))
+        buffer = array("B", bytes(RECV_SIZE))
 
-        while 1:
-
+        while True:
             try:
                 if close_event_set():
-                    break
+                    return
 
                 try:
                     if high_resolution_time:
                         recv_timestamp = time()
                     else:
                         recv_timestamp = timestamp_origin + perf_counter() - perf_counter_origin
-                    read(header, 1)
+                    read_count = read(buffer, 10) #10ms timeout
+                    if read_count != RECV_SIZE:
+                        _packets.append((bytes(buffer)[:read_count], recv_timestamp))
+                    else:
+                        _packets.append((bytes(buffer), recv_timestamp))
                 except:
+                    #print(format_exc())
                     sleep(0.001)
                     continue
 
-                length, counter = HEADER_UNPACK(header)
-
-                response = bytes(read(length))
-
-                processResponse(response, length, counter, recv_timestamp)
-
             except:
-                print("recv loop error", format_exc())
                 self.status = 0  # disconnected
                 break
+
+    def listen(self):
+        HEADER_UNPACK_FROM = self.HEADER.unpack_from
+        HEADER_SIZE = self.HEADER_SIZE
+
+        popleft = self._packets.popleft
+
+        processResponse = self.processResponse
+        close_event_set = self.closeEvent.isSet
+
+        _packets = self._packets
+        length, counter = None, None
+
+        data = bytearray(b"")
+
+        while True:
+            if close_event_set():
+                return
+
+            count = len(_packets)
+
+            if not count:
+                sleep(0.001)
+                continue
+
+            for _ in range(count):
+                bts, timestamp = popleft()
+
+                data += bts
+                current_size = len(data)
+                current_position = 0
+
+                while True:
+                    if length is None:
+                        if current_size >= HEADER_SIZE:
+                            length, counter = HEADER_UNPACK_FROM(data, current_position)
+                            current_position += HEADER_SIZE
+                            current_size -= HEADER_SIZE
+                        else:
+                            data = data[current_position:]
+                            break
+                    else:
+                        if current_size >= length:
+                            response = memoryview(data[current_position : current_position + length])
+                            processResponse(response, length, counter, timestamp)
+
+                            current_size -= length
+                            current_position += length
+
+                            length = None
+
+                        else:
+
+                            data = data[current_position:]
+                            break
 
     def send(self, frame):
         if self.perf_counter_origin > 0:

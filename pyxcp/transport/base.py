@@ -98,6 +98,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             args=(),
             kwargs={},
         )
+        self.cro_callback = None
 
         self.first_daq_timestamp = None
         if get_clock_info("time").resolution > 1e-5:
@@ -280,7 +281,6 @@ class BaseTransport(metaclass=abc.ABCMeta):
             elif pid == 0xFC:
                 # self.servQueue.put(response)
                 self.servQueue.append(response)
-                print("SRV", response.tobytes())
         else:
             if self._debug:
                 self.logger.debug(
@@ -299,7 +299,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             element = (response, counter, length, timestamp)
             if self.cro_callback:
                 self.cro_callback("DAQ", *element)
-            #self.daqQueue.append(element)
+            self.daqQueue.append(element)
 
 
 def createTransport(name, *args, **kws):
