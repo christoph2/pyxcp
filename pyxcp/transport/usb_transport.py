@@ -83,8 +83,10 @@ class Usb(BaseTransport):
                 continue
         else:
             raise Exception("Device with serial {} not found".format(self.serial_number))
-
-        cfg = self.device.set_configuration(self.configuration_number)
+        
+        current_configuration = self.device.get_active_configuration()
+        if current_configuration.bConfigurationValue != self.configuration_number:
+            self.device.set_configuration(self.configuration_number)
         cfg = self.device.get_active_configuration()
 
         interface = cfg[(self.interface_number, 0)]
