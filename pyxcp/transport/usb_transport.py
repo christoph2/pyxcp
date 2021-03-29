@@ -196,11 +196,25 @@ class Usb(BaseTransport):
     def send(self, frame):
         if self.perf_counter_origin > 0:
             self.pre_send_timestamp = time()
-            self.command_endpoint.write(frame)
+            try:
+                self.command_endpoint.write(frame)
+            except:
+                # sometimes usb.core.USBError: [Errno 5] Input/Output Error is raised
+                # even though the command is send and a reply is received from the device.
+                # Ignore this here since a Timeout error will be raised anyway if 
+                # the device does not responde
+                pass
             self.post_send_timestamp = time()
         else:
             pre_send_timestamp = perf_counter()
-            self.command_endpoint.write(frame)
+            try:
+                self.command_endpoint.write(frame)
+            except:
+                # sometimes usb.core.USBError: [Errno 5] Input/Output Error is raised
+                # even though the command is send and a reply is received from the device.
+                # Ignore this here since a Timeout error will be raised anyway if 
+                # the device does not responde
+                pass
             post_send_timestamp = perf_counter()
             self.pre_send_timestamp = self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
             self.post_send_timestamp = self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
