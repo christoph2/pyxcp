@@ -71,6 +71,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         "CREATE_DAQ_TIMESTAMPS": (bool, False, False),
         "LOGLEVEL": (str, False, "WARN"),
         "TIMEOUT": (float, False, 2.0),
+        "ALIGNMENT": (int, False, 1),
     }
 
     def __init__(self, config=None):
@@ -87,6 +88,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         create_daq_timestamps = self.config.get("CREATE_DAQ_TIMESTAMPS")
         self.create_daq_timestamps = False if create_daq_timestamps is None else create_daq_timestamps
         timeout = self.config.get("TIMEOUT")
+        self.alignment = self.config.get("ALIGNMENT")
         self.timeout = 2.0 if timeout is None else timeout
         self.timing = Timing()
         self.resQueue = deque()
@@ -191,10 +193,15 @@ class BaseTransport(metaclass=abc.ABCMeta):
             self.logger.debug(cmd.name)
         self.parent._setService(cmd)
         cmdlen = cmd.bit_length() // 8  # calculate bytes needed for cmd
+        
         header = self.HEADER.pack(cmdlen + len(data), self.counterSend)
         self.counterSend = (self.counterSend + 1) & 0xFFFF
 
         frame = header + bytes(flatten(cmd.to_bytes(cmdlen, "big"), data))
+        remainder = len(frame) % self.alignment
+        if remainder:
+            frame += b'\0' * (self.alignment - remainder)
+        
         if self._debug:
             self.logger.debug("-> {}".format(hexDump(frame)))
         return frame
