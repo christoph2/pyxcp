@@ -100,6 +100,15 @@ class Usb(BaseTransport):
     def startListener(self):
         self._packet_listener.start()
         self.listener.start()
+        
+    def close(self):
+        """Close the transport-layer connection and event-loop."""
+        self.finishListener()
+        if self.listener.is_alive():
+            self.listener.join()
+        if self._packet_listener.is_alive():
+            self._packet_listener.join()
+        self.closeConnection()
 
     def _packet_listen(self):
 
