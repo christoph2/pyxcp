@@ -61,12 +61,15 @@
     #define ADDRINFO                addrinfo
     #define SOCKADDR                struct sockaddr
     #define SOCKADDR_STORAGE        sockaddr_storage
+
+    typedef int SOCKET;
 #endif
 
 #include <pthread.h>
 
 #define ADDR_LEN                    sizeof(SOCKADDR_STORAGE)
 
+void * blockingReceiverThread(void * param);
 
 struct CAddress {
     int length;
@@ -77,7 +80,7 @@ class Socket {
     public:
 
     Socket(int family = PF_INET, int socktype = SOCK_STREAM, int protocol = IPPROTO_TCP) : m_family(family), m_socktype(socktype), 
-        m_protocol(protocol), m_connected(false),  m_addr(nullptr) {
+        m_protocol(protocol), m_connected(false),  m_addr(nullptr), m_thread(0) {
         m_socket = ::socket(m_family, m_socktype, m_protocol);
         m_connected_socket = 0;
         if (m_socket == INVALID_SOCKET) {
@@ -148,6 +151,7 @@ class Socket {
             SocketErrorExit("Socket::connect()");
         }
         m_connected_socket = m_socket;
+        printf("Sock-conn: %d\n", m_connected_socket);
     }
 
     void bind(CAddress & address) {
@@ -172,6 +176,40 @@ class Socket {
         }
     }
 
+    void startReceiverThread() {
+        int res = 0;
+
+        res = ::pthread_create(&m_thread, NULL, blockingReceiverThread, this);
+        if (res == -1) {
+            OsErrorExit("startReceiverThread::pthread_create");
+        }
+    }
+
+    void shutdownReceiverThread() {
+        int res = 0;
+
+        res = ::pthread_kill(m_thread, SIGINT);
+        if (res == -1) {
+            OsErrorExit("shutdownReceiverThread::pthread_kill");
+        }
+        res = pthread_join(m_thread, NULL);
+        if (res == -1) {
+            OsErrorExit("shutdownReceiverThread::pthread_join");
+        }
+    }
+
+    template <typename T, size_t N>
+    int read(std::array<T, N>& arr, size_t len) {
+        int nbytes;
+
+        nbytes = ::recv(m_connected_socket, (char*)arr.data(), len, 0);
+        if (nbytes == -1) {
+            OsErrorExit("read::recv");
+        }
+
+        return nbytes;
+    }
+
     template <typename T, size_t N>
     void write(std::array<T, N>& arr) {
         if (m_socktype == SOCK_DGRAM) {
@@ -182,7 +220,7 @@ class Socket {
             }
 #endif
         } else if (m_socktype == SOCK_STREAM) {
-            if (send(m_connected_socket, (char const *)arr.data(), arr.size(), 0) == SOCKET_ERROR) {
+            if (::send(m_connected_socket, (char const *)arr.data(), arr.size(), 0) == SOCKET_ERROR) {
                 SocketErrorExit("send::send()");
 #if defined(_WIN32)
                 closesocket(m_connected_socket);
@@ -193,6 +231,10 @@ class Socket {
         }
     }
 
+    SOCKET getSocket() const {
+        return m_socket;
+    }
+
 
 private:
     int m_family;
@@ -200,15 +242,11 @@ private:
     int m_protocol;
     bool m_connected;
     addrinfo * m_addr;
+    pthread_t m_thread;
     //TimeoutTimer m_timeout {150};
 
-#if defined(__unix__)
-    int m_socket;
-    int m_connected_socket;
-#elif defined(_WIN32)
     SOCKET m_socket;
-    sOCKET m_connected_socket;
-#endif
+    SOCKET m_connected_socket;
     //CAddress ourAddress;
     SOCKADDR_STORAGE m_peerAddress;
 };

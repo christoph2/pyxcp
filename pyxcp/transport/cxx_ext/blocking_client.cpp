@@ -28,10 +28,11 @@ int main(void)
     //sock.getaddrinfo(PF_INET, SOCK_STREAM, IPPROTO_TCP, "localhost", 50007, address, 0);
     sock.getaddrinfo(PF_INET, SOCK_STREAM, IPPROTO_TCP, "192.168.168.100", 50007, address, 0);
     sock.connect(address);
+    sock.startReceiverThread();
     //sock.getaddrinfo(PF_INET, SOCK_STREAM, IPPROTO_TCP, "google.de", 80, address, 0);
     //printf("addr: %x", address.address);
-
+//    sock.shutdownReceiverThread();
     sock.write(hellomsg);
-    Sleep(250);
+    Sleep(2000);
 }
 
