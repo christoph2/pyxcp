@@ -79,6 +79,7 @@ class Socket {
     Socket(int family = PF_INET, int socktype = SOCK_STREAM, int protocol = IPPROTO_TCP) : m_family(family), m_socktype(socktype), 
         m_protocol(protocol), m_connected(false),  m_addr(nullptr) {
         m_socket = ::socket(m_family, m_socktype, m_protocol);
+        m_connected_socket = 0;
         if (m_socket == INVALID_SOCKET) {
             SocketErrorExit("Socket::Socket()");
         }
@@ -146,6 +147,7 @@ class Socket {
         if (::connect(m_socket, &address.address, address.length) == SOCKET_ERROR) {
             SocketErrorExit("Socket::connect()");
         }
+        m_connected_socket = m_socket;
     }
 
     void bind(CAddress & address) {
@@ -160,20 +162,32 @@ class Socket {
         }
     }
 
+    void accept(CAddress & peerAddress) {
+
+        peerAddress.length = sizeof peerAddress.address;
+        m_connected_socket = ::accept(m_socket, (SOCKADDR *)&peerAddress.address, (socklen_t*)&peerAddress.length);
+
+        if (m_connected_socket  == INVALID_SOCKET) {
+            SocketErrorExit("Socket::accept()");
+        }
+    }
+
     template <typename T, size_t N>
     void write(std::array<T, N>& arr) {
         if (m_socktype == SOCK_DGRAM) {
+#if 0
             if (sendto(m_socket, (char const *)arr.data(), arr.size(), 0, 
                         (SOCKADDR * )(SOCKADDR_STORAGE const *)&XcpTl_Connection.connectionAddress, ADDR_LEN) == SOCKET_ERROR) {
                 SocketErrorExit("send::sendto()");
             }
+#endif
         } else if (m_socktype == SOCK_STREAM) {
-            if (send(XcpTl_Connection.connectedSocket, (char const *)arr.data(), arr.size(), 0) == SOCKET_ERROR) {
+            if (send(m_connected_socket, (char const *)arr.data(), arr.size(), 0) == SOCKET_ERROR) {
                 SocketErrorExit("send::send()");
 #if defined(_WIN32)
-                closesocket(XcpTl_Connection.connectedSocket);
+                closesocket(m_connected_socket);
 #elif defined(__unix__)
-                close(XcpTl_Connection.connectedSocket);
+                close(m_connected_socket);
 #endif
             }
         }
@@ -190,8 +204,10 @@ private:
 
 #if defined(__unix__)
     int m_socket;
+    int m_connected_socket;
 #elif defined(_WIN32)
     SOCKET m_socket;
+    sOCKET m_connected_socket;
 #endif
     //CAddress ourAddress;
     SOCKADDR_STORAGE m_peerAddress;
