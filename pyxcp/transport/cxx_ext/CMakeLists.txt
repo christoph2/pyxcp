@@ -31,7 +31,7 @@ target_include_directories(
 target_link_libraries(test_timestamp eth)
 
 
-add_executable(blocking_client blocking_client.cpp)
+add_executable(blocking_client blocking_socket.cpp  blocking_client.cpp)
 target_include_directories(
     blocking_client PUBLIC
     ${eth_booster_SOURCE_DIR}
