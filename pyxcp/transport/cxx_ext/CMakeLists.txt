@@ -10,10 +10,7 @@ elseif(UNIX)
 endif(WIN32)
 
 
-message(STATUS ${MY_INCLUDES})
-
 add_library(eth
-    blocking_socket.hpp
     utils.cpp
 )
 if(WIN32)
