@@ -312,8 +312,8 @@ class Can(BaseTransport):
         self.max_dlc_required = self.config.get("MAX_DLC_REQUIRED")
         self.can_id_master = Identifier(self.config.get("CAN_ID_MASTER"))
         self.can_id_slave = Identifier(self.config.get("CAN_ID_SLAVE"))
-        self.canInterface.init(self, self.dataReceived)
         self.canInterface.loadConfig(config)
+        self.canInterface.init(self, self.dataReceived)
 
     def dataReceived(self, payload: bytes, recv_timestamp: float = None):
         self.processResponse(payload, len(payload), counter=self.counterReceived + 1, recv_timestamp=recv_timestamp)

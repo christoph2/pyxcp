@@ -46,6 +46,7 @@ class PythonCAN:
 
     def init(self, parent, receive_callback):
         self.parent = parent
+        self.is_fd = self.config.get("FD")
 
     def connect(self):
         self.kwargs = OrderedDict()
@@ -90,6 +91,7 @@ class PythonCAN:
         frame = Message(
             arbitration_id=self.parent.can_id_slave.id,
             is_extended_id=True if self.parent.can_id_slave.is_extended else False,
+            is_fd = self.is_fd,
             data=payload,
         )
         self.bus.send(frame)
