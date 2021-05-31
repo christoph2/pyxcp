@@ -270,18 +270,19 @@ class Can(BaseTransport):
 
     PARAMETER_MAP = {
         #                           Type            Req'd   Default
-        "CAN_DRIVER": (str, True, None),
-        "CHANNEL": (str, False, ""),
-        "MAX_DLC_REQUIRED": (bool, False, False),
-        "CAN_USE_DEFAULT_LISTENER": (bool, False, True),
+        "CAN_DRIVER":               (str,           True,   None),
+        "CHANNEL":                  (str,           False,  ""),
+        "MAX_DLC_REQUIRED":         (bool,          False,  False),
+        "MAX_CAN_FD_DLC":           (int,           False,  64),
+        "CAN_USE_DEFAULT_LISTENER": (bool,          False,  True),
         # defaults to True, in this case the default listener thread is used.
         # If the canInterface implements a listener service, this parameter
         # can be set to False, and the default listener thread won't be started.
-        "CAN_ID_MASTER": (int, True, None),
-        "CAN_ID_SLAVE": (int, True, None),
-        "CAN_ID_BROADCAST": (int, False, None),
-        "BITRATE": (int, False, 250000),
-        "RECEIVE_OWN_MESSAGES": (bool, False, False),
+        "CAN_ID_MASTER":            (int,           True,   None),
+        "CAN_ID_SLAVE":             (int,           True,   None),
+        "CAN_ID_BROADCAST":         (int,           False,  None),
+        "BITRATE":                  (int,           False,  250000),
+        "RECEIVE_OWN_MESSAGES":     (bool,          False,  False),
     }
 
     PARAMETER_TO_KW_ARG_MAP = {
@@ -335,9 +336,10 @@ class Can(BaseTransport):
     def send(self, frame):
         # XCP on CAN trailer: if required, FILL bytes must be appended
         if self.max_dlc_required:
-            # append fill bytes up to MAX DLC (=8)
-            if len(frame) < 8:
-                frame += b"\x00" * (8 - len(frame))
+            frame_length =  self.config.get("MAX_CAN_FD_DLC" ) if self.canInterface.is_fd else 8
+            # append fill bytes up to MAX DLC
+            if len(frame) < frame_length:
+                frame += b"\x00" * (frame_length - len(frame))
         # send the request
         if self.perf_counter_origin > 0:
             self.pre_send_timestamp = time()
