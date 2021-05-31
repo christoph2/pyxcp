@@ -118,7 +118,7 @@ def padFrame(frame: bytes, padding_value: int, padding_len:int = 0) -> bytes:
         actual_len = CAN_FD_DLCS[bisect_left(CAN_FD_DLCS, frame_len)]
     # append fill bytes up to MAX_DLC resp. next discrete FD DLC.
     if len(frame) < actual_len:
-        frame += padding_value * (actual_len - len(frame))
+        frame += bytes([padding_value]) * (actual_len - len(frame))
     return frame
 
 class Identifier:
