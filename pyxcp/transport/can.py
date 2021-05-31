@@ -7,7 +7,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2020 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2021 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -27,6 +27,7 @@ __copyright__ = """
 """
 
 import abc
+from bisect import bisect_left
 from collections import OrderedDict
 import functools
 import operator
@@ -39,9 +40,11 @@ from pyxcp.config import Configuration
 from pyxcp.types import NumericType
 
 
-CAN_EXTENDED_ID = 0x80000000
-MAX_11_BIT_IDENTIFIER = (1 << 11) - 1
-MAX_29_BIT_IDENTIFIER = (1 << 29) - 1
+CAN_EXTENDED_ID         = 0x80000000
+MAX_11_BIT_IDENTIFIER   = (1 << 11) - 1
+MAX_29_BIT_IDENTIFIER   = (1 << 29) - 1
+MAX_DLC_CLASSIC         = 8
+CAN_FD_DLCS             = (12, 16, 20, 24, 32, 48, 64)  # Discrete CAN-FD DLCs in case DLC > 8.
 
 
 class IdentifierOutOfRangeError(Exception):
@@ -97,6 +100,26 @@ def samplePointToTsegs(tqs: int, samplePoint: float) -> tuple:
     tseg2 = tqs - tseg1
     return (tseg1, tseg2)
 
+
+def padFrame(frame: bytes, padding_value: int, padding_len:int = 0) -> bytes:
+    """Pad frame to next discrete DLC value.
+
+    References:
+    -----------
+    ISO/DIS 15765 - 4; 8.2 Data length Code (DLC)
+    AUTOSAR CP Release 4.3.0, Specification of CAN Transport Layer; 7.3.8 N-PDU padding
+    AUTOSAR CP Release 4.3.0, Specification of CAN Driver; [SWS_CAN_00502], [ECUC_Can_00485]
+    AUTOSAR CP Release 4.3.0, Requirements on CAN; [SRS_Can_01073], [SRS_Can_01086], [SRS_Can_01160]
+    """
+    frame_len = max(len(frame), padding_len)
+    if frame_len <= MAX_DLC_CLASSIC:
+        actual_len = MAX_DLC_CLASSIC
+    else:
+        actual_len = CAN_FD_DLCS[bisect_left(CAN_FD_DLCS, frame_len)]
+    # append fill bytes up to MAX_DLC resp. next discrete FD DLC.
+    if len(frame) < actual_len:
+        frame += padding_value * (actual_len - len(frame))
+    return frame
 
 class Identifier:
     """Convenience class for XCP formatted CAN identifiers.
@@ -274,6 +297,7 @@ class Can(BaseTransport):
         "CHANNEL":                  (str,           False,  ""),
         "MAX_DLC_REQUIRED":         (bool,          False,  False),
         "MAX_CAN_FD_DLC":           (int,           False,  64),
+        "PADDING_VALUE":            (int,           False,   0),
         "CAN_USE_DEFAULT_LISTENER": (bool,          False,  True),
         # defaults to True, in this case the default listener thread is used.
         # If the canInterface implements a listener service, this parameter
@@ -310,11 +334,17 @@ class Can(BaseTransport):
         canInterfaceClass = drivers[interfaceName]
         self.canInterface = canInterfaceClass()
         self.useDefaultListener = self.config.get("CAN_USE_DEFAULT_LISTENER")
-        self.max_dlc_required = self.config.get("MAX_DLC_REQUIRED")
         self.can_id_master = Identifier(self.config.get("CAN_ID_MASTER"))
         self.can_id_slave = Identifier(self.config.get("CAN_ID_SLAVE"))
         self.canInterface.loadConfig(config)
         self.canInterface.init(self, self.dataReceived)
+        #
+        # Regarding CAN-FD s. AUTOSAR CP Release 4.3.0, Requirements on CAN; [SRS_Can_01160] Padding of bytes due to discrete CAN FD DLC]:
+        #   "... If a PDU does not exactly match these configurable sizes the unused bytes shall be padded."
+        #
+        self.max_dlc_required = self.config.get("MAX_DLC_REQUIRED") or self.canInterface.is_fd
+        self.padding_value = self.config.get("PADDING_VALUE")
+        self.padding_len = self.config.get("MAX_CAN_FD_DLC")
 
     def dataReceived(self, payload: bytes, recv_timestamp: float = None):
         self.processResponse(payload, len(payload), counter=self.counterReceived + 1, recv_timestamp=recv_timestamp)
@@ -336,18 +366,15 @@ class Can(BaseTransport):
     def send(self, frame):
         # XCP on CAN trailer: if required, FILL bytes must be appended
         if self.max_dlc_required:
-            frame_length =  self.config.get("MAX_CAN_FD_DLC" ) if self.canInterface.is_fd else 8
-            # append fill bytes up to MAX DLC
-            if len(frame) < frame_length:
-                frame += b"\x00" * (frame_length - len(frame))
+            frame = padFrame(frame, self.padding_value, self.padding_len)
         # send the request
         if self.perf_counter_origin > 0:
             self.pre_send_timestamp = time()
-            self.canInterface.transmit(payload=frame)
+            self.canInterface.transmit(payload = frame)
             self.post_send_timestamp = time()
         else:
             pre_send_timestamp = perf_counter()
-            self.canInterface.transmit(payload=frame)
+            self.canInterface.transmit(payload = frame)
             post_send_timestamp = perf_counter()
             self.pre_send_timestamp = self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
             self.post_send_timestamp = self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
@@ -363,14 +390,13 @@ def setDLC(length: int):
     :param length: Length value to be mapped to a valid CAN-FD DLC.
                    ( 0 <= length <= 64)
     """
-    FD_DLCS = (12, 16, 20, 24, 32, 48, 64)
 
     if length < 0:
         raise ValueError("Non-negative length value required.")
-    elif length <= 8:
+    elif length <= MAX_DLC_CLASSIC:
         return length
     elif length <= 64:
-        for dlc in FD_DLCS:
+        for dlc in CAN_FD_DLCS:
             if length <= dlc:
                 return dlc
     else:
