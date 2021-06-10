@@ -69,6 +69,8 @@
 
 #define ADDR_LEN                    sizeof(SOCKADDR_STORAGE)
 
+template <std::size_t N> using buffer_t = std::array<unsigned char, N>;
+
 void * blockingReceiverThread(void * param);
 
 struct CAddress {
@@ -79,7 +81,7 @@ struct CAddress {
 class Socket {
     public:
 
-    Socket(int family = PF_INET, int socktype = SOCK_STREAM, int protocol = IPPROTO_TCP) : m_family(family), m_socktype(socktype), 
+    explicit Socket(int family = PF_INET, int socktype = SOCK_STREAM, int protocol = IPPROTO_TCP) : m_family(family), m_socktype(socktype), 
         m_protocol(protocol), m_connected(false),  m_addr(nullptr), m_thread(0) {
         m_socket = ::socket(m_family, m_socktype, m_protocol);
         m_connected_socket = 0;
@@ -110,15 +112,46 @@ class Socket {
         }
     }
 
-    void option(int optname, int level, int * value) {
+    void set_option(int optname, int level, int value) {
+
+        if (::setsockopt(m_socket, level, optname, (const char*) &value, sizeof(value)) == SOCKET_ERROR) {
+            SocketErrorExit("Socket::set_option()");
+        }
+    }
+
+    int get_option(int optname, int level) {
+        int value;
         socklen_t len;
 
-        len = sizeof(*value);
-        if (*value == 0) {
-            ::getsockopt(m_socket, level, optname, (char*) value, &len);
-        } else {
-            ::setsockopt(m_socket, level, optname, (const char*) value, len);
+        len = sizeof(value);
+        if (::getsockopt(m_socket, level, optname, (char*) &value, &len) == SOCKET_ERROR) {
+            SocketErrorExit("Socket::get_option()");
         }
+        return value;
+    }
+
+    bool get_reuse_addr() {
+        return static_cast<bool>(get_option(SO_REUSEADDR, SOL_SOCKET));
+    }
+
+    void set_reuse_addr(bool on) {
+        set_option(SO_REUSEADDR, SOL_SOCKET, static_cast<int>(on));
+    }
+
+    int get_send_buffer_size() {
+        return get_option(SO_SNDBUF, SOL_SOCKET);
+    }
+
+    void set_send_buffer_size(int size) {
+        set_option(SO_SNDBUF, SOL_SOCKET, size);
+    }
+
+    int get_rcv_buffer_size() {
+        return get_option(SO_RCVBUF, SOL_SOCKET);
+    }
+
+    void set_rcv_buffer_size(int size) {
+        set_option(SO_RCVBUF, SOL_SOCKET, size);
     }
 
     bool getaddrinfo(int family, int socktype, int protocol, const char * hostname, int port, CAddress & address, int flags = AI_PASSIVE) {
@@ -234,6 +267,8 @@ class Socket {
     SOCKET getSocket() const {
         return m_socket;
     }
+
+protected:
 
 
 private:
