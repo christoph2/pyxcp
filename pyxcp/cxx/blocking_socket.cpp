@@ -26,8 +26,9 @@
 #include "blocking_socket.hpp"
 
 
-void * blockingReceiverThread(void * param)  {
-    Socket * const socket = reinterpret_cast<Socket * const>(param);
+//void * blockingReceiverThread(void * param)  {
+void  blockingReceiverThread(Socket * socket)  {
+    //Socket * const socket = reinterpret_cast<Socket * const>(param);
     std::array<char, 1024> buffer;
     int nbytes;
 
@@ -42,6 +43,6 @@ void * blockingReceiverThread(void * param)  {
 
     printf("Exiting thread...\n");
 
-    return NULL;
+    //eturn NULL;
 }
 

@@ -25,6 +25,8 @@
 
 
 #include <array>
+#include <functional>
+#include <thread>
 
 #include "utils.hpp"
 
@@ -71,7 +73,9 @@
 
 template <std::size_t N> using buffer_t = std::array<unsigned char, N>;
 
-void * blockingReceiverThread(void * param);
+class Socket;
+
+void blockingReceiverThread(Socket * socket);
 
 struct CAddress {
     int length;
@@ -79,10 +83,12 @@ struct CAddress {
 };
 
 class Socket {
-    public:
+public:
 
-    explicit Socket(int family = PF_INET, int socktype = SOCK_STREAM, int protocol = IPPROTO_TCP) : m_family(family), m_socktype(socktype), 
-        m_protocol(protocol), m_connected(false),  m_addr(nullptr), m_thread(0) {
+    using listen_thread_t = std::function<void(const Socket&)>;
+
+    explicit Socket(int family = PF_INET, int socktype = SOCK_STREAM, int protocol = IPPROTO_TCP) : m_family(family), m_socktype(socktype),
+        m_protocol(protocol), m_connected(false),  m_addr(nullptr) {
         m_socket = ::socket(m_family, m_socktype, m_protocol);
         m_connected_socket = 0;
         if (m_socket == INVALID_SOCKET) {
@@ -212,23 +218,19 @@ class Socket {
     void startReceiverThread() {
         int res = 0;
 
-        res = ::pthread_create(&m_thread, NULL, blockingReceiverThread, this);
-        if (res == -1) {
-            OsErrorExit("startReceiverThread::pthread_create");
-        }
+        m_thread = new std::thread(blockingReceiverThread, this);
     }
 
     void shutdownReceiverThread() {
         int res = 0;
 
-        res = ::pthread_kill(m_thread, SIGINT);
+        //res = ::pthread_kill(m_thread->native_handle(), SIGINT);
+        res = ::pthread_cancel(m_thread->native_handle());
         if (res == -1) {
             OsErrorExit("shutdownReceiverThread::pthread_kill");
         }
-        res = pthread_join(m_thread, NULL);
-        if (res == -1) {
-            OsErrorExit("shutdownReceiverThread::pthread_join");
-        }
+        m_thread->join();
+        delete m_thread;
     }
 
     template <typename T, size_t N>
@@ -247,7 +249,7 @@ class Socket {
     void write(std::array<T, N>& arr) {
         if (m_socktype == SOCK_DGRAM) {
 #if 0
-            if (sendto(m_socket, (char const *)arr.data(), arr.size(), 0, 
+            if (sendto(m_socket, (char const *)arr.data(), arr.size(), 0,
                         (SOCKADDR * )(SOCKADDR_STORAGE const *)&XcpTl_Connection.connectionAddress, ADDR_LEN) == SOCKET_ERROR) {
                 SocketErrorExit("send::sendto()");
             }
@@ -277,7 +279,7 @@ private:
     int m_protocol;
     bool m_connected;
     addrinfo * m_addr;
-    pthread_t m_thread;
+    std::thread * m_thread = nullptr;
     //TimeoutTimer m_timeout {150};
 
     SOCKET m_socket;
