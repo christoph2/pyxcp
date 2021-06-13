@@ -75,7 +75,7 @@ template <std::size_t N> using buffer_t = std::array<unsigned char, N>;
 
 class Socket;
 
-void blockingReceiverThread(Socket * socket);
+[[noreturn]] void blockingReceiverThread(Socket * socket);
 
 struct CAddress {
     int length;

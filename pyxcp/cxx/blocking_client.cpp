@@ -18,7 +18,6 @@ std::array<char, 15> hellomsg {"hello world!!!"};
 
 int main(void)
 {
-    int opt;
     CAddress address;
     auto sock = Socket {PF_INET, SOCK_STREAM, IPPROTO_TCP};
 
