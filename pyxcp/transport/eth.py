@@ -141,10 +141,21 @@ class Eth(BaseTransport):
                             recv_timestamp = timestamp_origin + perf_counter() - perf_counter_origin
 
                         if use_tcp:
-                            _packets.append((sock_recv(RECV_SIZE), recv_timestamp))
+                            response = sock_recv(RECV_SIZE)
+                            if not response:
+                                self.sock.close()
+                                self.status = 0
+                                break
+                            else:
+                                _packets.append((response, recv_timestamp))
                         else:
                             response, _ = sock_recv(Eth.MAX_DATAGRAM_SIZE)
-                            _packets.append((response, recv_timestamp))
+                            if not response:
+                                self.sock.close()
+                                self.status = 0
+                                break
+                            else:
+                                _packets.append((response, recv_timestamp))
             except:
                 self.status = 0  # disconnected
                 break
