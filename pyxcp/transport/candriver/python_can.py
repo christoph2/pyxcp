@@ -49,6 +49,9 @@ class PythonCAN:
         self.is_fd = self.config.get("FD")
 
     def connect(self):
+        if self.connected:
+            return
+
         self.kwargs = OrderedDict()
         # Fetch driver keyword arguments.
         self._fetch_kwargs(False)
@@ -85,6 +88,8 @@ class PythonCAN:
             return value
 
     def close(self):
+        if self.connected:
+            self.bus.shutdown()
         self.connected = False
 
     def transmit(self, payload):
@@ -104,7 +109,7 @@ class PythonCAN:
         except CanError:
             return None
         else:
-            if frame is None:
+            if frame is None or frame.arbitration_id != self.parent.can_id_master.id:
                 return None  # Timeout condition.
             extended = frame.is_extended_id
             identifier = can.Identifier.make_identifier(frame.arbitration_id, extended)
