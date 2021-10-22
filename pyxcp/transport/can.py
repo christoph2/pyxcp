@@ -344,7 +344,7 @@ class Can(BaseTransport):
         #
         self.max_dlc_required = self.config.get("MAX_DLC_REQUIRED") or self.canInterface.is_fd
         self.padding_value = self.config.get("PADDING_VALUE")
-        self.padding_len = self.config.get("MAX_CAN_FD_DLC")
+        self.padding_len = self.config.get("MAX_CAN_FD_DLC") if self.canInterface.is_fd else MAX_DLC_CLASSIC
 
     def dataReceived(self, payload: bytes, recv_timestamp: float = None):
         self.processResponse(payload, len(payload), counter=self.counterReceived + 1, recv_timestamp=recv_timestamp)
@@ -382,6 +382,9 @@ class Can(BaseTransport):
     def closeConnection(self):
         if hasattr(self, "canInterface"):
             self.canInterface.close()
+
+    def close(self):
+        self.closeConnection()
 
 
 def setDLC(length: int):

@@ -35,6 +35,7 @@ import logging
 import struct
 import traceback
 import warnings
+from time import sleep
 
 from pyxcp import checksum
 from pyxcp import types
@@ -89,6 +90,7 @@ class Master:
         self.logger = logging.getLogger("pyXCP")
         self.logger.setLevel(self.config.get("LOGLEVEL"))
         self.transport = createTransport(transportName, config)
+        self.transport_name = transportName
 
         # In some cases the transport-layer needs to communicate with us.
         self.transport.parent = self
@@ -327,8 +329,24 @@ class Master:
         -------
         `pydbc.types.GetSeedResponse`
         """
-        response = self.transport.request(types.Command.GET_SEED, first, resource)
-        return types.GetSeedResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+        if self.transport_name == 'can':
+            # for CAN it might happen that the seed is longer than the max DLC
+            # in this case the first byte will be the current remaining seed size
+            # followed by the seeds bytes that can fit in the current frame
+            # the master must call getSeed several times until the complete seed is received
+            response = self.transport.request(types.Command.GET_SEED, first, resource)
+            size, seed = response[0], response[1:]
+            if size < len(seed):
+                seed = seed[:size]
+            reply = types.GetSeedResponse.parse(
+                types.GetSeedResponse.build({"leght": size, "seed": bytes(size)}),
+                byteOrder = self.slaveProperties.byteOrder
+            )
+            reply.seed = seed
+            return reply
+        else:
+            response = self.transport.request(types.Command.GET_SEED, first, resource)
+            return types.GetSeedResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def unlock(self, length: int, key: bytes):
@@ -399,6 +417,19 @@ class Master:
         if length > (self.slaveProperties.maxCto - 1):
             block_response = self.transport.block_receive(length_required=(length - len(response)))
             response += block_response
+        elif self.transport_name == 'can':
+            # larger sizes will send in multiple CAN messages
+            # each valid message will start with 0xFF followed by the upload bytes
+            # the last message might be padded to the required DLC
+            rem = length - len(response)
+            while rem:
+                if len(self.transport.resQueue):
+                    data = self.transport.resQueue.popleft()
+                    response += data[1:rem + 1]
+                    rem = length - len(response)
+                else:
+                    sleep(0.001)
+
         return response
 
     @wrapped
