@@ -40,7 +40,7 @@ from time import sleep
 from pyxcp import checksum
 from pyxcp import types
 from pyxcp.config import Configuration
-from pyxcp.constants import makeWordPacker, makeDWordPacker, makeWordUnpacker, makeDWordUnpacker
+from pyxcp.constants import makeBytePacker, makeByteUnpacker, makeWordPacker, makeWordUnpacker, makeDWordPacker, makeDWordUnpacker, makeDLongPacker, makeDLongUnpacker
 from pyxcp.master.errorhandler import wrapped
 from pyxcp.transport.base import createTransport
 
@@ -98,10 +98,14 @@ class Master:
 
         # (D)Word (un-)packers are byte-order dependent
         # -- byte-order is returned by CONNECT_Resp (COMM_MODE_BASIC)
+        self.BYTE_pack = None
+        self.BYTE_unpack = None
         self.WORD_pack = None
         self.WORD_unpack = None
         self.DWORD_pack = None
         self.DWORD_unpack = None
+        self.DLONG_pack = None
+        self.DLONG_unpack = None
         self.AG_pack = None
         self.AG_unpack = None
         # self.connected = False
@@ -194,10 +198,14 @@ class Master:
             0 if self.slaveProperties.maxCto < 10 else int((self.slaveProperties.maxCto - 2) // 8)
         )
 
+        self.BYTE_pack = makeBytePacker(byteOrderPrefix)
+        self.BYTE_unpack = makeByteUnpacker(byteOrderPrefix)
         self.WORD_pack = makeWordPacker(byteOrderPrefix)
-        self.DWORD_pack = makeDWordPacker(byteOrderPrefix)
         self.WORD_unpack = makeWordUnpacker(byteOrderPrefix)
+        self.DWORD_pack = makeDWordPacker(byteOrderPrefix)
         self.DWORD_unpack = makeDWordUnpacker(byteOrderPrefix)
+        self.DLONG_pack = makeDLongPacker(byteOrderPrefix)
+        self.DLONG_unpack = makeDLongUnpacker(byteOrderPrefix)
 
         if self.slaveProperties.addressGranularity == types.AddressGranularity.BYTE:
             self.AG_pack = struct.Struct("<B").pack
@@ -307,10 +315,9 @@ class Master:
         sessionConfigurationId : int
 
         """
-        response = self.transport.request(
+        return self.transport.request(
             types.Command.SET_REQUEST, mode, sessionConfigurationId >> 8, sessionConfigurationId & 0xFF
         )
-        return response
 
     @wrapped
     def getSeed(self, first: int, resource: int):
@@ -393,8 +400,7 @@ class Master:
         """
         self.mta = types.MtaType(address, addressExt)  # Keep track of MTA (needed for error-handling).
         addr = self.DWORD_pack(address)
-        response = self.transport.request(types.Command.SET_MTA, 0, 0, addressExt, *addr)
-        return response
+        return self.transport.request(types.Command.SET_MTA, 0, 0, addressExt, *addr)
 
     @wrapped
     def upload(self, length: int):
@@ -447,8 +453,7 @@ class Master:
         bytes
         """
         addr = self.DWORD_pack(address)
-        response = self.transport.request(types.Command.SHORT_UPLOAD, length, 0, addressExt, *addr)
-        return response
+        return self.transport.request(types.Command.SHORT_UPLOAD, length, 0, addressExt, *addr)
 
     @wrapped
     def buildChecksum(self, blocksize: int):
@@ -485,8 +490,7 @@ class Master:
         ----
         For details refer to XCP specification.
         """
-        response = self.transport.request(types.Command.TRANSPORT_LAYER_CMD, subCommand, *data)
-        return response
+        return self.transport.request(types.Command.TRANSPORT_LAYER_CMD, subCommand, *data)
 
     @wrapped
     def userCmd(self, subCommand: int, data: bytes):
@@ -703,23 +707,20 @@ class Master:
         ----------
         data : bytes
         """
-        response = self.transport.request(types.Command.DOWNLOAD_MAX, *data)
-        return response
+        return self.transport.request(types.Command.DOWNLOAD_MAX, *data)
 
     @wrapped
     def shortDownload(self, address, addressExt, data):
         length = len(data)
         addr = self.DWORD_pack(address)
-        response = self.transport.request(types.Command.SHORT_DOWNLOAD, length, 0, addressExt, *addr, *data)
-        return response
+        return self.transport.request(types.Command.SHORT_DOWNLOAD, length, 0, addressExt, *addr, *data)
 
     @wrapped
     def modifyBits(self, shiftValue, andMask, xorMask):
         # A = ( (A) & ((~((dword)(((word)~MA)<<S))) )^((dword)(MX<<S)) )
         am = self.WORD_pack(andMask)
         xm = self.WORD_pack(xorMask)
-        response = self.transport.request(types.Command.MODIFY_BITS, shiftValue, *am, *xm)
-        return response
+        return self.transport.request(types.Command.MODIFY_BITS, shiftValue, *am, *xm)
 
     # Page Switching Commands (PAG)
     @wrapped
@@ -735,8 +736,7 @@ class Master:
         logicalDataSegment : int
         logicalDataPage : int
         """
-        response = self.transport.request(types.Command.SET_CAL_PAGE, mode, logicalDataSegment, logicalDataPage)
-        return response
+        return self.transport.request(types.Command.SET_CAL_PAGE, mode, logicalDataSegment, logicalDataPage)
 
     @wrapped
     def getCalPage(self, mode: int, logicalDataSegment: int):
@@ -824,8 +824,7 @@ class Master:
             1 = enable FREEZE Mode
         segmentNumber : int
         """
-        response = self.transport.request(types.Command.SET_SEGMENT_MODE, mode, segmentNumber)
-        return response
+        return self.transport.request(types.Command.SET_SEGMENT_MODE, mode, segmentNumber)
 
     @wrapped
     def getSegmentMode(self, segmentNumber):
@@ -849,8 +848,7 @@ class Master:
         dstSegment : int
         dstPage : int
         """
-        response = self.transport.request(types.Command.COPY_CAL_PAGE, srcSegment, srcPage, dstSegment, dstPage)
-        return response
+        return self.transport.request(types.Command.COPY_CAL_PAGE, srcSegment, srcPage, dstSegment, dstPage)
 
     # DAQ
 
@@ -870,8 +868,7 @@ class Master:
         daqListNumber : int
         """
         daqList = self.WORD_pack(daqListNumber)
-        response = self.transport.request(types.Command.CLEAR_DAQ_LIST, 0, *daqList)
-        return response
+        return self.transport.request(types.Command.CLEAR_DAQ_LIST, 0, *daqList)
 
     @wrapped
     def writeDaq(self, bitOffset, entrySize, addressExt, address):
@@ -887,15 +884,13 @@ class Master:
         address : int
         """
         addr = self.DWORD_pack(address)
-        response = self.transport.request(types.Command.WRITE_DAQ, bitOffset, entrySize, addressExt, *addr)
-        return response
+        return self.transport.request(types.Command.WRITE_DAQ, bitOffset, entrySize, addressExt, *addr)
 
     @wrapped
     def setDaqListMode(self, mode, daqListNumber, eventChannelNumber, prescaler, priority):
         dln = self.WORD_pack(daqListNumber)
         ecn = self.WORD_pack(eventChannelNumber)
-        response = self.transport.request(types.Command.SET_DAQ_LIST_MODE, mode, *dln, *ecn, prescaler, priority)
-        return response
+        return self.transport.request(types.Command.SET_DAQ_LIST_MODE, mode, *dln, *ecn, prescaler, priority)
 
     @wrapped
     def getDaqListMode(self, daqListNumber):
@@ -940,8 +935,7 @@ class Master:
             1 = start selected
             2 = stop selected
         """
-        response = self.transport.request(types.Command.START_STOP_SYNCH, mode)
-        return response
+        return self.transport.request(types.Command.START_STOP_SYNCH, mode)
 
     @wrapped
     def writeDaqMultiple(self, daqElements):
@@ -961,8 +955,7 @@ class Master:
         for daqElement in daqElements:
             data.extend(types.DaqElement.build(daqElement, byteOrder=self.slaveProperties.byteOrder))
 
-        response = self.transport.request(types.Command.WRITE_DAQ_MULTIPLE, *data)
-        return response
+        return self.transport.request(types.Command.WRITE_DAQ_MULTIPLE, *data)
 
     # optional
     @wrapped
@@ -1081,8 +1074,7 @@ class Master:
             dsc = self.WORD_pack(dpmSampleCount)
             params.extend(dsc)
 
-        response = self.transport.request(types.Command.SET_DAQ_PACKED_MODE, *params)
-        return response
+        return self.transport.request(types.Command.SET_DAQ_PACKED_MODE, *params)
 
     @wrapped
     def getDaqPackedMode(self, daqListNumber):
@@ -1097,15 +1089,13 @@ class Master:
         """
         dln = self.WORD_pack(daqListNumber)
         response = self.transport.request(types.Command.GET_DAQ_PACKED_MODE, *dln)
-        result = types.GetDaqPackedModeResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
-        return result
+        return types.GetDaqPackedModeResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     # dynamic
     @wrapped
     def freeDaq(self):
         """Clear dynamic DAQ configuration."""
-        response = self.transport.request(types.Command.FREE_DAQ)
-        return response
+        return self.transport.request(types.Command.FREE_DAQ)
 
     @wrapped
     def allocDaq(self, daqCount):
@@ -1117,20 +1107,17 @@ class Master:
             number of DAQ lists to be allocated
         """
         dq = self.WORD_pack(daqCount)
-        response = self.transport.request(types.Command.ALLOC_DAQ, 0, *dq)
-        return response
+        return self.transport.request(types.Command.ALLOC_DAQ, 0, *dq)
 
     @wrapped
     def allocOdt(self, daqListNumber, odtCount):
         dln = self.WORD_pack(daqListNumber)
-        response = self.transport.request(types.Command.ALLOC_ODT, 0, *dln, odtCount)
-        return response
+        return self.transport.request(types.Command.ALLOC_ODT, 0, *dln, odtCount)
 
     @wrapped
     def allocOdtEntry(self, daqListNumber, odtNumber, odtEntriesCount):
         dln = self.WORD_pack(daqListNumber)
-        response = self.transport.request(types.Command.ALLOC_ODT_ENTRY, 0, *dln, odtNumber, odtEntriesCount)
-        return response
+        return self.transport.request(types.Command.ALLOC_ODT_ENTRY, 0, *dln, odtNumber, odtEntriesCount)
 
     # PGM
     @wrapped
@@ -1230,6 +1217,209 @@ class Master:
         data.extend(self.WORD_pack(verType))
         data.extend(self.DWORD_pack(verValue))
         return self.transport.request(types.Command.PROGRAM_VERIFY, verMode, *data)
+
+    # DBG
+
+    @wrapped
+    def dbgAttach(self):
+        """Returns detailed information about the implemented version of the SW-DBG feature of the XCP slave
+
+        Returns
+        -------
+        `pyxcp.types.DbgAttachResponse`
+        """
+        response = self.transport.request(types.Command.DBG_ATTACH)
+        return types.DbgAttachResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+
+    @wrapped
+    def dbgGetVendorInfo(self):
+        """"""
+        response = self.transport.request(types.Command.DBG_GET_VENDOR_INFO)
+        return types.DbgGetVendorInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+
+    @wrapped
+    def dbgGetModeInfo(self):
+        """"""
+        response = self.transport.request(types.Command.DBG_GET_MODE_INFO)
+        return types.DbgGetModeInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+
+    @wrapped
+    def dbgGetJtagId(self):
+        """"""
+        response = self.transport.request(types.Command.DBG_GET_JTAG_ID)
+        return types.DbgGetJtagIdResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+
+    @wrapped
+    def dbgHaltAfterReset(self):
+        """"""
+        return self.transport.request(types.Command.DBG_HALT_AFTER_RESET)
+
+    @wrapped
+    def dbgGetHwioInfo(self, index: int):
+        """"""
+        response = self.transport.request(types.Command.DBG_GET_HWIO_INFO, index)
+        return types.DbgGetHwioInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+
+    @wrapped
+    def dbgSetHwioEvent(self, index: int, trigger: int):
+        """"""
+        return self.transport.request(types.Command.DBG_SET_HWIO_EVENT, index, trigger)
+
+    @wrapped
+    def dbgHwioControl(self, pins):
+        """"""
+        d = bytearray()
+        d.extend(self.BYTE_pack(len(pins)))
+        for p in pins:
+            d.extend(self.BYTE_pack(p[0]))  # index
+            d.extend(self.BYTE_pack(p[1]))  # state
+            d.extend(self.WORD_pack(p[2]))  # frequency
+
+        response = self.transport.request(types.Command.DBG_HWIO_CONTROL, *d)
+        return types.DbgHwioControlResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+
+    @wrapped
+    def dbgExclusiveTargetAccess(self, mode: int, context: int):
+        """"""
+        return self.transport.request(types.Command.DBG_EXCLUSIVE_TARGET_ACCESS, mode, context)
+
+    @wrapped
+    def dbgSequenceMultiple(self, mode: int, num: int, *seq):
+        """"""
+        response = self.transport.request(types.Command.DBG_SEQUENCE_MULTIPLE, mode, self.WORD_pack(num), *seq)
+        return types.DbgSequenceMultipleResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+
+    @wrapped
+    def dbgLlt(self, num: int, mode: int, *llts):
+        """"""
+        response = self.transport.request(types.Command.DBG_LLT, num, mode, *llts)
+        return types.DbgLltResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+
+    @wrapped
+    def dbgReadModifyWrite(self, tri: int, width: int, address: int, mask: int, data: int):
+        """"""
+        d = bytearray()
+        d.extend(b"\x00")
+        d.append(tri)
+        d.append(width)
+        d.extend(b"\x00\x00")
+        d.extend(self.DLONG_pack(address))
+        if width == 0x01:
+            d.extend(self.BYTE_pack(mask))
+            d.extend(self.BYTE_pack(data))
+        elif width == 0x02:
+            d.extend(self.WORD_pack(mask))
+            d.extend(self.WORD_pack(data))
+        elif width == 0x04:
+            d.extend(self.DWORD_pack(mask))
+            d.extend(self.DWORD_pack(data))
+        elif width == 0x08:
+            d.extend(self.DLONG_pack(mask))
+            d.extend(self.DLONG_pack(data))
+        response = self.transport.request(types.Command.DBG_READ_MODIFY_WRITE, *d)
+        return types.DbgReadModifyWriteResponse.parse(response, byteOrder=self.slaveProperties.byteOrder, width=width)
+
+    @wrapped
+    def dbgWrite(self, tri: int, width: int, address: int, data):
+        """"""
+        d = bytearray()
+        d.extend(b"\x00")
+        d.append(tri)
+        self._dbg_width = width
+        d.append(width)
+        d.extend(self.WORD_pack(len(data)))
+        d.extend(self.DLONG_pack(address))
+        for da in data:
+            if width == 0x01:
+                d.extend(self.BYTE_pack(da))
+            elif width == 0x02:
+                d.extend(self.WORD_pack(da))
+            elif width == 0x04:
+                d.extend(self.DWORD_pack(da))
+            elif width == 0x08:
+                d.extend(self.DLONG_pack(da))
+        return self.transport.request(types.Command.DBG_WRITE, *d)
+
+    @wrapped
+    def dbgWriteNext(self, num: int, data: int):
+        """"""
+        d = bytearray()
+        d.extend(b"\x00")
+        d.extend(self.WORD_pack(num))
+        d.extend(b"\x00\x00")
+        for i in range(num):
+            if self._dbg_width == 0x01:
+                d.extend(self.BYTE_pack(data[i]))
+            elif self._dbg_width == 0x02:
+                d.extend(self.WORD_pack(data[i]))
+            elif self._dbg_width == 0x04:
+                d.extend(self.DWORD_pack(data[i]))
+            elif self._dbg_width == 0x08:
+                d.extend(self.DLONG_pack(data[i]))
+        return self.transport.request(types.Command.DBG_WRITE_NEXT, *d)
+
+    @wrapped
+    def dbgWriteCan1(self, tri: int, address: int):
+        """"""
+        d = bytearray()
+        d.extend(self.BYTE_pack(tri))
+        d.extend(self.DWORD_pack(address))
+        return self.transport.request(types.Command.DBG_WRITE_CAN1, *d)
+
+    @wrapped
+    def dbgWriteCan2(self, width: int, num: int):
+        """"""
+        d = bytearray()
+        self._dbg_width = width
+        d.append(width)
+        d.extend(self.BYTE_pack(num))
+        return self.transport.request(types.Command.DBG_WRITE_CAN2, *d)
+
+    @wrapped
+    def dbgWriteCanNext(self, num: int, data: int):
+        """"""
+        d = bytearray()
+        d.extend(self.BYTE_pack(num))
+        for i in range(num):
+            if self._dbg_width == 0x01:
+                d.extend(self.BYTE_pack(data[i]))
+            elif self._dbg_width == 0x02:
+                d.extend(self.WORD_pack(data[i]))
+            elif self._dbg_width == 0x04:
+                d.extend(self.DWORD_pack(data[i]))
+            elif self._dbg_width == 0x08:
+                d.extend(self.DLONG_pack(data[i]))
+        return self.transport.request(types.Command.DBG_WRITE_CAN_NEXT, *d)
+
+    @wrapped
+    def dbgRead(self, tri: int, width: int, num: int, address: int):
+        """"""
+        d = bytearray()
+        d.extend(b"\x00")
+        d.extend(self.BYTE_pack(tri))
+        self._dbg_width = width
+        d.extend(self.BYTE_pack(width))
+        d.extend(self.WORD_pack(num))
+        d.extend(self.DLONG_pack(address))
+        response = self.transport.request(types.Command.DBG_READ, *d)
+        return types.DbgReadResponse.parse(response, byteOrder=self.slaveProperties.byteOrder, width=width)
+
+    @wrapped
+    def dbgReadCan1(self, tri: int, address: int):
+        """"""
+        d = bytearray()
+        d.extend(self.BYTE_pack(tri))
+        d.extend(self.DWORD_pack(address))
+        return self.transport.request(types.Command.DBG_READ_CAN1, *d)
+
+    @wrapped
+    def dbgReadCan2(self, width: int, num: int):
+        """"""
+        d = bytearray()
+        self._dbg_width = width
+        d.extend(self.BYTE_pack(width))
+        d.extend(self.BYTE_pack(num))
+        return self.transport.request(types.Command.DBG_READ_CAN2, *d)
 
     @wrapped
     def timeCorrelationProperties(self, setProperties, getPropertiesRequest, clusterId):

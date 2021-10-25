@@ -1380,6 +1380,168 @@ class TestMaster:
 
     @mock.patch("pyxcp.transport.eth.socket.socket")
     @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    def testDbgCommands(self, mock_selector, mock_socket):
+        ms = MockSocket()
+
+        mock_socket.return_value.recv.side_effect = ms.recv
+        mock_selector.return_value.select.side_effect = ms.select
+
+        with Master("eth", config={"HOST": "localhost", "LOGLEVEL": "DEBUG"}) as xm:
+            ms.push_packet(self.DefaultConnectResponse)
+            res = xm.connect()
+            mock_socket.return_value.send.assert_called_with(self.DefaultConnectCmd)
+
+            ms.push_packet(b"\xFF\x01\x00\x02\x03\xFF\xFE\xCA")
+            res = xm.dbgAttach()
+            mock_socket.return_value.send.assert_called_with(bytes([0x03, 0x00, 0x01, 0x00, 0xC0, 0xFC, 0x00]))
+
+            assert res.major == 1
+            assert res.minor == 0
+            assert res.timeout1 == 2
+            assert res.timeout7 == 3
+            assert res.maxCtoDbg == 0xCAFE
+
+            ms.push_packet(b"\xFF\x04\xFE\xCA\xEF\xBE\xAD\xDE")
+            res = xm.dbgGetVendorInfo()
+            mock_socket.return_value.send.assert_called_with(bytes([0x03, 0x00, 0x02, 0x00, 0xC0, 0xFC, 0x01]))
+
+            assert res.length == 4
+            assert res.vendorId == 0xCAFE
+            assert res.vendorInfo == list(b"\xEF\xBE\xAD\xDE")
+
+            ms.push_packet(b"\xFF\xFF\x04\x02\x01\x03")
+            res = xm.dbgGetModeInfo()
+            mock_socket.return_value.send.assert_called_with(bytes([0x03, 0x00, 0x03, 0x00, 0xC0, 0xFC, 0x02]))
+
+            assert res.maxHwIoPins == 4
+            assert res.dialect == 2
+            assert res.feature == 1
+            assert res.serviceLevel == 3
+
+            ms.push_packet(b"\xFF\xFF\xFF\xFF\xBE\xBA\xFE\xCA")
+            res = xm.dbgGetJtagId()
+            mock_socket.return_value.send.assert_called_with(bytes([0x03, 0x00, 0x04, 0x00, 0xC0, 0xFC, 0x03]))
+
+            assert res.jtagId == 0xCAFEBABE
+
+            ms.push_packet(b"\xFF")
+            res = xm.dbgHaltAfterReset()
+            mock_socket.return_value.send.assert_called_with(bytes([0x03, 0x00, 0x05, 0x00, 0xC0, 0xFC, 0x04]))
+
+            assert res == b""
+
+            ms.push_packet(b"\xFF\x02\x01\x03\x01\x02\x02\x03\x02\x02")
+            res = xm.dbgGetHwioInfo(0)
+            mock_socket.return_value.send.assert_called_with(bytes([0x04, 0x00, 0x06, 0x00, 0xC0, 0xFC, 0x05, 0x00]))
+
+            assert res.num == 2
+            assert res.pins[0].index == 1
+            assert res.pins[0].mode == 3
+            assert res.pins[0].pinClass == 1
+            assert res.pins[0].state == 2
+            assert res.pins[1].index == 2
+            assert res.pins[1].mode == 3
+            assert res.pins[1].pinClass == 2
+            assert res.pins[1].state == 2
+
+            ms.push_packet(b"\xFF")
+            res = xm.dbgSetHwioEvent(0, 1)
+            mock_socket.return_value.send.assert_called_with(bytes([0x05, 0x00, 0x07, 0x00, 0xC0, 0xFC, 0x06, 0x00, 0x01]))
+
+            assert res == b""
+
+            ms.push_packet(b"\xFF\x01\x00")
+            res = xm.dbgHwioControl([[1, 2, 0], [2, 0, 0]])
+            mock_socket.return_value.send.assert_called_with(bytes([0x0C, 0x00, 0x08, 0x00, 0xC0, 0xFC, 0x07, 0x02, 0x01, 0x02, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00]))
+
+            assert res[0] == 1
+            assert res[1] == 0
+
+            ms.push_packet(b"\xFF")
+            res = xm.dbgExclusiveTargetAccess(1, 0)
+            mock_socket.return_value.send.assert_called_with(bytes([0x05, 0x00, 0x09, 0x00, 0xC0, 0xFC, 0x08, 0x01, 0x00]))
+
+            assert res == b""
+
+            ms.push_packet(b"\xFF\xFF\x02\x00\x01\x04\x03\x02\x01\x00\x02\xCA\xFE\xBA\xBE")
+            res = xm.dbgSequenceMultiple(0x3, 0)
+            mock_socket.return_value.send.assert_called_with(bytes([0x06, 0x00, 0x0A, 0x00, 0xC0, 0xFC, 0x09, 0x03, 0x00, 0x00]))
+
+            assert res.num == 2
+            assert res.results[0].status == 0
+            assert res.results[0].repeat == 1
+            assert res.results[0].tdo == 0x04030201
+            assert res.results[1].status == 0
+            assert res.results[1].repeat == 2
+            assert res.results[1].tdo == 0xCAFEBABE
+
+            ms.push_packet(b"\xFF\x02\x08\xAA\x10\xAA\x55")
+            res = xm.dbgLlt(0, 1)
+            mock_socket.return_value.send.assert_called_with(bytes([0x05, 0x00, 0x0B, 0x00, 0xC0, 0xFC, 0x0A, 0x00, 0x01]))
+
+            assert res.num == 2
+            assert res.results[0].length == 8
+            assert res.results[0].data == list(b"\xAA")
+            assert res.results[1].length == 16
+            assert res.results[1].data == list(b"\xAA\x55")
+
+            ms.push_packet(b"\xFF\xFF\xFF\xFF\x0D\xF0\xAD\xBA")
+            res = xm.dbgReadModifyWrite(1, 4, 0xCAFEBABE, 0xFFFFFFFF, 0xDEADBEEF)
+            mock_socket.return_value.send.assert_called_with(bytes([0x18, 0x00, 0x0C, 0x00, 0xC0, 0xFC, 0x0B, 0x00, 0x01, 0x04, 0x00, 0x00, 0xBE, 0xBA, 0xFE, 0xCA, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xEF, 0xBE, 0xAD, 0xDE]))
+
+            assert res.value == 0xBAADF00D
+
+            ms.push_packet(b"\xFF")
+            res = xm.dbgWrite(1, 4, 0xAAAA0001, [0xDDDD0001, 0xDDDD0002])
+            mock_socket.return_value.send.assert_called_with(bytes([0x18, 0x00, 0x0D, 0x00, 0xC0, 0xFC, 0x0C, 0x00, 0x01, 0x04, 0x02, 0x00, 0x01, 0x00, 0xAA, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0xDD, 0xDD, 0x02, 0x00, 0xDD, 0xDD]))
+
+            assert res == b""
+
+            ms.push_packet(b"\xFF")
+            res = xm.dbgWriteNext(2, [0xDDDD0003, 0xDDDD0004])
+            mock_socket.return_value.send.assert_called_with(bytes([0x10, 0x00, 0x0E, 0x00, 0xC0, 0xFC, 0x0D, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03, 0x00, 0xDD, 0xDD, 0x04, 0x00, 0xDD, 0xDD]))
+
+            assert res == b""
+
+            ms.push_packet(b"\xFF")
+            res = xm.dbgWriteCan1(1, 0xAAAA0001)
+            mock_socket.return_value.send.assert_called_with(bytes([0x08, 0x00, 0x0F, 0x00, 0xC0, 0xFC, 0x0E, 0x01, 0x01, 0x00, 0xAA, 0xAA]))
+
+            assert res == b""
+
+            ms.push_packet(b"\xFF")
+            res = xm.dbgWriteCan2(4, 2)
+            mock_socket.return_value.send.assert_called_with(bytes([0x05, 0x00, 0x10, 0x00, 0xC0, 0xFC, 0x0F, 0x04, 0x02]))
+
+            assert res == b""
+
+            ms.push_packet(b"\xFF")
+            res = xm.dbgWriteCanNext(1, [0xCAFEBABE])
+            mock_socket.return_value.send.assert_called_with(bytes([0x08, 0x00, 0x11, 0x00, 0xC0, 0xFC, 0x10, 0x01, 0xBE, 0xBA, 0xFE, 0xCA]))
+
+            assert res == b""
+
+            ms.push_packet(b"\xFF\xFF\xFF\xFF\x01\x00\xDD\xDD\x02\x00\xDD\xDD")
+            res = xm.dbgRead(1, 4, 2, 0xAAAA0001)
+            mock_socket.return_value.send.assert_called_with(bytes([0x10, 0x00, 0x12, 0x00, 0xC0, 0xFC, 0x11, 0x00, 0x01, 0x04, 0x02, 0x00, 0x01, 0x00, 0xAA, 0xAA, 0x00, 0x00, 0x00, 0x00]))
+
+            assert res.data[0] == 0xDDDD0001
+            assert res.data[1] == 0xDDDD0002
+
+            ms.push_packet(b"\xFF")
+            res = xm.dbgReadCan1(1, 0xAAAA0001)
+            mock_socket.return_value.send.assert_called_with(bytes([0x08, 0x00, 0x13, 0x00, 0xC0, 0xFC, 0x12, 0x01, 0x01, 0x00, 0xAA, 0xAA]))
+
+            assert res == b""
+
+            ms.push_packet(b"\xFF")
+            res = xm.dbgReadCan2(4, 2)
+            mock_socket.return_value.send.assert_called_with(bytes([0x05, 0x00, 0x14, 0x00, 0xC0, 0xFC, 0x13, 0x04, 0x02]))
+
+            assert res == b""
+
+    @mock.patch("pyxcp.transport.eth.socket.socket")
+    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
     def testTimeCorrelationProperties(self, mock_selector, mock_socket):
         ms = MockSocket()
 
