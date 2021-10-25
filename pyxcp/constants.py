@@ -26,6 +26,16 @@ __copyright__ = """
 import struct
 
 
+def makeBytePacker(byteorder="@"):
+    """"""
+    return struct.Struct("{}B".format(byteorder)).pack
+
+
+def makeByteUnpacker(byteorder="@"):
+    """"""
+    return struct.Struct("{}B".format(byteorder)).unpack
+
+
 def makeWordPacker(byteorder="@"):
     """"""
     return struct.Struct("{}H".format(byteorder)).pack
@@ -44,3 +54,13 @@ def makeDWordPacker(byteorder="@"):
 def makeDWordUnpacker(byteorder="@"):
     """"""
     return struct.Struct("{}I".format(byteorder)).unpack
+
+
+def makeDLongPacker(byteorder="@"):
+    """"""
+    return struct.Struct("{}Q".format(byteorder)).pack
+
+
+def makeDLongUnpacker(byteorder="@"):
+    """"""
+    return struct.Struct("{}Q".format(byteorder)).unpack

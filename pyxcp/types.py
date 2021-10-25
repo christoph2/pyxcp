@@ -29,26 +29,25 @@ import enum
 import construct
 
 from construct import (
-    Struct,
-    Enum,
-    Padding,
-    Int8ul,
-    GreedyBytes,
-    Byte,
-    Int16ul,
-    Int32ul,
-    BitStruct,
     BitsInteger,
+    BitStruct,
+    Enum,
     Flag,
+    GreedyBytes,
+    GreedyRange,
     If,
-    this,
-    Int16ub,
-    Int32ub,
     IfThenElse,
-    Int16sl,
-    Int32sl,
-    Int16sb,
-    Int32sb,
+    Int16ub,
+    Int16ul,
+    Int32ub,
+    Int32ul,
+    Int64ub,
+    Int64ul,
+    Int8ul,
+    Padding,
+    Struct,
+    Switch,
+    this,
 )
 
 
@@ -185,6 +184,29 @@ class Command(enum.IntEnum):
 
     TIME_CORRELATION_PROPERTIES = 0xC6
 
+    # DBG
+
+    DBG_ATTACH = 0xC0FC00
+    DBG_GET_VENDOR_INFO = 0xC0FC01
+    DBG_GET_MODE_INFO = 0xC0FC02
+    DBG_GET_JTAG_ID = 0xC0FC03
+    DBG_HALT_AFTER_RESET = 0xC0FC04
+    DBG_GET_HWIO_INFO = 0xC0FC05
+    DBG_SET_HWIO_EVENT = 0xC0FC06
+    DBG_HWIO_CONTROL = 0xC0FC07
+    DBG_EXCLUSIVE_TARGET_ACCESS = 0xC0FC08
+    DBG_SEQUENCE_MULTIPLE = 0xC0FC09
+    DBG_LLT = 0xC0FC0A
+    DBG_READ_MODIFY_WRITE = 0xC0FC0B
+    DBG_WRITE = 0xC0FC0C
+    DBG_WRITE_NEXT = 0xC0FC0D
+    DBG_WRITE_CAN1 = 0xC0FC0E
+    DBG_WRITE_CAN2 = 0xC0FC0F
+    DBG_WRITE_CAN_NEXT = 0xC0FC10
+    DBG_READ = 0xC0FC11
+    DBG_READ_CAN1 = 0xC0FC12
+    DBG_READ_CAN2 = 0xC0FC13
+
 
 class CommandCategory(enum.IntEnum):
     """Values reflect resources (resource protection status / unlock)."""
@@ -304,8 +326,8 @@ Response = Struct(
 )
 
 DAQ = Struct(
-    "odt" / Byte,
-    "daq" / Byte,
+    "odt" / Int8ul,
+    "daq" / Int8ul,
     "data" / GreedyBytes,
 )
 
@@ -333,9 +355,8 @@ ByteOrder = Enum(BitsInteger(1), INTEL=0, MOTOROLA=1)
 
 # byte-order dependent types
 Int16u = IfThenElse(this._.byteOrder == ByteOrder.INTEL, Int16ul, Int16ub)
-Int16s = IfThenElse(this._.byteOrder == ByteOrder.INTEL, Int16sl, Int16sb)
 Int32u = IfThenElse(this._.byteOrder == ByteOrder.INTEL, Int32ul, Int32ub)
-Int32s = IfThenElse(this._.byteOrder == ByteOrder.INTEL, Int32sl, Int32sb)
+Int64u = IfThenElse(this._.byteOrder == ByteOrder.INTEL, Int64ul, Int64ub)
 
 CommModeBasic = BitStruct(
     "optional" / Flag,  # The OPTIONAL flag indicates whether additional
@@ -401,10 +422,10 @@ GetCommModeInfoResponse = Struct(
 )
 
 GetIDResponse = Struct(
-    "mode" / Int8ul, Padding(2), "length" / Int32u, "identification" / If(this.mode == 1, Byte[this.length])
+    "mode" / Int8ul, Padding(2), "length" / Int32u, "identification" / If(this.mode == 1, Int8ul[this.length])
 )
 
-GetSeedResponse = Struct("length" / Int8ul, "seed" / If(this.length > 0, Byte[this.length]))
+GetSeedResponse = Struct("length" / Int8ul, "seed" / If(this.length > 0, Int8ul[this.length]))
 
 SetRequestMode = BitStruct(
     Padding(4),
@@ -733,6 +754,84 @@ TimeCorrelationPropertiesResponse = Struct(
 )
 
 DaqPtr = namedtuple("DaqPtr", "daqListNumber odtNumber odtEntryNumber")
+
+DbgAttachResponse = Struct(
+    "major" / Int8ul,
+    "minor" / Int8ul,
+    "timeout1" / Int8ul,
+    "timeout7" / Int8ul,
+    Padding(1),
+    "maxCtoDbg" / Int16u,
+)
+
+DbgGetVendorInfoResponse = Struct(
+    "length" / Int8ul,
+    "vendorId" / Int16u,
+    "vendorInfo" / Int8ul[this.length],
+)
+
+DbgGetModeInfoResponse = Struct(
+    Padding(1),
+    "maxHwIoPins" / Int8ul,
+    "dialect" / Int8ul,
+    "feature" / Int8ul,
+    "serviceLevel" / Int8ul,
+)
+
+DbgGetJtagIdResponse = Struct(
+    Padding(3),
+    "jtagId" / Int32u,
+)
+
+DbgGetHwioInfoPin = Struct(
+    "index" / Int8ul,
+    "mode" / Int8ul,
+    "pinClass" / Int8ul,
+    "state" / Int8ul,
+)
+
+DbgGetHwioInfoResponse = Struct(
+    "num" / Int8ul,
+    "pins" / DbgGetHwioInfoPin[this.num],
+)
+
+DbgHwioControlResponse = GreedyBytes
+
+DbgSequenceMultipleResult = Struct(
+    "status" / Int8ul,
+    "repeat" / Int8ul,
+    "tdo" / Int32ub,
+)
+
+DbgSequenceMultipleResponse = Struct(
+    Padding(1),
+    "num" / Int8ul,
+    "results" / DbgSequenceMultipleResult[this.num],
+)
+
+DbgLltResult = Struct(
+    "length" / Int8ul,
+    "data" / Int8ul[this.length // 8],
+)
+
+DbgLltResponse = Struct(
+    "num" / Int8ul,
+    "results" / DbgLltResult[this.num],
+)
+
+DbgReadModifyWriteResponse = Struct(
+    If(this._.width == 2, Padding(1)),
+    If(this._.width == 4, Padding(3)),
+    If(this._.width == 8, Padding(7)),
+    "value" / Switch(this._.width, {1: Int8ul, 2: Int16u, 4: Int32u, 8: Int64u}),
+)
+
+DbgReadResponse = Struct(
+    If(this._.width == 2, Padding(1)),
+    If(this._.width == 4, Padding(3)),
+    If(this._.width == 8, Padding(7)),
+    "data" / GreedyRange(Switch(this._.width, {1: Int8ul, 2: Int16u, 4: Int32u, 8: Int64u})),
+)
 
 DAQ_TIMESTAMP_UNIT_TO_EXP = {
     "DAQ_TIMESTAMP_UNIT_1PS": -12,

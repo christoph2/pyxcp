@@ -192,16 +192,19 @@ class BaseTransport(metaclass=abc.ABCMeta):
         if self._debug:
             self.logger.debug(cmd.name)
         self.parent._setService(cmd)
+
         cmdlen = cmd.bit_length() // 8  # calculate bytes needed for cmd
-        
-        header = self.HEADER.pack(cmdlen + len(data), self.counterSend)
+        packet = bytes(flatten(cmd.to_bytes(cmdlen, "big"), data))
+
+        header = self.HEADER.pack(len(packet), self.counterSend)
         self.counterSend = (self.counterSend + 1) & 0xFFFF
 
-        frame = header + bytes(flatten(cmd.to_bytes(cmdlen, "big"), data))
+        frame = header + packet
+
         remainder = len(frame) % self.alignment
         if remainder:
             frame += b'\0' * (self.alignment - remainder)
-        
+
         if self._debug:
             self.logger.debug("-> {}".format(hexDump(frame)))
         return frame
