@@ -40,6 +40,12 @@ jobs:
       run: |
            python setup.py bdist_wheel
            python setup.py sdist --formats=gztar
+    - name: Bump version
+      uses: jaumann/github-bumpversion-action@v0.0.7
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BUMP: patch
+      if: matrix.os == 'ubuntu-latest'
     - name: Build and publish
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USER_NAME }}
