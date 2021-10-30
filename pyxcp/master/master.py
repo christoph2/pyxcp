@@ -1422,6 +1422,23 @@ class Master:
         return self.transport.request(types.Command.DBG_READ_CAN2, *d)
 
     @wrapped
+    def dbgGetTriDescTbl(self):
+        """"""
+        response = self.transport.request(types.Command.DBG_GET_TRI_DESC_TBL, b"\x00\x00\x00\x00\x00")
+        return types.DbgGetTriDescTblResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+
+    @wrapped
+    def dbgLlbt(self, data):
+        """"""
+        d = bytearray()
+        d.extend(b"\x00")
+        d.extend(self.WORD_pack(len(data)))
+        for b in data:
+            d.extend(self.BYTE_pack(b))
+        response = self.transport.request(types.Command.DBG_LLBT, d)
+        return types.DbgLlbtResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+
+    @wrapped
     def timeCorrelationProperties(self, setProperties, getPropertiesRequest, clusterId):
         response = self.transport.request(
             types.Command.TIME_CORRELATION_PROPERTIES,

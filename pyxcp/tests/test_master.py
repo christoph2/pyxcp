@@ -1540,6 +1540,62 @@ class TestMaster:
 
             assert res == b""
 
+            ms.push_packet("FF 01 00 00 D0 00 00 00	07 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 05 00 06 00 00 00 00 00 01 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 05 00 07 00 00 00 00 00 02 01 00 00 00 00 00 00 00 00 01 00 00 00 00 00 05 00 01 00 00 00 00 00 03 01 00 00 00 00 00 00 00 00 02 00 00 00 00 00 05 00 04 00 00 00 00 00 04 02 00 00 00 00 00 00 00 00 02 00 00 00 00 00 05 00 04 00 00 00 00 00 00 00 01 00 00 00 00 00 05 00 05 00 00 00 00 00 05 02 00 00 00 00 00 00 00 00 02 00 00 00 00 00 05 00 04 00 00 00 00 00 00 00 02 00 00 00 00 00 05 00 05 00 00 00 00 00 06 01 00 00 00 00 00 00 00 00 04 00 00 00 00 00 05 00 05 00 00 00 00 00")
+            res = xm.dbgGetTriDescTbl()
+            mock_socket.return_value.send.assert_called_with(bytes([0x08, 0x00, 0x15, 0x00, 0xC0, 0xFC, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00]))
+
+            assert res.mode == 1
+            assert res.length == 208
+            assert res.table.tri_cnt == 7
+            assert res.table.tris[0].tri == 0
+            assert res.table.tris[0].trad_cnt == 1
+            assert res.table.tris[0].trads[0].trai == 0x0
+            assert res.table.tris[0].trads[0].trdt == 0x5
+            assert res.table.tris[0].trads[0].trat == 0x6
+            assert res.table.tris[1].tri == 1
+            assert res.table.tris[1].trad_cnt == 1
+            assert res.table.tris[1].trads[0].trai == 0x0
+            assert res.table.tris[1].trads[0].trdt == 0x5
+            assert res.table.tris[1].trads[0].trat == 0x7
+            assert res.table.tris[2].tri == 2
+            assert res.table.tris[2].trad_cnt == 1
+            assert res.table.tris[2].trads[0].trai == 0x10000
+            assert res.table.tris[2].trads[0].trdt == 0x5
+            assert res.table.tris[2].trads[0].trat == 0x1
+            assert res.table.tris[3].tri == 3
+            assert res.table.tris[3].trad_cnt == 1
+            assert res.table.tris[3].trads[0].trai == 0x20000
+            assert res.table.tris[3].trads[0].trdt == 0x5
+            assert res.table.tris[3].trads[0].trat == 0x4
+            assert res.table.tris[4].tri == 4
+            assert res.table.tris[4].trad_cnt == 2
+            assert res.table.tris[4].trads[0].trai == 0x20000
+            assert res.table.tris[4].trads[0].trdt == 0x5
+            assert res.table.tris[4].trads[0].trat == 0x4
+            assert res.table.tris[4].trads[1].trai == 0x10000
+            assert res.table.tris[4].trads[1].trdt == 0x5
+            assert res.table.tris[4].trads[1].trat == 0x5
+            assert res.table.tris[5].tri == 5
+            assert res.table.tris[5].trad_cnt == 2
+            assert res.table.tris[5].trads[0].trai == 0x20000
+            assert res.table.tris[5].trads[0].trdt == 0x5
+            assert res.table.tris[5].trads[0].trat == 0x4
+            assert res.table.tris[5].trads[1].trai == 0x20000
+            assert res.table.tris[5].trads[1].trdt == 0x5
+            assert res.table.tris[5].trads[1].trat == 0x5
+            assert res.table.tris[6].tri == 6
+            assert res.table.tris[6].trad_cnt == 1
+            assert res.table.tris[6].trads[0].trai == 0x40000
+            assert res.table.tris[6].trads[0].trdt == 0x5
+            assert res.table.tris[6].trads[0].trat == 0x5
+
+            ms.push_packet("FF 00 0F 00 81 00 0A 34 00 00 00 00 00 00 00 00 00 C2 03")
+            res = xm.dbgLlbt([0x01, 0x00, 0x05, 0x34, 0x00, 0x26, 0x25, 0xA0, 0xDC, 0x03])
+            mock_socket.return_value.send.assert_called_with(bytes([0x10, 0x00, 0x16, 0x00, 0xC0, 0xFC, 0x15, 0x00, 0x0A, 0x00, 0x01, 0x00, 0x05, 0x34, 0x00, 0x26, 0x25, 0xA0, 0xDC, 0x03]))
+
+            assert res.length == 15
+            assert res.data == list(b"\x81\x00\x0A\x34\x00\x00\x00\x00\x00\x00\x00\x00\x00\xC2\x03")
+
     @mock.patch("pyxcp.transport.eth.socket.socket")
     @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
     def testTimeCorrelationProperties(self, mock_selector, mock_socket):
