@@ -206,6 +206,8 @@ class Command(enum.IntEnum):
     DBG_READ = 0xC0FC11
     DBG_READ_CAN1 = 0xC0FC12
     DBG_READ_CAN2 = 0xC0FC13
+    DBG_GET_TRI_DESC_TBL = 0xC0FC14
+    DBG_LLBT = 0xC0FC15
 
 
 class CommandCategory(enum.IntEnum):
@@ -831,6 +833,39 @@ DbgReadResponse = Struct(
     If(this._.width == 4, Padding(3)),
     If(this._.width == 8, Padding(7)),
     "data" / GreedyRange(Switch(this._.width, {1: Int8ul, 2: Int16u, 4: Int32u, 8: Int64u})),
+)
+
+DbgGetTriDescTblTrad = Struct(
+    "trai" / Int64ul,
+    "trdt" / Int16ul,
+    "trat" / Int16ul,
+    Padding(4),
+)
+
+DbgGetTriDescTblTri = Struct(
+    "tri" / Int8ul,
+    "trad_cnt" / Int8ul,
+    Padding(6),
+    "trads" / DbgGetTriDescTblTrad[this.trad_cnt],
+)
+
+DbgGetTriDescTbl = Struct(
+    "tri_cnt" / Int8ul,
+    Padding(7),
+    "tris" / DbgGetTriDescTblTri[this.tri_cnt]
+)
+
+DbgGetTriDescTblResponse = Struct(
+    "mode" / Int8ul,
+    Padding(2),
+    "length" / Int32u,
+    "table" / DbgGetTriDescTbl
+)
+
+DbgLlbtResponse = Struct(
+    Padding(1),
+    "length" / Int16u,
+    "data" / Int8ul[this.length]
 )
 
 DAQ_TIMESTAMP_UNIT_TO_EXP = {
