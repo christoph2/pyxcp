@@ -113,7 +113,7 @@ class Eth(BaseTransport):
         use_tcp = self.use_tcp
         EVENT_READ = selectors.EVENT_READ
 
-        close_event_set = self.closeEvent.isSet
+        close_event_set = self.closeEvent.is_set
         socket_fileno = self.sock.fileno
         select = self.selector.select
 
@@ -166,7 +166,7 @@ class Eth(BaseTransport):
         processResponse = self.processResponse
         popleft = self._packets.popleft
 
-        close_event_set = self.closeEvent.isSet
+        close_event_set = self.closeEvent.is_set
         socket_fileno = self.sock.fileno
 
         _packets = self._packets
