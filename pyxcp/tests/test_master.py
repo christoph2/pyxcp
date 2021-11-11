@@ -9,7 +9,7 @@ import struct
 from pyxcp.transport.can import CanInterfaceBase
 
 from pyxcp.master import Master
-from pyxcp import transport, types
+from pyxcp import types
 
 
 class MockSocket:

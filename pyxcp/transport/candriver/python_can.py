@@ -96,7 +96,7 @@ class PythonCAN:
         frame = Message(
             arbitration_id=self.parent.can_id_slave.id,
             is_extended_id=True if self.parent.can_id_slave.is_extended else False,
-            is_fd = self.is_fd,
+            is_fd=self.is_fd,
             data=payload,
         )
         self.bus.send(frame)

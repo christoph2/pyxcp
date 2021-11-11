@@ -29,11 +29,9 @@ import struct
 from time import perf_counter, sleep, time
 from array import array
 from collections import deque
-from traceback import format_exc
 import threading
 
 from pyxcp.transport.base import BaseTransport
-import pyxcp.types as types
 
 RECV_SIZE = 4096
 

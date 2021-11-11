@@ -1,9 +1,6 @@
-from unittest import mock
-
 import pytest
 
 import pyxcp.transport.base as tr
-from pyxcp.tests.test_master import MockCanInterface
 
 
 def test_factory_works():
