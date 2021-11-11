@@ -98,7 +98,7 @@ class Eth(BaseTransport):
     def startListener(self):
         self._packet_listener.start()
         self.listener.start()
-        
+
     def close(self):
         """Close the transport-layer connection and event-loop."""
         self.finishListener()
