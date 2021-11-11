@@ -22,6 +22,17 @@ XCP also replaces the older CCP (CAN Calibration Protocol).
 
 pyXCP is hosted on Github, get the latest release: [https://github.com/christoph2/pyxcp](https://github.com/christoph2/pyxcp)
 
+You can install pyxcp from source:
+```
+pip install -r requirements.txt
+python setup.py install
+```
+
+Alternatively, you can install pyxcp from source with pip:
+```
+pip install git+https://github.com/christoph2/pyxcp.git
+```
+
 Alternatively, get pyxcp from [PyPI](https://pypi.org/project/pyxcp/):
 ```
 pip install pyxcp
