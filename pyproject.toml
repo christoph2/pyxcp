@@ -1,22 +1,13 @@
 [build-system]
-requires = ["flit"]
-build-backend = "flit.buildapi"
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
 
-[tool.flit.metadata]
-module = "pyxcp"
-author = "Christoph Schueler"
-author-email = "cpu12.gems@googlemail.com"
-home-page = "https://github.com/christoph2/pyxcp"
-requires = [
-    "construct >= 2.9.0",
-    "mako",
-    "pyserial",
-    "pyusb",
-    "toml"
-]
+[project]
+name = "pyxcp"
+readme = "README.md"
 requires-python = ">= 3.6"
-description-file = "README.md"
-# See https://pypi.python.org/pypi?%3Aaction=list_classifiers
+authors = [{name = "Christoph Schueler", email = "cpu12.gems@googlemail.com"}]
+keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
 classifiers = [
     # How mature is this project? Common values are
     #   3 - Alpha
@@ -37,12 +28,22 @@ classifiers = [
     "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9"
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
 ]
-license = "GPLv2"
-keywords = "automotive ecu xcp asam autosar"
+dependencies = [
+    "construct >= 2.9.0",
+    "mako",
+    "pyserial",
+    "pyusb",
+    "toml"
+]
+dynamic = ["version", "description"]
 
-[tool.flit.metadata.requires-extra]
+[project.urls]
+Home = "https://github.com/christoph2/pyxcp"
+
+[project.optional-dependencies]
 test = [
     "pytest",
     "pytest-runner",

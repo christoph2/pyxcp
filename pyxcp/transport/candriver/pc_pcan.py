@@ -27,7 +27,7 @@ __copyright__ = """
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-from can import Bus, CanError, Message, BusState
+from can import BusState
 
 import pyxcp.transport.can as can
 

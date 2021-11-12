@@ -33,11 +33,8 @@ import functools
 import operator
 from time import perf_counter, time
 
-from typing import Type
-
 from pyxcp.transport.base import BaseTransport
 from pyxcp.config import Configuration
-from pyxcp.types import NumericType
 
 
 CAN_EXTENDED_ID         = 0x80000000

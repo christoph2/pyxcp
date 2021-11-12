@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Top-level package file.
-"""
+"""Universal Calibration Protocol for Python"""
 
 from .master import Master
 from .transport import Can, Eth, SxI, Usb
@@ -30,4 +29,5 @@ __copyright__ = """
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-from .version import __version__
+# if you update this manually, do not forget to update .bumpversion.cfg
+__version__ = "0.16.12"

@@ -23,8 +23,6 @@ __copyright__ = """
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-import sys
-
 from .eth import Eth
 from .sxi import SxI
 from .can import Can

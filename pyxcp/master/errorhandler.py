@@ -27,18 +27,15 @@ __copyright__ = """
 """
 
 from collections import namedtuple
-import inspect
 import functools
-from pprint import pprint
 
-import sys
 import os
 
 import time
 import threading
 import types
 
-from pyxcp.types import XcpResponseError, XcpTimeoutError, XcpError, Command, COMMAND_CATEGORIES
+from pyxcp.types import XcpResponseError, XcpTimeoutError, XcpError, COMMAND_CATEGORIES
 from pyxcp.errormatrix import ERROR_MATRIX, PreAction, Action
 from ..logger import Logger
 

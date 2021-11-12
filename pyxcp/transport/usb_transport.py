@@ -29,11 +29,9 @@ import struct
 from time import perf_counter, sleep, time
 from array import array
 from collections import deque
-from traceback import format_exc
 import threading
 
 from pyxcp.transport.base import BaseTransport
-import pyxcp.types as types
 
 RECV_SIZE = 4096
 
@@ -83,7 +81,7 @@ class Usb(BaseTransport):
                 continue
         else:
             raise Exception("Device with serial {} not found".format(self.serial_number))
-        
+
         current_configuration = self.device.get_active_configuration()
         if current_configuration.bConfigurationValue != self.configuration_number:
             self.device.set_configuration(self.configuration_number)
@@ -100,7 +98,7 @@ class Usb(BaseTransport):
     def startListener(self):
         self._packet_listener.start()
         self.listener.start()
-        
+
     def close(self):
         """Close the transport-layer connection and event-loop."""
         self.finishListener()
@@ -210,7 +208,7 @@ class Usb(BaseTransport):
             except:
                 # sometimes usb.core.USBError: [Errno 5] Input/Output Error is raised
                 # even though the command is send and a reply is received from the device.
-                # Ignore this here since a Timeout error will be raised anyway if 
+                # Ignore this here since a Timeout error will be raised anyway if
                 # the device does not responde
                 pass
             self.post_send_timestamp = time()
@@ -221,7 +219,7 @@ class Usb(BaseTransport):
             except:
                 # sometimes usb.core.USBError: [Errno 5] Input/Output Error is raised
                 # even though the command is send and a reply is received from the device.
-                # Ignore this here since a Timeout error will be raised anyway if 
+                # Ignore this here since a Timeout error will be raised anyway if
                 # the device does not responde
                 pass
             post_send_timestamp = perf_counter()
