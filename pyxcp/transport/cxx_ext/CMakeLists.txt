@@ -13,7 +13,7 @@ endif(WIN32)
 
 
 add_library(eth
-    utils.cpp
+    ${BASE_DIR}/utils.cpp
 )
 if(WIN32)
     set(ADD_LIBS ws2_32)
@@ -22,7 +22,7 @@ elseif(UNIX)
 endif(WIN32)
 
 target_compile_features(eth PRIVATE cxx_std_14)
-target_include_directories(eth PUBLIC .STRING(${BASE_DIR}/${_PS})
+target_include_directories(eth PUBLIC ${BASE_DIR} ${BASE_DIR}/${_PS})
 
 add_executable(test_timestamp tests/test_timestamp.cpp)
 target_include_directories(
@@ -33,7 +33,15 @@ target_include_directories(
 target_link_libraries(test_timestamp eth)
 
 
-add_executable(blocking_client blocking_socket.cpp  blocking_client.cpp)
+add_executable(test_pool tests/test_pool.cpp)
+target_include_directories(
+    test_pool PUBLIC
+    ${eth_booster_SOURCE_DIR}
+    ${eth_booster_SOURCE_DIR}/${_PS}
+)
+target_link_libraries(test_pool eth)
+
+add_executable(blocking_client ${BASE_DIR}/blocking_socket.cpp  ${BASE_DIR}/blocking_client.cpp)
 target_include_directories(
     blocking_client PUBLIC
     ${eth_booster_SOURCE_DIR}
