@@ -159,7 +159,7 @@ def __init__(self, file_name: str, prealloc: int = 10, chunk_size: int = 1024,
     explicit XcpLogFileWriter(const std::string &file_name, uint32_t prealloc = 10UL, uint32_t chunk_size = 1024, uint32_t compression_level = 9)
     {
         m_file_name = file_name + detail::FILE_EXTENSION;
-        m_fd = open(m_file_name.c_str(), /O_CREAT | O_RDWR | O_TRUNC, 0666);
+        m_fd = open(m_file_name.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0666);
         preallocate(prealloc * 1000 * 1000);
         m_mmap = new mio::mmap_sink(m_fd);
         m_chunk_size = chunk_size;
@@ -177,7 +177,7 @@ def __init__(self, file_name: str, prealloc: int = 10, chunk_size: int = 1024,
         ::ftruncate(m_fd, size);
     }
 
-    char const *ptr(std::size_t pos = 0) const
+    char *ptr(std::size_t pos = 0) const
     {
         return m_mmap->data() + pos;
     }
@@ -224,12 +224,12 @@ class XcpLogFileReader
         }
         m_offset = msize;
 
-        Read_Bytes(m_offset, FILE_HEADER_SIZE, (char *)&m_header);
+        Read_Bytes(m_offset, detail::FILE_HEADER_SIZE, (char *)&m_header);
         printf("Containers: %u Records: %u\n", m_header.num_containers, m_header.record_count);
         printf("%u %u %.3f\n", m_header.size_uncompressed,
                m_header.size_compressed,
                float(m_header.size_uncompressed) / float(m_header.size_compressed));
-        if (m_header.hdr_size != FILE_HEADER_SIZE + msize)
+        if (m_header.hdr_size != detail::FILE_HEADER_SIZE + msize)
         {
             throw std::runtime_error("File header size does not match.");
         }
@@ -238,15 +238,15 @@ class XcpLogFileReader
             throw std::runtime_error("File version mismatch.");
         }
 
-        m_offset += FILE_HEADER_SIZE;
+        m_offset += detail::FILE_HEADER_SIZE;
         auto container = ContainerHeaderType{};
         auto total = 0;
         for (std::size_t idx = 0; idx < m_header.num_containers; ++idx) {
-            Read_Bytes(m_offset, CONTAINER_SIZE, (char *)&container);
+            Read_Bytes(m_offset, detail::CONTAINER_SIZE, (char *)&container);
             printf("RC: %u C: %u U: %u\n", container.record_count, container.size_compressed, container.size_uncompressed);
             auto buffer = new char[container.size_uncompressed << 2];
 
-            m_offset += CONTAINER_SIZE;
+            m_offset += detail::CONTAINER_SIZE;
             total += container.record_count;
             //auto xxx = decoder.open((char**)ptr(m_offset), &container.size_compressed);
             const int xxx = LZ4_decompress_safe(ptr(m_offset), buffer, container.size_compressed, container.size_uncompressed << 2);
@@ -312,7 +312,7 @@ private:
 
 void some_records()
 {
-    const COUNT = 1024 * 10 * 5;
+    const auto COUNT = 1024 * 10 * 5;
     auto my_records = Records{};
 
     for (auto idx = 0; idx < COUNT; ++idx) {
