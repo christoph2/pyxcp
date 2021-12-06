@@ -119,29 +119,7 @@ typedef struct tagMeasurementType
  */
 class XcpLogFileWriter
 {
-  public:
-
-#if 0
-def __init__(self, file_name: str, prealloc: int = 10, chunk_size: int = 1024,
-        compression_level: int = 9
-    ):
-        self.container_header_offset = FILE_HEADER_STRUCT.size
-        self.current_offset = self.container_header_offset + CONTAINER_HEADER_STRUCT.size
-        self.total_size_uncompressed = self.total_size_compressed = 0
-        self.container_size_uncompressed = self.container_size_compressed = 0
-        self.total_record_count = 0
-        self.chunk_size = chunk_size * 1024
-        self.num_containers = 0
-        self.intermediate_storage = []
-        self.compression_level = compression_level
-        self.prealloc = prealloc
-        self._is_closed = False
-
-    def add_xcp_frames(self, xcp_frames: list):
-        for counter, timestamp, raw_data in xcp_frames:
-            length = len(raw_data)
-            item = DAQ_RECORD_STRUCT.pack(1, counter, timestamp, length) + raw_data
-#endif
+public:
     explicit XcpLogFileWriter(const std::string &file_name, uint32_t prealloc = 10UL, uint32_t chunk_size = 1024, uint32_t compression_level = 9)
     {
         m_file_name = file_name + detail::FILE_EXTENSION;
@@ -153,17 +131,25 @@ def __init__(self, file_name: str, prealloc: int = 10, chunk_size: int = 1024,
     }
 
     ~XcpLogFileWriter() {
+        Write_Header(0x0100, 0x0000, m_num_containers, m_record_count,
+
         close(m_fd);
         delete m_mmap;
     }
 
     void add_frames(const XcpFrames& xcp_frames) {
         for (auto const& frame: xcp_frames) {
-
+/*
+        frame.category
+        frame.counter
+        frame.timestamp
+        frame.length
+ */
+            m_record_count += 1;
         }
     }
 
-  protected:
+protected:
     void preallocate(off_t size) const
     {
         ::ftruncate(m_fd, size);
@@ -181,13 +167,37 @@ def __init__(self, file_name: str, prealloc: int = 10, chunk_size: int = 1024,
         std::memcpy(addr, buf, count);
     }
 
-  private:
+    void Write_Header(uint16_t version, uint16_t options, uint32_t num_containers,
+                      uint32_t record_count, uint32_t size_compressed, uint32_t size_uncompressed) {
+        auto header = FileHeaderType{};
+        /// TODO: Set offset.
+
+        Write_Bytes(0x00000000UL, detail::MAGIC.size(), detail::MAGIC.c_str());
+        header.hdr_size = detail::FILE_HEADER_SIZE;
+        header.version = version;
+        header.options = options;
+        header.num_containers = num_containers;
+        header.record_count = record_count;
+        header.size_compressed = size_compressed;
+        header.size_uncompressed = size_uncompressed;
+
+        Write_Bytes(0x00000000UL + detail::MAGIC.size(), detail::FILE_HEADER_SIZE, (char *)&header);
+    }
+#if 0
+    def _write_header(self, version, options, num_containers, record_count, size_compressed, size_uncompressed):
+    hdr = FILE_HEADER_STRUCT.pack(
+                                 MAGIC, FILE_HEADER_STRUCT.size, version, options, num_containers, record_count, size_compressed, size_uncompressed
+                                 )
+          self.set(0x00000000, hdr)
+#endif
+
+private:
     std::string m_file_name;
     std::size_t m_offset{0};
     std::size_t m_chunk_size{0};
     std::size_t m_compression_level{0};
     std::size_t m_num_containers{0};
-
+    std::size_t m_record_count{0};
     std::size_t m_total_size_uncompressed{0};
     std::size_t m_total_size_compressed{0};
     std::size_t m_container_size_uncompressed{0};
@@ -201,7 +211,7 @@ def __init__(self, file_name: str, prealloc: int = 10, chunk_size: int = 1024,
  */
 class XcpLogFileReader
 {
-  public:
+public:
     explicit XcpLogFileReader(const std::string &file_name)
     {
         m_file_name = file_name + detail::FILE_EXTENSION;
@@ -267,7 +277,7 @@ class XcpLogFileReader
         delete m_mmap;
     }
 
-  protected:
+protected:
     char const *ptr(std::size_t pos = 0) const
     {
         return m_mmap->data() + pos;
