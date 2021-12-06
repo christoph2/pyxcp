@@ -131,8 +131,7 @@ public:
     }
 
     ~XcpLogFileWriter() {
-        Write_Header(0x0100, 0x0000, m_num_containers, m_record_count,
-
+        Write_Header(0x0100, 0x0000, m_num_containers, m_record_count, m_total_size_compressed, m_total_size_uncompressed);
         close(m_fd);
         delete m_mmap;
     }
@@ -160,7 +159,7 @@ protected:
         return m_mmap->data() + pos;
     }
 
-    void Write_Bytes(std::size_t pos, std::size_t count, char *buf)
+    void Write_Bytes(std::size_t pos, std::size_t count, char const * buf)
     {
         auto addr = ptr(pos);
 
