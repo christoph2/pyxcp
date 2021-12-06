@@ -4,27 +4,13 @@
 #include <string>
 #include <stdexcept>
 #include <cerrno>
-
 #include <cstdint>
 #include <cstring>
 #include <cstdio>
 
+#include <ctime>
+
 #include <vector>
-
-#if 0
-#include <stdlib.h>
-#include <stdbool.h>
-#endif
-
-#if 0
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <time.h>
-#endif
-
 
 #include "lz4.h"
 #include "mio.hpp"
@@ -76,7 +62,7 @@ struct RecordType
 };
 #pragma pack(pop)
 
-using Records = std::vector<RecordType>;
+using XcpFrames = std::vector<RecordType>;
 
 namespace detail
 {
@@ -169,6 +155,12 @@ def __init__(self, file_name: str, prealloc: int = 10, chunk_size: int = 1024,
     ~XcpLogFileWriter() {
         close(m_fd);
         delete m_mmap;
+    }
+
+    void add_frames(const XcpFrames& xcp_frames) {
+        for (auto const& frame: xcp_frames) {
+
+        }
     }
 
   protected:
@@ -310,14 +302,21 @@ private:
     FileHeaderType m_header{0};
 };
 
-void some_records()
+void some_records(const XcpLogFileWriter& writer)
 {
     const auto COUNT = 1024 * 10 * 5;
-    auto my_records = Records{};
+    auto my_frames = XcpFrames{};
 
     for (auto idx = 0; idx < COUNT; ++idx) {
-
+        auto&& fr = RecordType{};
+        fr.category = 1;
+        fr.counter = idx;
+        fr.timestamp = std::clock();
+        //fr.length =
+        my_frames.emplace_back(std::move(fr));
     }
+    writer.add_frames(my_frames);
+    printf("Added %u frames.\n", my_frames.size());
 }
 
 
@@ -326,9 +325,8 @@ int main(int argc, char *argv[])
     //auto reader = XcpLogFileReader("test_logger");
     auto writer = XcpLogFileWriter("test_logger");
 
-    some_records();
+    some_records(writer);
 
     printf("Finished.\n");
 }
-
 
