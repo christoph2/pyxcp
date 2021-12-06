@@ -302,7 +302,7 @@ private:
     FileHeaderType m_header{0};
 };
 
-void some_records(const XcpLogFileWriter& writer)
+void some_records(XcpLogFileWriter& writer)
 {
     const auto COUNT = 1024 * 10 * 5;
     auto my_frames = XcpFrames{};
