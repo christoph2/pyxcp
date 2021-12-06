@@ -1,4 +1,5 @@
 
+
 #include <array>
 #include <string>
 #include <stdexcept>
@@ -8,19 +9,21 @@
 #include <cstring>
 #include <cstdio>
 
-#include <stdlib.h>
+#include <vector>
 
+#if 0
+#include <stdlib.h>
 #include <stdbool.h>
+#endif
+
+#if 0
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
-
-//#include <sys/types.h>
-//#include <sys/stat.h>
-//#include <fcntl.h>
+#endif
 
 
 #include "lz4.h"
@@ -43,7 +46,7 @@ byte-order is, where applicable little ending (LSB first).
 */
 #pragma pack(push)
 #pragma pack(1)
-typedef struct tagFileHeaderType
+struct FileHeaderType
 {
     uint16_t hdr_size;
     uint16_t version;
@@ -52,35 +55,37 @@ typedef struct tagFileHeaderType
     uint32_t record_count;
     uint32_t size_compressed;
     uint32_t size_uncompressed;
-} FileHeaderType;
+};
 
 static_assert(sizeof(FileHeaderType) == 22);
 
-typedef struct tagContainerHeaderType
+struct ContainerHeaderType
 {
     uint32_t record_count;
     uint32_t size_compressed;
     uint32_t size_uncompressed;
-} ContainerHeaderType;
+};
 
-typedef struct tagRecordType
+struct RecordType
 {
     uint8_t category;
     uint16_t counter;
     double timestamp;
-
     uint16_t length;
     // payload;
-} RecordType;
+};
 #pragma pack(pop)
+
+using Records = std::vector<RecordType>;
 
 namespace detail
 {
-const auto VERSION_MAJOR = 1;
-const auto BLOCKSIZE = 8192;
-const std::string FILE_EXTENSION(".xmraw");
-const std::string MAGIC{"ASAMINT::XCP_RAW"};
-const auto CONTAINER_SIZE = sizeof(ContainerHeaderType);
+    const auto VERSION_MAJOR = 1;
+    const auto BLOCKSIZE = 8192;
+    const std::string FILE_EXTENSION(".xmraw");
+    const std::string MAGIC{"ASAMINT::XCP_RAW"};
+    const auto FILE_HEADER_SIZE = sizeof(FileHeaderType);
+    const auto CONTAINER_SIZE = sizeof(ContainerHeaderType);
 } // namespace detail
 
 typedef enum tagDatatypeCode
@@ -124,6 +129,8 @@ typedef struct tagMeasurementType
 } MeasurementType;
 
 
+/**
+ */
 class XcpLogFileWriter
 {
   public:
@@ -132,14 +139,6 @@ class XcpLogFileWriter
 def __init__(self, file_name: str, prealloc: int = 10, chunk_size: int = 1024,
         compression_level: int = 9
     ):
-        self._is_closed = True
-        try:
-            self._of = open("{}{}".format(file_name, FILE_EXTENSION), "w+b")
-        except Exception as e:
-            raise
-        else:
-            self._of.truncate(1024 * 1024 * prealloc)   # Create sparse file (hopefully).
-            self._mapping = mmap.mmap(self._of.fileno(), 0)
         self.container_header_offset = FILE_HEADER_STRUCT.size
         self.current_offset = self.container_header_offset + CONTAINER_HEADER_STRUCT.size
         self.total_size_uncompressed = self.total_size_compressed = 0
@@ -161,9 +160,10 @@ def __init__(self, file_name: str, prealloc: int = 10, chunk_size: int = 1024,
     {
         m_file_name = file_name + detail::FILE_EXTENSION;
         m_fd = open(m_file_name.c_str(), /O_CREAT | O_RDWR | O_TRUNC, 0666);
-        //printf("FD: %d errno: %d\n", m_fd, errno);
         preallocate(prealloc * 1000 * 1000);
         m_mmap = new mio::mmap_sink(m_fd);
+        m_chunk_size = chunk_size;
+        m_compression_level = compression_level;
     }
 
     ~XcpLogFileWriter() {
@@ -177,17 +177,40 @@ def __init__(self, file_name: str, prealloc: int = 10, chunk_size: int = 1024,
         ::ftruncate(m_fd, size);
     }
 
+    char const *ptr(std::size_t pos = 0) const
+    {
+        return m_mmap->data() + pos;
+    }
+
+    void Write_Bytes(std::size_t pos, std::size_t count, char *buf)
+    {
+        auto addr = ptr(pos);
+
+        std::memcpy(addr, buf, count);
+    }
+
   private:
-    mio::file_handle_type m_fd{INVALID_HANDLE_VALUE};
     std::string m_file_name;
-    std::size_t m_offset = 0;
-    mio::mmap_sink *m_mmap = nullptr;
+    std::size_t m_offset{0};
+    std::size_t m_chunk_size{0};
+    std::size_t m_compression_level{0};
+    std::size_t m_num_containers{0};
+
+    std::size_t m_total_size_uncompressed{0};
+    std::size_t m_total_size_compressed{0};
+    std::size_t m_container_size_uncompressed{0};
+    std::size_t m_container_size_compressed{0};
+    mio::file_handle_type m_fd{INVALID_HANDLE_VALUE};
+    mio::mmap_sink *m_mmap{nullptr};
 };
 
+
+/**
+ */
 class XcpLogFileReader
 {
   public:
-    XcpLogFileReader(const std::string &file_name)
+    explicit XcpLogFileReader(const std::string &file_name)
     {
         m_file_name = file_name + detail::FILE_EXTENSION;
         m_mmap = new mio::mmap_source(m_file_name);
@@ -201,13 +224,12 @@ class XcpLogFileReader
         }
         m_offset = msize;
 
-        auto hdr_size = sizeof(FileHeaderType);
-        Read_Bytes(m_offset, hdr_size, (char *)&m_header);
+        Read_Bytes(m_offset, FILE_HEADER_SIZE, (char *)&m_header);
         printf("Containers: %u Records: %u\n", m_header.num_containers, m_header.record_count);
         printf("%u %u %.3f\n", m_header.size_uncompressed,
                m_header.size_compressed,
                float(m_header.size_uncompressed) / float(m_header.size_compressed));
-        if (m_header.hdr_size != hdr_size + msize)
+        if (m_header.hdr_size != FILE_HEADER_SIZE + msize)
         {
             throw std::runtime_error("File header size does not match.");
         }
@@ -216,18 +238,15 @@ class XcpLogFileReader
             throw std::runtime_error("File version mismatch.");
         }
 
-        m_offset += hdr_size;
-        /// TODO: iter()
-        auto container_size = sizeof(ContainerHeaderType);
+        m_offset += FILE_HEADER_SIZE;
         auto container = ContainerHeaderType{};
         auto total = 0;
-        //auto decoder = LZ4Decoder{};
         for (std::size_t idx = 0; idx < m_header.num_containers; ++idx) {
-            Read_Bytes(m_offset, container_size, (char *)&container);
+            Read_Bytes(m_offset, CONTAINER_SIZE, (char *)&container);
             printf("RC: %u C: %u U: %u\n", container.record_count, container.size_compressed, container.size_uncompressed);
             auto buffer = new char[container.size_uncompressed << 2];
 
-            m_offset += container_size;
+            m_offset += CONTAINER_SIZE;
             total += container.record_count;
             //auto xxx = decoder.open((char**)ptr(m_offset), &container.size_compressed);
             const int xxx = LZ4_decompress_safe(ptr(m_offset), buffer, container.size_compressed, container.size_uncompressed << 2);
@@ -286,37 +305,30 @@ class XcpLogFileReader
 
 private:
     std::string m_file_name;
-    std::size_t m_offset = 0;
-    mio::mmap_source *m_mmap = nullptr;
+    std::size_t m_offset{0};
+    mio::mmap_source *m_mmap{nullptr};
     FileHeaderType m_header{0};
 };
+
+void some_records()
+{
+    const COUNT = 1024 * 10 * 5;
+    auto my_records = Records{};
+
+    for (auto idx = 0; idx < COUNT; ++idx) {
+
+    }
+}
+
 
 int main(int argc, char *argv[])
 {
     //auto reader = XcpLogFileReader("test_logger");
     auto writer = XcpLogFileWriter("test_logger");
+
+    some_records();
+
     printf("Finished.\n");
 }
 
-#if 0
-bool endsWith(const std::string& s, const std::string& suffix)
-{
-    return s.rfind(suffix) == std::abs(s.size()-suffix.size());
-}
-Structure-Packing Pragmas
-
-For compatibility with Microsoft Windows compilers, GCC supports a set of #pragma directives which change the maximum alignment of members of structures (other than zero-width bitfields), unions, and classes subsequently defined. The n value below always is required to be a small power of two and specifies the new alignment in bytes.
-
-#pragma pack(n) simply sets the new alignment.
-#pragma pack() sets the alignment to the one that was in effect when compilation started(see also command line option - fpack - struct[= <n>] see Code Gen Options).
-#pragma pack(push[, n]) pushes the current alignment setting on an internal stack and then optionally sets the new alignment.
-#pragma pack(pop) restores the alignment setting to the one saved at the top of the internal stack(and removes that stack entry).Note that #pragma pack([n]) does not influence this internal stack; thus it is possible to have #pragma pack(push) followed by multiple #pragma pack(n) instances and finalized by a single #pragma pack(pop).
-
-Some targets, e.g. i386 and powerpc, support the ms_struct #pragma which lays out a structure as the documented __attribute__ ((ms_struct)).
-
-#pragma ms_struct on turns on the layout for structures declared.
-#pragma ms_struct off turns off the layout for structures declared.
-#pragma ms_struct reset goes back to the default layout.
-
-#endif
 
