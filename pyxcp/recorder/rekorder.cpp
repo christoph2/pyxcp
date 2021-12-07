@@ -15,7 +15,13 @@
 #include "lz4.h"
 #include "mio.hpp"
 
-void XcpUtl_Hexdump(char const *buf, std::uint16_t sz)
+
+constexpr auto megabytes(std::size_t value) -> std::size_t
+{
+    return value * 1024 * 1024;
+}
+
+void XcpUtl_Hexdump(std::byte const * buf, std::uint16_t sz)
 {
     std::uint16_t idx;
 
@@ -121,14 +127,16 @@ typedef struct tagMeasurementType
 class XcpLogFileWriter
 {
 public:
-    explicit XcpLogFileWriter(const std::string &file_name, uint32_t prealloc = 10UL, uint32_t chunk_size = 1024, uint32_t compression_level = 9)
+    explicit XcpLogFileWriter(const std::string& file_name, uint32_t prealloc = 10UL, uint32_t chunk_size = 1, uint32_t compression_level = 9)
     {
         m_file_name = file_name + detail::FILE_EXTENSION;
         m_fd = open(m_file_name.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0666);
-        truncate(prealloc * 1024 * 1024);
+        truncate(megabytes(prealloc));
         m_mmap = new mio::mmap_sink(m_fd);
-        m_chunk_size = chunk_size * 1024;
+        m_chunk_size = megabytes(chunk_size);
         m_compression_level = compression_level;
+        m_intermediate_storage = new std::byte[m_chunk_size + megabytes(1)];
+        m_offset = detail::FILE_HEADER_SIZE + detail::CONTAINER_SIZE;
     }
 
     ~XcpLogFileWriter() {
@@ -136,16 +144,22 @@ public:
         truncate(m_offset);
         close(m_fd);
         delete m_mmap;
+        delete m_intermediate_storage;
     }
 
     void add_frames(const XcpFrames& xcp_frames) {
         for (auto const& frame: xcp_frames) {
 
-            XcpUtl_Hexdump((const char*)&frame, detail::FRAME_SIZE);
+            //XcpUtl_Hexdump((const char*)&frame, detail::FRAME_SIZE);
+
+            m_container_record_count += 1;
+
+            m_intermediate_storage
+            m_intermediate_storage_offset
 
             m_container_size_uncompressed += (detail::FRAME_SIZE + frame.length);
             if (m_container_size_uncompressed > m_chunk_size) {
-                m_container_size_uncompressed = 0;
+                compress_frames();
     /*
             frame.category
             frame.counter
@@ -165,18 +179,41 @@ public:
         }
     }
 
+    void compress_frames() {
+/*
+        compressed_data = lz4block.compress(b''.join(self.intermediate_storage), compression = self.compression_level)
+        record_count = len(self.intermediate_storage)
+        hdr = CONTAINER_HEADER_STRUCT.pack(record_count, len(compressed_data), self.container_size_uncompressed)
+        self.set(self.current_offset, compressed_data)
+        self.set(self.container_header_offset, hdr)
+        self.container_header_offset = self.current_offset + len(compressed_data)
+        self.current_offset = self.container_header_offset + CONTAINER_HEADER_STRUCT.size
+        self.intermediate_storage = []
+        self.total_record_count += record_count
+        self.num_containers +=1
+        self.total_size_uncompressed += self.container_size_uncompressed
+        self.total_size_compressed += len(compressed_data)
+
+
+ */
+        m_container_size_uncompressed = 0;
+        m_container_size_compressed = 0;
+        m_container_record_count = 0;
+        m_intermediate_storage_offset = 0;
+    }
+
 protected:
     void truncate(off_t size) const
     {
         ::ftruncate(m_fd, size);
     }
 
-    char *ptr(std::size_t pos = 0) const
+    std::byte *ptr(std::size_t pos = 0) const
     {
         return m_mmap->data() + pos;
     }
 
-    void Write_Bytes(std::size_t pos, std::size_t count, char const * buf)
+    void Write_Bytes(std::size_t pos, std::size_t count, std::byte const * buf)
     {
         auto addr = ptr(pos);
 
@@ -186,7 +223,6 @@ protected:
     void Write_Header(uint16_t version, uint16_t options, uint32_t num_containers,
                       uint32_t record_count, uint32_t size_compressed, uint32_t size_uncompressed) {
         auto header = FileHeaderType{};
-        /// TODO: Set offset.
 
         Write_Bytes(0x00000000UL, detail::MAGIC.size(), detail::MAGIC.c_str());
         header.hdr_size = detail::FILE_HEADER_SIZE;
@@ -197,7 +233,7 @@ protected:
         header.size_compressed = size_compressed;
         header.size_uncompressed = size_uncompressed;
 
-        Write_Bytes(0x00000000UL + detail::MAGIC.size(), detail::FILE_HEADER_SIZE, (char *)&header);
+        Write_Bytes(0x00000000UL + detail::MAGIC.size(), detail::FILE_HEADER_SIZE, (std::byte *)&header);
     }
 
 private:
@@ -207,12 +243,15 @@ private:
     std::size_t m_compression_level{0};
     std::size_t m_num_containers{0};
     std::size_t m_record_count{0};
+    std::size_t m_container_record_count{0};
     std::size_t m_total_size_uncompressed{0};
     std::size_t m_total_size_compressed{0};
     std::size_t m_container_size_uncompressed{0};
     std::size_t m_container_size_compressed{0};
+    std:: byte * m_intermediate_storage{nullptr};
+    std::size_t m_intermediate_storage_offset{0};
     mio::file_handle_type m_fd{INVALID_HANDLE_VALUE};
-    mio::mmap_sink *m_mmap{nullptr};
+    mio::mmap_sink * m_mmap{nullptr};
 };
 
 
@@ -221,12 +260,12 @@ private:
 class XcpLogFileReader
 {
 public:
-    explicit XcpLogFileReader(const std::string &file_name)
+    explicit XcpLogFileReader(const std::string& file_name)
     {
         m_file_name = file_name + detail::FILE_EXTENSION;
         m_mmap = new mio::mmap_source(m_file_name);
         const auto msize = detail::MAGIC.size();
-        char magic[msize + 1];
+        std::byte magic[msize + 1];
 
         Read_Bytes(0ul, msize, magic);
         if (memcmp(detail::MAGIC.c_str(), magic, msize))
@@ -235,7 +274,7 @@ public:
         }
         m_offset = msize;
 
-        Read_Bytes(m_offset, detail::FILE_HEADER_SIZE, (char *)&m_header);
+        Read_Bytes(m_offset, detail::FILE_HEADER_SIZE, (std::byte *)&m_header);
         printf("Containers: %u Records: %u\n", m_header.num_containers, m_header.record_count);
         printf("%u %u %.3f\n", m_header.size_uncompressed,
                m_header.size_compressed,
@@ -253,9 +292,9 @@ public:
         auto container = ContainerHeaderType{};
         auto total = 0;
         for (std::size_t idx = 0; idx < m_header.num_containers; ++idx) {
-            Read_Bytes(m_offset, detail::CONTAINER_SIZE, (char *)&container);
+            Read_Bytes(m_offset, detail::CONTAINER_SIZE, (std::byte *)&container);
             printf("RC: %u C: %u U: %u\n", container.record_count, container.size_compressed, container.size_uncompressed);
-            auto buffer = new char[container.size_uncompressed << 2];
+            auto buffer = new std::byte[container.size_uncompressed << 2];
 
             m_offset += detail::CONTAINER_SIZE;
             total += container.record_count;
@@ -287,7 +326,7 @@ public:
     }
 
 protected:
-    char const *ptr(std::size_t pos = 0) const
+    std::byte const *ptr(std::size_t pos = 0) const
     {
         return m_mmap->data() + pos;
     }
@@ -307,7 +346,7 @@ protected:
         auto addr = ptr(pos);
     }
 
-    void Read_Bytes(std::size_t pos, std::size_t count, char *buf) const
+    void Read_Bytes(std::size_t pos, std::size_t count, std::byte *buf) const
     {
         auto addr = ptr(pos);
 
@@ -317,7 +356,7 @@ protected:
 private:
     std::string m_file_name;
     std::size_t m_offset{0};
-    mio::mmap_source *m_mmap{nullptr};
+    mio::mmap_source * m_mmap{nullptr};
     FileHeaderType m_header{0};
 };
 
