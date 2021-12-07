@@ -72,6 +72,7 @@ namespace detail
     const std::string MAGIC{"ASAMINT::XCP_RAW"};
     const auto FILE_HEADER_SIZE = sizeof(FileHeaderType);
     const auto CONTAINER_SIZE = sizeof(ContainerHeaderType);
+    const auto FRAME_SIZE = sizeof(RecordType);
 } // namespace detail
 
 typedef enum tagDatatypeCode
@@ -124,32 +125,48 @@ public:
     {
         m_file_name = file_name + detail::FILE_EXTENSION;
         m_fd = open(m_file_name.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0666);
-        preallocate(prealloc * 1000 * 1000);
+        truncate(prealloc * 1024 * 1024);
         m_mmap = new mio::mmap_sink(m_fd);
-        m_chunk_size = chunk_size;
+        m_chunk_size = chunk_size * 1024;
         m_compression_level = compression_level;
     }
 
     ~XcpLogFileWriter() {
         Write_Header(0x0100, 0x0000, m_num_containers, m_record_count, m_total_size_compressed, m_total_size_uncompressed);
+        truncate(m_offset);
         close(m_fd);
         delete m_mmap;
     }
 
     void add_frames(const XcpFrames& xcp_frames) {
         for (auto const& frame: xcp_frames) {
-/*
-        frame.category
-        frame.counter
-        frame.timestamp
-        frame.length
- */
-            m_record_count += 1;
+
+            XcpUtl_Hexdump((char*)frame.data(), FRAME_SIZE);
+
+            m_container_size_uncompressed += (FRAME_SIZE + frame.length);
+            if (m_container_size_uncompressed > m_chunk_size) {
+                m_container_size_uncompressed = 0;
+    /*
+            frame.category
+            frame.counter
+            frame.timestamp
+            frame.length
+
+
+            length = len(raw_data)
+            item = DAQ_RECORD_STRUCT.pack(1, counter, timestamp, length) + raw_data
+            self.intermediate_storage.append(item)
+            self.container_size_uncompressed += len(item)
+
+            if self.container_size_uncompressed > self.chunk_size:
+                self._compress_framez()
+     */
+            }
         }
     }
 
 protected:
-    void preallocate(off_t size) const
+    void truncate(off_t size) const
     {
         ::ftruncate(m_fd, size);
     }
@@ -182,13 +199,6 @@ protected:
 
         Write_Bytes(0x00000000UL + detail::MAGIC.size(), detail::FILE_HEADER_SIZE, (char *)&header);
     }
-#if 0
-    def _write_header(self, version, options, num_containers, record_count, size_compressed, size_uncompressed):
-    hdr = FILE_HEADER_STRUCT.pack(
-                                 MAGIC, FILE_HEADER_STRUCT.size, version, options, num_containers, record_count, size_compressed, size_uncompressed
-                                 )
-          self.set(0x00000000, hdr)
-#endif
 
 private:
     std::string m_file_name;
