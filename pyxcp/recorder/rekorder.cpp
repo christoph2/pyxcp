@@ -12,6 +12,8 @@
 
 #include <vector>
 
+#include <stdlib.h>
+
 #include "lz4.h"
 #include "mio.hpp"
 
@@ -156,10 +158,16 @@ public:
 
             //XcpUtl_Hexdump((const char*)&frame, detail::FRAME_SIZE);
 
+            // TODO: factor out!!!
+            std::memcpy(m_intermediate_storage + m_intermediate_storage_offset, &frame, detail::FRAME_SIZE);
+            m_intermediate_storage_offset += detail::FRAME_SIZE;
+            // TODO: copy data!!!
+
             m_container_record_count += 1;
 
             //m_intermediate_storage
             //m_intermediate_storage_offset
+
 
             m_container_size_uncompressed += (detail::FRAME_SIZE + frame.length);
             if (m_container_size_uncompressed > m_chunk_size) {
@@ -375,13 +383,17 @@ void some_records(XcpLogFileWriter& writer)
     const auto COUNT = 1024 * 10 * 5;
     auto my_frames = XcpFrames{};
 
+    std::byte filler = 0x00;
+
     for (auto idx = 0; idx < COUNT; ++idx) {
         auto&& fr = RecordType{};
         fr.category = 1;
         fr.counter = idx;
         fr.timestamp = std::clock();
-        //fr.length =
+        fr.length = 10 + (rand() % 240);
+        printf("%u %u\n", frame.length, filler);
         my_frames.emplace_back(std::move(fr));
+        filler = (filler + 1) % 16;
     }
     writer.add_frames(my_frames);
     printf("Added %u frames.\n", my_frames.size());
@@ -391,6 +403,9 @@ void some_records(XcpLogFileWriter& writer)
 int main(int argc, char *argv[])
 {
     //auto reader = XcpLogFileReader("test_logger");
+
+    srand(42);
+
     auto writer = XcpLogFileWriter("test_logger");
 
     some_records(writer);
