@@ -21,7 +21,7 @@ constexpr auto megabytes(std::size_t value) -> std::size_t
     return value * 1024 * 1024;
 }
 
-void XcpUtl_Hexdump(std::byte const * buf, std::uint16_t sz)
+void XcpUtl_Hexdump(char const * buf, std::uint16_t sz)
 {
     std::uint16_t idx;
 
@@ -140,6 +140,9 @@ public:
     }
 
     ~XcpLogFileWriter() {
+        if (!m_intermediate_storage_written) {
+            compress_frames();
+        }
         Write_Header(0x0100, 0x0000, m_num_containers, m_record_count, m_total_size_compressed, m_total_size_uncompressed);
         truncate(m_offset);
         close(m_fd);
@@ -148,14 +151,15 @@ public:
     }
 
     void add_frames(const XcpFrames& xcp_frames) {
+        m_intermediate_storage_written = false;
         for (auto const& frame: xcp_frames) {
 
             //XcpUtl_Hexdump((const char*)&frame, detail::FRAME_SIZE);
 
             m_container_record_count += 1;
 
-            m_intermediate_storage
-            m_intermediate_storage_offset
+            //m_intermediate_storage
+            //m_intermediate_storage_offset
 
             m_container_size_uncompressed += (detail::FRAME_SIZE + frame.length);
             if (m_container_size_uncompressed > m_chunk_size) {
@@ -196,10 +200,14 @@ public:
 
 
  */
+        m_total_size_uncompressed += m_container_size_uncompressed;
+        m_record_count += m_container_record_count;
+
         m_container_size_uncompressed = 0;
         m_container_size_compressed = 0;
         m_container_record_count = 0;
         m_intermediate_storage_offset = 0;
+        m_intermediate_storage_written = true;
     }
 
 protected:
@@ -208,12 +216,12 @@ protected:
         ::ftruncate(m_fd, size);
     }
 
-    std::byte *ptr(std::size_t pos = 0) const
+    char * ptr(std::size_t pos = 0) const
     {
         return m_mmap->data() + pos;
     }
 
-    void Write_Bytes(std::size_t pos, std::size_t count, std::byte const * buf)
+    void Write_Bytes(std::size_t pos, std::size_t count, char const * buf)
     {
         auto addr = ptr(pos);
 
@@ -230,10 +238,11 @@ protected:
         header.options = options;
         header.num_containers = num_containers;
         header.record_count = record_count;
+        printf("nc: %u rc: %u\n", num_containers, record_count);
         header.size_compressed = size_compressed;
         header.size_uncompressed = size_uncompressed;
 
-        Write_Bytes(0x00000000UL + detail::MAGIC.size(), detail::FILE_HEADER_SIZE, (std::byte *)&header);
+        Write_Bytes(0x00000000UL + detail::MAGIC.size(), detail::FILE_HEADER_SIZE, (char *)&header);
     }
 
 private:
@@ -250,6 +259,7 @@ private:
     std::size_t m_container_size_compressed{0};
     std:: byte * m_intermediate_storage{nullptr};
     std::size_t m_intermediate_storage_offset{0};
+    bool m_intermediate_storage_written{false};
     mio::file_handle_type m_fd{INVALID_HANDLE_VALUE};
     mio::mmap_sink * m_mmap{nullptr};
 };
@@ -294,7 +304,7 @@ public:
         for (std::size_t idx = 0; idx < m_header.num_containers; ++idx) {
             Read_Bytes(m_offset, detail::CONTAINER_SIZE, (std::byte *)&container);
             printf("RC: %u C: %u U: %u\n", container.record_count, container.size_compressed, container.size_uncompressed);
-            auto buffer = new std::byte[container.size_uncompressed << 2];
+            auto buffer = new char[container.size_uncompressed << 2];
 
             m_offset += detail::CONTAINER_SIZE;
             total += container.record_count;
@@ -326,7 +336,7 @@ public:
     }
 
 protected:
-    std::byte const *ptr(std::size_t pos = 0) const
+    char const *ptr(std::size_t pos = 0) const
     {
         return m_mmap->data() + pos;
     }
