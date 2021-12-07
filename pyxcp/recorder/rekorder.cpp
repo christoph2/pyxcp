@@ -391,7 +391,6 @@ void some_records(XcpLogFileWriter& writer)
         fr.counter = idx;
         fr.timestamp = std::clock();
         fr.length = 10 + (rand() % 240);
-        printf("%u %u\n", frame.length, filler);
         my_frames.emplace_back(std::move(fr));
         filler = (filler + 1) % 16;
     }
