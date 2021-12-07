@@ -15,7 +15,7 @@
 #include "lz4.h"
 #include "mio.hpp"
 
-void XcpUtl_Hexdump(std::uint8_t const *buf, std::uint16_t sz)
+void XcpUtl_Hexdump(char const *buf, std::uint16_t sz)
 {
     std::uint16_t idx;
 
@@ -141,9 +141,9 @@ public:
     void add_frames(const XcpFrames& xcp_frames) {
         for (auto const& frame: xcp_frames) {
 
-            XcpUtl_Hexdump((char*)frame.data(), FRAME_SIZE);
+            XcpUtl_Hexdump((const char*)&frame, detail::FRAME_SIZE);
 
-            m_container_size_uncompressed += (FRAME_SIZE + frame.length);
+            m_container_size_uncompressed += (detail::FRAME_SIZE + frame.length);
             if (m_container_size_uncompressed > m_chunk_size) {
                 m_container_size_uncompressed = 0;
     /*
