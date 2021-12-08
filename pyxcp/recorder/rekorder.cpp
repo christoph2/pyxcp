@@ -23,6 +23,7 @@ constexpr auto megabytes(std::size_t value) -> std::size_t
     return value * 1024 * 1024;
 }
 
+#if 0
 void hexdump(char const * buf, std::uint16_t sz)
 {
     std::uint16_t idx;
@@ -33,9 +34,9 @@ void hexdump(char const * buf, std::uint16_t sz)
     }
     printf("\n\r");
 }
+#endif
 
 /*
-
 byte-order is, where applicable little ending (LSB first).
 */
 #pragma pack(push)
@@ -62,7 +63,7 @@ struct ContainerHeaderType
 
 using payload_t = std::uint8_t *;
 
-struct RecordType
+struct FrameType
 {
     uint8_t category;
     uint16_t counter;
@@ -72,7 +73,7 @@ struct RecordType
 };
 #pragma pack(pop)
 
-using XcpFrames = std::vector<RecordType>;
+using XcpFrames = std::vector<FrameType>;
 
 namespace detail
 {
@@ -81,48 +82,8 @@ namespace detail
     const std::string MAGIC{"ASAMINT::XCP_RAW"};
     const auto FILE_HEADER_SIZE = sizeof(FileHeaderType);
     const auto CONTAINER_SIZE = sizeof(ContainerHeaderType);
-    const auto FRAME_SIZE = sizeof(RecordType) - sizeof(payload_t);
+    const auto FRAME_SIZE = sizeof(FrameType) - sizeof(payload_t);
 } // namespace detail
-
-typedef enum tagDatatypeCode
-{
-    DT_RAW,
-    DT_UINT8,
-    DT_SINT8,
-    DT_UINT16,
-    DT_SINT16,
-    DT_UINT32,
-    DT_SINT32,
-    DT_UINT64,
-    DT_SINT64,
-    DT_FLOAT,
-} DatatypeCode;
-
-typedef struct tagDatatype
-{
-    DatatypeCode type;
-    union {
-        uint64_t raw;
-        uint8_t u8;
-        int8_t i8;
-        uint16_t u16;
-        int16_t i16;
-        uint32_t u32;
-        int32_t i32;
-        uint64_t u64;
-        int64_t i64;
-        long double fl64;
-    } value;
-} Datatype;
-
-typedef struct tagMeasurementType
-{
-    clock_t now;
-    uint32_t odt;
-    uint16_t len;
-    uint8_t const *data;
-    // Datatype datatype;
-} MeasurementType;
 
 
 /**
@@ -130,14 +91,13 @@ typedef struct tagMeasurementType
 class XcpLogFileWriter
 {
 public:
-    explicit XcpLogFileWriter(const std::string& file_name, uint32_t prealloc = 10UL, uint32_t chunk_size = 1, uint32_t compression_level = 9)
+    explicit XcpLogFileWriter(const std::string& file_name, uint32_t prealloc = 10UL, uint32_t chunk_size = 1)
     {
         m_file_name = file_name + detail::FILE_EXTENSION;
         m_fd = open(m_file_name.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0666);
         truncate(megabytes(prealloc));
         m_mmap = new mio::mmap_sink(m_fd);
         m_chunk_size = megabytes(chunk_size);
-        m_compression_level = compression_level;
         m_intermediate_storage = new std::byte[m_chunk_size + megabytes(1)];
         m_offset = detail::FILE_HEADER_SIZE + detail::CONTAINER_SIZE;
     }
@@ -146,8 +106,7 @@ public:
         if (m_container_record_count) {
             compress_frames();
         }
-        //printf("offset: %u %u\n", m_intermediate_storage_offset, m_container_record_count);
-        Write_Header(detail::VERSION, 0x0000, m_num_containers, m_record_count, m_total_size_compressed, m_total_size_uncompressed);
+        write_header(detail::VERSION, 0x0000, m_num_containers, m_record_count, m_total_size_compressed, m_total_size_uncompressed);
         truncate(m_offset);
         close(m_fd);
         delete m_mmap;
@@ -159,87 +118,22 @@ public:
 
 //            hexdump((const char*)frame.payload, frame.length);
 
+            store_im(&frame, detail::FRAME_SIZE);
+            store_im(frame.payload, frame.length);
+#if 0
             // TODO: factor out!!!
             std::memcpy(m_intermediate_storage + m_intermediate_storage_offset, &frame, detail::FRAME_SIZE);
             m_intermediate_storage_offset += detail::FRAME_SIZE;
-            // TODO: copy data!!!
             std::memcpy(m_intermediate_storage + m_intermediate_storage_offset, frame.payload, frame.length);
             m_intermediate_storage_offset += frame.length;
-
+#endif
             m_container_record_count += 1;
-
-            //m_intermediate_storage
-            //m_intermediate_storage_offset
-
-
-
             m_container_size_uncompressed += (detail::FRAME_SIZE + frame.length);
             if (m_container_size_uncompressed > m_chunk_size) {
                 compress_frames();
-    /*
-            frame.category
-            frame.counter
-            frame.timestamp
-            frame.length
-
-
-            length = len(raw_data)
-            item = DAQ_RECORD_STRUCT.pack(1, counter, timestamp, length) + raw_data
-            self.intermediate_storage.append(item)
-            self.container_size_uncompressed += len(item)
-
-            if self.container_size_uncompressed > self.chunk_size:
-                self._compress_framez()
-     */
             }
         }
     }
-
-    void compress_frames() {
-/*
-        compressed_data = lz4block.compress(b''.join(self.intermediate_storage), compression = self.compression_level)
-        record_count = len(self.intermediate_storage)
-        hdr = CONTAINER_HEADER_STRUCT.pack(record_count, len(compressed_data), self.container_size_uncompressed)
-        self.set(self.current_offset, compressed_data)
-        self.set(self.container_header_offset, hdr)
-        self.container_header_offset = self.current_offset + len(compressed_data)
-        self.current_offset = self.container_header_offset + CONTAINER_HEADER_STRUCT.size
-        self.intermediate_storage = []
-        self.total_record_count += record_count
-        self.num_containers +=1
-        self.total_size_uncompressed += self.container_size_uncompressed
-        self.total_size_compressed += len(compressed_data)
-
-
- */
-        auto container = ContainerHeaderType{};
-
-        //printf("Compressing %u frames...\n", m_container_record_count);
-
-        const int cp_size = ::LZ4_compress_default(reinterpret_cast<char*>(m_intermediate_storage), ptr(m_offset + detail::CONTAINER_SIZE) , m_intermediate_storage_offset, LZ4_COMPRESSBOUND(m_intermediate_storage_offset));
-
-        if (cp_size < 0) {
-            throw std::runtime_error("LZ4 compression failed.");
-        }
-
-        //printf("comp: %d %d [%f]\n", m_intermediate_storage_offset,  cp_size, double(m_intermediate_storage_offset) / double(cp_size));
-
-        container.record_count = m_container_record_count;
-        container.size_compressed = cp_size;
-        container.size_uncompressed = m_container_size_uncompressed;
-        ::memcpy(ptr(m_offset), &container, detail::CONTAINER_SIZE);
-
-        m_offset += (detail::CONTAINER_SIZE + cp_size);
-
-        m_total_size_uncompressed += m_container_size_uncompressed;
-        m_record_count += m_container_record_count;
-
-        m_container_size_uncompressed = 0;
-        m_container_size_compressed = 0;
-        m_container_record_count = 0;
-        m_intermediate_storage_offset = 0;
-    }
-
 protected:
     void truncate(off_t size) const
     {
@@ -251,18 +145,48 @@ protected:
         return m_mmap->data() + pos;
     }
 
-    void Write_Bytes(std::size_t pos, std::size_t count, char const * buf)
+    void store_im(void const * data, std::size_t length) {
+        std::memcpy(m_intermediate_storage + m_intermediate_storage_offset, data, length);
+        m_intermediate_storage_offset += length;
+    }
+
+    void compress_frames() {
+        auto container = ContainerHeaderType{};
+        //printf("Compressing %u frames...\n", m_container_record_count);
+        const int cp_size = ::LZ4_compress_default(
+            reinterpret_cast<char*>(m_intermediate_storage), ptr(m_offset + detail::CONTAINER_SIZE),
+            m_intermediate_storage_offset, LZ4_COMPRESSBOUND(m_intermediate_storage_offset)
+        );
+        if (cp_size < 0) {
+            throw std::runtime_error("LZ4 compression failed.");
+        }
+        //printf("comp: %d %d [%f]\n", m_intermediate_storage_offset,  cp_size, double(m_intermediate_storage_offset) / double(cp_size));
+        container.record_count = m_container_record_count;
+        container.size_compressed = cp_size;
+        container.size_uncompressed = m_container_size_uncompressed;
+        ::memcpy(ptr(m_offset), &container, detail::CONTAINER_SIZE);
+        m_offset += (detail::CONTAINER_SIZE + cp_size);
+        m_total_size_uncompressed += m_container_size_uncompressed;
+        m_record_count += m_container_record_count;
+        m_container_size_uncompressed = 0;
+        m_container_size_compressed = 0;
+        m_container_record_count = 0;
+        m_intermediate_storage_offset = 0;
+        m_num_containers += 1;
+    }
+
+    void write_bytes(std::size_t pos, std::size_t count, char const * buf)
     {
         auto addr = ptr(pos);
 
         std::memcpy(addr, buf, count);
     }
 
-    void Write_Header(uint16_t version, uint16_t options, uint32_t num_containers,
+    void write_header(uint16_t version, uint16_t options, uint32_t num_containers,
                       uint32_t record_count, uint32_t size_compressed, uint32_t size_uncompressed) {
         auto header = FileHeaderType{};
 
-        Write_Bytes(0x00000000UL, detail::MAGIC.size(), detail::MAGIC.c_str());
+        write_bytes(0x00000000UL, detail::MAGIC.size(), detail::MAGIC.c_str());
         header.hdr_size = detail::FILE_HEADER_SIZE;
         header.version = version;
         header.options = options;
@@ -270,14 +194,13 @@ protected:
         header.record_count = record_count;
         header.size_compressed = size_compressed;
         header.size_uncompressed = size_uncompressed;
-        Write_Bytes(0x00000000UL + detail::MAGIC.size(), detail::FILE_HEADER_SIZE, reinterpret_cast<char *>(&header));
+        write_bytes(0x00000000UL + detail::MAGIC.size(), detail::FILE_HEADER_SIZE, reinterpret_cast<char *>(&header));
     }
 
 private:
     std::string m_file_name;
     std::size_t m_offset{0};
     std::size_t m_chunk_size{0};
-    std::size_t m_compression_level{0};
     std::size_t m_num_containers{0};
     std::size_t m_record_count{0};
     std::size_t m_container_record_count{0};
@@ -304,14 +227,14 @@ public:
         const auto msize = detail::MAGIC.size();
         std::byte magic[msize + 1];
 
-        Read_Bytes(0ul, msize, magic);
+        read_bytes(0ul, msize, magic);
         if (memcmp(detail::MAGIC.c_str(), magic, msize))
         {
             throw std::runtime_error("Invalid file magic.");
         }
         m_offset = msize;
 
-        Read_Bytes(m_offset, detail::FILE_HEADER_SIZE, (std::byte *)&m_header);
+        read_bytes(m_offset, detail::FILE_HEADER_SIZE, (std::byte *)&m_header);
         printf("Containers: %u Records: %u\n", m_header.num_containers, m_header.record_count);
         printf("%u %u %.3f\n", m_header.size_uncompressed,
                m_header.size_compressed,
@@ -329,15 +252,15 @@ public:
         auto container = ContainerHeaderType{};
         auto total = 0;
         for (std::size_t idx = 0; idx < m_header.num_containers; ++idx) {
-            Read_Bytes(m_offset, detail::CONTAINER_SIZE, (std::byte *)&container);
+            read_bytes(m_offset, detail::CONTAINER_SIZE, (std::byte *)&container);
             printf("RC: %u C: %u U: %u\n", container.record_count, container.size_compressed, container.size_uncompressed);
             auto buffer = new char[container.size_uncompressed << 2];
 
             m_offset += detail::CONTAINER_SIZE;
             total += container.record_count;
             //auto xxx = decoder.open((char**)ptr(m_offset), &container.size_compressed);
-            const int xxx = LZ4_decompress_safe(ptr(m_offset), buffer, container.size_compressed, container.size_uncompressed << 2);
-            printf("fl: %d\n", xxx);
+            const int uc_size = ::LZ4_decompress_safe(ptr(m_offset), buffer, container.size_compressed, container.size_uncompressed << 2);
+            printf("fl: %d\n", uc_size);
             /*
             uncompressed_data = memoryview(lz4block.decompress(self.get(offset, size_compressed)))
             frame_offset = 0
@@ -368,7 +291,7 @@ protected:
         return m_mmap->data() + pos;
     }
 
-    void Read_Bytes(std::size_t pos, std::size_t count, std::byte *buf) const
+    void read_bytes(std::size_t pos, std::size_t count, std::byte *buf) const
     {
         auto addr = ptr(pos);
 
@@ -390,7 +313,7 @@ void some_records(XcpLogFileWriter& writer)
     unsigned filler = 0x00;
 
     for (auto idx = 0; idx < COUNT; ++idx) {
-        auto&& fr = RecordType{};
+        auto&& fr = FrameType{};
         fr.category = 1;
         fr.counter = idx;
         fr.timestamp = std::clock();
