@@ -103,14 +103,21 @@ public:
     }
 
     ~XcpLogFileWriter() {
-        if (m_container_record_count) {
-            compress_frames();
+        finalize();
+    }
+
+    void finalize() {
+        if (!m_finalized) {
+            m_finalized = true;
+            if (m_container_record_count) {
+                compress_frames();
+            }
+            write_header(detail::VERSION, 0x0000, m_num_containers, m_record_count, m_total_size_compressed, m_total_size_uncompressed);
+            truncate(m_offset);
+            close(m_fd);
+            delete m_mmap;
+            delete[] m_intermediate_storage;
         }
-        write_header(detail::VERSION, 0x0000, m_num_containers, m_record_count, m_total_size_compressed, m_total_size_uncompressed);
-        truncate(m_offset);
-        close(m_fd);
-        delete m_mmap;
-        delete[] m_intermediate_storage;
     }
 
     void add_frames(const XcpFrames& xcp_frames) {
@@ -164,9 +171,11 @@ protected:
         container.record_count = m_container_record_count;
         container.size_compressed = cp_size;
         container.size_uncompressed = m_container_size_uncompressed;
+        printf("C-O: %u rc: %u sc: %u su: %u\n ", m_offset, container.record_count, container.size_compressed, container.size_uncompressed);
         ::memcpy(ptr(m_offset), &container, detail::CONTAINER_SIZE);
         m_offset += (detail::CONTAINER_SIZE + cp_size);
         m_total_size_uncompressed += m_container_size_uncompressed;
+        m_total_size_compressed += cp_size;
         m_record_count += m_container_record_count;
         m_container_size_uncompressed = 0;
         m_container_size_compressed = 0;
@@ -185,9 +194,8 @@ protected:
     void write_header(uint16_t version, uint16_t options, uint32_t num_containers,
                       uint32_t record_count, uint32_t size_compressed, uint32_t size_uncompressed) {
         auto header = FileHeaderType{};
-
         write_bytes(0x00000000UL, detail::MAGIC.size(), detail::MAGIC.c_str());
-        header.hdr_size = detail::FILE_HEADER_SIZE;
+        header.hdr_size = detail::FILE_HEADER_SIZE + detail::MAGIC.size();
         header.version = version;
         header.options = options;
         header.num_containers = num_containers;
@@ -212,6 +220,7 @@ private:
     std::size_t m_intermediate_storage_offset{0};
     mio::file_handle_type m_fd{INVALID_HANDLE_VALUE};
     mio::mmap_sink * m_mmap{nullptr};
+    bool m_finalized{false};
 };
 
 
@@ -225,7 +234,7 @@ public:
         m_file_name = file_name + detail::FILE_EXTENSION;
         m_mmap = new mio::mmap_source(m_file_name);
         const auto msize = detail::MAGIC.size();
-        std::byte magic[msize + 1];
+        char magic[msize + 1];
 
         read_bytes(0ul, msize, magic);
         if (memcmp(detail::MAGIC.c_str(), magic, msize))
@@ -234,25 +243,29 @@ public:
         }
         m_offset = msize;
 
-        read_bytes(m_offset, detail::FILE_HEADER_SIZE, (std::byte *)&m_header);
+        read_bytes(m_offset, detail::FILE_HEADER_SIZE, reinterpret_cast<char*>(&m_header));
         printf("Containers: %u Records: %u\n", m_header.num_containers, m_header.record_count);
-        printf("%u %u %.3f\n", m_header.size_uncompressed,
-               m_header.size_compressed,
-               float(m_header.size_uncompressed) / float(m_header.size_compressed));
+        //printf("Sizes: %u %u %.3f\n", m_header.size_uncompressed,
+        //       m_header.size_compressed,
+        //       float(m_header.size_uncompressed) / float(m_header.size_compressed));
         if (m_header.hdr_size != detail::FILE_HEADER_SIZE + msize)
         {
             throw std::runtime_error("File header size does not match.");
         }
-        if (detail::VERSION != (m_header.version >> 8))
+        if (detail::VERSION != m_header.version)
         {
             throw std::runtime_error("File version mismatch.");
+        }
+
+        if (m_header.num_containers < 1) {
+            throw std::runtime_error("At least one container required.");
         }
 
         m_offset += detail::FILE_HEADER_SIZE;
         auto container = ContainerHeaderType{};
         auto total = 0;
         for (std::size_t idx = 0; idx < m_header.num_containers; ++idx) {
-            read_bytes(m_offset, detail::CONTAINER_SIZE, (std::byte *)&container);
+            read_bytes(m_offset, detail::CONTAINER_SIZE, reinterpret_cast<char*>(&container));
             printf("RC: %u C: %u U: %u\n", container.record_count, container.size_compressed, container.size_uncompressed);
             auto buffer = new char[container.size_uncompressed << 2];
 
@@ -291,10 +304,10 @@ protected:
         return m_mmap->data() + pos;
     }
 
-    void read_bytes(std::size_t pos, std::size_t count, std::byte *buf) const
+    void read_bytes(std::size_t pos, std::size_t count, char * buf) const
     {
         auto addr = ptr(pos);
-
+printf("POS: %u LEN: %u\n", pos, count);
         std::memcpy(buf, addr, count);
     }
 
@@ -333,14 +346,14 @@ void some_records(XcpLogFileWriter& writer)
 
 int main(int argc, char *argv[])
 {
-    //auto reader = XcpLogFileReader("test_logger");
 
     srand(42);
 
     auto writer = XcpLogFileWriter("test_logger");
-
     some_records(writer);
+    writer.finalize();
 
+    auto reader = XcpLogFileReader("test_logger");
     printf("Finished.\n");
 }
 

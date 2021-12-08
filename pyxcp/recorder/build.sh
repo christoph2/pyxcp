@@ -1,3 +1,2 @@
-#!/bin/bash
-clang++ -std=c++17 -O3 -Wall -Wextra -Weffc++ -DLZ4_DEBUG=20 lz4.c rekorder.cpp -o rekorder
-
+#!/bin/sh
+clang++ -std=c++17 -O3 -ggdb -Wall -Wextra -Weffc++ -DLZ4_DEBUG=1 lz4.c rekorder.cpp -o rekorder
