@@ -109,7 +109,7 @@ class PythonCAN:
         except CanError:
             return None
         else:
-            if frame is None or frame.arbitration_id != self.parent.can_id_master.id:
+            if frame is None or frame.arbitration_id != self.parent.can_id_master.id or not len(frame.data):
                 return None  # Timeout condition.
             extended = frame.is_extended_id
             identifier = can.Identifier.make_identifier(frame.arbitration_id, extended)
