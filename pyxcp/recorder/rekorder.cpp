@@ -23,7 +23,7 @@ constexpr auto megabytes(std::size_t value) -> std::size_t
     return value * 1024 * 1024;
 }
 
-void XcpUtl_Hexdump(char const * buf, std::uint16_t sz)
+void hexdump(char const * buf, std::uint16_t sz)
 {
     std::uint16_t idx;
 
@@ -60,13 +60,15 @@ struct ContainerHeaderType
     uint32_t size_uncompressed;
 };
 
+using payload_t = std::uint8_t *;
+
 struct RecordType
 {
     uint8_t category;
     uint16_t counter;
     double timestamp;
     uint16_t length;
-    // payload;
+    payload_t payload;
 };
 #pragma pack(pop)
 
@@ -80,7 +82,7 @@ namespace detail
     const std::string MAGIC{"ASAMINT::XCP_RAW"};
     const auto FILE_HEADER_SIZE = sizeof(FileHeaderType);
     const auto CONTAINER_SIZE = sizeof(ContainerHeaderType);
-    const auto FRAME_SIZE = sizeof(RecordType);
+    const auto FRAME_SIZE = sizeof(RecordType) - sizeof(payload_t);
 } // namespace detail
 
 typedef enum tagDatatypeCode
@@ -156,7 +158,7 @@ public:
         m_intermediate_storage_written = false;
         for (auto const& frame: xcp_frames) {
 
-            //XcpUtl_Hexdump((const char*)&frame, detail::FRAME_SIZE);
+            hexdump((const char*)frame.payload, frame.length);
 
             // TODO: factor out!!!
             std::memcpy(m_intermediate_storage + m_intermediate_storage_offset, &frame, detail::FRAME_SIZE);
@@ -167,6 +169,7 @@ public:
 
             //m_intermediate_storage
             //m_intermediate_storage_offset
+
 
 
             m_container_size_uncompressed += (detail::FRAME_SIZE + frame.length);
@@ -349,21 +352,6 @@ protected:
         return m_mmap->data() + pos;
     }
 
-    std::uint16_t Read_Word(std::size_t pos) const
-    {
-        auto addr = ptr(pos);
-    }
-
-    std::uint32_t Read_DWord(std::size_t pos) const
-    {
-        auto addr = ptr(pos);
-    }
-
-    std::uint64_t Read_QWord(std::size_t pos) const
-    {
-        auto addr = ptr(pos);
-    }
-
     void Read_Bytes(std::size_t pos, std::size_t count, std::byte *buf) const
     {
         auto addr = ptr(pos);
@@ -375,15 +363,15 @@ private:
     std::string m_file_name;
     std::size_t m_offset{0};
     mio::mmap_source * m_mmap{nullptr};
-    FileHeaderType m_header{0};
+    FileHeaderType m_header{0, 0, 0, 0, 0, 0, 0};
 };
 
 void some_records(XcpLogFileWriter& writer)
 {
     const auto COUNT = 1024 * 10 * 5;
     auto my_frames = XcpFrames{};
-
-    std::byte filler = 0x00;
+    auto buffer = std::vector<std::uint8_t*>{};
+    unsigned filler = 0x00;
 
     for (auto idx = 0; idx < COUNT; ++idx) {
         auto&& fr = RecordType{};
@@ -391,9 +379,14 @@ void some_records(XcpLogFileWriter& writer)
         fr.counter = idx;
         fr.timestamp = std::clock();
         fr.length = 10 + (rand() % 240);
-        my_frames.emplace_back(std::move(fr));
+        auto * payload = new std::uint8_t[fr.length];
         filler = (filler + 1) % 16;
+        ::memset(payload, filler, fr.length);
+        buffer.emplace_back(payload);
+        fr.payload = payload;
+        my_frames.emplace_back(std::move(fr));
     }
+    std::for_each(buffer.begin(), buffer.end(), [](std::uint8_t *v) {delete[] v;});
     writer.add_frames(my_frames);
     printf("Added %u frames.\n", my_frames.size());
 }
