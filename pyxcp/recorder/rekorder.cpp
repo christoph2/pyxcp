@@ -99,7 +99,7 @@ public:
         m_mmap = new mio::mmap_sink(m_fd);
         m_chunk_size = megabytes(chunk_size);
         m_intermediate_storage = new std::byte[m_chunk_size + megabytes(1)];
-        m_offset = detail::FILE_HEADER_SIZE + detail::CONTAINER_SIZE;
+        m_offset = detail::FILE_HEADER_SIZE + detail::MAGIC.size();
     }
 
     ~XcpLogFileWriter() {
@@ -171,7 +171,6 @@ protected:
         container.record_count = m_container_record_count;
         container.size_compressed = cp_size;
         container.size_uncompressed = m_container_size_uncompressed;
-        printf("C-O: %u rc: %u sc: %u su: %u\n ", m_offset, container.record_count, container.size_compressed, container.size_uncompressed);
         ::memcpy(ptr(m_offset), &container, detail::CONTAINER_SIZE);
         m_offset += (detail::CONTAINER_SIZE + cp_size);
         m_total_size_uncompressed += m_container_size_uncompressed;
@@ -244,7 +243,6 @@ public:
         m_offset = msize;
 
         read_bytes(m_offset, detail::FILE_HEADER_SIZE, reinterpret_cast<char*>(&m_header));
-        printf("Containers: %u Records: %u\n", m_header.num_containers, m_header.record_count);
         //printf("Sizes: %u %u %.3f\n", m_header.size_uncompressed,
         //       m_header.size_compressed,
         //       float(m_header.size_uncompressed) / float(m_header.size_compressed));
@@ -262,17 +260,24 @@ public:
         }
 
         m_offset += detail::FILE_HEADER_SIZE;
+    }
+
+    void next() {
         auto container = ContainerHeaderType{};
         auto total = 0;
         for (std::size_t idx = 0; idx < m_header.num_containers; ++idx) {
             read_bytes(m_offset, detail::CONTAINER_SIZE, reinterpret_cast<char*>(&container));
             printf("RC: %u C: %u U: %u\n", container.record_count, container.size_compressed, container.size_uncompressed);
-            auto buffer = new char[container.size_uncompressed << 2];
+            
+            auto buffer = new char[container.size_uncompressed];
+            //auto  buffer = std::make_shared<char[]>(container.size_uncompressed);
 
             m_offset += detail::CONTAINER_SIZE;
             total += container.record_count;
-            //auto xxx = decoder.open((char**)ptr(m_offset), &container.size_compressed);
-            const int uc_size = ::LZ4_decompress_safe(ptr(m_offset), buffer, container.size_compressed, container.size_uncompressed << 2);
+            const int uc_size = ::LZ4_decompress_safe(ptr(m_offset), buffer, container.size_compressed, container.size_uncompressed);
+            if (uc_size < 0) {
+                throw std::runtime_error("LZ4 decompression failed.");
+            }
             printf("fl: %d\n", uc_size);
             /*
             uncompressed_data = memoryview(lz4block.decompress(self.get(offset, size_compressed)))
@@ -288,6 +293,7 @@ public:
                 yield frame
             */
             m_offset += container.size_compressed;
+            m_current_container += 11;
             delete[] buffer;
         }
         printf("Total: %u\n", total);
@@ -307,13 +313,13 @@ protected:
     void read_bytes(std::size_t pos, std::size_t count, char * buf) const
     {
         auto addr = ptr(pos);
-printf("POS: %u LEN: %u\n", pos, count);
         std::memcpy(buf, addr, count);
     }
 
 private:
     std::string m_file_name;
     std::size_t m_offset{0};
+    std::size_t m_current_container{0};
     mio::mmap_source * m_mmap{nullptr};
     FileHeaderType m_header{0, 0, 0, 0, 0, 0, 0};
 };
@@ -333,7 +339,7 @@ void some_records(XcpLogFileWriter& writer)
         fr.length = 10 + (rand() % 240);
         auto * payload = new std::uint8_t[fr.length];
         filler = (filler + 1) % 16;
-        ::memset(payload, filler, fr.length);
+        ::memset(&payload, filler, fr.length);
         buffer.emplace_back(payload);
         fr.payload = payload;
         my_frames.emplace_back(std::move(fr));
@@ -347,13 +353,19 @@ void some_records(XcpLogFileWriter& writer)
 int main(int argc, char *argv[])
 {
 
-    srand(42);
+    std::shared_ptr<char[]> sp(new char[1024]);
 
+    auto arr_ptr1 = std::make_unique<int[]>(10);
+    auto arr_ptr2 = std::make_shared<int[]>(10);
+
+    srand(42);
+#if 0
     auto writer = XcpLogFileWriter("test_logger");
     some_records(writer);
     writer.finalize();
-
+#endif
     auto reader = XcpLogFileReader("test_logger");
+    reader.next();
     printf("Finished.\n");
 }
 
