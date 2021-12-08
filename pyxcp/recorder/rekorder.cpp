@@ -76,8 +76,7 @@ using XcpFrames = std::vector<RecordType>;
 
 namespace detail
 {
-    const auto VERSION_MAJOR = 1;
-    const auto BLOCKSIZE = 8192;
+    const auto VERSION = 0x0100;
     const std::string FILE_EXTENSION(".xmraw");
     const std::string MAGIC{"ASAMINT::XCP_RAW"};
     const auto FILE_HEADER_SIZE = sizeof(FileHeaderType);
@@ -144,26 +143,28 @@ public:
     }
 
     ~XcpLogFileWriter() {
-        if (!m_intermediate_storage_written) {
+        if (m_container_record_count) {
             compress_frames();
         }
-        Write_Header(0x0100, 0x0000, m_num_containers, m_record_count, m_total_size_compressed, m_total_size_uncompressed);
+        //printf("offset: %u %u\n", m_intermediate_storage_offset, m_container_record_count);
+        Write_Header(detail::VERSION, 0x0000, m_num_containers, m_record_count, m_total_size_compressed, m_total_size_uncompressed);
         truncate(m_offset);
         close(m_fd);
         delete m_mmap;
-        delete m_intermediate_storage;
+        delete[] m_intermediate_storage;
     }
 
     void add_frames(const XcpFrames& xcp_frames) {
-        m_intermediate_storage_written = false;
         for (auto const& frame: xcp_frames) {
 
-            hexdump((const char*)frame.payload, frame.length);
+//            hexdump((const char*)frame.payload, frame.length);
 
             // TODO: factor out!!!
             std::memcpy(m_intermediate_storage + m_intermediate_storage_offset, &frame, detail::FRAME_SIZE);
             m_intermediate_storage_offset += detail::FRAME_SIZE;
             // TODO: copy data!!!
+            std::memcpy(m_intermediate_storage + m_intermediate_storage_offset, frame.payload, frame.length);
+            m_intermediate_storage_offset += frame.length;
 
             m_container_record_count += 1;
 
@@ -211,6 +212,25 @@ public:
 
 
  */
+        auto container = ContainerHeaderType{};
+
+        //printf("Compressing %u frames...\n", m_container_record_count);
+
+        const int cp_size = ::LZ4_compress_default(reinterpret_cast<char*>(m_intermediate_storage), ptr(m_offset + detail::CONTAINER_SIZE) , m_intermediate_storage_offset, LZ4_COMPRESSBOUND(m_intermediate_storage_offset));
+
+        if (cp_size < 0) {
+            throw std::runtime_error("LZ4 compression failed.");
+        }
+
+        //printf("comp: %d %d [%f]\n", m_intermediate_storage_offset,  cp_size, double(m_intermediate_storage_offset) / double(cp_size));
+
+        container.record_count = m_container_record_count;
+        container.size_compressed = cp_size;
+        container.size_uncompressed = m_container_size_uncompressed;
+        ::memcpy(ptr(m_offset), &container, detail::CONTAINER_SIZE);
+
+        m_offset += (detail::CONTAINER_SIZE + cp_size);
+
         m_total_size_uncompressed += m_container_size_uncompressed;
         m_record_count += m_container_record_count;
 
@@ -218,7 +238,6 @@ public:
         m_container_size_compressed = 0;
         m_container_record_count = 0;
         m_intermediate_storage_offset = 0;
-        m_intermediate_storage_written = true;
     }
 
 protected:
@@ -249,11 +268,9 @@ protected:
         header.options = options;
         header.num_containers = num_containers;
         header.record_count = record_count;
-        printf("nc: %u rc: %u\n", num_containers, record_count);
         header.size_compressed = size_compressed;
         header.size_uncompressed = size_uncompressed;
-
-        Write_Bytes(0x00000000UL + detail::MAGIC.size(), detail::FILE_HEADER_SIZE, (char *)&header);
+        Write_Bytes(0x00000000UL + detail::MAGIC.size(), detail::FILE_HEADER_SIZE, reinterpret_cast<char *>(&header));
     }
 
 private:
@@ -270,7 +287,6 @@ private:
     std::size_t m_container_size_compressed{0};
     std:: byte * m_intermediate_storage{nullptr};
     std::size_t m_intermediate_storage_offset{0};
-    bool m_intermediate_storage_written{false};
     mio::file_handle_type m_fd{INVALID_HANDLE_VALUE};
     mio::mmap_sink * m_mmap{nullptr};
 };
@@ -304,7 +320,7 @@ public:
         {
             throw std::runtime_error("File header size does not match.");
         }
-        if (detail::VERSION_MAJOR != (m_header.version >> 8))
+        if (detail::VERSION != (m_header.version >> 8))
         {
             throw std::runtime_error("File version mismatch.");
         }
