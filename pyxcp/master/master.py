@@ -420,7 +420,6 @@ class Master:
         """
 
         response = self.transport.request(types.Command.UPLOAD, length)
-        response = response.tobytes()
         if length > (self.slaveProperties.maxCto - 1):
             block_response = self.transport.block_receive(length_required=(length - len(response)))
             response += block_response
