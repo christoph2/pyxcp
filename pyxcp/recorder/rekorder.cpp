@@ -23,7 +23,7 @@ constexpr auto megabytes(std::size_t value) -> std::size_t
     return value * 1024 * 1024;
 }
 
-#if 0
+//#if 0
 void hexdump(char const * buf, std::uint16_t sz)
 {
     std::uint16_t idx;
@@ -34,7 +34,7 @@ void hexdump(char const * buf, std::uint16_t sz)
     }
     printf("\n\r");
 }
-#endif
+//#endif
 
 /*
 byte-order is, where applicable little ending (LSB first).
@@ -74,6 +74,23 @@ struct FrameType
 #pragma pack(pop)
 
 using XcpFrames = std::vector<FrameType>;
+
+
+using FrameTuple = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t>;
+using FrameVector = std::vector<FrameTuple>;
+
+
+enum class FrameCategory : std::uint8_t {
+    META,
+    CMD,
+    RES,
+    ERR,
+    EV,
+    SERV,
+    DAQ,
+    STIM,
+};
+
 
 namespace detail
 {
@@ -262,15 +279,16 @@ public:
         m_offset += detail::FILE_HEADER_SIZE;
     }
 
-    void next() {
+    FrameVector const& next() {
         auto container = ContainerHeaderType{};
         auto total = 0;
+        auto frame = FrameType{};
+        size_t boffs = 0;
+        auto result = FrameVector{};
         for (std::size_t idx = 0; idx < m_header.num_containers; ++idx) {
             read_bytes(m_offset, detail::CONTAINER_SIZE, reinterpret_cast<char*>(&container));
-            printf("RC: %u C: %u U: %u\n", container.record_count, container.size_compressed, container.size_uncompressed);
-            
+
             auto buffer = new char[container.size_uncompressed];
-            //auto  buffer = std::make_shared<char[]>(container.size_uncompressed);
 
             m_offset += detail::CONTAINER_SIZE;
             total += container.record_count;
@@ -278,25 +296,29 @@ public:
             if (uc_size < 0) {
                 throw std::runtime_error("LZ4 decompression failed.");
             }
-            printf("fl: %d\n", uc_size);
-            /*
-            uncompressed_data = memoryview(lz4block.decompress(self.get(offset, size_compressed)))
-            frame_offset = 0
-            for _ in range(record_count):
-                category, counter, timestamp, frame_length = DAQ_RECORD_STRUCT.unpack(
-                    uncompressed_data[frame_offset : frame_offset + DAQ_RECORD_STRUCT.size]
-                )
-                frame_offset += DAQ_RECORD_STRUCT.size
-                frame_data = uncompressed_data[frame_offset : frame_offset + frame_length] # .tobytes()
-                frame_offset += len(frame_data)
-                frame = DAQRecord(category, counter, timestamp, frame_data)
-                yield frame
-            */
+            boffs = 0;
+            for (int idx = 0; idx < container.record_count; ++idx) {
+                ::memcpy(&frame, &(buffer[boffs]), detail::FRAME_SIZE);
+                boffs += detail::FRAME_SIZE;
+                printf("CC: %u TS: %f L: %u\n", frame.counter, frame.timestamp, frame.length);
+                boffs += frame.length;
+                auto ttt = std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length);
+                result.emplace_back(ttt);
+
+#if 0
+    uint8_t category;
+    uint16_t counter;
+    double timestamp;
+    uint16_t length;
+    payload_t payload;
+#endif
+            }
             m_offset += container.size_compressed;
-            m_current_container += 11;
+            m_current_container += 1;
             delete[] buffer;
         }
         printf("Total: %u\n", total);
+        return result;
     }
 
     ~XcpLogFileReader()
