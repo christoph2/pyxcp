@@ -27,7 +27,7 @@ constexpr auto megabytes(std::size_t value) -> std::size_t
     return value * 1024 * 1024;
 }
 
-//#if 0
+#if 0
 void hexdump(char const * buf, std::uint16_t sz)
 {
     std::uint16_t idx;
@@ -38,7 +38,7 @@ void hexdump(char const * buf, std::uint16_t sz)
     }
     printf("\n\r");
 }
-//#endif
+#endif
 
 /*
 byte-order is, where applicable little ending (LSB first).
