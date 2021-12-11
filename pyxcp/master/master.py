@@ -346,7 +346,7 @@ class Master:
             if size < len(seed):
                 seed = seed[:size]
             reply = types.GetSeedResponse.parse(
-                types.GetSeedResponse.build({"leght": size, "seed": bytes(size)}),
+                types.GetSeedResponse.build({"length": size, "seed": bytes(size)}),
                 byteOrder = self.slaveProperties.byteOrder
             )
             reply.seed = seed

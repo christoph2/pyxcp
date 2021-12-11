@@ -65,7 +65,7 @@ struct ContainerHeaderType
     uint32_t size_uncompressed;
 };
 
-using payload_t = std::uint8_t *;
+using payload_t = char *;
 
 struct FrameType
 {
@@ -80,7 +80,7 @@ struct FrameType
 using XcpFrames = std::vector<FrameType>;
 
 
-using FrameTuple = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t>;
+using FrameTuple = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, std::unique_ptr<char[]>>;
 using FrameVector = std::vector<FrameTuple>;
 
 
@@ -98,13 +98,13 @@ enum class FrameCategory : std::uint8_t {
 
 namespace detail
 {
-    const auto VERSION = 0x0100;
     const std::string FILE_EXTENSION(".xmraw");
     const std::string MAGIC{"ASAMINT::XCP_RAW"};
-    const auto FILE_HEADER_SIZE = sizeof(FileHeaderType);
-    const auto CONTAINER_SIZE = sizeof(ContainerHeaderType);
-    const auto FRAME_SIZE = sizeof(FrameType) - sizeof(payload_t);
-} // namespace detail
+    constexpr auto VERSION = 0x0100;
+    constexpr auto FILE_HEADER_SIZE = sizeof(FileHeaderType);
+    constexpr auto CONTAINER_SIZE = sizeof(ContainerHeaderType);
+    constexpr auto FRAME_SIZE = sizeof(FrameType) - sizeof(payload_t);
+}
 
 
 /**
@@ -283,7 +283,7 @@ public:
         m_offset += detail::FILE_HEADER_SIZE;
     }
 
-    FrameVector const& next() {
+    FrameVector next() {
         auto container = ContainerHeaderType{};
         auto total = 0;
         auto frame = FrameType{};
@@ -301,21 +301,13 @@ public:
                 throw std::runtime_error("LZ4 decompression failed.");
             }
             boffs = 0;
-            for (int idx = 0; idx < container.record_count; ++idx) {
+            for (std::uint32_t idx = 0; idx < container.record_count; ++idx) {
                 ::memcpy(&frame, &(buffer[boffs]), detail::FRAME_SIZE);
                 boffs += detail::FRAME_SIZE;
-                printf("CC: %u TS: %f L: %u\n", frame.counter, frame.timestamp, frame.length);
+                auto payload = std::make_unique<char[]>(frame.length);
+                std::copy_n(&buffer[boffs], frame.length, reinterpret_cast<char*>(payload.get()));
                 boffs += frame.length;
-                auto ttt = std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length);
-                result.emplace_back(ttt);
-
-#if 0
-    uint8_t category;
-    uint16_t counter;
-    double timestamp;
-    uint16_t length;
-    payload_t payload;
-#endif
+                result.emplace_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, std::move(payload)));
             }
             m_offset += container.size_compressed;
             m_current_container += 1;
