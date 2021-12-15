@@ -87,7 +87,12 @@ class XcpGetIdType(enum.IntEnum):
     FILE_AND_PATH = 2
     URL = 3
     FILE_TO_UPLOAD = 4
-
+    EPK = 5
+    ECU = 6
+    SYSID = 7
+    # Extensions by Vector Informatik.
+    VECTOR_MAPNAMES = 0xDB
+    VECTOR_MDI = 0xDC
 
 class Command(enum.IntEnum):
 
