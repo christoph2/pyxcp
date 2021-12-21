@@ -157,6 +157,7 @@ ERROR_MATRIX = {
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
+        XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.NONE, Action.SKIP),
     },
     Command.SET_REQUEST: {
