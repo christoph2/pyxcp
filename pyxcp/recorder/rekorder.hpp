@@ -65,7 +65,8 @@ struct ContainerHeaderType
     uint32_t size_uncompressed;
 };
 
-using payload_t = char *;
+//using payload_t = char *;
+using payload_t = std::unique_ptr<char[]>;
 
 struct FrameType
 {
@@ -106,6 +107,12 @@ namespace detail
     constexpr auto FRAME_SIZE = sizeof(FrameType) - sizeof(payload_t);
 }
 
+auto init_ptr(char * const data, std::size_t length) -> std::unique_ptr<char[]> {
+    auto payload = std::make_unique<char[]>(length);
+
+    std::copy_n(data, length, reinterpret_cast<char*>(payload.get()));
+    return payload;
+} 
 
 /**
  */
@@ -143,18 +150,6 @@ public:
 
     void add_frames(const XcpFrames& xcp_frames) {
         for (auto const& frame: xcp_frames) {
-
-//            hexdump((const char*)frame.payload, frame.length);
-
-            store_im(&frame, detail::FRAME_SIZE);
-            store_im(frame.payload, frame.length);
-#if 0
-            // TODO: factor out!!!
-            std::memcpy(m_intermediate_storage + m_intermediate_storage_offset, &frame, detail::FRAME_SIZE);
-            m_intermediate_storage_offset += detail::FRAME_SIZE;
-            std::memcpy(m_intermediate_storage + m_intermediate_storage_offset, frame.payload, frame.length);
-            m_intermediate_storage_offset += frame.length;
-#endif
             m_container_record_count += 1;
             m_container_size_uncompressed += (detail::FRAME_SIZE + frame.length);
             if (m_container_size_uncompressed > m_chunk_size) {
@@ -174,6 +169,7 @@ protected:
     }
 
     void store_im(void const * data, std::size_t length) {
+        //printf("store_im: offs: %08x length: %u\n", m_intermediate_storage_offset, length);
         std::memcpy(m_intermediate_storage + m_intermediate_storage_offset, data, length);
         m_intermediate_storage_offset += length;
     }
@@ -313,7 +309,7 @@ public:
             m_current_container += 1;
             delete[] buffer;
         }
-        printf("Total: %u\n", total);
+        //printf("Total: %u\n", total);
         return result;
     }
 
