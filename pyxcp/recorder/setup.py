@@ -4,7 +4,10 @@ import subprocess
 
 from distutils.core import setup, Extension
 
-from pybind11.setup_helpers import Pybind11Extension, build_ext # noqa: E402
+from pybind11.setup_helpers import Pybind11Extension, build_ext, ParallelCompile, naive_recompile
+
+#ParallelCompile("NPY_NUM_BUILD_JOBS").install()
+ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
 
 INCLUDE_DIRS = subprocess.getoutput('pybind11-config --include')
 

@@ -19,6 +19,16 @@ public:
 
     }
 
+    auto py_get_header() -> py::tuple {
+        auto hdr = get_header();
+        return py::make_tuple(
+            hdr.record_count,
+            hdr.size_uncompressed,
+            hdr.size_compressed,
+            (double)hdr.size_uncompressed / (double)hdr.size_compressed
+        );
+    }
+
 #if 0
     std::string go(int n_times) override {
         PYBIND11_OVERRIDE_PURE(std::string, Animal, go, n_times);
@@ -39,6 +49,7 @@ PYBIND11_MODULE(rekorder, m) {
     py::class_<PyXcpLogFileReader>(m, "XcpLogFileReader")
         .def(py::init<const std::string &>())
 //        .def("next",  &XcpLogFileReader::next)
+        .def("get_header",  &PyXcpLogFileReader::py_get_header)
         .def("run",  &PyXcpLogFileReader::run)
     ;
 }

@@ -93,9 +93,8 @@ struct FrameType
 };
 #pragma pack(pop)
 
+
 using XcpFrames = std::vector<FrameType>;
-
-
 using FrameTuple = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, std::unique_ptr<char[]>>;
 using FrameVector = std::vector<FrameTuple>;
 
@@ -125,7 +124,8 @@ namespace detail
 inline auto init_ptr(char * const data, std::size_t length) -> std::unique_ptr<char[]> {
     auto payload = std::make_unique<char[]>(length);
 
-    std::copy_n(data, length, reinterpret_cast<char*>(payload.get()));
+    //std::copy_n(data, length, reinterpret_cast<char*>(payload.get()));
+    std::copy_n(data, length, payload.get());
     return payload;
 }
 
@@ -165,6 +165,8 @@ public:
 
     void add_frames(const XcpFrames& xcp_frames) {
         for (auto const& frame: xcp_frames) {
+            store_im(&frame, detail::FRAME_SIZE);
+            store_im(frame.payload.get(), frame.length);
             m_container_record_count += 1;
             m_container_size_uncompressed += (detail::FRAME_SIZE + frame.length);
             if (m_container_size_uncompressed > m_chunk_size) {
@@ -184,14 +186,13 @@ protected:
     }
 
     void store_im(void const * data, std::size_t length) {
-        //printf("store_im: offs: %08x length: %u\n", m_intermediate_storage_offset, length);
         std::memcpy(m_intermediate_storage + m_intermediate_storage_offset, data, length);
         m_intermediate_storage_offset += length;
     }
 
     void compress_frames() {
         auto container = ContainerHeaderType{};
-        //printf("Compressing %u frames...\n", m_container_record_count);
+        //printf("Compressing %u frames... [%d]\n", m_container_record_count, m_intermediate_storage_offset);
         const int cp_size = ::LZ4_compress_default(
             reinterpret_cast<char*>(m_intermediate_storage), ptr(m_offset + detail::CONTAINER_SIZE),
             m_intermediate_storage_offset, LZ4_COMPRESSBOUND(m_intermediate_storage_offset)
@@ -292,6 +293,10 @@ public:
         }
 
         m_offset += detail::FILE_HEADER_SIZE;
+    }
+
+    const FileHeaderType get_header() {
+        return m_header;
     }
 
     FrameVector next() {

@@ -40,13 +40,13 @@ int main(int argc, char *argv[])
     srand(42);
 //#if 0
     printf("\nWRITER");
-    printf("======");
+    printf("======\n");
     auto writer = XcpLogFileWriter("test_logger");
     some_records(writer);
     writer.finalize();
 //#endif
     printf("\nREADER");
-    printf("======");
+    printf("======\n");
     auto reader = XcpLogFileReader("test_logger");
     const auto& res = reader.next();
     printf("Finished.\n");
