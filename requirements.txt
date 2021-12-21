@@ -1,3 +1,4 @@
+pybind11
 pytest
 pytest-runner
 construct>=2.9
