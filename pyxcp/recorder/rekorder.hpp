@@ -70,10 +70,25 @@ using payload_t = std::unique_ptr<char[]>;
 
 struct FrameType
 {
-    uint8_t category;
-    uint16_t counter;
-    double timestamp;
-    uint16_t length;
+
+    explicit FrameType() = default;
+
+    FrameType(FrameType&& rhs) {
+        this->category = rhs.category;
+        this->counter = rhs.counter;
+        this->timestamp = rhs.timestamp;
+        this->length = rhs.length;
+        std::swap(this->payload, rhs.payload);
+    }
+
+    // No copy semantics due to unique_ptr.
+    FrameType(FrameType const&) = delete;
+    FrameType& operator=(FrameType const&) = delete;
+
+    uint8_t category {0};
+    uint16_t counter {0};
+    double timestamp  {0.0};
+    uint16_t length = {0};
     payload_t payload;
 };
 #pragma pack(pop)
@@ -107,12 +122,12 @@ namespace detail
     constexpr auto FRAME_SIZE = sizeof(FrameType) - sizeof(payload_t);
 }
 
-auto init_ptr(char * const data, std::size_t length) -> std::unique_ptr<char[]> {
+inline auto init_ptr(char * const data, std::size_t length) -> std::unique_ptr<char[]> {
     auto payload = std::make_unique<char[]>(length);
 
     std::copy_n(data, length, reinterpret_cast<char*>(payload.get()));
     return payload;
-} 
+}
 
 /**
  */
