@@ -65,8 +65,7 @@ struct ContainerHeaderType
     uint32_t size_uncompressed;
 };
 
-//using payload_t = char *;
-using payload_t = std::unique_ptr<char[]>;
+using payload_t = std::unique_ptr<const char[]>;
 
 struct FrameType
 {
@@ -128,6 +127,14 @@ inline auto init_ptr(char * const data, std::size_t length) -> std::unique_ptr<c
     std::copy_n(data, length, payload.get());
     return payload;
 }
+
+
+inline auto file_header_size() -> std::size_t {
+    const auto msize = detail::MAGIC.size();
+
+    return (detail::FILE_HEADER_SIZE + msize);
+}
+
 
 /**
  */
@@ -295,9 +302,16 @@ public:
         m_offset += detail::FILE_HEADER_SIZE;
     }
 
-    const FileHeaderType get_header() {
+    const FileHeaderType get_header() const {
+
         return m_header;
     }
+
+    void reset() {
+        m_current_container = 0;
+        m_offset = file_header_size();
+    }
+
 
     FrameVector next() {
         auto container = ContainerHeaderType{};

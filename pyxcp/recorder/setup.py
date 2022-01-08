@@ -21,7 +21,7 @@ ext_modules = [
     Pybind11Extension(
         EXT_NAMES[0],
         include_dirs = [INCLUDE_DIRS],
-        sources = ["rekorder.cpp", "lz4.c", "wrap.cpp"],
+        sources = ["lz4.c", "wrap.cpp"],
         define_macros = [('EXTENSION_NAME', EXT_NAMES[0])],
         extra_compile_args = ['-O3', '-std=c++17'],
     ),

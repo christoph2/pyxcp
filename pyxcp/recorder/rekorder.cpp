@@ -38,13 +38,13 @@ int main(int argc, char *argv[])
     auto arr_ptr2 = std::make_shared<int[]>(10);
 
     srand(42);
-//#if 0
+#if 0
     printf("\nWRITER");
     printf("======\n");
     auto writer = XcpLogFileWriter("test_logger");
     some_records(writer);
     writer.finalize();
-//#endif
+#endif
     printf("\nREADER");
     printf("======\n");
     auto reader = XcpLogFileReader("test_logger");
