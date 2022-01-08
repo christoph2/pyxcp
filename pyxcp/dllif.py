@@ -4,7 +4,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2020 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2022 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -75,10 +75,10 @@ def getKey(dllName, privilege, seed):
             ctypes.POINTER(ctypes.c_uint8),
             ctypes.c_char_p,
         ]
-        kb = ctypes.create_string_buffer(b"\000" * 128)
-        kl = ctypes.c_uint8(128)
-        retCode = func(privilege, len(seed), ctypes.c_char_p(seed), ctypes.byref(kl), kb)
-        return (retCode, kb.value)
+        key_buffer = ctypes.create_string_buffer(b"\000" * 128)
+        key_length = ctypes.c_uint8(128)
+        ret_code = func(privilege, len(seed), ctypes.c_char_p(seed), ctypes.byref(key_length), key_buffer)
+        return (ret_code, key_buffer.raw[0 : key_length.value])
     else:
         p0 = subprocess.Popen(
             [LOADER, dllName, str(privilege), binascii.hexlify(seed).decode("ascii")],
