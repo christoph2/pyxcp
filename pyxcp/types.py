@@ -321,6 +321,22 @@ XcpError = Enum(
     ERR_TIMEOUT=0xFF,  # Used by errorhandler; not an offical errorcode.
 )
 
+class Event(enum.IntEnum):
+    """XCP Event Codes"""
+    EV_RESUME_MODE          = 0x00
+    EV_CLEAR_DAQ            = 0x01
+    EV_STORE_DAQ            = 0x02
+    EV_STORE_CAL            = 0x03
+    EV_CMD_PENDING          = 0x05
+    EV_DAQ_OVERLOAD         = 0x06
+    EV_SESSION_TERMINATED   = 0x07
+    EV_TIME_SYNC            = 0x08
+    EV_STIM_TIMEOUT         = 0x09
+    EV_SLEEP                = 0x0A
+    EV_WAKE_UP              = 0x0B
+    EV_USER                 = 0xFE
+    EV_TRANSPORT            = 0xFF
+
 Response = Struct(
     "type"
     / Enum(
