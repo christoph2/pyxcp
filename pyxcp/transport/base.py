@@ -42,10 +42,13 @@ class Empty(Exception):
     pass
 
 
-def get(q, timeout):
+def get(q, timeout, restart_event):
     """Get an item from a deque considering a timeout condition."""
     start = time()
     while not q:
+        if restart_event.is_set():
+            start = time()
+            restart_event.clear()
         if time() - start > timeout:
             raise Empty
         sleep(0.001)
@@ -90,6 +93,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         timeout = self.config.get("TIMEOUT")
         self.alignment = self.config.get("ALIGNMENT")
         self.timeout = 2.0 if timeout is None else timeout
+        self.timer_restart_event = threading.Event()
         self.timing = Timing()
         self.resQueue = deque()
         self.daqQueue = deque()
@@ -152,7 +156,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.send(frame)
 
         try:
-            xcpPDU = get(self.resQueue, timeout=self.timeout)
+            xcpPDU = get(self.resQueue, timeout=self.timeout, restart_event = self.timer_restart_event)
         except Empty:
             raise types.XcpTimeoutError("Response timed out (timeout={}s)".format(self.timeout)) from None
 
@@ -255,6 +259,13 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def listen(self):
         pass
 
+    def process_event_packet(self, packet):
+        packet = packet[1 : ]
+        ev_type = packet[0]
+        self.logger.debug("EVENT-PACKET: {}".format(hexDump(packet)))
+        if ev_type == types.Event.EV_CMD_PENDING:
+            self.timer_restart_event.set()
+
     def processResponse(self, response, length, counter, recv_timestamp=None):
         if counter == self.counterReceived:
             self.logger.warn("Duplicate message counter {} received from the XCP slave".format(counter))
@@ -286,6 +297,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 self.recv_timestamp = recv_timestamp
             elif pid == 0xFD:
                 # self.evQueue.put(response)
+                self.process_event_packet(response)
                 self.evQueue.append(response)
             elif pid == 0xFC:
                 # self.servQueue.put(response)
