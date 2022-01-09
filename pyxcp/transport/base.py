@@ -4,7 +4,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2019 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2022 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -228,7 +228,6 @@ class BaseTransport(metaclass=abc.ABCMeta):
         ------
         :class:`pyxcp.types.XcpTimeoutError`
         """
-        TIMEOUT = 1.0  # TODO: parameter.
         block_response = b""
         start = time()
         while len(block_response) < length_required:
@@ -236,7 +235,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 partial_response = self.resQueue.popleft()
                 block_response += partial_response[1:]
             else:
-                if time() - start > TIMEOUT:
+                if time() - start > self.timeout:
                     raise types.XcpTimeoutError("Response timed out [block_receive].") from None
                 sleep(0.001)
         return block_response

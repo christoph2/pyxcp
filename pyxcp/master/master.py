@@ -12,7 +12,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2021 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2022 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -41,7 +41,7 @@ from pyxcp import checksum
 from pyxcp import types
 from pyxcp.config import Configuration
 from pyxcp.constants import makeBytePacker, makeByteUnpacker, makeWordPacker, makeWordUnpacker, makeDWordPacker, makeDWordUnpacker, makeDLongPacker, makeDLongUnpacker
-from pyxcp.master.errorhandler import wrapped
+from pyxcp.master.errorhandler import wrapped, disable_error_handling
 from pyxcp.transport.base import createTransport
 
 
@@ -80,7 +80,8 @@ class Master:
 
     PARAMETER_MAP = {
         #            Type Req'd  Default
-        "LOGLEVEL": (str, False, "WARN"),
+        "LOGLEVEL":                 (str,  False, "WARN"),
+        "DISABLE_ERROR_HANDLING":   (bool, False, False),   # Bypass error-handling for performance reasons.
     }
 
     def __init__(self, transportName, config=None):
@@ -89,6 +90,8 @@ class Master:
         self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
         self.logger = logging.getLogger("pyXCP")
         self.logger.setLevel(self.config.get("LOGLEVEL"))
+        disable_error_handling(self.config.get("DISABLE_ERROR_HANDLING"))
+
         self.transport = createTransport(transportName, config)
         self.transport_name = transportName
 

@@ -7,7 +7,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-2020 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2022 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -39,6 +39,7 @@ from pyxcp.types import XcpResponseError, XcpTimeoutError, XcpError, COMMAND_CAT
 from pyxcp.errormatrix import ERROR_MATRIX, PreAction, Action
 from ..logger import Logger
 
+handle_errors = True # enable/disable XCP error-handling.
 
 class SingletonBase(object):
     _lock = threading.Lock()
@@ -378,14 +379,18 @@ class Executor(SingletonBase):
                     raise UnrecoverableError("Finish for now.")
 
 
+def disable_error_handling(value: bool):
+    """Disable XCP error-handling (mainly for performance reasons)."""
+
+    global handle_errors
+    handle_errors = bool(value)
+
+
 def wrapped(func):
     """This decorator is XCP error-handling enabled."""
 
     @functools.wraps(func)
     def inner(*args, **kwargs):
-        handle_errors = os.environ.get("PYXCP_HANDLE_ERRORS", True)
-        if handle_errors in (False, "False", "false"):
-            handle_errors = False
         if handle_errors:
             inst = args[0]  # First parameter is 'self'.
             arguments = Arguments(args[1:], kwargs)
