@@ -6,6 +6,16 @@ Parameters live in `JSON` or `TOML` :file:`pyxcp/examples` contains some example
 General pyXCP Parameters
 ------------------------
 
+* `LOGLEVEL`:                 str,      False, "WARN"   -- "ERROR | "WARN" | "INFO" | "DEBUG"
+                                                           Verbosity of logger.
+* `DISABLE_ERROR_HANDLING`:   bool,     False, False    -- Bypass error-handling for performance reasons (expert option!!!).
+
+* `CREATE_DAQ_TIMESTAMPS`:    bool,     False, False    -- Generate DAQ records with timestamp.
+* `TIMEOUT`:                  float,    False, 2.0      -- General XCP timeout in seconds.
+* `ALIGNMENT`:                int,      False, 1        -- 1 | 2 | 4, byte alignment.
+
+
+
 eth
 ~~~
 
