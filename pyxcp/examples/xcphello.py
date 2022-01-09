@@ -45,8 +45,7 @@ with ap.run() as x:
     x.connect()
     if x.slaveProperties.optionalCommMode:
         x.getCommModeInfo()
-    #gid = x.getId(0x1)
-    gid = x.getId(0x80)
+    gid = x.getId(0x1)
     result = x.fetch(gid.length)
     print("\nSlave properties:")
     print("=================")
