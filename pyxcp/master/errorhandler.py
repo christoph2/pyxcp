@@ -383,7 +383,7 @@ def disable_error_handling(value: bool):
     """Disable XCP error-handling (mainly for performance reasons)."""
 
     global handle_errors
-    handle_errors = bool(value)
+    handle_errors = not bool(value)
 
 
 def wrapped(func):
