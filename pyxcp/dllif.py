@@ -63,7 +63,9 @@ else:
     raise RuntimeError("Platform '{}' currently not supported.".format(sys.platform))
 
 
-def getKey(dllName, privilege, seed):
+def getKey(dllName: str, privilege: int, seed: str, assume_same_bit_width: bool):
+    if assume_same_bit_width:
+        use_ctypes = True
     if use_ctypes:
         lib = ctypes.cdll.LoadLibrary(dllName)
         func = lib.XCP_ComputeKeyFromSeed

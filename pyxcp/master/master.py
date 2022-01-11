@@ -80,8 +80,10 @@ class Master:
 
     PARAMETER_MAP = {
         #            Type Req'd  Default
-        "LOGLEVEL":                 (str,  False, "WARN"),
-        "DISABLE_ERROR_HANDLING":   (bool, False, False),   # Bypass error-handling for performance reasons.
+        "LOGLEVEL":                         (str,  False, "WARN"),
+        "DISABLE_ERROR_HANDLING":           (bool, False, False),   # Bypass error-handling for performance reasons.
+        "SEED_N_KEY_DLL":                   (str,    False,  ""),
+        "SEED_N_KEY_DLL_SAME_BIT_WIDTH":    (bool, False, False),
     }
 
     def __init__(self, transportName, config=None):
@@ -115,7 +117,8 @@ class Master:
         self.mta = types.MtaType(None, None)
         self.currentDaqPtr = None
         self.currentProtectionStatus = None
-        self._seedNKeyDLL = None
+        self.seedNKeyDLL = self.config.get("SEED_N_KEY_DLL")
+        self.seedNKeyDLL_same_bit_width = self.config.get("SEED_N_KEY_DLL_SAME_BIT_WIDTH")
 
     def __enter__(self):
         """Context manager entry part."""
@@ -1561,7 +1564,7 @@ class Master:
     def cond_unlock(self, resources=None):
         """Conditionally unlock resources, i.e. only unlock locked resources.
 
-        Precondition: Must assign :attr:`seedNKeyDLL`, e.g. ``master.seedNKeyDLL = "SeedNKeyXcp.dll"``
+        Precondition: Parameter "SEED_N_KEY_DLL" must be present and point to a valid DLL/SO.
 
         Parameters
         ----------
@@ -1585,7 +1588,7 @@ class Master:
 
         MAX_PAYLOAD = self.slaveProperties["maxCto"] - 2
 
-        if self._seedNKeyDLL is None:
+        if self.seedNKeyDLL is None:
             raise RuntimeError("No seed and key DLL specified, cannot proceed.")
         if resources is None:
             result = []
@@ -1617,7 +1620,7 @@ class Master:
                     result = self.getSeed(types.XcpGetSeedMode.REMAINING, resource_value)
                     seed.extend(list(result.seed))
                     remaining = result.length
-            result, key = getKey(self._seedNKeyDLL, resource_value, bytes(seed))
+            result, key = getKey(self.seedNKeyDLL, resource_value, bytes(seed), self.seedNKeyDLL_same_bit_width)
             if result == SeedNKeyResult.ACK:
                 key = list(key)
                 total_length = len(key)
@@ -1629,14 +1632,6 @@ class Master:
                     res = self.unlock(key_length, data)
             else:
                 raise SeedNKeyError("SeedAndKey DLL returned: {}".format(SeedNKeyResult(result).name))
-
-    @property
-    def seedNKeyDLL(self):
-        return self._seedNKeyDLL
-
-    @seedNKeyDLL.setter
-    def seedNKeyDLL(self, name):
-        self._seedNKeyDLL = name
 
 def ticks_to_seconds(ticks, resolution):
     """Convert DAQ timestamp/tick value to seconds.
