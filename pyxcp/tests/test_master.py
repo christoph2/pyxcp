@@ -1285,7 +1285,7 @@ class TestMaster:
 
             ms.push_packet("FF")
 
-            res = xm.program([0x01, 0x02, 0x03, 0x04])
+            res = xm.program([0x01, 0x02, 0x03, 0x04], blockLength = 4, last = True)
 
             mock_socket.return_value.send.assert_called_with(
                 bytes([0x06, 0x00, 0x03, 0x00, 0xD0, 0x04, 0x01, 0x02, 0x03, 0x04])
@@ -1350,7 +1350,7 @@ class TestMaster:
 
             ms.push_packet("FF")
 
-            res = xm.programNext([0x01, 0x02, 0x03, 0x04])
+            res = xm.programNext([0x01, 0x02, 0x03, 0x04], remainingBlockLength = 4, last = True)
 
             mock_socket.return_value.send.assert_called_with(
                 bytes([0x06, 0x00, 0x0A, 0x00, 0xCA, 0x04, 0x01, 0x02, 0x03, 0x04])
