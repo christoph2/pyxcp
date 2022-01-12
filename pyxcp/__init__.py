@@ -30,4 +30,4 @@ __copyright__ = """
 """
 
 # if you update this manually, do not forget to update .bumpversion.cfg
-__version__ = "0.16.25"
+__version__ = "0.16.26"
