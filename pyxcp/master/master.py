@@ -1154,15 +1154,38 @@ class Master:
         return response
 
     @wrapped
-    def program(self, data: bytes):
-        """"""
-        d = bytearray()
-        d.append(len(data))
-        if self.slaveProperties.addressGranularity == types.AddressGranularity.DWORD:
-            d.extend(b"\x00\x00")  # alignment bytes
-        for e in data:
-            d.extend(self.AG_pack(e))
-        return self.transport.request(types.Command.PROGRAM, *d)
+    def program(self, data: bytes, blockLength, last=False):
+        """Parameters
+        ----------
+        data : bytes
+            Data to send to slave.
+        blockModeLength : int
+            the program request must contain the length of the whole block, not just the length
+            in the current packet.
+        last : bool
+            Indicates that this is the only packet in the block, because
+            the slave device will send the response after this.
+
+        Note
+        ----
+        Adress is set via :meth:`setMta`
+        """
+        #d = bytearray()
+        #d.append(len(data))
+        #if self.slaveProperties.addressGranularity == types.AddressGranularity.DWORD:
+        #    d.extend(b"\x00\x00")  # alignment bytes
+        #for e in data:
+        #    d.extend(self.AG_pack(e))
+        if last:
+            # last PROGRAM_NEXT packet in a block: the slave device has to send the response after this.
+            response = self.transport.request(types.Command.PROGRAM, blockLength, *data)
+            return response
+        else:
+            # the slave device won't respond to consecutive PROGRAM_NEXT packets in block mode,
+            # so we must not wait for any response
+            self.transport.block_request(types.Command.PROGRAM, blockLength, *data)
+            return None
+
 
     @wrapped
     def programReset(self):
@@ -1197,14 +1220,24 @@ class Master:
         )
 
     @wrapped
-    def programNext(self, data):
-        d = bytearray()
-        d.append(len(data))
-        if self.slaveProperties.addressGranularity == types.AddressGranularity.DWORD:
-            d.extend(b"\x00\x00")  # alignment bytes
-        for e in data:
-            d.extend(self.AG_pack(e))
-        return self.transport.request(types.Command.PROGRAM_NEXT, *d)
+    def programNext(self, data: bytes, remainingBlockLength: int,  last: bool = False):
+        #d = bytearray()
+        #d.append(len(data))
+        #if self.slaveProperties.addressGranularity == types.AddressGranularity.DWORD:
+        #    d.extend(b"\x00\x00")  # alignment bytes
+        #for e in data:
+        #    d.extend(self.AG_pack(e))
+        if last:
+            # last PROGRAM_NEXT packet in a block: the slave device has to send the response after this.
+            response = self.transport.request(types.Command.PROGRAM_NEXT, remainingBlockLength, *data)
+            return response
+        else:
+            # the slave device won't respond to consecutive PROGRAM_NEXT packets in block mode,
+            # so we must not wait for any response
+            self.transport.block_request(types.Command.PROGRAM_NEXT, remainingBlockLength, *data)
+            return None
+
+
 
     @wrapped
     def programMax(self, data):
