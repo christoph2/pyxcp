@@ -150,7 +150,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         if hasattr(self, "closeEvent"):
             self.closeEvent.set()
 
-    def request(self, cmd, *data):
+    def _request_internal(self, cmd, ignore_timeout = False, *data):
         frame = self._prepare_request(cmd, *data)
         self.timing.start()
         self.send(frame)
@@ -158,7 +158,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
         try:
             xcpPDU = get(self.resQueue, timeout=self.timeout, restart_event = self.timer_restart_event)
         except Empty:
-            raise types.XcpTimeoutError("Response timed out (timeout={}s)".format(self.timeout)) from None
+            if not ignore_timeout:
+                raise types.XcpTimeoutError("Response timed out (timeout={}s)".format(self.timeout)) from None
 
         self.timing.stop()
 
@@ -169,6 +170,12 @@ class BaseTransport(metaclass=abc.ABCMeta):
         else:
             pass  # Und nu??
         return xcpPDU[1:]
+
+    def request(self, cmd, *data):
+        return _request_internal(self, cmd, False, *data)
+
+    def request_optional_response(self, cmd, *data):
+        return _request_internal(self, cmd, True, *data)
 
     def block_request(self, cmd, *data):
         """
