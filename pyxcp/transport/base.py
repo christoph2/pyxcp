@@ -172,10 +172,10 @@ class BaseTransport(metaclass=abc.ABCMeta):
         return xcpPDU[1:]
 
     def request(self, cmd, *data):
-        return _request_internal(self, cmd, False, *data)
+        return self._request_internal(cmd, False, *data)
 
     def request_optional_response(self, cmd, *data):
-        return _request_internal(self, cmd, True, *data)
+        return self._request_internal(cmd, True, *data)
 
     def block_request(self, cmd, *data):
         """
