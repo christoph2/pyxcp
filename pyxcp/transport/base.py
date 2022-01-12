@@ -160,9 +160,10 @@ class BaseTransport(metaclass=abc.ABCMeta):
         except Empty:
             if not ignore_timeout:
                 raise types.XcpTimeoutError("Response timed out (timeout={}s)".format(self.timeout)) from None
-
+            else:
+                self.timing.stop()
+                return
         self.timing.stop()
-
         pid = types.Response.parse(xcpPDU).type
         if pid == "ERR" and cmd.name != "SYNCH":
             err = types.XcpError.parse(xcpPDU[1:])
