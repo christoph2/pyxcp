@@ -578,7 +578,7 @@ class Master:
 
     pull = fetch  # fetch() may be completely replaced by pull() someday.
 
-    def push(self, data: bytes):
+    def push(self, address: int, data: bytes, callback = None):
         """Convenience function for data-transfer from master to slave.
         (Not part of the XCP Specification).
 
@@ -594,8 +594,9 @@ class Master:
         ----
         address is not included because of services implicitly setting address information like :meth:`getID` .
         """
-        # TODO: consider minST.
+        # TODO: consider minST. / Handled, as soon method is generalized.
 
+        self.setMta(address)
         block_downloader = functools.partial(
             self._block_downloader,
             dl_func = self.download,
