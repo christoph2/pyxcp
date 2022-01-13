@@ -661,12 +661,12 @@ class Master:
         remaining = length % max_packet_size
         remaining_block_size = length
         index = 0
-        for index in chunks:
+        for index in packets:
             packet_data = data[offset : offset + max_packet_size]
             if index == 0:
-                self.dl_func(packet_data, length)  # Transmit the complete length in the first CTO.
+                dl_func(packet_data, length)  # Transmit the complete length in the first CTO.
             else:
-                self.dl_next_func(packet_data, remaining_block_size)
+                dl_next_func(packet_data, remaining_block_size)
             offset += max_packet_size
             remaining_block_size -= max_packet_size
             delay(minSt)
@@ -674,9 +674,9 @@ class Master:
             packet_data = data[offset : offset + remaining]
             if index == 0:
                 # length of data is smaller than maxCto - 2
-                self.dl_func(packet_data, remaining, last = True)
+                dl_func(packet_data, remaining, last = True)
             else:
-                self.dl_next_func(packet_data, remaining, last = True)
+                dl_next_func(packet_data, remaining, last = True)
             delay(minSt)
 
     @wrapped
