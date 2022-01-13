@@ -31,6 +31,7 @@ __copyright__ = """
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
+import functools
 import logging
 import struct
 import traceback
@@ -43,6 +44,7 @@ from pyxcp.config import Configuration
 from pyxcp.constants import makeBytePacker, makeByteUnpacker, makeWordPacker, makeWordUnpacker, makeDWordPacker, makeDWordUnpacker, makeDLongPacker, makeDLongUnpacker
 from pyxcp.master.errorhandler import wrapped, disable_error_handling
 from pyxcp.transport.base import createTransport
+from pyxcp.utils import delay
 
 
 def broadcasted(func):
@@ -594,6 +596,13 @@ class Master:
         """
         # TODO: consider minST.
 
+        block_downloader = functools.partial(
+            self._block_downloader,
+            dl_func = self.download,
+            dl_next_func = self.downloadNext,
+            minSt = 0
+        )
+
         total_length = len(data)
         master_block_mode = self.slaveProperties.masterBlockMode
         if master_block_mode:
@@ -608,12 +617,12 @@ class Master:
             remaining_block_size = total_length % max_payload
             for idx in blocks:
                 data_slice = data[offset : offset + max_payload]
-                self._block_downloader(data_slice)
+                block_downloader(data_slice)
                 offset += max_payload
                 rem2 -= max_payload
             if remaining_block_size:
                 data_slice = data[offset : offset + remaining_block_size]
-                self._block_downloader(data_slice)
+                block_downloader(data_slice)
         else:
             chunk_size = max_payload
             chunks = range(total_length // chunk_size)
@@ -626,30 +635,48 @@ class Master:
                 frame_data = data[offset : offset + remaining]
                 self.download(frame_data, remaining)
 
-    def _block_downloader(self, data: bytes):
-        """"""
+
+    def _block_downloader(self, data: bytes, dl_func = None, dl_next_func = None, minSt = 0):
+        """Re-usable block downloader.
+
+        Parameters
+        ----------
+        data : bytes
+            Arbitrary number of bytes.
+
+        dl_func: method
+            usually :meth: `download` or :meth:`program`
+
+        dl_next_func: method
+            usually :meth: `downloadNext` or :meth:`programNext`
+
+        minSt: int
+            Minimum separation time of frames.
+        """
         length = len(data)
-        payload_length = self.slaveProperties.maxCto - 2
-        chunks = range(length // payload_length)
+        max_packet_size = self.slaveProperties.maxCto - 2  # Command ID + Length
+        packets = range(length // max_packet_size)
         offset = 0
-        remaining = length % payload_length
-        rem2 = length
-        idx = 0
-        for idx in chunks:
-            frame_data = data[offset : offset + payload_length]
-            if idx == 0:
-                self.download(frame_data, length)  # Transmit the complete length in the first CTO.
+        remaining = length % max_packet_size
+        remaining_block_size = length
+        index = 0
+        for index in chunks:
+            packet_data = data[offset : offset + max_packet_size]
+            if index == 0:
+                self.dl_func(packet_data, length)  # Transmit the complete length in the first CTO.
             else:
-                self.downloadNext(frame_data, rem2)
-            offset += payload_length
-            rem2 -= payload_length
+                self.dl_next_func(packet_data, remaining_block_size)
+            offset += max_packet_size
+            remaining_block_size -= max_packet_size
+            delay(minSt)
         if remaining:
-            frame_data = data[offset : offset + remaining]
-            if idx == 0:
+            packet_data = data[offset : offset + remaining]
+            if index == 0:
                 # length of data is smaller than maxCto - 2
-                self.download(frame_data, remaining)
+                self.dl_func(packet_data, remaining, last = True)
             else:
-                self.downloadNext(frame_data, remaining)
+                self.dl_next_func(packet_data, remaining, last = True)
+            delay(minSt)
 
     @wrapped
     def download(self, data: bytes, blockModeLength=None):
