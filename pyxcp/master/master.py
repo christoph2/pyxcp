@@ -208,7 +208,6 @@ class Master:
         self.slaveProperties.maxWriteDaqMultipleElements = (
             0 if self.slaveProperties.maxCto < 10 else int((self.slaveProperties.maxCto - 2) // 8)
         )
-        print(self.slaveProperties)
         self.BYTE_pack = makeBytePacker(byteOrderPrefix)
         self.BYTE_unpack = makeByteUnpacker(byteOrderPrefix)
         self.WORD_pack = makeWordPacker(byteOrderPrefix)
