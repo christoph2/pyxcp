@@ -121,6 +121,7 @@ class Master:
         self.currentProtectionStatus = None
         self.seedNKeyDLL = self.config.get("SEED_N_KEY_DLL")
         self.seedNKeyDLL_same_bit_width = self.config.get("SEED_N_KEY_DLL_SAME_BIT_WIDTH")
+        self.slaveProperties = SlaveProperties()
         self.slaveProperties.pgmProcessor = SlaveProperties()
 
     def __enter__(self):
@@ -191,9 +192,10 @@ class Master:
         byteOrder = resultPartial.commModeBasic.byteOrder
 
         result = types.ConnectResponse.parse(response, byteOrder=byteOrder)
-        self.slaveProperties = SlaveProperties(byteOrder=byteOrder, maxCto=result.maxCto, maxDto=result.maxDto)
         byteOrderPrefix = "<" if byteOrder == types.ByteOrder.INTEL else ">"
-
+        self.slaveProperties.byteOrder = byteOrder
+        self.slaveProperties.maxCto = result.maxCto
+        self.slaveProperties.maxDto = result.maxDto
         self.slaveProperties.supportsPgm = result.resource.pgm
         self.slaveProperties.supportsStim = result.resource.stim
         self.slaveProperties.supportsDaq = result.resource.daq
@@ -206,7 +208,7 @@ class Master:
         self.slaveProperties.maxWriteDaqMultipleElements = (
             0 if self.slaveProperties.maxCto < 10 else int((self.slaveProperties.maxCto - 2) // 8)
         )
-
+        print(self.slaveProperties)
         self.BYTE_pack = makeBytePacker(byteOrderPrefix)
         self.BYTE_unpack = makeByteUnpacker(byteOrderPrefix)
         self.WORD_pack = makeWordPacker(byteOrderPrefix)
@@ -600,7 +602,7 @@ class Master:
             maxCto = self.slaveProperties.maxCto,
             maxBs = self.slaveProperties.maxBs,
             minSt = self.slaveProperties.minSt,
-            master_block_mode = self.slaveProperties.masterBlockMode
+            master_block_mode = self.slaveProperties.masterBlockMode,
             dl_func = self.download,
             dl_next_func = self.downloadNext,
             callback = callback
