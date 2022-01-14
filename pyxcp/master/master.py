@@ -121,6 +121,7 @@ class Master:
         self.currentProtectionStatus = None
         self.seedNKeyDLL = self.config.get("SEED_N_KEY_DLL")
         self.seedNKeyDLL_same_bit_width = self.config.get("SEED_N_KEY_DLL_SAME_BIT_WIDTH")
+        self.slaveProperties.pgmProcessor = SlaveProperties()
 
     def __enter__(self):
         """Context manager entry part."""
@@ -578,41 +579,89 @@ class Master:
 
     pull = fetch  # fetch() may be completely replaced by pull() someday.
 
+
     def push(self, address: int, data: bytes, callback = None):
         """Convenience function for data-transfer from master to slave.
         (Not part of the XCP Specification).
 
         Parameters
         ----------
+        address: int
+
         data : bytes
             Arbitrary number of bytes.
 
         Returns
         -------
-
-        Note
-        ----
-        address is not included because of services implicitly setting address information like :meth:`getID` .
         """
-        # TODO: consider minST. / Handled, as soon method is generalized.
+        self._generalized_downloader(
+            address = address,
+            data = data,
+            maxCto = self.slaveProperties.maxCto,
+            maxBs = self.slaveProperties.maxBs,
+            minSt = self.slaveProperties.minSt,
+            master_block_mode = self.slaveProperties.masterBlockMode
+            dl_func = self.download,
+            dl_next_func = self.downloadNext,
+            callback = callback
+        )
 
+    def flash_program(self, address: int, data: bytes, callback = None):
+        """Convenience function for flash programing.
+        (Not part of the XCP Specification).
+
+        Parameters
+        ----------
+        address: int
+
+        data : bytes
+            Arbitrary number of bytes.
+
+        Returns
+        -------
+        """
+        self._generalized_downloader(
+            address = address,
+            data = data,
+            maxCto = self.slaveProperties.pgmProcessor.maxCtoPgm,
+            maxBs = self.slaveProperties.pgmProcessor.maxBsPgm,
+            minSt = self.slaveProperties.pgmProcessor.minStPgm,
+            master_block_mode = self.slaveProperties.pgmProcessor.masterBlockMode,
+            dl_func = self.program,
+            dl_next_func = self.programNext,
+            callback = callback
+        )
+
+
+    def _generalized_downloader(
+            self,
+            address: int,
+            data: bytes,
+            maxCto: int,
+            maxBs: int,
+            minSt: int,
+            master_block_mode: bool,
+            dl_func,
+            dl_next_func,
+            callback = None
+        ):
+        """
+        """
         self.setMta(address)
         block_downloader = functools.partial(
             self._block_downloader,
-            dl_func = self.download,
-            dl_next_func = self.downloadNext,
-            minSt = 0
+            dl_func = dl_func,
+            dl_next_func = dl_next_func,
+            minSt = minSt,
         )
-
         total_length = len(data)
-        master_block_mode = self.slaveProperties.masterBlockMode
         if master_block_mode:
-            max_payload = min(self.slaveProperties.maxBs * (self.slaveProperties.maxCto - 2), 255)
+            max_payload = min(maxBs * (maxCto - 2), 255)
         else:
-            max_payload = self.slaveProperties.maxCto - 2
+            max_payload = maxCto - 2
         offset = 0
         if master_block_mode:
-            payload_length = self.slaveProperties.maxCto - 2
+            payload_length = maxCto - 2
             rem2 = total_length
             blocks = range(total_length // max_payload)
             remaining_block_size = total_length % max_payload
@@ -1163,7 +1212,16 @@ class Master:
         `pyxcp.types.ProgramStartResponse`
         """
         response = self.transport.request(types.Command.PROGRAM_START)
-        return types.ProgramStartResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+        result = types.ProgramStartResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+        self.slaveProperties.pgmProcessor.commModePgm = result.commModePgm
+        self.slaveProperties.pgmProcessor.maxCtoPgm = result.maxCtoPgm
+        self.slaveProperties.pgmProcessor.maxBsPgm = result.maxBsPgm
+        self.slaveProperties.pgmProcessor.minStPgm = result.minStPgm
+        self.slaveProperties.pgmProcessor.queueSizePgm = result.queueSizePgm
+        self.slaveProperties.pgmProcessor.slaveBlockMode = result.commModePgm.slaveBlockMode
+        self.slaveProperties.pgmProcessor.interleavedMode = result.commModePgm.interleavedMode
+        self.slaveProperties.pgmProcessor.masterBlockMode = result.commModePgm.masterBlockMode
+        return result
 
     @wrapped
     def programClear(self, mode: int, clearRange: int):
@@ -1224,7 +1282,10 @@ class Master:
     def getPgmProcessorInfo(self):
         """Get general information on PGM processor."""
         response = self.transport.request(types.Command.GET_PGM_PROCESSOR_INFO)
-        return types.GetPgmProcessorInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+        result =  types.GetPgmProcessorInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+        self.slaveProperties.pgmProcessor.pgmProperties = result.pgmProperties
+        self.slaveProperties.pgmProcessor.maxSector = result.maxSector
+        return result
 
     @wrapped
     def getSectorInfo(self, mode, sectorNumber):
