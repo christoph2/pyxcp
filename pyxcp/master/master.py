@@ -649,6 +649,7 @@ class Master:
         """
         """
         self.setMta(address)
+        minSt /= 10000.0    # Unit is 100µS.
         block_downloader = functools.partial(
             self._block_downloader,
             dl_func = dl_func,
@@ -662,29 +663,34 @@ class Master:
             max_payload = maxCto - 2
         offset = 0
         if master_block_mode:
-            payload_length = maxCto - 2
-            rem2 = total_length
+            remaining = total_length
             blocks = range(total_length // max_payload)
+            percent_complete = 1
             remaining_block_size = total_length % max_payload
             for idx in blocks:
-                data_slice = data[offset : offset + max_payload]
-                block_downloader(data_slice)
+                block = data[offset : offset + max_payload]
+                block_downloader(block)
                 offset += max_payload
-                rem2 -= max_payload
+                remaining -= max_payload
+                if callback and remaining <= total_length - (total_length / 100) * percent_complete:
+                    callback(percent_complete)
+                    percent_complete += 1
             if remaining_block_size:
-                data_slice = data[offset : offset + remaining_block_size]
-                block_downloader(data_slice)
+                block = data[offset : offset + remaining_block_size]
+                block_downloader(block)
+                if callback:
+                    callback(percent_complete)
         else:
             chunk_size = max_payload
             chunks = range(total_length // chunk_size)
             remaining = total_length % chunk_size
             for _ in chunks:
-                frame_data = data[offset : offset + max_payload]
-                self.download(frame_data, max_payload)
+                block = data[offset : offset + max_payload]
+                self.download(block, max_payload)
                 offset += max_payload
             if remaining:
-                frame_data = data[offset : offset + remaining]
-                self.download(frame_data, remaining)
+                block = data[offset : offset + remaining]
+                self.download(block, remaining)
 
 
     def _block_downloader(self, data: bytes, dl_func = None, dl_next_func = None, minSt = 0):
