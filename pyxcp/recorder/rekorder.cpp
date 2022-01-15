@@ -16,9 +16,9 @@ void some_records(XcpLogFileWriter& writer)
         fr.counter = idx;
         fr.timestamp = std::clock();
         fr.length = 10 + (rand() % 240);
-        auto payload = std::make_unique<char[]>(fr.length);
+        auto payload = create_payload(fr.length);
         filler = (filler + 1) % 16;
-        std::fill_n(payload.get(), fr.length, filler);
+        std::fill_n(get_payload_ptr(payload), fr.length, filler);
 
         fr.payload = std::move(payload);
         my_frames.emplace_back(std::move(fr));

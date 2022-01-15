@@ -39,10 +39,6 @@
         uint8_t payload[];
     };
 
-    template<typename T>
-    py::array_t<T> make_array(const py::ssize_t size) {
-        return py::array_t<T>(size);
-    }
 
 #endif /* STANDALONE_REKORDER */
 
@@ -93,7 +89,7 @@ struct ContainerHeaderType
 using blob_t = char;    // Signedness doesn't matter in this use-case.
 
 #if STANDALONE_REKORDER == 1
-    using payload_t = std::unique_ptr<const blob_t[]>;
+    using payload_t = std::unique_ptr<blob_t[]>;
 #else
     using payload_t = py::array_t<blob_t>;
 #endif /* STANDALONE_REKORDER */
@@ -151,11 +147,19 @@ namespace detail
 }
 
 #if STANDALONE_REKORDER == 1
-    inline const blob_t * get_payload_ptr(const payload_t& payload) {
+    inline blob_t * get_payload_ptr(const payload_t& payload) {
         return payload.get();
     }
+
+    payload_t create_payload(std::size_t size) {
+        return std::make_unique<blob_t[]>(size);
+    }
 #else
-    inline const blob_t * get_payload_ptr(const payload_t& payload) {
+    payload_t create_payload(std::size_t size) {
+        return py::array_t<blob_t>(size);
+    }
+
+    inline blob_t * get_payload_ptr(const payload_t& payload) {
         py::buffer_info buf = payload.request();
 
         return  static_cast<const blob_t *>(buf.ptr);
