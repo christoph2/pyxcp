@@ -3,6 +3,9 @@
 #if !defined(__REKORDER_HPP)
 #define __REKORDER_HPP
 
+#if !defined(STANDALONE_REKORDER)
+    #define STANDALONE_REKORDER     0
+#endif /* STANDALONE_REKORDER */
 
 #include <array>
 #include <string>
@@ -21,6 +24,28 @@
 #include "lz4.h"
 #include "mio.hpp"
 
+#if STANDALONE_REKORDER == 0
+    #include <pybind11/pybind11.h>
+    #include <pybind11/numpy.h>
+    #include <pybind11/stl.h>
+
+    namespace py = pybind11;
+    using namespace pybind11::literals;
+
+    struct DType {
+        uint8_t category {0};
+        uint16_t counter {0};
+        double timestamp  {0.0};
+        uint8_t payload[];
+    };
+
+    template<typename T>
+    py::array_t<T> make_array(const py::ssize_t size) {
+        return py::array_t<T>(size);
+    }
+
+#endif /* STANDALONE_REKORDER */
+
 
 constexpr auto megabytes(std::size_t value) -> std::size_t
 {
@@ -28,7 +53,7 @@ constexpr auto megabytes(std::size_t value) -> std::size_t
 }
 
 #if 0
-void hexdump(char const * buf, std::uint16_t sz)
+void hexdump(blob_t const * buf, std::uint16_t sz)
 {
     std::uint16_t idx;
 
@@ -65,7 +90,13 @@ struct ContainerHeaderType
     uint32_t size_uncompressed;
 };
 
-using payload_t = std::unique_ptr<const char[]>;
+using blob_t = char;    // Signedness doesn't matter in this use-case.
+
+#if STANDALONE_REKORDER == 1
+    using payload_t = std::unique_ptr<const blob_t[]>;
+#else
+    using payload_t = py::array_t<blob_t>;
+#endif /* STANDALONE_REKORDER */
 
 struct FrameType
 {
@@ -92,9 +123,8 @@ struct FrameType
 };
 #pragma pack(pop)
 
-
 using XcpFrames = std::vector<FrameType>;
-using FrameTuple = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, std::unique_ptr<char[]>>;
+using FrameTuple = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, std::unique_ptr<blob_t[]>>;
 using FrameVector = std::vector<FrameTuple>;
 
 
@@ -120,10 +150,22 @@ namespace detail
     constexpr auto FRAME_SIZE = sizeof(FrameType) - sizeof(payload_t);
 }
 
-inline auto init_ptr(char * const data, std::size_t length) -> std::unique_ptr<char[]> {
-    auto payload = std::make_unique<char[]>(length);
+#if STANDALONE_REKORDER == 1
+    inline const blob_t * get_payload_ptr(const payload_t& payload) {
+        return payload.get();
+    }
+#else
+    inline const blob_t * get_payload_ptr(const payload_t& payload) {
+        py::buffer_info buf = payload.request();
 
-    //std::copy_n(data, length, reinterpret_cast<char*>(payload.get()));
+        return  static_cast<const blob_t *>(buf.ptr);
+    }
+#endif /* STANDALONE_REKORDER */
+
+inline auto init_ptr(blob_t * const data, std::size_t length) -> std::unique_ptr<blob_t[]> {
+    auto payload = std::make_unique<blob_t[]>(length);
+
+    //std::copy_n(data, length, reinterpret_cast<blob_t*>(payload.get()));
     std::copy_n(data, length, payload.get());
     return payload;
 }
@@ -173,7 +215,8 @@ public:
     void add_frames(const XcpFrames& xcp_frames) {
         for (auto const& frame: xcp_frames) {
             store_im(&frame, detail::FRAME_SIZE);
-            store_im(frame.payload.get(), frame.length);
+            //store_im(frame.payload.get(), frame.length);
+            store_im(get_payload_ptr(frame.payload), frame.length);
             m_container_record_count += 1;
             m_container_size_uncompressed += (detail::FRAME_SIZE + frame.length);
             if (m_container_size_uncompressed > m_chunk_size) {
@@ -187,7 +230,7 @@ protected:
         ::ftruncate(m_fd, size);
     }
 
-    char * ptr(std::size_t pos = 0) const
+    blob_t * ptr(std::size_t pos = 0) const
     {
         return m_mmap->data() + pos;
     }
@@ -201,7 +244,7 @@ protected:
         auto container = ContainerHeaderType{};
         //printf("Compressing %u frames... [%d]\n", m_container_record_count, m_intermediate_storage_offset);
         const int cp_size = ::LZ4_compress_default(
-            reinterpret_cast<char*>(m_intermediate_storage), ptr(m_offset + detail::CONTAINER_SIZE),
+            reinterpret_cast<blob_t*>(m_intermediate_storage), ptr(m_offset + detail::CONTAINER_SIZE),
             m_intermediate_storage_offset, LZ4_COMPRESSBOUND(m_intermediate_storage_offset)
         );
         if (cp_size < 0) {
@@ -223,7 +266,7 @@ protected:
         m_num_containers += 1;
     }
 
-    void write_bytes(std::size_t pos, std::size_t count, char const * buf)
+    void write_bytes(std::size_t pos, std::size_t count, blob_t const * buf)
     {
         auto addr = ptr(pos);
 
@@ -241,7 +284,7 @@ protected:
         header.record_count = record_count;
         header.size_compressed = size_compressed;
         header.size_uncompressed = size_uncompressed;
-        write_bytes(0x00000000UL + detail::MAGIC.size(), detail::FILE_HEADER_SIZE, reinterpret_cast<char *>(&header));
+        write_bytes(0x00000000UL + detail::MAGIC.size(), detail::FILE_HEADER_SIZE, reinterpret_cast<blob_t *>(&header));
     }
 
 private:
@@ -273,7 +316,7 @@ public:
         m_file_name = file_name + detail::FILE_EXTENSION;
         m_mmap = new mio::mmap_source(m_file_name);
         const auto msize = detail::MAGIC.size();
-        char magic[msize + 1];
+        blob_t magic[msize + 1];
 
         read_bytes(0ul, msize, magic);
         if (memcmp(detail::MAGIC.c_str(), magic, msize))
@@ -282,7 +325,7 @@ public:
         }
         m_offset = msize;
 
-        read_bytes(m_offset, detail::FILE_HEADER_SIZE, reinterpret_cast<char*>(&m_header));
+        read_bytes(m_offset, detail::FILE_HEADER_SIZE, reinterpret_cast<blob_t*>(&m_header));
         //printf("Sizes: %u %u %.3f\n", m_header.size_uncompressed,
         //       m_header.size_compressed,
         //       float(m_header.size_uncompressed) / float(m_header.size_compressed));
@@ -320,9 +363,9 @@ public:
         size_t boffs = 0;
         auto result = FrameVector{};
         for (std::size_t idx = 0; idx < m_header.num_containers; ++idx) {
-            read_bytes(m_offset, detail::CONTAINER_SIZE, reinterpret_cast<char*>(&container));
+            read_bytes(m_offset, detail::CONTAINER_SIZE, reinterpret_cast<blob_t*>(&container));
 
-            auto buffer = new char[container.size_uncompressed];
+            auto buffer = new blob_t[container.size_uncompressed];
 
             m_offset += detail::CONTAINER_SIZE;
             total += container.record_count;
@@ -334,8 +377,8 @@ public:
             for (std::uint32_t idx = 0; idx < container.record_count; ++idx) {
                 ::memcpy(&frame, &(buffer[boffs]), detail::FRAME_SIZE);
                 boffs += detail::FRAME_SIZE;
-                auto payload = std::make_unique<char[]>(frame.length);
-                std::copy_n(&buffer[boffs], frame.length, reinterpret_cast<char*>(payload.get()));
+                auto payload = std::make_unique<blob_t[]>(frame.length);
+                std::copy_n(&buffer[boffs], frame.length, reinterpret_cast<blob_t*>(payload.get()));
                 boffs += frame.length;
                 result.emplace_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, std::move(payload)));
             }
@@ -353,12 +396,12 @@ public:
     }
 
 protected:
-    char const *ptr(std::size_t pos = 0) const
+    blob_t const *ptr(std::size_t pos = 0) const
     {
         return m_mmap->data() + pos;
     }
 
-    void read_bytes(std::size_t pos, std::size_t count, char * buf) const
+    void read_bytes(std::size_t pos, std::size_t count, blob_t * buf) const
     {
         auto addr = ptr(pos);
         std::memcpy(buf, addr, count);
