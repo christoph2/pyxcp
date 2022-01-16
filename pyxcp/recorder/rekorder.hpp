@@ -405,7 +405,7 @@ public:
         m_offset += container.size_compressed;
         m_current_container += 1;
         delete[] buffer;
-        printf("OK, retuning from next -- Total: %u\n", total);
+        //printf("OK, retuning from next -- Total: %u\n", total);
         return result;
     }
 
