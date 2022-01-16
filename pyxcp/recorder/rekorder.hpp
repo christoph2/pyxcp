@@ -8,6 +8,8 @@
 #endif /* STANDALONE_REKORDER */
 
 #include <array>
+#include <functional>
+#include <optional>
 #include <string>
 #include <stdexcept>
 #include <cerrno>
@@ -42,6 +44,8 @@
 
 #endif /* STANDALONE_REKORDER */
 
+#define __ALIGNMENT_REQUIREMENT     32
+#define __ALIGN                     alignas(__ALIGNMENT_REQUIREMENT) 
 
 constexpr auto megabytes(std::size_t value) -> std::size_t
 {
@@ -113,14 +117,14 @@ struct FrameType
 
     uint8_t category {0};
     uint16_t counter {0};
-    double timestamp  {0.0};
-    uint16_t length = {0};
+    double timestamp {0.0};
+    uint16_t length {0};
     payload_t payload;
 };
 #pragma pack(pop)
 
 using XcpFrames = std::vector<FrameType>;
-using FrameTuple = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, std::unique_ptr<blob_t[]>>;
+using FrameTuple = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, payload_t>;
 using FrameVector = std::vector<FrameTuple>;
 
 
@@ -162,15 +166,15 @@ namespace detail
     inline blob_t * get_payload_ptr(const payload_t& payload) {
         py::buffer_info buf = payload.request();
 
-        return  static_cast<const blob_t *>(buf.ptr);
+        return  static_cast<blob_t *>(buf.ptr);
     }
 #endif /* STANDALONE_REKORDER */
 
-inline auto init_ptr(blob_t * const data, std::size_t length) -> std::unique_ptr<blob_t[]> {
-    auto payload = std::make_unique<blob_t[]>(length);
 
-    //std::copy_n(data, length, reinterpret_cast<blob_t*>(payload.get()));
-    std::copy_n(data, length, payload.get());
+inline auto init_ptr(blob_t * const data, std::size_t length) -> payload_t {
+    auto payload = create_payload(length);
+
+    std::copy_n(data, length, get_payload_ptr(payload));
     return payload;
 }
 
@@ -180,6 +184,16 @@ inline auto file_header_size() -> std::size_t {
 
     return (detail::FILE_HEADER_SIZE + msize);
 }
+
+using rounding_func_t = std::function<std::size_t(std::size_t)>;
+
+const rounding_func_t create_rounding_func(std::size_t multiple) {
+    return [=](std::size_t value) -> std::size_t {
+        return (value + (multiple - 1)) & ~(multiple -1 );
+    };
+}
+
+const auto round_to_alignment = create_rounding_func(__ALIGNMENT_REQUIREMENT);
 
 
 /**
@@ -219,7 +233,6 @@ public:
     void add_frames(const XcpFrames& xcp_frames) {
         for (auto const& frame: xcp_frames) {
             store_im(&frame, detail::FRAME_SIZE);
-            //store_im(frame.payload.get(), frame.length);
             store_im(get_payload_ptr(frame.payload), frame.length);
             m_container_record_count += 1;
             m_container_size_uncompressed += (detail::FRAME_SIZE + frame.length);
@@ -302,7 +315,7 @@ private:
     std::size_t m_total_size_compressed{0};
     std::size_t m_container_size_uncompressed{0};
     std::size_t m_container_size_compressed{0};
-    std:: byte * m_intermediate_storage{nullptr};
+    __ALIGN std:: byte * m_intermediate_storage{nullptr};
     std::size_t m_intermediate_storage_offset{0};
     mio::file_handle_type m_fd{INVALID_HANDLE_VALUE};
     mio::mmap_sink * m_mmap{nullptr};
@@ -360,37 +373,39 @@ public:
     }
 
 
-    FrameVector next() {
+    std::optional<FrameVector> next() {
         auto container = ContainerHeaderType{};
         auto total = 0;
         auto frame = FrameType{};
         size_t boffs = 0;
         auto result = FrameVector{};
-        for (std::size_t idx = 0; idx < m_header.num_containers; ++idx) {
-            read_bytes(m_offset, detail::CONTAINER_SIZE, reinterpret_cast<blob_t*>(&container));
 
-            auto buffer = new blob_t[container.size_uncompressed];
-
-            m_offset += detail::CONTAINER_SIZE;
-            total += container.record_count;
-            const int uc_size = ::LZ4_decompress_safe(ptr(m_offset), buffer, container.size_compressed, container.size_uncompressed);
-            if (uc_size < 0) {
-                throw std::runtime_error("LZ4 decompression failed.");
-            }
-            boffs = 0;
-            for (std::uint32_t idx = 0; idx < container.record_count; ++idx) {
-                ::memcpy(&frame, &(buffer[boffs]), detail::FRAME_SIZE);
-                boffs += detail::FRAME_SIZE;
-                auto payload = std::make_unique<blob_t[]>(frame.length);
-                std::copy_n(&buffer[boffs], frame.length, reinterpret_cast<blob_t*>(payload.get()));
-                boffs += frame.length;
-                result.emplace_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, std::move(payload)));
-            }
-            m_offset += container.size_compressed;
-            m_current_container += 1;
-            delete[] buffer;
+        if (m_current_container >= m_header.num_containers) {
+            return std::nullopt;
         }
-        //printf("Total: %u\n", total);
+        read_bytes(m_offset, detail::CONTAINER_SIZE, reinterpret_cast<blob_t*>(&container));
+
+        __ALIGN auto buffer = new blob_t[container.size_uncompressed];
+
+        m_offset += detail::CONTAINER_SIZE;
+        total += container.record_count;
+        const int uc_size = ::LZ4_decompress_safe(ptr(m_offset), buffer, container.size_compressed, container.size_uncompressed);
+        if (uc_size < 0) {
+            throw std::runtime_error("LZ4 decompression failed.");
+        }
+        boffs = 0;
+        for (std::uint32_t idx = 0; idx < container.record_count; ++idx) {
+            ::memcpy(&frame, &(buffer[boffs]), detail::FRAME_SIZE);
+            boffs += detail::FRAME_SIZE;
+            auto payload = create_payload(frame.length);
+            std::copy_n(&buffer[boffs], frame.length, reinterpret_cast<blob_t*>(get_payload_ptr(payload)));
+            boffs += frame.length;
+            result.emplace_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, std::move(payload)));
+        }
+        m_offset += container.size_compressed;
+        m_current_container += 1;
+        delete[] buffer;
+        printf("OK, retuning from next -- Total: %u\n", total);
         return result;
     }
 

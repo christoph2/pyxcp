@@ -11,7 +11,7 @@ ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
 
 INCLUDE_DIRS = subprocess.getoutput('pybind11-config --include')
 
-os.environ ["CFLAGS"] = ''
+#os.environ ["CFLAGS"] = ''
 
 PKG_NAME = "rekorder_test"
 EXT_NAMES = ['rekorder']

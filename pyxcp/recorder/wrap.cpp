@@ -68,6 +68,7 @@ PYBIND11_MODULE(rekorder, m) {
     py::class_<PyXcpLogFileReader>(m, "XcpLogFileReader")
         .def(py::init<const std::string &>())
         //.def("next",  &PyXcpLogFileReader::next, py::return_value_policy::reference_internal)
+        .def("next",  &PyXcpLogFileReader::next, py::return_value_policy::move)
         .def("get_header",  &PyXcpLogFileReader::py_get_header)
         .def("run",  &PyXcpLogFileReader::run)
     ;
