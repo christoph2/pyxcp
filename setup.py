@@ -18,7 +18,6 @@ else:
 
 try:
     PYB11_INCLUDE_DIRS = subprocess.check_output(["pybind11-config", "--includes"])
-    print(PYB11_INCLUDE_DIRS)
 except Exception as e:
     print(str(e), end = " -- ")
     has_pybind11 = False
@@ -42,11 +41,10 @@ if has_pybind11:
             EXT_NAMES[0],
             include_dirs = [PYB11_INCLUDE_DIRS, "pyxcp/recorder"],
             sources = ["pyxcp/recorder/lz4.c", "pyxcp/recorder/wrap.cpp"],
-            define_macros = [('EXTENSION_NAME', EXT_NAMES[0])],
+            define_macros = [('EXTENSION_NAME', EXT_NAMES[0]), ("NDEBUG", 1)],
             extra_compile_args = [
                 '-O3',
                 '-std=c++17',
-                'NDEBUG=1',
                 #    ' -Rpass=loop-vectorize',  # clang only: uncomment to see which parts of code are vectorized.
             ],
         ),
