@@ -4,7 +4,7 @@
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
 
-   (C) 2009-20210 by Christoph Schueler <cpu12.gems@googlemail.com>
+   (C) 2009-2021 by Christoph Schueler <cpu12.gems@googlemail.com>
 
    All Rights Reserved
 
@@ -27,4 +27,3 @@ from .eth import Eth
 from .sxi import SxI
 from .can import Can
 from .usb_transport import Usb
-from .bth import Bth
