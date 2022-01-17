@@ -389,6 +389,7 @@ public:
 
         m_offset += detail::CONTAINER_SIZE;
         total += container.record_count;
+        result.resize(container.record_count);
         const int uc_size = ::LZ4_decompress_safe(ptr(m_offset), buffer, container.size_compressed, container.size_uncompressed);
         if (uc_size < 0) {
             throw std::runtime_error("LZ4 decompression failed.");

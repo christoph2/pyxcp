@@ -26,6 +26,16 @@ class XcpLogFileReader:
             for category, counter, timestamp, length, payload in frames:
                 yield (category, counter, timestamp, payload)
 
+
+class XcpLogFileWriter:
+    """
+    """
+
+    def __init__(self, file_name):
+        self._writer = rec._XcpLogFileWriter(file_name)
+
+
+
 print("Before c-tor()")
 reader = XcpLogFileReader("test_logger")
 print("After c-tor()")
