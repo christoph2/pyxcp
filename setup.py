@@ -7,6 +7,23 @@ import setuptools, setuptools.command.build_py, setuptools.command.develop
 import subprocess
 import sys
 
+try:
+    from pybind11.setup_helpers import Pybind11Extension, build_ext, ParallelCompile, naive_recompile
+except ImportError:
+    print("package 'pybind11' not installed, could not build recorder extension module.")
+    has_pybind11 = False
+else:
+    has_pybind11 = True
+    ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
+
+try:
+    PYB11_INCLUDE_DIRS = subprocess.check_output(["pybind11-config", "--includes"])
+    print(PYB11_INCLUDE_DIRS)
+except Exception as e:
+    print(str(e), end = " -- ")
+    has_pybind11 = False
+    print("'pybind11-config' not properly working, could not build recorder extension module.")
+
 with open(os.path.join("pyxcp", "__init__.py"), "r") as f:
     for line in f:
         if line.startswith("__version__"):
@@ -16,7 +33,24 @@ with open(os.path.join("pyxcp", "__init__.py"), "r") as f:
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+
+EXT_NAMES = ['rekorder']
+
+if has_pybind11:
+    ext_modules = [
+        Pybind11Extension(
+            EXT_NAMES[0],
+            include_dirs = [PYB11_INCLUDE_DIRS, "pyxcp/recorder"],
+            sources = ["pyxcp/recorder/lz4.c", "pyxcp/recorder/wrap.cpp"],
+            define_macros = [('EXTENSION_NAME', EXT_NAMES[0])],
+            extra_compile_args = ['-O3', '-std=c++17'],
+        ),
+    ]
+else:
+    ext_modules = []
+
 install_reqs = [
+    "pybind11",
     "pyusb",
     "construct >= 2.9.0",
     "mako",
@@ -92,6 +126,7 @@ setuptools.setup(
     install_requires=install_reqs,
     setup_requires=setup_reqs,
     extras_require={"docs": ["sphinxcontrib-napoleon"], "develop": ["bumpversion"]},
+    ext_modules = ext_modules,
     package_dir={"tests": "pyxcp/tests"},
     tests_require=["pytest", "pytest-runner"],
     test_suite="pyxcp.tests",

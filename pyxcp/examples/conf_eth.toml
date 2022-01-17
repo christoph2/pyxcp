@@ -1,6 +1,9 @@
 TRANSPORT = "ETH"
-HOST = "localhost"
+#HOST = "localhost"
+#HOST = "fe80::21c:dfff:fe36:d1c8"
+HOST = "192.168.43.176"
 PORT = 5555
-PROTOCOL = "TCP"
+PROTOCOL = "UDP"
 IPV6 = false
+#IPV6 = true
 CREATE_DAQ_TIMESTAMPS = false
