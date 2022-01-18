@@ -649,7 +649,7 @@ class Master:
         """
         """
         self.setMta(address)
-        minSt /= 10000.0    # Unit is 100µS.
+        minSt /= 10000.0    # Unit is 100Î¼S.
         block_downloader = functools.partial(
             self._block_downloader,
             dl_func = dl_func,
