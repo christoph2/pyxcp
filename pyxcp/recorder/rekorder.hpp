@@ -196,6 +196,13 @@ const rounding_func_t create_rounding_func(std::size_t multiple) {
 const auto round_to_alignment = create_rounding_func(__ALIGNMENT_REQUIREMENT);
 
 
+inline void _fcopy(blob_t * dest, const blob_t * src, std::size_t n)
+{
+    for (std::size_t i = 0; i < n; ++i) {
+        dest[i] = src[i];
+    }
+}
+
 /**
  */
 class XcpLogFileWriter
@@ -208,7 +215,7 @@ public:
         truncate(megabytes(prealloc));
         m_mmap = new mio::mmap_sink(m_fd);
         m_chunk_size = megabytes(chunk_size);
-        m_intermediate_storage = new std::byte[m_chunk_size + megabytes(1)];
+        m_intermediate_storage = new blob_t[m_chunk_size + megabytes(1)];
         m_offset = detail::FILE_HEADER_SIZE + detail::MAGIC.size();
     }
 
@@ -253,7 +260,7 @@ protected:
     }
 
     void store_im(void const * data, std::size_t length) {
-        std::memcpy(m_intermediate_storage + m_intermediate_storage_offset, data, length);
+        _fcopy(m_intermediate_storage + m_intermediate_storage_offset, (const blob_t*)data, length);
         m_intermediate_storage_offset += length;
     }
 
@@ -271,7 +278,7 @@ protected:
         container.record_count = m_container_record_count;
         container.size_compressed = cp_size;
         container.size_uncompressed = m_container_size_uncompressed;
-        ::memcpy(ptr(m_offset), &container, detail::CONTAINER_SIZE);
+        _fcopy(ptr(m_offset), (blob_t*)&container, detail::CONTAINER_SIZE);
         m_offset += (detail::CONTAINER_SIZE + cp_size);
         m_total_size_uncompressed += m_container_size_uncompressed;
         m_total_size_compressed += cp_size;
@@ -287,7 +294,7 @@ protected:
     {
         auto addr = ptr(pos);
 
-        std::memcpy(addr, buf, count);
+        _fcopy(addr, buf, count);
     }
 
     void write_header(uint16_t version, uint16_t options, uint32_t num_containers,
@@ -315,7 +322,7 @@ private:
     std::size_t m_total_size_compressed{0};
     std::size_t m_container_size_uncompressed{0};
     std::size_t m_container_size_compressed{0};
-    __ALIGN std:: byte * m_intermediate_storage{nullptr};
+    __ALIGN blob_t * m_intermediate_storage{nullptr};
     std::size_t m_intermediate_storage_offset{0};
     mio::file_handle_type m_fd{INVALID_HANDLE_VALUE};
     mio::mmap_sink * m_mmap{nullptr};
@@ -396,7 +403,7 @@ public:
         }
         boffs = 0;
         for (std::uint32_t idx = 0; idx < container.record_count; ++idx) {
-            ::memcpy(&frame, &(buffer[boffs]), detail::FRAME_SIZE);
+            _fcopy((blob_t*)&frame, &(buffer[boffs]), detail::FRAME_SIZE);
             boffs += detail::FRAME_SIZE;
             auto payload = create_payload(frame.length);
             std::copy_n(&buffer[boffs], frame.length, reinterpret_cast<blob_t*>(get_payload_ptr(payload)));
@@ -424,7 +431,7 @@ protected:
     void read_bytes(std::size_t pos, std::size_t count, blob_t * buf) const
     {
         auto addr = ptr(pos);
-        std::memcpy(buf, addr, count);
+        _fcopy(buf, addr, count);
     }
 
 private:
