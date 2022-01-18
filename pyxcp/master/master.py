@@ -649,7 +649,7 @@ class Master:
         """
         """
         self.setMta(address)
-        minSt /= 10000.0    # Unit is 100μS.
+        minSt /= 10000.0
         block_downloader = functools.partial(
             self._block_downloader,
             dl_func = dl_func,
@@ -719,10 +719,11 @@ class Master:
         index = 0
         for index in packets:
             packet_data = data[offset : offset + max_packet_size]
+            last = (remaining_block_size - max_packet_size) == 0
             if index == 0:
-                dl_func(packet_data, length)  # Transmit the complete length in the first CTO.
+                dl_func(packet_data, length, last)  # Transmit the complete length in the first CTO.
             else:
-                dl_next_func(packet_data, remaining_block_size)
+                dl_next_func(packet_data, remaining_block_size, last)
             offset += max_packet_size
             remaining_block_size -= max_packet_size
             delay(minSt)
