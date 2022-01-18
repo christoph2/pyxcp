@@ -10,6 +10,7 @@
 #include <array>
 #include <functional>
 #include <optional>
+
 #include <string>
 #include <stdexcept>
 #include <cerrno>
@@ -20,6 +21,10 @@
 #include <ctime>
 
 #include <vector>
+
+#if defined(_WIN32)
+    #include <fcntl.h>
+#endif /* _WIN32 */
 
 #include <stdlib.h>
 

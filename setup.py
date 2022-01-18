@@ -44,7 +44,7 @@ if has_pybind11:
             define_macros = [('EXTENSION_NAME', EXT_NAMES[0]), ("NDEBUG", 1)],
             extra_compile_args = [
                 '-O3',
-                '-std=c++17',
+                '-std=c++17', # MSVC: /std:c++17
                 #    ' -Rpass=loop-vectorize',  # clang only: uncomment to see which parts of code are vectorized.
             ],
             optional = False,
