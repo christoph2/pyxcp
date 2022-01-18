@@ -47,6 +47,7 @@ if has_pybind11:
                 '-std=c++17',
                 #    ' -Rpass=loop-vectorize',  # clang only: uncomment to see which parts of code are vectorized.
             ],
+            optional = False,
         ),
     ]
 else:
