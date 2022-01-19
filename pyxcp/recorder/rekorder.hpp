@@ -225,6 +225,7 @@ public:
         m_fd = CreateFile(
             m_file_name.c_str(),
             GENERIC_READ | GENERIC_WRITE,
+            NULL,
             (LPSECURITY_ATTRIBUTES)NULL,
             CREATE_NEW, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS,
             NULL
@@ -251,7 +252,11 @@ public:
             }
             write_header(detail::VERSION, 0x0000, m_num_containers, m_record_count, m_total_size_compressed, m_total_size_uncompressed);
             truncate(m_offset);
+#if defined(_WIN32)
+            CloseHandle(m_fd);
+#else
             close(m_fd);
+#endif
             delete m_mmap;
             delete[] m_intermediate_storage;
         }
