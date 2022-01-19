@@ -27,8 +27,6 @@
     #include <fcntl.h>
 
     #include <Windows.h>
-
-    #define ftruncate   _chsize
 #endif /* _WIN32 */
 
 #include <stdlib.h>
@@ -276,7 +274,12 @@ public:
 protected:
     void truncate(off_t size) const
     {
+#if defined(_WIN32)
+        SetFilePointer(m_fd, size, NULL, FILE_BEGIN);
+        SetEndOfFile(m_fd);
+#else
         ftruncate(m_fd, size);
+#endif
     }
 
     blob_t * ptr(std::size_t pos = 0) const
