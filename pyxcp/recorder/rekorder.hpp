@@ -152,6 +152,7 @@ namespace detail
 {
     const std::string FILE_EXTENSION(".xmraw");
     const std::string MAGIC{"ASAMINT::XCP_RAW"};
+    constexpr auto MAGIC_SIZE = 16;
     constexpr auto VERSION = 0x0100;
     constexpr auto FILE_HEADER_SIZE = sizeof(FileHeaderType);
     constexpr auto CONTAINER_SIZE = sizeof(ContainerHeaderType);
@@ -188,9 +189,7 @@ inline auto init_ptr(blob_t * const data, std::size_t length) -> payload_t {
 
 
 inline auto file_header_size() -> std::size_t {
-    const auto msize = detail::MAGIC.size();
-
-    return (detail::FILE_HEADER_SIZE + msize);
+    return (detail::FILE_HEADER_SIZE + detail::MAGIC_SIZE);
 }
 
 using rounding_func_t = std::function<std::size_t(std::size_t)>;
@@ -235,7 +234,7 @@ public:
         m_mmap = new mio::mmap_sink(m_fd);
         m_chunk_size = megabytes(chunk_size);
         m_intermediate_storage = new blob_t[m_chunk_size + megabytes(1)];
-        m_offset = detail::FILE_HEADER_SIZE + detail::MAGIC.size();
+        m_offset = detail::FILE_HEADER_SIZE + detail::MAGIC_SIZE;
     }
 
     ~XcpLogFileWriter() {
@@ -259,6 +258,18 @@ public:
             delete[] m_intermediate_storage;
         }
     }
+
+
+    //void add_frame(uint8_t category, uint16_t counter, double timestamp, uint16_t length, const  payload_t& payload) {
+    void add_frame(const FrameType& frame) {
+        store_im(&frame, detail::FRAME_SIZE);
+        store_im(get_payload_ptr(frame.payload), frame.length);
+        m_container_record_count += 1;
+        m_container_size_uncompressed += (detail::FRAME_SIZE + frame.length);
+        if (m_container_size_uncompressed > m_chunk_size) {
+            compress_frames();
+        }
+}
 
     void add_frames(const XcpFrames& xcp_frames) {
         for (auto const& frame: xcp_frames) {
@@ -328,15 +339,15 @@ protected:
     void write_header(uint16_t version, uint16_t options, uint32_t num_containers,
                       uint32_t record_count, uint32_t size_compressed, uint32_t size_uncompressed) {
         auto header = FileHeaderType{};
-        write_bytes(0x00000000UL, detail::MAGIC.size(), detail::MAGIC.c_str());
-        header.hdr_size = detail::FILE_HEADER_SIZE + detail::MAGIC.size();
+        write_bytes(0x00000000UL, detail::MAGIC_SIZE, detail::MAGIC.c_str());
+        header.hdr_size = detail::FILE_HEADER_SIZE + detail::MAGIC_SIZE;
         header.version = version;
         header.options = options;
         header.num_containers = num_containers;
         header.record_count = record_count;
         header.size_compressed = size_compressed;
         header.size_uncompressed = size_uncompressed;
-        write_bytes(0x00000000UL + detail::MAGIC.size(), detail::FILE_HEADER_SIZE, reinterpret_cast<blob_t *>(&header));
+        write_bytes(0x00000000UL + detail::MAGIC_SIZE, detail::FILE_HEADER_SIZE, reinterpret_cast<blob_t *>(&header));
     }
 
 private:
@@ -367,21 +378,20 @@ public:
     {
         m_file_name = file_name + detail::FILE_EXTENSION;
         m_mmap = new mio::mmap_source(m_file_name);
-        auto msize = detail::MAGIC.size();
-        blob_t magic[msize + 1];
+        blob_t magic[detail::MAGIC_SIZE + 1];
 
-        read_bytes(0ul, msize, magic);
-        if (memcmp(detail::MAGIC.c_str(), magic, msize))
+        read_bytes(0ul, detail::MAGIC_SIZE, magic);
+        if (memcmp(detail::MAGIC.c_str(), magic, detail::MAGIC_SIZE))
         {
             throw std::runtime_error("Invalid file magic.");
         }
-        m_offset = msize;
+        m_offset = detail::MAGIC_SIZE;
 
         read_bytes(m_offset, detail::FILE_HEADER_SIZE, reinterpret_cast<blob_t*>(&m_header));
         //printf("Sizes: %u %u %.3f\n", m_header.size_uncompressed,
         //       m_header.size_compressed,
         //       float(m_header.size_uncompressed) / float(m_header.size_compressed));
-        if (m_header.hdr_size != detail::FILE_HEADER_SIZE + msize)
+        if (m_header.hdr_size != detail::FILE_HEADER_SIZE + detail::MAGIC_SIZE)
         {
             throw std::runtime_error("File header size does not match.");
         }
