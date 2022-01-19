@@ -23,7 +23,12 @@
 #include <vector>
 
 #if defined(_WIN32)
+    #include <io.h>
     #include <fcntl.h>
+
+    #include <Windows.h>
+
+    #define ftruncate   _chsize
 #endif /* _WIN32 */
 
 #include <stdlib.h>
@@ -50,7 +55,7 @@
 #endif /* STANDALONE_REKORDER */
 
 #define __ALIGNMENT_REQUIREMENT     32
-#define __ALIGN                     alignas(__ALIGNMENT_REQUIREMENT) 
+#define __ALIGN                     alignas(__ALIGNMENT_REQUIREMENT)
 
 constexpr auto megabytes(std::size_t value) -> std::size_t
 {
@@ -216,7 +221,17 @@ public:
     explicit XcpLogFileWriter(const std::string& file_name, uint32_t prealloc = 10UL, uint32_t chunk_size = 1)
     {
         m_file_name = file_name + detail::FILE_EXTENSION;
+#if defined(_WIN32)
+        m_fd = CreateFile(
+            m_file_name.c_str(),
+            GENERIC_READ | GENERIC_WRITE,
+            (LPSECURITY_ATTRIBUTES)NULL,
+            CREATE_NEW, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS,
+            (MEM_HANDLE)NULL
+        );
+#else
         m_fd = open(m_file_name.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0666);
+#endif
         truncate(megabytes(prealloc));
         m_mmap = new mio::mmap_sink(m_fd);
         m_chunk_size = megabytes(chunk_size);
@@ -256,7 +271,7 @@ public:
 protected:
     void truncate(off_t size) const
     {
-        ::ftruncate(m_fd, size);
+        ftruncate(m_fd, size);
     }
 
     blob_t * ptr(std::size_t pos = 0) const
@@ -344,7 +359,7 @@ public:
     {
         m_file_name = file_name + detail::FILE_EXTENSION;
         m_mmap = new mio::mmap_source(m_file_name);
-        const auto msize = detail::MAGIC.size();
+        auto msize = detail::MAGIC.size();
         blob_t magic[msize + 1];
 
         read_bytes(0ul, msize, magic);
