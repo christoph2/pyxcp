@@ -227,7 +227,7 @@ public:
             GENERIC_READ | GENERIC_WRITE,
             (LPSECURITY_ATTRIBUTES)NULL,
             CREATE_NEW, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS,
-            (MEM_HANDLE)NULL
+            NULL
         );
 #else
         m_fd = open(m_file_name.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0666);
