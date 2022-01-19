@@ -39,14 +39,15 @@ jobs:
       run: |
         pip install pytest
         pytest
-    - name: Build wheel
-      uses: pypa/cibuildwheel@v2.3.1
     - name: Build sdist
       run: |
            #python setup.py bdist_wheel
            python setup.py sdist --formats=gztar
-
+           python setup.py build_ext
+           python setup.py bdist_wheel
       #if: matrix.os == 'ubuntu-latest'
+    - name: Build wheel
+      uses: pypa/cibuildwheel@v2.3.1
     - name: Build and publish
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USER_NAME }}
