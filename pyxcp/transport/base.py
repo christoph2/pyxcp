@@ -89,7 +89,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.counterSend = 0
         self.counterReceived = -1
         create_daq_timestamps = self.config.get("CREATE_DAQ_TIMESTAMPS")
-        self.create_daq_timestamps = False if create_daq_timestamps is None else create_daq_timestamps
+        self.create_daq_timestamps = (
+            False if create_daq_timestamps is None else create_daq_timestamps
+        )
         timeout = self.config.get("TIMEOUT")
         self.alignment = self.config.get("ALIGNMENT")
         self.timeout = 2.0 if timeout is None else timeout
@@ -150,16 +152,22 @@ class BaseTransport(metaclass=abc.ABCMeta):
         if hasattr(self, "closeEvent"):
             self.closeEvent.set()
 
-    def _request_internal(self, cmd, ignore_timeout = False, *data):
+    def _request_internal(self, cmd, ignore_timeout=False, *data):
         frame = self._prepare_request(cmd, *data)
         self.timing.start()
         self.send(frame)
 
         try:
-            xcpPDU = get(self.resQueue, timeout=self.timeout, restart_event = self.timer_restart_event)
+            xcpPDU = get(
+                self.resQueue,
+                timeout=self.timeout,
+                restart_event=self.timer_restart_event,
+            )
         except Empty:
             if not ignore_timeout:
-                raise types.XcpTimeoutError("Response timed out (timeout={}s)".format(self.timeout)) from None
+                raise types.XcpTimeoutError(
+                    "Response timed out (timeout={}s)".format(self.timeout)
+                ) from None
             else:
                 self.timing.stop()
                 return
@@ -215,7 +223,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
         remainder = len(frame) % self.alignment
         if remainder:
-            frame += b'\0' * (self.alignment - remainder)
+            frame += b"\0" * (self.alignment - remainder)
 
         if self._debug:
             self.logger.debug("-> {}".format(hexDump(frame)))
@@ -248,7 +256,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 block_response += partial_response[1:]
             else:
                 if time() - start > self.timeout:
-                    raise types.XcpTimeoutError("Response timed out [block_receive].") from None
+                    raise types.XcpTimeoutError(
+                        "Response timed out [block_receive]."
+                    ) from None
                 sleep(0.001)
         return block_response
 
@@ -268,7 +278,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         pass
 
     def process_event_packet(self, packet):
-        packet = packet[1 : ]
+        packet = packet[1:]
         ev_type = packet[0]
         self.logger.debug("EVENT-PACKET: {}".format(hexDump(packet)))
         if ev_type == types.Event.EV_CMD_PENDING:
@@ -276,7 +286,11 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     def processResponse(self, response, length, counter, recv_timestamp=None):
         if counter == self.counterReceived:
-            self.logger.warn("Duplicate message counter {} received from the XCP slave".format(counter))
+            self.logger.warn(
+                "Duplicate message counter {} received from the XCP slave".format(
+                    counter
+                )
+            )
             if self._debug:
                 self.logger.debug(
                     "<- L{} C{} {}".format(
@@ -344,7 +358,9 @@ def createTransport(name, *args, **kws):
         transportClass = transports[name]
     else:
         raise ValueError(
-            "'{}' is an invalid transport -- please choose one of [{}].".format(name, " | ".join(transports.keys()))
+            "'{}' is an invalid transport -- please choose one of [{}].".format(
+                name, " | ".join(transports.keys())
+            )
         )
     return transportClass(*args, **kws)
 

@@ -27,14 +27,14 @@ __copyright__ = """
 from enum import IntEnum
 
 MAP_NAMES = {
-    1:  "BorlandC 16 Bit",
-    2:  "M166",
-    3:  "Watcom",
-    4:  "HiTech HC05",
-    6:  "IEEE",
-    7:  "Cosmic",
-    8:  "SDS",
-    9:  "Fujitsu Softune 1(.mp1)",
+    1: "BorlandC 16 Bit",
+    2: "M166",
+    3: "Watcom",
+    4: "HiTech HC05",
+    6: "IEEE",
+    7: "Cosmic",
+    8: "SDS",
+    9: "Fujitsu Softune 1(.mp1)",
     10: "GNU",
     11: "Keil 16x",
     12: "BorlandC 32 Bit",
@@ -103,6 +103,6 @@ MAP name
 
 """
 
+
 def mapfile_name(name, counter, fmt):
     return "{:2d}{:d}{:s}.map".format(fmt, counter, name)
-

@@ -26,4 +26,4 @@ __copyright__ = """
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 """
 
-from .reco import (XcpLogFileWriter, XcpLogFileReader)
+from .reco import XcpLogFileWriter, XcpLogFileReader

@@ -104,10 +104,19 @@ ERROR_TABLE = {
     XcpError.ERR_CMD_BUSY: ("Command was not executed.", Severity.S2),
     XcpError.ERR_DAQ_ACTIVE: ("Command rejected because DAQ is running.", Severity.S2),
     XcpError.ERR_PGM_ACTIVE: ("Command rejected because PGM is running.", Severity.S2),
-    XcpError.ERR_CMD_UNKNOWN: ("Unknown command or not implemented optional command.", Severity.S2),
+    XcpError.ERR_CMD_UNKNOWN: (
+        "Unknown command or not implemented optional command.",
+        Severity.S2,
+    ),
     XcpError.ERR_CMD_SYNTAX: ("Command syntax invalid", Severity.S2),
-    XcpError.ERR_OUT_OF_RANGE: ("Command syntax valid but command parameter(s) out of range.", Severity.S2),
-    XcpError.ERR_WRITE_PROTECTED: ("The memory location is write protected.", Severity.S2),
+    XcpError.ERR_OUT_OF_RANGE: (
+        "Command syntax valid but command parameter(s) out of range.",
+        Severity.S2,
+    ),
+    XcpError.ERR_WRITE_PROTECTED: (
+        "The memory location is write protected.",
+        Severity.S2,
+    ),
     XcpError.ERR_ACCESS_DENIED: ("The memory location is not accessible.", Severity.S2),
     XcpError.ERR_ACCESS_LOCKED: ("Access denied, Seed & Key is required", Severity.S2),
     XcpError.ERR_PAGE_NOT_VALID: ("Selected page not available", Severity.S2),
@@ -117,7 +126,10 @@ ERROR_TABLE = {
     XcpError.ERR_DAQ_CONFIG: ("DAQ configuration not valid", Severity.S2),
     XcpError.ERR_MEMORY_OVERFLOW: ("Memory overflow error", Severity.S2),
     XcpError.ERR_GENERIC: ("Generic error.", Severity.S2),
-    XcpError.ERR_VERIFY: ("The slave internal program verify routine detects an error.", Severity.S3),
+    XcpError.ERR_VERIFY: (
+        "The slave internal program verify routine detects an error.",
+        Severity.S3,
+    ),
     XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
         "Access to the requested resource is temporary not possible",
         Severity.S2,
@@ -128,7 +140,10 @@ ERROR_TABLE = {
 ERROR_MATRIX = {
     Command.CONNECT: {
         XcpError.ERR_TIMEOUT: ((PreAction.NONE,), Action.REPEAT_INF_TIMES),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     # CONNECT(USER_DEFINED)  timeout t6  wait t7  repeat  8 times
     Command.DISCONNECT: {
@@ -138,13 +153,19 @@ ERROR_MATRIX = {
     },
     Command.GET_STATUS: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.SYNCH: {
         XcpError.ERR_TIMEOUT: ((PreAction.NONE,), Action.REPEAT_2_TIMES),
         XcpError.ERR_CMD_SYNCH: ((PreAction.NONE), Action.SKIP),
         XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.RESTART_SESSION),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.GET_COMM_MODE_INFO: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -167,7 +188,10 @@ ERROR_MATRIX = {
         XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
         XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.GET_SEED: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -176,7 +200,10 @@ ERROR_MATRIX = {
         XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
         XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.UNLOCK: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -187,7 +214,10 @@ ERROR_MATRIX = {
         XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.NONE), Action.RESTART_SESSION),
         XcpError.ERR_SEQUENCE: ((PreAction.GET_SEED_UNLOCK), Action.REPEAT_2_TIMES),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.SET_MTA: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -196,10 +226,16 @@ ERROR_MATRIX = {
         XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
         XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.UPLOAD: {
-        XcpError.ERR_TIMEOUT: ((PreAction.SYNCH, PreAction.SET_MTA), Action.REPEAT_2_TIMES),
+        XcpError.ERR_TIMEOUT: (
+            (PreAction.SYNCH, PreAction.SET_MTA),
+            Action.REPEAT_2_TIMES,
+        ),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_PGM_ACTIVE: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.DISPLAY_ERROR),
@@ -207,7 +243,10 @@ ERROR_MATRIX = {
         XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_ACCESS_DENIED: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.SHORT_UPLOAD: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -218,10 +257,16 @@ ERROR_MATRIX = {
         XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_ACCESS_DENIED: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.BUILD_CHECKSUM: {
-        XcpError.ERR_TIMEOUT: ((PreAction.SYNCH, PreAction.SET_MTA), Action.REPEAT_2_TIMES),
+        XcpError.ERR_TIMEOUT: (
+            (PreAction.SYNCH, PreAction.SET_MTA),
+            Action.REPEAT_2_TIMES,
+        ),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_PGM_ACTIVE: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.DISPLAY_ERROR),
@@ -229,7 +274,10 @@ ERROR_MATRIX = {
         XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_ACCESS_DENIED: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.TRANSPORT_LAYER_CMD: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -237,7 +285,10 @@ ERROR_MATRIX = {
         XcpError.ERR_PGM_ACTIVE: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
         XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.USER_CMD: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -245,10 +296,16 @@ ERROR_MATRIX = {
         XcpError.ERR_PGM_ACTIVE: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
         XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.DOWNLOAD: {
-        XcpError.ERR_TIMEOUT: ((PreAction.SYNCH, PreAction.SET_MTA), Action.REPEAT_2_TIMES),
+        XcpError.ERR_TIMEOUT: (
+            (PreAction.SYNCH, PreAction.SET_MTA),
+            Action.REPEAT_2_TIMES,
+        ),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_PGM_ACTIVE: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
@@ -257,10 +314,16 @@ ERROR_MATRIX = {
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_WRITE_PROTECTED: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_MEMORY_OVERFLOW: ((PreAction.NONE), Action.DISPLAY_ERROR),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.DOWNLOAD_NEXT: {
-        XcpError.ERR_TIMEOUT: ((PreAction.SYNCH, PreAction.DOWNLOAD), Action.REPEAT_2_TIMES),
+        XcpError.ERR_TIMEOUT: (
+            (PreAction.SYNCH, PreAction.DOWNLOAD),
+            Action.REPEAT_2_TIMES,
+        ),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_PGM_ACTIVE: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_CMD_UNKNOWN: ((PreAction.SET_MTA), Action.USE_ALTERATIVE),
@@ -271,10 +334,16 @@ ERROR_MATRIX = {
         XcpError.ERR_WRITE_PROTECTED: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_MEMORY_OVERFLOW: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_SEQUENCE: ((PreAction.SET_MTA), Action.REPEAT_2_TIMES),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.DOWNLOAD_MAX: {
-        XcpError.ERR_TIMEOUT: ((PreAction.SYNCH, PreAction.SET_MTA), Action.REPEAT_2_TIMES),
+        XcpError.ERR_TIMEOUT: (
+            (PreAction.SYNCH, PreAction.SET_MTA),
+            Action.REPEAT_2_TIMES,
+        ),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_PGM_ACTIVE: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_CMD_UNKNOWN: ((PreAction.SET_MTA), Action.USE_ALTERATIVE),
@@ -284,7 +353,10 @@ ERROR_MATRIX = {
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_WRITE_PROTECTED: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_MEMORY_OVERFLOW: ((PreAction.NONE), Action.DISPLAY_ERROR),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.SHORT_DOWNLOAD: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -297,20 +369,32 @@ ERROR_MATRIX = {
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_WRITE_PROTECTED: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_MEMORY_OVERFLOW: ((PreAction.NONE), Action.DISPLAY_ERROR),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.MODIFY_BITS: {
-        XcpError.ERR_TIMEOUT: ((PreAction.SYNCH, PreAction.SET_MTA), Action.REPEAT_2_TIMES),
+        XcpError.ERR_TIMEOUT: (
+            (PreAction.SYNCH, PreAction.SET_MTA),
+            Action.REPEAT_2_TIMES,
+        ),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_PGM_ACTIVE: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
-        XcpError.ERR_CMD_UNKNOWN: ((PreAction.UPLOAD, PreAction.DOWNLOAD), Action.USE_ALTERATIVE),
+        XcpError.ERR_CMD_UNKNOWN: (
+            (PreAction.UPLOAD, PreAction.DOWNLOAD),
+            Action.USE_ALTERATIVE,
+        ),
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
         XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_ACCESS_DENIED: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_WRITE_PROTECTED: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_MEMORY_OVERFLOW: ((PreAction.NONE), Action.DISPLAY_ERROR),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.SET_CAL_PAGE: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -321,7 +405,10 @@ ERROR_MATRIX = {
         XcpError.ERR_PAGE_NOT_VALID: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_MODE_NOT_VALID: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_SEGMENT_NOT_VALID: ((PreAction.NONE), Action.RETRY_PARAM),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.GET_CAL_PAGE: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -332,7 +419,10 @@ ERROR_MATRIX = {
         XcpError.ERR_PAGE_NOT_VALID: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_MODE_NOT_VALID: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_SEGMENT_NOT_VALID: ((PreAction.NONE), Action.RETRY_PARAM),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.GET_PAG_PROCESSOR_INFO: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -374,7 +464,10 @@ ERROR_MATRIX = {
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_MODE_NOT_VALID: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_SEGMENT_NOT_VALID: ((PreAction.NONE), Action.RETRY_PARAM),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.GET_SEGMENT_MODE: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -384,7 +477,10 @@ ERROR_MATRIX = {
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_SEGMENT_NOT_VALID: ((PreAction.NONE), Action.RETRY_PARAM),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.COPY_CAL_PAGE: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -395,7 +491,10 @@ ERROR_MATRIX = {
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_PAGE_NOT_VALID: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_SEGMENT_NOT_VALID: ((PreAction.NONE), Action.RETRY_PARAM),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.SET_DAQ_PTR: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -405,10 +504,16 @@ ERROR_MATRIX = {
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
         XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.WRITE_DAQ: {
-        XcpError.ERR_TIMEOUT: ((PreAction.SYNCH, PreAction.SET_DAQ_PTR), Action.REPEAT_2_TIMES),
+        XcpError.ERR_TIMEOUT: (
+            (PreAction.SYNCH, PreAction.SET_DAQ_PTR),
+            Action.REPEAT_2_TIMES,
+        ),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_DAQ_ACTIVE: ((PreAction.START_STOP_X), Action.REPEAT_2_TIMES),
         XcpError.ERR_PGM_ACTIVE: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
@@ -418,7 +523,10 @@ ERROR_MATRIX = {
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_WRITE_PROTECTED: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_DAQ_CONFIG: ((PreAction.NONE), Action.DISPLAY_ERROR),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.SET_DAQ_LIST_MODE: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -429,7 +537,10 @@ ERROR_MATRIX = {
         XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_MODE_NOT_VALID: ((PreAction.NONE), Action.RETRY_PARAM),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.START_STOP_DAQ_LIST: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -440,7 +551,10 @@ ERROR_MATRIX = {
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_MODE_NOT_VALID: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_DAQ_CONFIG: ((PreAction.NONE), Action.DISPLAY_ERROR),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.START_STOP_SYNCH: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -450,7 +564,10 @@ ERROR_MATRIX = {
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_MODE_NOT_VALID: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_DAQ_CONFIG: ((PreAction.NONE), Action.DISPLAY_ERROR),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.CLEAR_DAQ_LIST: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -460,7 +577,10 @@ ERROR_MATRIX = {
         XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_ACCESS_DENIED: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.GET_DAQ_LIST_INFO: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -473,7 +593,10 @@ ERROR_MATRIX = {
         XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.NONE, Action.SKIP),
     },
     Command.WRITE_DAQ_MULTIPLE: {
-        XcpError.ERR_TIMEOUT: ((PreAction.SYNCH, PreAction.SET_DAQ_PTR), Action.REPEAT_2_TIMES),
+        XcpError.ERR_TIMEOUT: (
+            (PreAction.SYNCH, PreAction.SET_DAQ_PTR),
+            Action.REPEAT_2_TIMES,
+        ),
         XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_DAQ_ACTIVE: ((PreAction.START_STOP_X), Action.REPEAT_2_TIMES),
@@ -484,16 +607,25 @@ ERROR_MATRIX = {
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_WRITE_PROTECTED: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_DAQ_CONFIG: ((PreAction.NONE), Action.DISPLAY_ERROR),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.READ_DAQ: {
-        XcpError.ERR_TIMEOUT: ((PreAction.SYNCH, PreAction.SET_DAQ_PTR), Action.REPEAT_2_TIMES),
+        XcpError.ERR_TIMEOUT: (
+            (PreAction.SYNCH, PreAction.SET_DAQ_PTR),
+            Action.REPEAT_2_TIMES,
+        ),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_PGM_ACTIVE: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.GET_DAQ_CLOCK: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -529,7 +661,10 @@ ERROR_MATRIX = {
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
         XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.GET_DAQ_EVENT_INFO: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -548,7 +683,10 @@ ERROR_MATRIX = {
         XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.ALLOC_DAQ: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -560,7 +698,10 @@ ERROR_MATRIX = {
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_SEQUENCE: ((PreAction.REINIT_DAQ), Action.REPEAT_2_TIMES),
         XcpError.ERR_MEMORY_OVERFLOW: ((PreAction.REINIT_DAQ), Action.RETRY_PARAM),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.ALLOC_ODT: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -572,7 +713,10 @@ ERROR_MATRIX = {
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_SEQUENCE: ((PreAction.REINIT_DAQ), Action.REPEAT_2_TIMES),
         XcpError.ERR_MEMORY_OVERFLOW: ((PreAction.REINIT_DAQ), Action.RETRY_PARAM),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.ALLOC_ODT_ENTRY: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -584,7 +728,10 @@ ERROR_MATRIX = {
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_SEQUENCE: ((PreAction.REINIT_DAQ), Action.REPEAT_2_TIMES),
         XcpError.ERR_MEMORY_OVERFLOW: ((PreAction.REINIT_DAQ), Action.RETRY_PARAM),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.PROGRAM_START: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -593,20 +740,32 @@ ERROR_MATRIX = {
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_GENERIC: ((PreAction.NONE), Action.RESTART_SESSION),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.PROGRAM_CLEAR: {
-        XcpError.ERR_TIMEOUT: ((PreAction.SYNCH, PreAction.SET_MTA), Action.REPEAT_2_TIMES),
+        XcpError.ERR_TIMEOUT: (
+            (PreAction.SYNCH, PreAction.SET_MTA),
+            Action.REPEAT_2_TIMES,
+        ),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
         XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_ACCESS_DENIED: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_SEQUENCE: ((PreAction.NONE), Action.REPEAT_2_TIMES),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.PROGRAM: {
-        XcpError.ERR_TIMEOUT: ((PreAction.SYNCH, PreAction.SET_MTA), Action.REPEAT_2_TIMES),
+        XcpError.ERR_TIMEOUT: (
+            (PreAction.SYNCH, PreAction.SET_MTA),
+            Action.REPEAT_2_TIMES,
+        ),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
         XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
@@ -614,7 +773,10 @@ ERROR_MATRIX = {
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_SEQUENCE: ((PreAction.NONE), Action.REPEAT_2_TIMES),
         XcpError.ERR_MEMORY_OVERFLOW: ((PreAction.NONE), Action.DISPLAY_ERROR),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.PROGRAM_RESET: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -623,7 +785,10 @@ ERROR_MATRIX = {
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_SEQUENCE: ((PreAction.NONE), Action.REPEAT_2_TIMES),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.GET_PGM_PROCESSOR_INFO: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -644,7 +809,10 @@ ERROR_MATRIX = {
         XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.NONE, Action.SKIP),
     },
     Command.PROGRAM_PREPARE: {
-        XcpError.ERR_TIMEOUT: ((PreAction.SYNCH, PreAction.SET_MTA), Action.REPEAT_2_TIMES),
+        XcpError.ERR_TIMEOUT: (
+            (PreAction.SYNCH, PreAction.SET_MTA),
+            Action.REPEAT_2_TIMES,
+        ),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
@@ -652,7 +820,10 @@ ERROR_MATRIX = {
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_SEQUENCE: ((PreAction.NONE), Action.REPEAT_2_TIMES),
         XcpError.ERR_GENERIC: ((PreAction.NONE), Action.RESTART_SESSION),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.PROGRAM_FORMAT: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -662,10 +833,16 @@ ERROR_MATRIX = {
         XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_SEQUENCE: ((PreAction.NONE), Action.REPEAT_2_TIMES),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.PROGRAM_NEXT: {
-        XcpError.ERR_TIMEOUT: ((PreAction.SYNCH, PreAction.PROGRAM), Action.REPEAT_2_TIMES),
+        XcpError.ERR_TIMEOUT: (
+            (PreAction.SYNCH, PreAction.PROGRAM),
+            Action.REPEAT_2_TIMES,
+        ),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.USE_ALTERATIVE),
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
@@ -674,16 +851,25 @@ ERROR_MATRIX = {
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_MEMORY_OVERFLOW: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_SEQUENCE: ((PreAction.NONE), Action.REPEAT_2_TIMES),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.PROGRAM_MAX: {
-        XcpError.ERR_TIMEOUT: ((PreAction.SYNCH, PreAction.SET_MTA), Action.REPEAT_2_TIMES),
+        XcpError.ERR_TIMEOUT: (
+            (PreAction.SYNCH, PreAction.SET_MTA),
+            Action.REPEAT_2_TIMES,
+        ),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.USE_ALTERATIVE),
         XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
         XcpError.ERR_SEQUENCE: ((PreAction.NONE), Action.REPEAT_2_TIMES),
         XcpError.ERR_MEMORY_OVERFLOW: ((PreAction.NONE), Action.DISPLAY_ERROR),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
     Command.PROGRAM_VERIFY: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
@@ -695,7 +881,10 @@ ERROR_MATRIX = {
         XcpError.ERR_SEQUENCE: ((PreAction.NONE), Action.REPEAT_2_TIMES),
         XcpError.ERR_GENERIC: ((PreAction.NONE), Action.RESTART_SESSION),
         XcpError.ERR_VERIFY: ((PreAction.NONE), Action.NEW_FLASH_WARE),
-        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.DISPLAY_ERROR, Action.REPEAT),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
     },
 }
 

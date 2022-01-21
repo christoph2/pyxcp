@@ -94,6 +94,7 @@ class XcpGetIdType(enum.IntEnum):
     VECTOR_MAPNAMES = 0xDB
     VECTOR_MDI = 0xDC
 
+
 class Command(enum.IntEnum):
 
     # STD
@@ -321,21 +322,24 @@ XcpError = Enum(
     ERR_TIMEOUT=0xFF,  # Used by errorhandler; not an offical errorcode.
 )
 
+
 class Event(enum.IntEnum):
     """XCP Event Codes"""
-    EV_RESUME_MODE          = 0x00
-    EV_CLEAR_DAQ            = 0x01
-    EV_STORE_DAQ            = 0x02
-    EV_STORE_CAL            = 0x03
-    EV_CMD_PENDING          = 0x05
-    EV_DAQ_OVERLOAD         = 0x06
-    EV_SESSION_TERMINATED   = 0x07
-    EV_TIME_SYNC            = 0x08
-    EV_STIM_TIMEOUT         = 0x09
-    EV_SLEEP                = 0x0A
-    EV_WAKE_UP              = 0x0B
-    EV_USER                 = 0xFE
-    EV_TRANSPORT            = 0xFF
+
+    EV_RESUME_MODE = 0x00
+    EV_CLEAR_DAQ = 0x01
+    EV_STORE_DAQ = 0x02
+    EV_STORE_CAL = 0x03
+    EV_CMD_PENDING = 0x05
+    EV_DAQ_OVERLOAD = 0x06
+    EV_SESSION_TERMINATED = 0x07
+    EV_TIME_SYNC = 0x08
+    EV_STIM_TIMEOUT = 0x09
+    EV_SLEEP = 0x0A
+    EV_WAKE_UP = 0x0B
+    EV_USER = 0xFE
+    EV_TRANSPORT = 0xFF
+
 
 Response = Struct(
     "type"
@@ -372,7 +376,9 @@ RESOURCE_VALUES = {
     "calpag": 1,
 }
 
-AddressGranularity = Enum(BitsInteger(2), BYTE=0b00, WORD=0b01, DWORD=0b10, RESERVED=0b11)
+AddressGranularity = Enum(
+    BitsInteger(2), BYTE=0b00, WORD=0b01, DWORD=0b10, RESERVED=0b11
+)
 
 ByteOrder = Enum(BitsInteger(1), INTEL=0, MOTOROLA=1)
 
@@ -392,7 +398,9 @@ CommModeBasic = BitStruct(
     "byteOrder" / ByteOrder,
 )
 
-ConnectResponsePartial = Struct("resource" / ResourceType, "commModeBasic" / CommModeBasic)
+ConnectResponsePartial = Struct(
+    "resource" / ResourceType, "commModeBasic" / CommModeBasic
+)
 
 ConnectResponse = Struct(
     "resource" / ResourceType,
@@ -445,10 +453,15 @@ GetCommModeInfoResponse = Struct(
 )
 
 GetIDResponse = Struct(
-    "mode" / Int8ul, Padding(2), "length" / Int32u, "identification" / If(this.mode == 1, Int8ul[this.length])
+    "mode" / Int8ul,
+    Padding(2),
+    "length" / Int32u,
+    "identification" / If(this.mode == 1, Int8ul[this.length]),
 )
 
-GetSeedResponse = Struct("length" / Int8ul, "seed" / If(this.length > 0, Int8ul[this.length]))
+GetSeedResponse = Struct(
+    "length" / Int8ul, "seed" / If(this.length > 0, Int8ul[this.length])
+)
 
 SetRequestMode = BitStruct(
     Padding(4),
@@ -588,10 +601,21 @@ GetDaqListModeResponse = Struct(
 )
 
 SetDaqListMode = BitStruct(
-    Padding(2), "pid_off" / PID_OFF, "enable_timestamp" / Flag, Padding(2), "direction" / DAQ_DIRECTION, Padding(1)
+    Padding(2),
+    "pid_off" / PID_OFF,
+    "enable_timestamp" / Flag,
+    Padding(2),
+    "direction" / DAQ_DIRECTION,
+    Padding(1),
 )
 
-DaqElement = Struct("bitOffset" / Int8ul, "size" / Int8ul, "address" / Int32u, "addressExt" / Int8ul, Padding(1))
+DaqElement = Struct(
+    "bitOffset" / Int8ul,
+    "size" / Int8ul,
+    "address" / Int32u,
+    "addressExt" / Int8ul,
+    Padding(1),
+)
 
 GetDaqClockResponse = Struct(
     Padding(3),
@@ -604,8 +628,17 @@ GetDaqPackedModeResponse = Struct(
     Padding(1),
     "daqPackedMode" / DaqPackedMode,
     "dpmTimestampMode"
-    / If((this.daqPackedMode == "ELEMENT_GROUPED") | (this.daqPackedMode == "EVENT_GROUPED"), Int8ul),
-    "dpmSampleCount" / If((this.daqPackedMode == "ELEMENT_GROUPED") | (this.daqPackedMode == "EVENT_GROUPED"), Int16u),
+    / If(
+        (this.daqPackedMode == "ELEMENT_GROUPED")
+        | (this.daqPackedMode == "EVENT_GROUPED"),
+        Int8ul,
+    ),
+    "dpmSampleCount"
+    / If(
+        (this.daqPackedMode == "ELEMENT_GROUPED")
+        | (this.daqPackedMode == "EVENT_GROUPED"),
+        Int16u,
+    ),
 )
 
 ReadDaqResponse = Struct(
@@ -726,7 +759,9 @@ DtoCtrProperties = BitStruct(
 
 DtoCtrMode = BitStruct(Padding(6), "stimMode" / Flag, "daqMode" / Flag)
 
-DtoCtrPropertiesResponse = Struct("properties" / DtoCtrProperties, "relatedEventChannel" / Int16u, "mode" / DtoCtrMode)
+DtoCtrPropertiesResponse = Struct(
+    "properties" / DtoCtrProperties, "relatedEventChannel" / Int16u, "mode" / DtoCtrMode
+)
 
 CommModePgm = BitStruct(
     Padding(1),
@@ -756,7 +791,9 @@ PgmProperties = BitStruct(
     "absoluteMode" / Flag,
 )
 
-GetPgmProcessorInfoResponse = Struct("pgmProperties" / PgmProperties, "maxSector" / Int8ul)
+GetPgmProcessorInfoResponse = Struct(
+    "pgmProperties" / PgmProperties, "maxSector" / Int8ul
+)
 
 GetSectorInfoResponseMode01 = Struct(
     "clearSequenceNumber" / Int8ul,
@@ -853,7 +890,8 @@ DbgReadResponse = Struct(
     If(this._.width == 2, Padding(1)),
     If(this._.width == 4, Padding(3)),
     If(this._.width == 8, Padding(7)),
-    "data" / GreedyRange(Switch(this._.width, {1: Int8ul, 2: Int16u, 4: Int32u, 8: Int64u})),
+    "data"
+    / GreedyRange(Switch(this._.width, {1: Int8ul, 2: Int16u, 4: Int32u, 8: Int64u})),
 )
 
 DbgGetTriDescTblTrad = Struct(
@@ -871,23 +909,14 @@ DbgGetTriDescTblTri = Struct(
 )
 
 DbgGetTriDescTbl = Struct(
-    "tri_cnt" / Int8ul,
-    Padding(7),
-    "tris" / DbgGetTriDescTblTri[this.tri_cnt]
+    "tri_cnt" / Int8ul, Padding(7), "tris" / DbgGetTriDescTblTri[this.tri_cnt]
 )
 
 DbgGetTriDescTblResponse = Struct(
-    "mode" / Int8ul,
-    Padding(2),
-    "length" / Int32u,
-    "table" / DbgGetTriDescTbl
+    "mode" / Int8ul, Padding(2), "length" / Int32u, "table" / DbgGetTriDescTbl
 )
 
-DbgLlbtResponse = Struct(
-    Padding(1),
-    "length" / Int16u,
-    "data" / Int8ul[this.length]
-)
+DbgLlbtResponse = Struct(Padding(1), "length" / Int16u, "data" / Int8ul[this.length])
 
 DAQ_TIMESTAMP_UNIT_TO_EXP = {
     "DAQ_TIMESTAMP_UNIT_1PS": -12,

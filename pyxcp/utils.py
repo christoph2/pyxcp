@@ -53,7 +53,10 @@ def slicer(iterable, sliceLength, converter=None):
     if converter is None:
         converter = type(iterable)
     length = len(iterable)
-    return [converter((iterable[item : item + sliceLength])) for item in range(0, length, sliceLength)]
+    return [
+        converter((iterable[item : item + sliceLength]))
+        for item in range(0, length, sliceLength)
+    ]
 
 
 def flatten(*args):
@@ -103,8 +106,7 @@ def time_perfcounter_correlation():
 
 
 def delay(amount: float):
-    """Performe a busy-wait delay, which is much more precise than `time.sleep`
-    """
+    """Performe a busy-wait delay, which is much more precise than `time.sleep`"""
 
     start = perf_counter()
     while perf_counter() < start + amount:

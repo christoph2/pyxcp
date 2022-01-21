@@ -60,18 +60,6 @@ constexpr auto megabytes(std::size_t value) -> std::size_t
     return value * 1024 * 1024;
 }
 
-#if 0
-void hexdump(blob_t const * buf, std::uint16_t sz)
-{
-    std::uint16_t idx;
-
-    for (idx = 0; idx < sz; ++idx)
-    {
-        printf("%02X ", buf[idx]);
-    }
-    printf("\n\r");
-}
-#endif
 
 /*
 byte-order is, where applicable little ending (LSB first).
@@ -106,10 +94,14 @@ using blob_t = char;    // Signedness doesn't matter in this use-case.
     using payload_t = py::array_t<blob_t>;
 #endif /* STANDALONE_REKORDER */
 
+#if 0
 struct FrameType
 {
 
     explicit FrameType() = default;
+
+//    explicit FrameType(uint8_t cat, uint16_t cnt, double ts, uint16_t l, const payload_t& pl) :
+//        category(cat), counter(cnt), timestamp(ts), length(l), payload(std::move(pl)) {}
 
     FrameType(FrameType&& rhs) {
         this->category = rhs.category;
@@ -129,9 +121,17 @@ struct FrameType
     uint16_t length {0};
     payload_t payload;
 };
+#endif
+
+struct frame_header_t
+{
+    uint8_t category {0};
+    uint16_t counter {0};
+    double timestamp {0.0};
+    uint16_t length {0};
+};
 #pragma pack(pop)
 
-using XcpFrames = std::vector<FrameType>;
 using FrameTuple = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, payload_t>;
 using FrameVector = std::vector<FrameTuple>;
 
@@ -156,7 +156,6 @@ namespace detail
     constexpr auto VERSION = 0x0100;
     constexpr auto FILE_HEADER_SIZE = sizeof(FileHeaderType);
     constexpr auto CONTAINER_SIZE = sizeof(ContainerHeaderType);
-    constexpr auto FRAME_SIZE = sizeof(FrameType) - sizeof(payload_t);
 }
 
 #if STANDALONE_REKORDER == 1
@@ -210,6 +209,18 @@ inline void _fcopy(blob_t * dest, const blob_t * src, std::size_t n)
     }
 }
 
+inline void hexdump(blob_t const * buf, std::uint16_t sz)
+{
+    std::uint16_t idx;
+
+    for (idx = 0; idx < sz; ++idx)
+    {
+        printf("%02X ", buf[idx]);
+    }
+    printf("\n\r");
+}
+
+
 /**
  */
 class XcpLogFileWriter
@@ -259,29 +270,18 @@ public:
         }
     }
 
+    void add_frame(uint8_t category, uint16_t counter, double timestamp, uint16_t length, const  payload_t& payload) {
+        frame_header_t frame {category, counter, timestamp, length};
 
-    //void add_frame(uint8_t category, uint16_t counter, double timestamp, uint16_t length, const  payload_t& payload) {
-    void add_frame(const FrameType& frame) {
-        store_im(&frame, detail::FRAME_SIZE);
-        store_im(get_payload_ptr(frame.payload), frame.length);
+        store_im(&frame, sizeof(frame));
+        store_im(get_payload_ptr(payload), length);
         m_container_record_count += 1;
-        m_container_size_uncompressed += (detail::FRAME_SIZE + frame.length);
+        m_container_size_uncompressed += (sizeof(frame) + length);
         if (m_container_size_uncompressed > m_chunk_size) {
             compress_frames();
         }
-}
-
-    void add_frames(const XcpFrames& xcp_frames) {
-        for (auto const& frame: xcp_frames) {
-            store_im(&frame, detail::FRAME_SIZE);
-            store_im(get_payload_ptr(frame.payload), frame.length);
-            m_container_record_count += 1;
-            m_container_size_uncompressed += (detail::FRAME_SIZE + frame.length);
-            if (m_container_size_uncompressed > m_chunk_size) {
-                compress_frames();
-            }
-        }
     }
+
 protected:
     void truncate(off_t size) const
     {
@@ -421,7 +421,7 @@ public:
     std::optional<FrameVector> next() {
         auto container = ContainerHeaderType{};
         auto total = 0;
-        auto frame = FrameType{};
+        auto frame = frame_header_t{};
         size_t boffs = 0;
         auto result = FrameVector{};
 
@@ -441,8 +441,8 @@ public:
         }
         boffs = 0;
         for (std::uint32_t idx = 0; idx < container.record_count; ++idx) {
-            _fcopy((blob_t*)&frame, &(buffer[boffs]), detail::FRAME_SIZE);
-            boffs += detail::FRAME_SIZE;
+            _fcopy((blob_t*)&frame, &(buffer[boffs]), sizeof(frame_header_t));
+            boffs += sizeof(frame_header_t);
             auto payload = create_payload(frame.length);
             std::copy_n(&buffer[boffs], frame.length, reinterpret_cast<blob_t*>(get_payload_ptr(payload)));
             boffs += frame.length;

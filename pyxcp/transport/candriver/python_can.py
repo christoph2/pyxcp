@@ -59,12 +59,16 @@ class PythonCAN:
         can_id = self.parent.can_id_master
         can_filter = {
             "can_id": can_id.id,
-            "can_mask": can.MAX_29_BIT_IDENTIFIER if can_id.is_extended else can.MAX_11_BIT_IDENTIFIER,
+            "can_mask": can.MAX_29_BIT_IDENTIFIER
+            if can_id.is_extended
+            else can.MAX_11_BIT_IDENTIFIER,
             "extended": can_id.is_extended,
         }
         self.bus = Bus(bustype=self.bustype, **self.kwargs)
         self.bus.set_filters([can_filter])
-        self.parent.logger.debug("Python-CAN driver: {} - {}]".format(self.bustype, self.bus))
+        self.parent.logger.debug(
+            "Python-CAN driver: {} - {}]".format(self.bustype, self.bus)
+        )
         self.connected = True
 
     def _fetch_kwargs(self, local):
@@ -109,11 +113,20 @@ class PythonCAN:
         except CanError:
             return None
         else:
-            if frame is None or frame.arbitration_id != self.parent.can_id_master.id or not len(frame.data):
+            if (
+                frame is None
+                or frame.arbitration_id != self.parent.can_id_master.id
+                or not len(frame.data)
+            ):
                 return None  # Timeout condition.
             extended = frame.is_extended_id
             identifier = can.Identifier.make_identifier(frame.arbitration_id, extended)
-            return can.Frame(id_=identifier, dlc=frame.dlc, data=frame.data, timestamp=frame.timestamp)
+            return can.Frame(
+                id_=identifier,
+                dlc=frame.dlc,
+                data=frame.data,
+                timestamp=frame.timestamp,
+            )
 
     def getTimestampResolution(self):
         return 10 * 1000

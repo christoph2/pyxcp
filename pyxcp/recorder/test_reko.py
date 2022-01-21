@@ -1,4 +1,3 @@
-
 import reco
 
 import struct
@@ -12,7 +11,7 @@ ri = partial(randint, 0, 255)
 
 rs = [ri() for I in range(CNT)]
 
-#print(dir(time))
+# print(dir(time))
 TS_STRUCT = struct.Struct("<Hd")
 
 frames = []
@@ -23,17 +22,15 @@ for counter in range(CNT):
 
     FS = "<H{}s".format(length)
     frame = struct.Struct(FS).pack(length, db)
-    #print(length, db)
-    #frame = TS_STRUCT.pack(
-     #   counter, ts
-    #)
-    frames.append(
-         [counter, ts, frame]
-    )
+    # print(length, db)
+    # frame = TS_STRUCT.pack(
+    #   counter, ts
+    # )
+    frames.append([counter, ts, frame])
 
-#help(bytes)
+# help(bytes)
 DAQ_RECORD_STRUCT = struct.Struct("<BHdL")
-#DAQRecord = namedtuple("DAQRecord", "category counter timestamp payload")
+# DAQRecord = namedtuple("DAQRecord", "category counter timestamp payload")
 
 log = reco.XcpLogFileWriter("test_logger")
 

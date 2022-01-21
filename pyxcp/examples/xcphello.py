@@ -33,14 +33,22 @@ from pyxcp.cmdline import ArgumentParser
 
 daq_info = False
 
+
 def callout(master, args):
     global daq_info
     if args.daq_info:
         daq_info = True
 
 
-ap = ArgumentParser(description = "pyXCP hello world.", callout = callout)
-ap.parser.add_argument("-d", "--daq-info", dest = "daq_info", help = "Display DAQ-info", default = False, action = "store_true")
+ap = ArgumentParser(description="pyXCP hello world.", callout=callout)
+ap.parser.add_argument(
+    "-d",
+    "--daq-info",
+    dest="daq_info",
+    help="Display DAQ-info",
+    default=False,
+    action="store_true",
+)
 with ap.run() as x:
     x.connect()
     if x.slaveProperties.optionalCommMode:

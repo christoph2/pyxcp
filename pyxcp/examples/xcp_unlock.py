@@ -38,7 +38,14 @@ def callout(master, args):
 
 
 ap = ArgumentParser(callout)
-ap.parser.add_argument("-s", "--sk-dll", dest="sk_dll", help="Seed-and-Key .DLL name", type=str, default=None)
+ap.parser.add_argument(
+    "-s",
+    "--sk-dll",
+    dest="sk_dll",
+    help="Seed-and-Key .DLL name",
+    type=str,
+    default=None,
+)
 
 with ap.run() as x:
     x.connect()

@@ -96,7 +96,10 @@ def testfilter1():
 
 
 def testfilter2():
-    assert calculateFilter([0x101, 0x102 | CAN_EXTENDED_ID, 0x103]) == (0x100, 0x1FFFFFFC)
+    assert calculateFilter([0x101, 0x102 | CAN_EXTENDED_ID, 0x103]) == (
+        0x100,
+        0x1FFFFFFC,
+    )
 
 
 def testfilter3():
@@ -130,7 +133,18 @@ def testfilter4():
 
 
 def testfilter5():
-    assert calculateFilter([0x1560 | CAN_EXTENDED_ID, 0x1561, 0x1562, 0x1563, 0x1564, 0x1565, 0x1566, 0x1567]) == (
+    assert calculateFilter(
+        [
+            0x1560 | CAN_EXTENDED_ID,
+            0x1561,
+            0x1562,
+            0x1563,
+            0x1564,
+            0x1565,
+            0x1566,
+            0x1567,
+        ]
+    ) == (
         0x1560,
         0x1FFFFFF8,
     )

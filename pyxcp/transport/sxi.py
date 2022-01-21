@@ -62,11 +62,17 @@ class SxI(BaseTransport):
 
         self.logger.debug("Trying to open serial commPort {}.".format(self.portName))
         try:
-            self.commPort = serial.Serial(self.portName, self.baudrate, timeout=SxI.TIMEOUT)
+            self.commPort = serial.Serial(
+                self.portName, self.baudrate, timeout=SxI.TIMEOUT
+            )
         except serial.SerialException as e:
             self.logger.error("{}".format(e))
             raise
-        self.logger.info("Serial commPort openend as '{}' @ {} Bits/Sec.".format(self.commPort.portstr, self.baudrate))
+        self.logger.info(
+            "Serial commPort openend as '{}' @ {} Bits/Sec.".format(
+                self.commPort.portstr, self.baudrate
+            )
+        )
         self.startListener()
 
     def output(self, enable):
@@ -113,8 +119,12 @@ class SxI(BaseTransport):
             pre_send_timestamp = perf_counter()
             self.commPort.write(frame)
             post_send_timestamp = perf_counter()
-            self.pre_send_timestamp = self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
-            self.post_send_timestamp = self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
+            self.pre_send_timestamp = (
+                self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
+            )
+            self.post_send_timestamp = (
+                self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
+            )
 
     def closeConnection(self):
         if hasattr(self, "commPort") and self.commPort.isOpen():

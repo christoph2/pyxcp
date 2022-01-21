@@ -38,7 +38,9 @@ CMD_QUIT = 0x30
 
 class SeedNKeyResult(enum.IntEnum):
     ACK = 0  # o.k.
-    ERR_PRIVILEGE_NOT_AVAILABLE = 1  # the requested privilege can not be unlocked with this DLL
+    ERR_PRIVILEGE_NOT_AVAILABLE = (
+        1  # the requested privilege can not be unlocked with this DLL
+    )
     ERR_INVALID_SEED_LENGTH = 2  # the seed length is wrong, key could not be computed
     ERR_UNSUFFICIENT_KEY_LENGTH = 3  # the space for the key is too small
 
@@ -79,7 +81,13 @@ def getKey(dllName: str, privilege: int, seed: str, assume_same_bit_width: bool)
         ]
         key_buffer = ctypes.create_string_buffer(b"\000" * 128)
         key_length = ctypes.c_uint8(128)
-        ret_code = func(privilege, len(seed), ctypes.c_char_p(seed), ctypes.byref(key_length), key_buffer)
+        ret_code = func(
+            privilege,
+            len(seed),
+            ctypes.c_char_p(seed),
+            ctypes.byref(key_length),
+            key_buffer,
+        )
         return (ret_code, key_buffer.raw[0 : key_length.value])
     else:
         p0 = subprocess.Popen(

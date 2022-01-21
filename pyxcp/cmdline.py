@@ -32,7 +32,10 @@ import argparse
 
 from pyxcp.config import readConfiguration
 from pyxcp.master import Master
-from pyxcp.transport.can import try_to_install_system_supplied_drivers, registered_drivers
+from pyxcp.transport.can import (
+    try_to_install_system_supplied_drivers,
+    registered_drivers,
+)
 
 try_to_install_system_supplied_drivers()
 
@@ -59,7 +62,12 @@ class ArgumentParser:
             dest="conf",
             help="File to read (extended) parameters from.",
         )
-        self._parser.add_argument("-l", "--loglevel", choices=["ERROR", "WARN", "INFO", "DEBUG"], default="INFO")
+        self._parser.add_argument(
+            "-l",
+            "--loglevel",
+            choices=["ERROR", "WARN", "INFO", "DEBUG"],
+            default="INFO",
+        )
         self._parser.epilog = "To get specific help on transport layers\nuse <layer> -h, e.g. {} eth -h".format(
             self._parser.prog
         )

@@ -72,15 +72,23 @@ class Usb(BaseTransport):
     def connect(self):
         for device in usb.core.find(find_all=True):
             try:
-                if device.serial_number.strip().strip("\0").lower() == self.serial_number.lower():
+                if (
+                    device.serial_number.strip().strip("\0").lower()
+                    == self.serial_number.lower()
+                ):
                     self.device = device
                     break
                 else:
-                    print(device.serial_number.strip().strip("\0").lower(), self.serial_number.lower())
+                    print(
+                        device.serial_number.strip().strip("\0").lower(),
+                        self.serial_number.lower(),
+                    )
             except:
                 continue
         else:
-            raise Exception("Device with serial {} not found".format(self.serial_number))
+            raise Exception(
+                "Device with serial {} not found".format(self.serial_number)
+            )
 
         current_configuration = self.device.get_active_configuration()
         if current_configuration.bConfigurationValue != self.configuration_number:
@@ -130,14 +138,16 @@ class Usb(BaseTransport):
                     if high_resolution_time:
                         recv_timestamp = time()
                     else:
-                        recv_timestamp = timestamp_origin + perf_counter() - perf_counter_origin
-                    read_count = read(buffer, 10) #10ms timeout
+                        recv_timestamp = (
+                            timestamp_origin + perf_counter() - perf_counter_origin
+                        )
+                    read_count = read(buffer, 10)  # 10ms timeout
                     if read_count != RECV_SIZE:
                         _packets.append((bytes(buffer)[:read_count], recv_timestamp))
                     else:
                         _packets.append((bytes(buffer), recv_timestamp))
                 except:
-                    #print(format_exc())
+                    # print(format_exc())
                     sleep(0.001)
                     continue
 
@@ -187,7 +197,9 @@ class Usb(BaseTransport):
                             break
                     else:
                         if current_size >= length:
-                            response = memoryview(data[current_position : current_position + length])
+                            response = memoryview(
+                                data[current_position : current_position + length]
+                            )
                             processResponse(response, length, counter, timestamp)
 
                             current_size -= length
@@ -223,8 +235,12 @@ class Usb(BaseTransport):
                 # the device does not responde
                 pass
             post_send_timestamp = perf_counter()
-            self.pre_send_timestamp = self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
-            self.post_send_timestamp = self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
+            self.pre_send_timestamp = (
+                self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
+            )
+            self.post_send_timestamp = (
+                self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
+            )
 
     def closeConnection(self):
         if self.device is not None:

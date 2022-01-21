@@ -612,7 +612,9 @@ class Crc16:
 
     WIDTH = 16
 
-    def __init__(self, table, initalRemainder, finalXorValue, reflectData, reflectRemainder):
+    def __init__(
+        self, table, initalRemainder, finalXorValue, reflectData, reflectRemainder
+    ):
         self.table = table
         self.initalRemainder = initalRemainder
         self.finalXorValue = finalXorValue
@@ -689,7 +691,10 @@ def wordSum(modulus, step):
             mask = "<I"
         else:
             raise NotImplementedError("Only WORDs or DWORDs are supported.")
-        x = [struct.unpack(mask, frame[x : x + step])[0] for x in range(0, len(frame), step)]
+        x = [
+            struct.unpack(mask, frame[x : x + step])[0]
+            for x in range(0, len(frame), step)
+        ]
         return sum(x) % modulus
 
     return add

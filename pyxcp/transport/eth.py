@@ -69,7 +69,13 @@ class Eth(BaseTransport):
         if self.host.lower() == "localhost":
             self.host = "::1" if self.ipv6 else "localhost"
         addrinfo = socket.getaddrinfo(self.host, self.port, address_family, proto)
-        (self.address_family, self.socktype, self.proto, self.canonname, self.sockaddr) = addrinfo[0]
+        (
+            self.address_family,
+            self.socktype,
+            self.proto,
+            self.canonname,
+            self.sockaddr,
+        ) = addrinfo[0]
         self.status = 0
         self.sock = socket.socket(self.address_family, self.socktype, self.proto)
         self.selector = selectors.DefaultSelector()
@@ -137,7 +143,9 @@ class Eth(BaseTransport):
                         if high_resolution_time:
                             recv_timestamp = time()
                         else:
-                            recv_timestamp = timestamp_origin + perf_counter() - perf_counter_origin
+                            recv_timestamp = (
+                                timestamp_origin + perf_counter() - perf_counter_origin
+                            )
 
                         if use_tcp:
                             response = sock_recv(RECV_SIZE)
@@ -201,8 +209,10 @@ class Eth(BaseTransport):
                             break
                     else:
                         if current_size >= length:
-                            #response = memoryview(data[current_position : current_position + length])
-                            response = data[current_position : current_position + length]
+                            # response = memoryview(data[current_position : current_position + length])
+                            response = data[
+                                current_position : current_position + length
+                            ]
                             processResponse(response, length, counter, timestamp)
 
                             current_size -= length
@@ -224,8 +234,12 @@ class Eth(BaseTransport):
             pre_send_timestamp = perf_counter()
             self.sock.send(frame)
             post_send_timestamp = perf_counter()
-            self.pre_send_timestamp = self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
-            self.post_send_timestamp = self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
+            self.pre_send_timestamp = (
+                self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
+            )
+            self.post_send_timestamp = (
+                self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
+            )
 
     def closeConnection(self):
         if not self.invalidSocket:

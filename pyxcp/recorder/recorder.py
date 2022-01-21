@@ -1,13 +1,15 @@
-
 from collections import namedtuple
 
 import rekorder as rec
 
-XcpLogFileHeader = namedtuple("XcpLogFileHeader", "record_count size_uncompressed size_compressed compression_ratio")
+XcpLogFileHeader = namedtuple(
+    "XcpLogFileHeader",
+    "record_count size_uncompressed size_compressed compression_ratio",
+)
+
 
 class XcpLogFileReader:
-    """
-    """
+    """ """
 
     def __init__(self, file_name):
         self._reader = rec._XcpLogFileReader(file_name)
@@ -28,12 +30,10 @@ class XcpLogFileReader:
 
 
 class XcpLogFileWriter:
-    """
-    """
+    """ """
 
     def __init__(self, file_name):
         self._writer = rec._XcpLogFileWriter(file_name)
-
 
 
 print("Before c-tor()")
@@ -43,7 +43,7 @@ hdr = reader.get_header()
 print(hdr)
 
 for frame in reader:
-    #print(frame)
+    # print(frame)
     pass
 
 print("Finished.")

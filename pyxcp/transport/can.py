@@ -37,11 +37,11 @@ from pyxcp.transport.base import BaseTransport
 from pyxcp.config import Configuration
 
 
-CAN_EXTENDED_ID         = 0x80000000
-MAX_11_BIT_IDENTIFIER   = (1 << 11) - 1
-MAX_29_BIT_IDENTIFIER   = (1 << 29) - 1
-MAX_DLC_CLASSIC         = 8
-CAN_FD_DLCS             = (12, 16, 20, 24, 32, 48, 64)  # Discrete CAN-FD DLCs in case DLC > 8.
+CAN_EXTENDED_ID = 0x80000000
+MAX_11_BIT_IDENTIFIER = (1 << 11) - 1
+MAX_29_BIT_IDENTIFIER = (1 << 29) - 1
+MAX_DLC_CLASSIC = 8
+CAN_FD_DLCS = (12, 16, 20, 24, 32, 48, 64)  # Discrete CAN-FD DLCs in case DLC > 8.
 
 
 class IdentifierOutOfRangeError(Exception):
@@ -98,7 +98,7 @@ def samplePointToTsegs(tqs: int, samplePoint: float) -> tuple:
     return (tseg1, tseg2)
 
 
-def padFrame(frame: bytes, padding_value: int, padding_len:int = 0) -> bytes:
+def padFrame(frame: bytes, padding_value: int, padding_len: int = 0) -> bytes:
     """Pad frame to next discrete DLC value.
 
     References:
@@ -117,6 +117,7 @@ def padFrame(frame: bytes, padding_value: int, padding_len:int = 0) -> bytes:
     if len(frame) < actual_len:
         frame += bytes([padding_value]) * (actual_len - len(frame))
     return frame
+
 
 class Identifier:
     """Convenience class for XCP formatted CAN identifiers.
@@ -137,10 +138,14 @@ class Identifier:
         self._is_extended = isExtendedIdentifier(raw_id)
         if self._is_extended:
             if self._id > MAX_29_BIT_IDENTIFIER:
-                raise IdentifierOutOfRangeError("29-bit identifier '{}' is out of range".format(self._id))
+                raise IdentifierOutOfRangeError(
+                    "29-bit identifier '{}' is out of range".format(self._id)
+                )
         else:
             if self._id > MAX_11_BIT_IDENTIFIER:
-                raise IdentifierOutOfRangeError("11-bit identifier '{}' is out of range".format(self._id))
+                raise IdentifierOutOfRangeError(
+                    "11-bit identifier '{}' is out of range".format(self._id)
+                )
 
     @property
     def id(self) -> int:
@@ -194,13 +199,17 @@ class Identifier:
         ------
         :class:`IdentifierOutOfRangeError`
         """
-        return Identifier(identifier if not extended else (identifier | CAN_EXTENDED_ID))
+        return Identifier(
+            identifier if not extended else (identifier | CAN_EXTENDED_ID)
+        )
 
     def __eq__(self, other):
         return (self.id == other.id) and (self.is_extended == other.is_extended)
 
     def __str__(self):
-        return "Identifier(id = 0x{:08x}, is_extended = {})".format(self.id, self.is_extended)
+        return "Identifier(id = 0x{:08x}, is_extended = {})".format(
+            self.id, self.is_extended
+        )
 
     def __repr__(self):
         return "Identifier(0x{:08x})".format(self.raw_id)
@@ -256,7 +265,7 @@ class CanInterfaceBase(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def close(self):
-        """ Must implement any required action for disconnecting from the can interface """
+        """Must implement any required action for disconnecting from the can interface"""
 
     @abc.abstractmethod
     def connect(self):
@@ -276,7 +285,7 @@ class CanInterfaceBase(metaclass=abc.ABCMeta):
 
 
 class EmptyHeader:
-    """ There is no header for XCP on CAN  """
+    """There is no header for XCP on CAN"""
 
     def pack(self, *args, **kwargs):
         return b""
@@ -290,20 +299,20 @@ class Can(BaseTransport):
 
     PARAMETER_MAP = {
         #                           Type            Req'd   Default
-        "CAN_DRIVER":               (str,           True,   None),
-        "CHANNEL":                  (str,           False,  ""),
-        "MAX_DLC_REQUIRED":         (bool,          False,  False),
-        "MAX_CAN_FD_DLC":           (int,           False,  64),
-        "PADDING_VALUE":            (int,           False,   0),
-        "CAN_USE_DEFAULT_LISTENER": (bool,          False,  True),
+        "CAN_DRIVER": (str, True, None),
+        "CHANNEL": (str, False, ""),
+        "MAX_DLC_REQUIRED": (bool, False, False),
+        "MAX_CAN_FD_DLC": (int, False, 64),
+        "PADDING_VALUE": (int, False, 0),
+        "CAN_USE_DEFAULT_LISTENER": (bool, False, True),
         # defaults to True, in this case the default listener thread is used.
         # If the canInterface implements a listener service, this parameter
         # can be set to False, and the default listener thread won't be started.
-        "CAN_ID_MASTER":            (int,           True,   None),
-        "CAN_ID_SLAVE":             (int,           True,   None),
-        "CAN_ID_BROADCAST":         (int,           False,  None),
-        "BITRATE":                  (int,           False,  250000),
-        "RECEIVE_OWN_MESSAGES":     (bool,          False,  False),
+        "CAN_ID_MASTER": (int, True, None),
+        "CAN_ID_SLAVE": (int, True, None),
+        "CAN_ID_BROADCAST": (int, False, None),
+        "BITRATE": (int, False, 250000),
+        "RECEIVE_OWN_MESSAGES": (bool, False, False),
     }
 
     PARAMETER_TO_KW_ARG_MAP = {
@@ -326,7 +335,9 @@ class Can(BaseTransport):
         interfaceName = self.config.get("CAN_DRIVER")
         if not interfaceName in drivers:
             raise ValueError(
-                "{} is an invalid driver name -- choose from {}".format(interfaceName, [x for x in drivers.keys()])
+                "{} is an invalid driver name -- choose from {}".format(
+                    interfaceName, [x for x in drivers.keys()]
+                )
             )
         canInterfaceClass = drivers[interfaceName]
         self.canInterface = canInterfaceClass()
@@ -339,12 +350,23 @@ class Can(BaseTransport):
         # Regarding CAN-FD s. AUTOSAR CP Release 4.3.0, Requirements on CAN; [SRS_Can_01160] Padding of bytes due to discrete CAN FD DLC]:
         #   "... If a PDU does not exactly match these configurable sizes the unused bytes shall be padded."
         #
-        self.max_dlc_required = self.config.get("MAX_DLC_REQUIRED") or self.canInterface.is_fd
+        self.max_dlc_required = (
+            self.config.get("MAX_DLC_REQUIRED") or self.canInterface.is_fd
+        )
         self.padding_value = self.config.get("PADDING_VALUE")
-        self.padding_len = self.config.get("MAX_CAN_FD_DLC") if self.canInterface.is_fd else MAX_DLC_CLASSIC
+        self.padding_len = (
+            self.config.get("MAX_CAN_FD_DLC")
+            if self.canInterface.is_fd
+            else MAX_DLC_CLASSIC
+        )
 
     def dataReceived(self, payload: bytes, recv_timestamp: float = None):
-        self.processResponse(payload, len(payload), counter=self.counterReceived + 1, recv_timestamp=recv_timestamp)
+        self.processResponse(
+            payload,
+            len(payload),
+            counter=self.counterReceived + 1,
+            recv_timestamp=recv_timestamp,
+        )
 
     def listen(self):
         while True:
@@ -367,14 +389,18 @@ class Can(BaseTransport):
         # send the request
         if self.perf_counter_origin > 0:
             self.pre_send_timestamp = time()
-            self.canInterface.transmit(payload = frame)
+            self.canInterface.transmit(payload=frame)
             self.post_send_timestamp = time()
         else:
             pre_send_timestamp = perf_counter()
-            self.canInterface.transmit(payload = frame)
+            self.canInterface.transmit(payload=frame)
             post_send_timestamp = perf_counter()
-            self.pre_send_timestamp = self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
-            self.post_send_timestamp = self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
+            self.pre_send_timestamp = (
+                self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
+            )
+            self.post_send_timestamp = (
+                self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
+            )
 
     def closeConnection(self):
         if hasattr(self, "canInterface"):
@@ -424,7 +450,9 @@ def try_to_install_system_supplied_drivers():
     import pkgutil
     import pyxcp.transport.candriver as cdr
 
-    for _, modname, _ in pkgutil.walk_packages(cdr.__path__, "{}.".format(cdr.__name__)):
+    for _, modname, _ in pkgutil.walk_packages(
+        cdr.__path__, "{}.".format(cdr.__name__)
+    ):
         try:
             importlib.import_module(modname)
         except Exception as e:
