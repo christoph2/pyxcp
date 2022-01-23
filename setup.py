@@ -1,16 +1,24 @@
 #!/bin/env python
-
-import distutils
 import os
 import platform
-import setuptools, setuptools.command.build_py, setuptools.command.develop
 import subprocess
 import sys
 
+import distutils
+import setuptools.command.build_py
+import setuptools.command.develop
+
 try:
-    from pybind11.setup_helpers import Pybind11Extension, build_ext, ParallelCompile, naive_recompile
+    from pybind11.setup_helpers import (
+        Pybind11Extension,
+        build_ext,
+        ParallelCompile,
+        naive_recompile,
+    )
 except ImportError:
-    print("package 'pybind11' not installed, could not build recorder extension module.")
+    print(
+        "package 'pybind11' not installed, could not build recorder extension module."
+    )
     has_pybind11 = False
 else:
     has_pybind11 = True
@@ -19,9 +27,11 @@ else:
 try:
     PYB11_INCLUDE_DIRS = subprocess.check_output(["pybind11-config", "--includes"])
 except Exception as e:
-    print(str(e), end = " -- ")
+    print(str(e), end=" -- ")
     has_pybind11 = False
-    print("'pybind11-config' not properly working, could not build recorder extension module.")
+    print(
+        "'pybind11-config' not properly working, could not build recorder extension module."
+    )
 
 with open(os.path.join("pyxcp", "__init__.py"), "r") as f:
     for line in f:
@@ -33,30 +43,30 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 
-EXT_NAMES = ['rekorder']
+EXT_NAMES = ["rekorder"]
 
 if has_pybind11:
 
-    if sys.platform == 'win32': # Bruteforce for now -- assume MSVC on Windows.
+    if sys.platform == "win32":  # Bruteforce for now -- assume MSVC on Windows.
         options = [
-            '/Ox',
-            '/std:c++17',
+            "/Ox",
+            "/std:c++17",
         ]
     else:
-        options = [     # gcc or clang...
-            '-O3',
-            '-std=c++17',
+        options = [  # gcc or clang...
+            "-O3",
+            "-std=c++17",
             #    ' -Rpass=loop-vectorize',  # clang only: uncomment to see which parts of code are vectorized.
         ]
 
     ext_modules = [
         Pybind11Extension(
             EXT_NAMES[0],
-            include_dirs = [PYB11_INCLUDE_DIRS, "pyxcp/recorder"],
-            sources = ["pyxcp/recorder/lz4.c", "pyxcp/recorder/wrap.cpp"],
-            define_macros = [('EXTENSION_NAME', EXT_NAMES[0]), ("NDEBUG", 1)],
-            extra_compile_args = options,
-            optional = False,
+            include_dirs=[PYB11_INCLUDE_DIRS, "pyxcp/recorder"],
+            sources=["pyxcp/recorder/lz4.c", "pyxcp/recorder/wrap.cpp"],
+            define_macros=[("EXTENSION_NAME", EXT_NAMES[0]), ("NDEBUG", 1)],
+            extra_compile_args=options,
+            optional=False,
         ),
     ]
 else:
@@ -139,9 +149,9 @@ setuptools.setup(
     install_requires=install_reqs,
     setup_requires=setup_reqs,
     extras_require={"docs": ["sphinxcontrib-napoleon"], "develop": ["bumpversion"]},
-    ext_modules = ext_modules,
+    ext_modules=ext_modules,
     package_dir={"tests": "pyxcp/tests"},
-    zip_safe = False,
+    zip_safe=False,
     tests_require=["pytest", "pytest-runner"],
     test_suite="pyxcp.tests",
     license="GPLv2",

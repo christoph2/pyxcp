@@ -2,9 +2,10 @@ import os
 import subprocess
 import sys
 
-from distutils.core import setup, Extension
-
-from pybind11.setup_helpers import Pybind11Extension, build_ext  # noqa: E402
+from distutils.core import Extension
+from distutils.core import setup
+from pybind11.setup_helpers import build_ext
+from pybind11.setup_helpers import Pybind11Extension
 
 try:
     INCLUDE_DIRS = subprocess.getoutput("pybind11-config --include")

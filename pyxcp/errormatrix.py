@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """Types and structures to support error-handling as specified by XCP.
 """
 

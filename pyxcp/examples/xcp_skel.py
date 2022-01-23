@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """Use this as a copy-and-paste template for your own scripts.
 """
 

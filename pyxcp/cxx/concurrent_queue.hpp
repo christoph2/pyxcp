@@ -37,8 +37,8 @@ public:
 
     explicit ConcurrentQueue<_Ty>() = default;
 
-    ConcurrentQueue<_Ty>(const ConcurrentQueue<_Ty>& other) noexcept : 
-        m_elements(other.m_elements), m_mtx(),  m_cond() 
+    ConcurrentQueue<_Ty>(const ConcurrentQueue<_Ty>& other) noexcept :
+        m_elements(other.m_elements), m_mtx(),  m_cond()
     {}
 
     bool empty() const {
@@ -82,4 +82,3 @@ private:
 };
 
 #endif // __CONCURRENT_QUEUE
-

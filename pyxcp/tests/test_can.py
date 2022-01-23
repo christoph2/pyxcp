@@ -1,16 +1,14 @@
 import pytest
 
-from pyxcp.transport.can import (
-    setDLC,
-    calculateFilter,
-    CAN_EXTENDED_ID,
-    isExtendedIdentifier,
-    stripIdentifier,
-    Identifier,
-    MAX_11_BIT_IDENTIFIER,
-    MAX_29_BIT_IDENTIFIER,
-    IdentifierOutOfRangeError,
-)
+from pyxcp.transport.can import calculateFilter
+from pyxcp.transport.can import CAN_EXTENDED_ID
+from pyxcp.transport.can import Identifier
+from pyxcp.transport.can import IdentifierOutOfRangeError
+from pyxcp.transport.can import isExtendedIdentifier
+from pyxcp.transport.can import MAX_11_BIT_IDENTIFIER
+from pyxcp.transport.can import MAX_29_BIT_IDENTIFIER
+from pyxcp.transport.can import setDLC
+from pyxcp.transport.can import stripIdentifier
 
 
 def testSet0():

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """Lowlevel API reflecting available XCP services
 
 .. note:: For technical reasons the API is split into two parts;

@@ -106,4 +106,3 @@ private:
 };
 
 #endif // __TIMESTAMP_HPP
-

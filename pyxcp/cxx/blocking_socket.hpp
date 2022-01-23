@@ -81,7 +81,7 @@ struct CAddress {
 class Socket {
     public:
 
-    explicit Socket(int family = PF_INET, int socktype = SOCK_STREAM, int protocol = IPPROTO_TCP) : m_family(family), m_socktype(socktype), 
+    explicit Socket(int family = PF_INET, int socktype = SOCK_STREAM, int protocol = IPPROTO_TCP) : m_family(family), m_socktype(socktype),
         m_protocol(protocol), m_connected(false),  m_addr(nullptr), m_thread(0) {
         m_socket = ::socket(m_family, m_socktype, m_protocol);
         m_connected_socket = 0;
@@ -247,7 +247,7 @@ class Socket {
     void write(std::array<T, N>& arr) {
         if (m_socktype == SOCK_DGRAM) {
 #if 0
-            if (sendto(m_socket, (char const *)arr.data(), arr.size(), 0, 
+            if (sendto(m_socket, (char const *)arr.data(), arr.size(), 0,
                         (SOCKADDR * )(SOCKADDR_STORAGE const *)&XcpTl_Connection.connectionAddress, ADDR_LEN) == SOCKET_ERROR) {
                 SocketErrorExit("send::sendto()");
             }
@@ -581,4 +581,3 @@ private:
 
 
 #endif // __BLOCKING_SOCKET_HPP
-

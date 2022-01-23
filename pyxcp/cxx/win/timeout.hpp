@@ -105,4 +105,3 @@ private:
 };
 
 #endif // __TIMEOUT_HPP
-

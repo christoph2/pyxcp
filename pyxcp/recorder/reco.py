@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """Raw XCP traffic recorder.
 
 Data is stored in LZ4 compressed containers.

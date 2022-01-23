@@ -79,4 +79,3 @@ struct Eth {
 #endif
 
 #endif // __ETH_HPP
-

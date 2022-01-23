@@ -103,4 +103,3 @@ private:
 };
 
 #endif // __POOL_H
-

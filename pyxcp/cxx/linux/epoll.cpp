@@ -39,7 +39,7 @@ void * WorkerThread(void * param)
     int idx;
     char buffer[128];
     int evt_mask;
-    uint64_t timeout_value; 
+    uint64_t timeout_value;
 
     printf("Entering worker thread...\n");
 
@@ -74,4 +74,3 @@ void * WorkerThread(void * param)
 
     return nullptr;
 }
-

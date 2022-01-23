@@ -119,4 +119,3 @@ private:
 };
 
 #endif // __PERIODATA_HPP
-

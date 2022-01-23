@@ -47,4 +47,3 @@ PYBIND11_MODULE(rekorder, m) {
         .def("add_frames", &_PyXcpLogFileWriter::add_frame)
     ;
 }
-

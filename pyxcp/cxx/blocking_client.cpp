@@ -42,4 +42,3 @@ int main(void)
     sock.write(hellomsg);
     Sleep(2000);
 }
-

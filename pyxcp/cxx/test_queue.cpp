@@ -28,7 +28,7 @@ void worker(int num)
 
 int main(int ac, char const * av[])
 {
-   
+
     auto value = 0;
     auto frame = std::make_tuple(20, 1, 1.0045, "hello world!!!");
     uint16_t length, counter;

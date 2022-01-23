@@ -25,4 +25,3 @@ int main(void)
         previous = current;
     }
 }
-

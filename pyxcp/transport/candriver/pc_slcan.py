@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 python-can driver for CAN over Serial (like Lawicel)  interfaces.
 """

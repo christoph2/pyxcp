@@ -5,9 +5,7 @@
 # This file does only contain a selection of the most common options. For a
 # full list see the documentation:
 # http://www.sphinx-doc.org/en/stable/config
-
 # -- Path setup --------------------------------------------------------------
-
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -147,7 +145,15 @@ man_pages = [(master_doc, "pyxcp", "pyXCP Documentation", [author], 1)]
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, "pyXCP", "pyXCP Documentation", author, "pyXCP", "One line description of project.", "Miscellaneous"),
+    (
+        master_doc,
+        "pyXCP",
+        "pyXCP Documentation",
+        author,
+        "pyXCP",
+        "One line description of project.",
+        "Miscellaneous",
+    ),
 ]
 
 

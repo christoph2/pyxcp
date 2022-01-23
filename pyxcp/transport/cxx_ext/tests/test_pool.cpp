@@ -37,4 +37,3 @@ int main()
         std::cout << "OK, caught CapacityExhaustedException as expected." << std::endl;
     }
 }
-

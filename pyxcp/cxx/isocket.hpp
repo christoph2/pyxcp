@@ -45,4 +45,3 @@ public:
 };
 
 #endif  // __ISOCKET_HPP
-

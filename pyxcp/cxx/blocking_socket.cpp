@@ -89,5 +89,3 @@ void * blockingReceiverThread(void * param)  {
     }
     printf("Exiting thread...\n");
 }
-
-

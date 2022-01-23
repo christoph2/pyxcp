@@ -64,4 +64,3 @@ private:
 };
 
 #endif // __MEMORYBLOCK_HPP
-

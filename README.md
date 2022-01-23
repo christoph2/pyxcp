@@ -7,6 +7,8 @@ pyXCP
 [![Build Status](https://github.com/christoph2/pyxcp/workflows/Python%20application/badge.svg)](https://github.com/christoph2/pyxcp/actions)
 [![Build status](https://ci.appveyor.com/api/projects/status/r00l4i4co095e9ht?svg=true)](https://ci.appveyor.com/project/christoph2/pyxcp)
 [![Coverage Status](https://coveralls.io/repos/github/christoph2/pyxcp/badge.svg?branch=master)](https://coveralls.io/github/christoph2/pyxcp?branch=master)
+[[!pre-commit.ci status](https://results.pre-commit.ci/badge/github/christoph2/pyxcp/master.svgi)](https://results.pre-commit.ci/latest/github/christoph2/pyxcp/master)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![GPL License](http://img.shields.io/badge/license-GPL-blue.svg)](http://opensource.org/licenses/GPL-2.0)
 
 pyXCP is a lightweight Python library which talks to ASAM MCD-1 XCP enabled devices.

@@ -53,4 +53,3 @@ struct InvalidObjectException : public std::exception {
     }
 };
 #endif // __EXCEPTIONS_HPP
-

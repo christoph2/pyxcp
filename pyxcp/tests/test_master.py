@@ -1,15 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import struct
+import time
 from collections import deque
 from unittest import mock
 
-import time
-import struct
-
-from pyxcp.transport.can import CanInterfaceBase
-
-from pyxcp.master import Master
 from pyxcp import types
+from pyxcp.master import Master
+from pyxcp.transport.can import CanInterfaceBase
 
 
 class MockSocket:

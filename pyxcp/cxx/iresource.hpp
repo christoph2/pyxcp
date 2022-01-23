@@ -39,4 +39,3 @@ public:
 };
 
 #endif // __IRESOURCE_HPP
-

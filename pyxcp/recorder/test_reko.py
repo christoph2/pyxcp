@@ -1,9 +1,9 @@
 import reco
-
 import struct
 import time
 from functools import partial
-from random import randint, choice
+from random import choice
+from random import randint
 
 CNT = 1024 * 10 * 5
 

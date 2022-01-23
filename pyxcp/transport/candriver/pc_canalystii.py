@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """
 python-can driver for CANalyst-II(+) by ZLG ZHIYUAN Electronics interfaces.
 """

@@ -47,4 +47,3 @@ inline std::unique_ptr<IAsyncIoService> createAsyncIoService()
 }
 
 #endif // __ASYNCHIOFACTORY_HPP
-

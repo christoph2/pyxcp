@@ -55,4 +55,3 @@ private:
 
 
 #endif // __POOLMGR_H
-

@@ -137,4 +137,3 @@ int main(int argc, char ** argv)
         hexlify(keyBuffer, keylen);
     }
 }
-

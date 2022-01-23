@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """Universal Calibration Protocol for Python"""
-
 from .master import Master
-from .transport import Can, Eth, SxI, Usb
+from .transport import Can
+from .transport import Eth
+from .transport import SxI
+from .transport import Usb
 
 
 __copyright__ = """
