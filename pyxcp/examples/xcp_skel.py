@@ -51,25 +51,25 @@ ap.parser.add_argument(
 with ap.run() as x:
     x.connect()
     if x.slaveProperties.optionalCommMode:
-        ##      Collect additional properties.
+        # Collect additional properties.
         x.getCommModeInfo()
 
-    ##  getId() is not strictly required.
+    # getId() is not strictly required.
     gid = x.getId(0x1)
     slave_name = x.fetch(gid.length)
 
-    ##  Unlock resources, if necessary.
-    ##  Could be more specific, like cond_unlock("DAQ")
-    ##  Note: Unlocking requires a seed-and-key DLL.
+    # Unlock resources, if necessary.
+    # Could be more specific, like cond_unlock("DAQ")
+    # Note: Unlocking requires a seed-and-key DLL.
     x.cond_unlock()
 
     ##
-    ##  Your own code goes here.
+    # Your own code goes here.
     ##
 
     x.disconnect()
 
-##  Print some useful information.
+# Print some useful information.
 # print("\nSlave properties:")
 # print("=================")
 # print("ID: '{}'".format(slave_name.decode("utf8")))

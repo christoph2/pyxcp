@@ -163,7 +163,7 @@ class Eth(BaseTransport):
                                 break
                             else:
                                 _packets.append((response, recv_timestamp))
-            except:
+            except BaseException:
                 self.status = 0  # disconnected
                 break
 

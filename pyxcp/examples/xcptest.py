@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from collections import OrderedDict
+from pprint import pprint
 
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
@@ -177,7 +179,7 @@ def cstest():
 
         startMeasurement(xm)
         ##
-        ##    xm.freeDaq()
+        # xm.freeDaq()
         ##    print("AllocDAQ:", xm.allocDaq(2))
         ##
         ##    print("allocOdt", xm.allocOdt(1, 5))
@@ -226,8 +228,6 @@ def cstest():
 
 #   print(tr.timing)
 
-from collections import OrderedDict
-from pprint import pprint
 
 # import pandas as pd
 

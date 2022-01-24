@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """Very basic hello-world example.
 """
+from pyxcp.cmdline import ArgumentParser
 
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
@@ -27,8 +28,6 @@ __copyright__ = """
 
 """
 """
-
-from pyxcp.cmdline import ArgumentParser
 
 
 def callout(master, args):

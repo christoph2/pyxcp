@@ -8,6 +8,7 @@ Run as:
 
     python xcp_user_supplied_driver.py -c conf_can_user.toml
 """
+from pyxcp.cmdline import ArgumentParser
 
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
@@ -63,8 +64,6 @@ class MyCI(CanInterfaceBase):
     def transmit(self, payload: bytes):
         print("\tTX-PAYLOAD", payload)
 
-
-from pyxcp.cmdline import ArgumentParser
 
 ap = ArgumentParser(description="User supplied CAN driver.")
 with ap.run() as x:

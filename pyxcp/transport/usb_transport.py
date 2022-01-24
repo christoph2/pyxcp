@@ -83,7 +83,7 @@ class Usb(BaseTransport):
                         device.serial_number.strip().strip("\0").lower(),
                         self.serial_number.lower(),
                     )
-            except:
+            except BaseException:
                 continue
         else:
             raise Exception(
@@ -146,12 +146,12 @@ class Usb(BaseTransport):
                         _packets.append((bytes(buffer)[:read_count], recv_timestamp))
                     else:
                         _packets.append((bytes(buffer), recv_timestamp))
-                except:
+                except BaseException:
                     # print(format_exc())
                     sleep(0.001)
                     continue
 
-            except:
+            except BaseException:
                 self.status = 0  # disconnected
                 break
 
@@ -217,7 +217,7 @@ class Usb(BaseTransport):
             self.pre_send_timestamp = time()
             try:
                 self.command_endpoint.write(frame)
-            except:
+            except BaseException:
                 # sometimes usb.core.USBError: [Errno 5] Input/Output Error is raised
                 # even though the command is send and a reply is received from the device.
                 # Ignore this here since a Timeout error will be raised anyway if
@@ -228,7 +228,7 @@ class Usb(BaseTransport):
             pre_send_timestamp = perf_counter()
             try:
                 self.command_endpoint.write(frame)
-            except:
+            except BaseException:
                 # sometimes usb.core.USBError: [Errno 5] Input/Output Error is raised
                 # even though the command is send and a reply is received from the device.
                 # Ignore this here since a Timeout error will be raised anyway if

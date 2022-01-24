@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """Very basic hello-world example.
 """
+from pyxcp.cmdline import ArgumentParser
 
 __copyright__ = """
     pySART - Simplified AUTOSAR-Toolkit for Python.
@@ -33,7 +34,6 @@ import seaborn as sns
 
 sns.set()
 
-from pyxcp.cmdline import ArgumentParser
 
 ADDR = 0x4000
 LENGTH = 0x1000

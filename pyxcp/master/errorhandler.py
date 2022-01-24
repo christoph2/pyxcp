@@ -390,7 +390,7 @@ class Executor(SingletonBase):
                 if self.handlerStack.empty():
                     # print("OK, all handlers passed: '{}'.".format(res))
                     return res
-            if self.error_code != None:
+            if self.error_code is not None:
                 preActions, actions, repeater = handler.actions(
                     *getActions(inst.service, self.error_code)
                 )
