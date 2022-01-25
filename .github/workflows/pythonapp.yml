@@ -34,9 +34,9 @@ jobs:
         pip install pytest
         pytest
     - name: Build wheel
-      #uses: pypa/cibuildwheel@v2.3.1
-      run: |
-        python setup.py bdist_wheel
+      uses: pypa/cibuildwheel@v2.3.1
+      #run: |
+      #  python setup.py bdist_wheel
     - name: Upload to PyPI
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USER_NAME }}

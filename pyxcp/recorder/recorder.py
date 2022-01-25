@@ -1,4 +1,5 @@
 from collections import namedtuple
+from enum import IntEnum
 
 import rekorder as rec
 
@@ -6,6 +7,19 @@ XcpLogFileHeader = namedtuple(
     "XcpLogFileHeader",
     "record_count size_uncompressed size_compressed compression_ratio",
 )
+
+
+class FrameCategory(IntEnum):
+    """ """
+
+    META = 0
+    CMD = 1
+    RES = 2
+    ERR = 3
+    EV = 4
+    SERV = 5
+    DAQ = 6
+    STIM = 7
 
 
 class XcpLogFileReader:
