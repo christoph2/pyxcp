@@ -1,2 +1,2 @@
-#!/bin/env bash
+#!/bin/sh
 git shortlog -sne --all | cut -f2,3 | sort > CONTRIBUTORS
