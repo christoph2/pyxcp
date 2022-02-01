@@ -45,6 +45,6 @@ PYBIND11_MODULE(rekorder, m) {
     py::class_<_PyXcpLogFileWriter>(m, "_PyXcpLogFileWriter")
         .def(py::init<const std::string&, std::uint32_t, std::uint32_t>())
         .def("finalize",  &_PyXcpLogFileWriter::finalize)
-        .def("add_frames", &_PyXcpLogFileWriter::add_frame)
+        .def("add_frame", &_PyXcpLogFileWriter::add_frame)
     ;
 }

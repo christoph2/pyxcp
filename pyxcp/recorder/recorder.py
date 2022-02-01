@@ -52,6 +52,21 @@ class XcpLogFileWriter:
     def add_frame(self, category: int, counter: int, timestamp: float, payload: bytes):
         self._writer.add_frame(category, counter, timestamp, len(payload), payload)
 
+    def add_frame(self, category: int, counter: int, timestamp: float, payload: bytes):
+        length = len(payload)
+        self._writer.add_frame(category, counter, timestamp, length, payload)
+
+    def finalize(self):
+        self._writer.finalize()
+
+
+from time import perf_counter
+
+writer = XcpLogFileWriter("test_logger")
+for idx in range(255):
+    writer.add_frame(1, idx, perf_counter(), [idx] * idx)
+writer.finalize()
+del writer
 
 print("Before c-tor()")
 reader = XcpLogFileReader("test_logger")
