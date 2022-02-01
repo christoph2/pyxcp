@@ -97,16 +97,10 @@ def getActions(service, error_code):
         eh = getErrorHandler(service)
         if eh is None:
             raise InternalError("Invalid Service 0x{:02x}".format(service))
-        print(
-            "Try to handle error -- Service: {} Error-Code: {}".format(
-                service.name, error_code
-            )
-        )
+        print("Try to handle error -- Service: {} Error-Code: {}".format(service.name, error_code))
         handler = eh.get(error_str)
         if handler is None:
-            raise UnhandledError(
-                "Service '{}' has no handler for '{}'.".format(service.name, error_code)
-            )
+            raise UnhandledError("Service '{}' has no handler for '{}'.".format(service.name, error_code))
         preActions, actions = handler
     return preActions, actions
 
@@ -142,15 +136,11 @@ class Arguments:
         self.kwargs = kwargs
 
     def __str__(self):
-        res = "{}(ARGS = {}, KWS = {})".format(
-            self.__class__.__name__, self.args, self.kwargs
-        )
+        res = "{}(ARGS = {}, KWS = {})".format(self.__class__.__name__, self.args, self.kwargs)
         return res
 
     def __eq__(self, other):
-        return (self.args == other.args if other is not None else ()) and (
-            self.kwargs == other.kwargs if other is not None else {}
-        )
+        return (self.args == other.args if other is not None else ()) and (self.kwargs == other.kwargs if other is not None else {})
 
     __repr__ = __str__
 
@@ -207,9 +197,7 @@ class Handler:
     def __init__(self, instance, func, arguments, error_code=None):
         self.instance = instance
         if hasattr(func, "__closure__") and func.__closure__:
-            self.func = func.__closure__[
-                0
-            ].cell_contents  # Use original, undecorated function to prevent
+            self.func = func.__closure__[0].cell_contents  # Use original, undecorated function to prevent
             # nasty recursion problems.
         else:
             self.func = func
@@ -223,24 +211,14 @@ class Handler:
         )
 
     def __eq__(self, other):
-        return (
-            (self.instance == other.instance)
-            and (self.func == other.func)
-            and (self.arguments == other.arguments)
-        )
+        return (self.instance == other.instance) and (self.func == other.func) and (self.arguments == other.arguments)
 
     def execute(self):
-        self.logger.debug(
-            "EXECUTE func = {} arguments = {})".format(
-                func_name(self.func), self.arguments
-            )
-        )
+        self.logger.debug("EXECUTE func = {} arguments = {})".format(func_name(self.func), self.arguments))
         if isinstance(self.func, types.MethodType):
             return self.func(*self.arguments.args, **self.arguments.kwargs)
         else:
-            return self.func(
-                self.instance, *self.arguments.args, **self.arguments.kwargs
-            )
+            return self.func(self.instance, *self.arguments.args, **self.arguments.kwargs)
 
     def actions(self, preActions, actions):
         """Preprocess errorhandling pre-actions and actions."""
@@ -261,9 +239,7 @@ class Handler:
                 fn = Function(self.instance.setMta, Arguments(self.instance.mta))
                 result_pre_actions.append(fn)
             elif item == PreAction.SET_DAQ_PTR:
-                fn = Function(
-                    self.instance.setDaqPtr, Arguments(self.instance.currentDaqPtr)
-                )
+                fn = Function(self.instance.setDaqPtr, Arguments(self.instance.currentDaqPtr))
             elif item == PreAction.START_STOP_X:
                 raise NotImplementedError("START_STOP_X")
             elif item == PreAction.REINIT_DAQ:
@@ -277,7 +253,7 @@ class Handler:
             elif item == PreAction.UPLOAD:
                 raise NotImplementedError("UPLOAD")
             elif item == PreAction.UNLOCK_SLAVE:
-                resource = COMMAND_CATEGORIES.get(self.instance.service)
+                resource = COMMAND_CATEGORIES.get(self.instance.service)  # noqa: F841
                 raise NotImplementedError("UNLOCK_SLAVE")
         for item in actionIter(actions):
             if item == Action.NONE:
@@ -291,9 +267,7 @@ class Handler:
             elif item == Action.USE_A2L:
                 raise UnhandledError("Could not proceed due to unhandled error.")
             elif item == Action.USE_ALTERATIVE:
-                raise UnhandledError(
-                    "Could not proceed due to unhandled error."
-                )  # TODO: check alternatives.
+                raise UnhandledError("Could not proceed due to unhandled error.")  # TODO: check alternatives.
             elif item == Action.REPEAT:
                 repetitionCount = Repeater.REPEAT
             elif item == Action.REPEAT_2_TIMES:
@@ -322,7 +296,7 @@ class HandlerStack:
 
     def pop(self):
         if len(self) > 0:
-            res = self._stack.pop()
+            self._stack.pop()
 
     def tos(self):
         if len(self) > 0:
@@ -375,14 +349,12 @@ class Executor(SingletonBase):
                 self.logger.error("XcpResponseError [{}]".format(str(e)))
                 if self.newHandler:
                     self.error_code = e.get_error_code()
-            except XcpTimeoutError as e:
+            except XcpTimeoutError:
                 self.logger.error("XcpTimeoutError")
                 if self.newHandler:
                     self.error_code = XcpError.ERR_TIMEOUT
             except Exception as e:
-                raise UnrecoverableError(
-                    "Don't know how to handle exception '{}'".format(repr(e))
-                ) from e
+                raise UnrecoverableError("Don't know how to handle exception '{}'".format(repr(e))) from e
             else:
                 self.error_code = None
                 # print("\t\t\t*** SUCCESS ***")
@@ -391,9 +363,7 @@ class Executor(SingletonBase):
                     # print("OK, all handlers passed: '{}'.".format(res))
                     return res
             if self.error_code is not None:
-                preActions, actions, repeater = handler.actions(
-                    *getActions(inst.service, self.error_code)
-                )
+                preActions, actions, repeater = handler.actions(*getActions(inst.service, self.error_code))
                 self.repeater = repeater
                 for f, a in reversed(preActions):
                     self.handlerStack.push(Handler(inst, f, a, self.error_code))

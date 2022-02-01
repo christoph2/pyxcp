@@ -60,9 +60,7 @@ FileHeader = namedtuple(
 )
 
 CONTAINER_HEADER_STRUCT = struct.Struct("<LLL")
-ContainerHeader = namedtuple(
-    "ContainerHeader", "record_count size_compressed size_uncompressed"
-)
+ContainerHeader = namedtuple("ContainerHeader", "record_count size_compressed size_uncompressed")
 
 DAQ_RECORD_STRUCT = struct.Struct("<BHdL")
 DAQRecord = namedtuple("DAQRecord", "category counter timestamp payload")
@@ -111,15 +109,13 @@ class XcpLogFileWriter:
         self._is_closed = True
         try:
             self._of = open("{}{}".format(file_name, FILE_EXTENSION), "w+b")
-        except Exception as e:
+        except Exception:
             raise
         else:
             self._of.truncate(1024 * 1024 * prealloc)  # Create sparse file (hopefully).
             self._mapping = mmap.mmap(self._of.fileno(), 0)
         self.container_header_offset = FILE_HEADER_STRUCT.size
-        self.current_offset = (
-            self.container_header_offset + CONTAINER_HEADER_STRUCT.size
-        )
+        self.current_offset = self.container_header_offset + CONTAINER_HEADER_STRUCT.size
         self.total_size_uncompressed = self.total_size_compressed = 0
         self.container_size_uncompressed = self.container_size_compressed = 0
         self.total_record_count = 0
@@ -140,19 +136,13 @@ class XcpLogFileWriter:
                 self._compress_framez()
 
     def _compress_framez(self):
-        compressed_data = lz4block.compress(
-            b"".join(self.intermediate_storage), compression=self.compression_level
-        )
+        compressed_data = lz4block.compress(b"".join(self.intermediate_storage), compression=self.compression_level)
         record_count = len(self.intermediate_storage)
-        hdr = CONTAINER_HEADER_STRUCT.pack(
-            record_count, len(compressed_data), self.container_size_uncompressed
-        )
+        hdr = CONTAINER_HEADER_STRUCT.pack(record_count, len(compressed_data), self.container_size_uncompressed)
         self.set(self.current_offset, compressed_data)
         self.set(self.container_header_offset, hdr)
         self.container_header_offset = self.current_offset + len(compressed_data)
-        self.current_offset = (
-            self.container_header_offset + CONTAINER_HEADER_STRUCT.size
-        )
+        self.current_offset = self.container_header_offset + CONTAINER_HEADER_STRUCT.size
         self.intermediate_storage = []
         self.total_record_count += record_count
         self.num_containers += 1
@@ -196,10 +186,8 @@ class XcpLogFileWriter:
         length = len(data)
         try:
             self._mapping[address : address + length] = data
-        except IndexError as e:
-            raise XcpLogFileCapacityExceededError(
-                "Maximum file size of {} MBytes exceeded.".format(self.prealloc)
-            )
+        except IndexError:
+            raise XcpLogFileCapacityExceededError("Maximum file size of {} MBytes exceeded.".format(self.prealloc))
 
     def _write_header(
         self,
@@ -240,7 +228,7 @@ class XcpLogFileReader:
         self._is_closed = True
         try:
             self._log_file = open("{}{}".format(file_name, FILE_EXTENSION), "r+b")
-        except Exception as e:
+        except Exception:
             raise
         else:
             self._mapping = mmap.mmap(self._log_file.fileno(), 0)
@@ -276,24 +264,16 @@ class XcpLogFileReader:
                 record_count,
                 size_compressed,
                 size_uncompressed,
-            ) = CONTAINER_HEADER_STRUCT.unpack(
-                self.get(offset, CONTAINER_HEADER_STRUCT.size)
-            )
+            ) = CONTAINER_HEADER_STRUCT.unpack(self.get(offset, CONTAINER_HEADER_STRUCT.size))
             offset += CONTAINER_HEADER_STRUCT.size
-            uncompressed_data = memoryview(
-                lz4block.decompress(self.get(offset, size_compressed))
-            )
+            uncompressed_data = memoryview(lz4block.decompress(self.get(offset, size_compressed)))
             frame_offset = 0
             for _ in range(record_count):
                 category, counter, timestamp, frame_length = DAQ_RECORD_STRUCT.unpack(
-                    uncompressed_data[
-                        frame_offset : frame_offset + DAQ_RECORD_STRUCT.size
-                    ]
+                    uncompressed_data[frame_offset : frame_offset + DAQ_RECORD_STRUCT.size]
                 )
                 frame_offset += DAQ_RECORD_STRUCT.size
-                frame_data = uncompressed_data[
-                    frame_offset : frame_offset + frame_length
-                ]  # .tobytes()
+                frame_data = uncompressed_data[frame_offset : frame_offset + frame_length]  # .tobytes()
                 frame_offset += len(frame_data)
                 frame = DAQRecord(category, counter, timestamp, frame_data)
                 yield frame

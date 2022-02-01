@@ -67,9 +67,7 @@ class ArgumentParser:
             choices=["ERROR", "WARN", "INFO", "DEBUG"],
             default="INFO",
         )
-        self._parser.epilog = "To get specific help on transport layers\nuse <layer> -h, e.g. {} eth -h".format(
-            self._parser.prog
-        )
+        self._parser.epilog = "To get specific help on transport layers\nuse <layer> -h, e.g. {} eth -h".format(self._parser.prog)
         self._args = []
 
     @property
@@ -82,7 +80,7 @@ class ArgumentParser:
         args = self.args
         config = readConfiguration(args.conf)
         config["LOGLEVEL"] = args.loglevel
-        if not "TRANSPORT" in config:
+        if "TRANSPORT" not in config:
             raise AttributeError("TRANSPORT must be specified in config!")
         transport = config["TRANSPORT"].lower()
         master = Master(transport, config=config)

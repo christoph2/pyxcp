@@ -38,9 +38,7 @@ CMD_QUIT = 0x30
 
 class SeedNKeyResult(enum.IntEnum):
     ACK = 0  # o.k.
-    ERR_PRIVILEGE_NOT_AVAILABLE = (
-        1  # the requested privilege can not be unlocked with this DLL
-    )
+    ERR_PRIVILEGE_NOT_AVAILABLE = 1  # the requested privilege can not be unlocked with this DLL
     ERR_INVALID_SEED_LENGTH = 2  # the seed length is wrong, key could not be computed
     ERR_UNSUFFICIENT_KEY_LENGTH = 3  # the space for the key is too small
 

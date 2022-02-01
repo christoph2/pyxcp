@@ -1,0 +1,125 @@
+[build-system]
+requires = ["pdm-pep517"]
+build-backend = "pdm.pep517.api"
+
+[tool.poetry]
+name = "pyxcp"
+version = "0.10.0"
+readme = "README.md"
+description = "Universal Calibration Protocol for Python"
+homepage = "https://github.com/christoph2/pyxcp"
+#authors = [{name = "Christoph Schueler", email = "cpu12.gems@googlemail.com"}]
+authors = ["Christoph Schueler"]
+keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
+build = "build.py"
+classifiers = [
+    # How mature is this project? Common values are
+    #   3 - Alpha
+    #   4 - Beta
+    #   5 - Production/Stable
+    "Development Status :: 4 - Beta",
+
+    # Indicate who your project is intended for
+    "Intended Audience :: Developers",
+    "Topic :: Software Development",
+    "Topic :: Scientific/Engineering",
+
+    # Pick your license as you wish (should match "license" above)
+    "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+
+    # Specify the Python versions you support here. In particular, ensure
+    # that you indicate whether you support Python 2, Python 3 or both.
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+]
+
+
+[tool.pdm]
+includes = []
+build = "build.py"
+[tool.pdm.dev-dependencies]
+dev = [
+    "pytest<7.0.0,>=6.2.5",
+    "pytest-runner<6.0.0,>=5.3.1",
+    "pytest-cov<4.0.0,>=3.0.0",
+]
+[project]
+authors = [
+    {name = "Christoph Schueler"},
+]
+requires-python = ">=3.6,<4.0"
+dependencies = [
+    "pybind11<3.0.0,>=2.9.0",
+    "setuptools-cpp<1.0.0,>=0.1.0",
+    "Mako<2.0.0,>=1.1.6",
+    "construct<3.0.0,>=2.10.67",
+    "pyserial<4.0,>=3.5",
+    "pyusb<2.0.0,>=1.2.1",
+    "toml<1.0.0,>=0.10.2",
+]
+name = "pyxcp"
+version = "0.10.0"
+readme = "README.md"
+description = "Universal Calibration Protocol for Python"
+keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
+classifiers = ["Development Status :: 4 - Beta", "Intended Audience :: Developers", "Topic :: Software Development", "Topic :: Scientific/Engineering", "License :: OSI Approved :: GNU General Public License v2 (GPLv2)", "Programming Language :: Python :: 3.6", "Programming Language :: Python :: 3.7", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10"]
+[project.urls]
+homepage = "https://github.com/christoph2/pyxcp"
+
+[project.optional-dependencies]
+doc = [
+    "sphinx",
+    "sphinxcontrib-napoleon"
+]
+
+
+[tool.pytest]
+addopts = "--verbose --tb=short --junitxml=result.xml -o junit_family=xunit2"
+testpaths = "pyxcp/tests"
+
+[tool.flake8]
+ignore = ["D203", "E203", "E266", "E501", "W503", "F403", "F401", "BLK100"]
+exclude = '''
+/(
+    \.git
+    | __pycache__
+    | __pypackages__
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | \.eggs
+    | _build
+    | build
+    | docs
+    | dist
+    | experimental
+)/
+'''
+max-complexity = 10
+count = true
+statistics = true
+show-source = true
+max-line-length = 132
+select = ["B","C","E","F","W","T4","B9"]
+
+[tool.black]
+line-length=132
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | build
+    | docs
+    | experimental
+    | __pycache__
+    | __pypackages__
+    | dist
+)/
+'''

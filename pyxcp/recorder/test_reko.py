@@ -9,7 +9,7 @@ CNT = 1024 * 10 * 5
 
 ri = partial(randint, 0, 255)
 
-rs = [ri() for I in range(CNT)]
+rs = [ri() for _ in range(CNT)]
 
 # print(dir(time))
 TS_STRUCT = struct.Struct("<Hd")

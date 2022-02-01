@@ -1,5 +1,6 @@
 from collections import namedtuple
 from enum import IntEnum
+from time import perf_counter
 
 import rekorder as rec
 
@@ -59,8 +60,6 @@ class XcpLogFileWriter:
     def finalize(self):
         self._writer.finalize()
 
-
-from time import perf_counter
 
 writer = XcpLogFileWriter("test_logger")
 for idx in range(255):

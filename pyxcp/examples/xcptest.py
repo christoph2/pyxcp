@@ -113,9 +113,7 @@ def timecode(ticks, mode):
 
 
 def cstest():
-    tr = transport.Eth(
-        "localhost", port=5555, protocol="UDP", loglevel="WARN"
-    )  # "DEBUG"
+    tr = transport.Eth("localhost", port=5555, protocol="UDP", loglevel="WARN")  # "DEBUG"
     # tr = transport.SxI("COM27", 115200, loglevel = "WARN")
     with Master(tr) as xm:
         #    tm = Timing()

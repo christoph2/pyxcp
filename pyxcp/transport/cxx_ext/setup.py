@@ -10,11 +10,7 @@ from pybind11.setup_helpers import Pybind11Extension
 try:
     INCLUDE_DIRS = subprocess.getoutput("pybind11-config --include")
 except Exception as e:
-    print(
-        "Error while executing pybind11-config ('{}').\npybind11 probably not installed?".format(
-            str(e)
-        )
-    )
+    print("Error while executing pybind11-config ('{}').\npybind11 probably not installed?".format(str(e)))
     sys.exit(1)
 
 pf = sys.platform

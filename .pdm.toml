@@ -1,0 +1,25 @@
+[python]
+auto_global = false
+build_isolation = false
+check_update = false
+parallel_install = true
+project_max_depth = 5
+use_venv = false
+path = "/usr/local/bin/python3"
+
+[python.feature]
+install_cache = true
+install_cache_method = "symlink"
+
+[python.pypi]
+json_api = true
+url = "https://pypi.org/simple"
+verify_ssl = false
+
+[python.python]
+use_pyenv = false
+
+[python.strategy]
+resolve_max_rounds = 10000
+save = "minimum"
+update = "reuse"

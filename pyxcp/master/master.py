@@ -76,7 +76,7 @@ class SlaveProperties(dict):
         return self
 
     def __setstate__(self, state):
-        self = state
+        self = state  # noqa: F841
 
 
 class Master:
@@ -133,9 +133,7 @@ class Master:
         self.currentDaqPtr = None
         self.currentProtectionStatus = None
         self.seedNKeyDLL = self.config.get("SEED_N_KEY_DLL")
-        self.seedNKeyDLL_same_bit_width = self.config.get(
-            "SEED_N_KEY_DLL_SAME_BIT_WIDTH"
-        )
+        self.seedNKeyDLL_same_bit_width = self.config.get("SEED_N_KEY_DLL_SAME_BIT_WIDTH")
         self.slaveProperties = SlaveProperties()
         self.slaveProperties.pgmProcessor = SlaveProperties()
 
@@ -154,9 +152,7 @@ class Master:
             self.succeeded = False
             # print("=" * 79)
             # print("Exception while in Context-Manager:\n")
-            self.logger.error(
-                "".join(traceback.format_exception(exc_type, exc_val, exc_tb))
-            )
+            self.logger.error("".join(traceback.format_exception(exc_type, exc_val, exc_tb)))
             # print("=" * 79)
             # return True
 
@@ -218,16 +214,12 @@ class Master:
         self.slaveProperties.supportsDaq = result.resource.daq
         self.slaveProperties.supportsCalpag = result.resource.calpag
         self.slaveProperties.slaveBlockMode = result.commModeBasic.slaveBlockMode
-        self.slaveProperties.addressGranularity = (
-            result.commModeBasic.addressGranularity
-        )
+        self.slaveProperties.addressGranularity = result.commModeBasic.addressGranularity
         self.slaveProperties.protocolLayerVersion = result.protocolLayerVersion
         self.slaveProperties.transportLayerVersion = result.transportLayerVersion
         self.slaveProperties.optionalCommMode = result.commModeBasic.optional
         self.slaveProperties.maxWriteDaqMultipleElements = (
-            0
-            if self.slaveProperties.maxCto < 10
-            else int((self.slaveProperties.maxCto - 2) // 8)
+            0 if self.slaveProperties.maxCto < 10 else int((self.slaveProperties.maxCto - 2) // 8)
         )
         self.BYTE_pack = makeBytePacker(byteOrderPrefix)
         self.BYTE_unpack = makeByteUnpacker(byteOrderPrefix)
@@ -278,9 +270,7 @@ class Master:
         :obj:`pyxcp.types.GetStatusResponse`
         """
         response = self.transport.request(types.Command.GET_STATUS)
-        result = types.GetStatusResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        result = types.GetStatusResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
         self._setProtectionStatus(result.resourceProtectionStatus)
         return result
 
@@ -300,9 +290,7 @@ class Master:
         :obj:`pyxcp.types.GetCommModeInfoResponse`
         """
         response = self.transport.request(types.Command.GET_COMM_MODE_INFO)
-        result = types.GetCommModeInfoResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        result = types.GetCommModeInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
         self.slaveProperties.interleavedMode = result.commModeOptional.interleavedMode
         self.slaveProperties.masterBlockMode = result.commModeOptional.masterBlockMode
         self.slaveProperties.maxBs = result.maxBs
@@ -332,9 +320,7 @@ class Master:
         :obj:`pydbc.types.GetIDResponse`
         """
         response = self.transport.request(types.Command.GET_ID, mode)
-        result = types.GetIDResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        result = types.GetIDResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
         result.length = self.DWORD_unpack(response[3:7])[0]
         return result
 
@@ -393,9 +379,7 @@ class Master:
             return reply
         else:
             response = self.transport.request(types.Command.GET_SEED, first, resource)
-            return types.GetSeedResponse.parse(
-                response, byteOrder=self.slaveProperties.byteOrder
-            )
+            return types.GetSeedResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def unlock(self, length: int, key: bytes):
@@ -420,9 +404,7 @@ class Master:
         a Length containing the total length of the key.
         """
         response = self.transport.request(types.Command.UNLOCK, length, *key)
-        result = types.ResourceType.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        result = types.ResourceType.parse(response, byteOrder=self.slaveProperties.byteOrder)
         self._setProtectionStatus(result)
         return result
 
@@ -442,9 +424,7 @@ class Master:
         and :meth:`programMax`.
 
         """
-        self.mta = types.MtaType(
-            address, addressExt
-        )  # Keep track of MTA (needed for error-handling).
+        self.mta = types.MtaType(address, addressExt)  # Keep track of MTA (needed for error-handling).
         addr = self.DWORD_pack(address)
         return self.transport.request(types.Command.SET_MTA, 0, 0, addressExt, *addr)
 
@@ -467,9 +447,7 @@ class Master:
 
         response = self.transport.request(types.Command.UPLOAD, length)
         if length > (self.slaveProperties.maxCto - 1):
-            block_response = self.transport.block_receive(
-                length_required=(length - len(response))
-            )
+            block_response = self.transport.block_receive(length_required=(length - len(response)))
             response += block_response
         elif self.transport_name == "can":
             # larger sizes will send in multiple CAN messages
@@ -501,9 +479,7 @@ class Master:
         bytes
         """
         addr = self.DWORD_pack(address)
-        return self.transport.request(
-            types.Command.SHORT_UPLOAD, length, 0, addressExt, *addr
-        )
+        return self.transport.request(types.Command.SHORT_UPLOAD, length, 0, addressExt, *addr)
 
     @wrapped
     def buildChecksum(self, blocksize: int):
@@ -525,9 +501,7 @@ class Master:
         """
         bs = self.DWORD_pack(blocksize)
         response = self.transport.request(types.Command.BUILD_CHECKSUM, 0, 0, 0, *bs)
-        return types.BuildChecksumResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.BuildChecksumResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def transportLayerCmd(self, subCommand: int, data: bytes):
@@ -542,9 +516,7 @@ class Master:
         ----
         For details refer to XCP specification.
         """
-        return self.transport.request(
-            types.Command.TRANSPORT_LAYER_CMD, subCommand, *data
-        )
+        return self.transport.request(types.Command.TRANSPORT_LAYER_CMD, subCommand, *data)
 
     @wrapped
     def userCmd(self, subCommand: int, data: bytes):
@@ -576,9 +548,7 @@ class Master:
         """
 
         response = self.transport.request(types.Command.GET_VERSION)
-        result = types.GetVersionResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        result = types.GetVersionResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
         self.slaveProperties.protocolMajor = result.protocolMajor
         self.slaveProperties.protocolMinor = result.protocolMinor
         self.slaveProperties.transportMajor = result.transportMajor
@@ -604,9 +574,7 @@ class Master:
         address is not included because of services implicitly setting address information like :meth:`getID` .
         """
         if limitPayload and limitPayload < 8:
-            raise ValueError(
-                "Payload must be at least 8 bytes - given: {}".format(limitPayload)
-            )
+            raise ValueError("Payload must be at least 8 bytes - given: {}".format(limitPayload))
 
         slaveBlockMode = self.slaveProperties.slaveBlockMode
         if slaveBlockMode:
@@ -717,11 +685,7 @@ class Master:
                 block_downloader(block)
                 offset += max_payload
                 remaining -= max_payload
-                if (
-                    callback
-                    and remaining
-                    <= total_length - (total_length / 100) * percent_complete
-                ):
+                if callback and remaining <= total_length - (total_length / 100) * percent_complete:
                     callback(percent_complete)
                     percent_complete += 1
             if remaining_block_size:
@@ -769,9 +733,7 @@ class Master:
             packet_data = data[offset : offset + max_packet_size]
             last = (remaining_block_size - max_packet_size) == 0
             if index == 0:
-                dl_func(
-                    packet_data, length, last
-                )  # Transmit the complete length in the first CTO.
+                dl_func(packet_data, length, last)  # Transmit the complete length in the first CTO.
             else:
                 dl_next_func(packet_data, remaining_block_size, last)
             offset += max_packet_size
@@ -832,16 +794,12 @@ class Master:
 
         if last:
             # last DOWNLOAD_NEXT packet in a block: the slave device has to send the response after this.
-            response = self.transport.request(
-                types.Command.DOWNLOAD_NEXT, remainingBlockLength, *data
-            )
+            response = self.transport.request(types.Command.DOWNLOAD_NEXT, remainingBlockLength, *data)
             return response
         else:
             # the slave device won't respond to consecutive DOWNLOAD_NEXT packets in block mode,
             # so we must not wait for any response
-            self.transport.block_request(
-                types.Command.DOWNLOAD_NEXT, remainingBlockLength, *data
-            )
+            self.transport.block_request(types.Command.DOWNLOAD_NEXT, remainingBlockLength, *data)
             return None
 
     @wrapped
@@ -858,9 +816,7 @@ class Master:
     def shortDownload(self, address, addressExt, data):
         length = len(data)
         addr = self.DWORD_pack(address)
-        return self.transport.request(
-            types.Command.SHORT_DOWNLOAD, length, 0, addressExt, *addr, *data
-        )
+        return self.transport.request(types.Command.SHORT_DOWNLOAD, length, 0, addressExt, *addr, *data)
 
     @wrapped
     def modifyBits(self, shiftValue, andMask, xorMask):
@@ -883,9 +839,7 @@ class Master:
         logicalDataSegment : int
         logicalDataPage : int
         """
-        return self.transport.request(
-            types.Command.SET_CAL_PAGE, mode, logicalDataSegment, logicalDataPage
-        )
+        return self.transport.request(types.Command.SET_CAL_PAGE, mode, logicalDataSegment, logicalDataPage)
 
     @wrapped
     def getCalPage(self, mode: int, logicalDataSegment: int):
@@ -896,9 +850,7 @@ class Master:
         mode : int
         logicalDataSegment : int
         """
-        response = self.transport.request(
-            types.Command.GET_CAL_PAGE, mode, logicalDataSegment
-        )
+        response = self.transport.request(types.Command.GET_CAL_PAGE, mode, logicalDataSegment)
         return response[2]
 
     @wrapped
@@ -910,9 +862,7 @@ class Master:
         `pydbc.types.GetPagProcessorInfoResponse`
         """
         response = self.transport.request(types.Command.GET_PAG_PROCESSOR_INFO)
-        return types.GetPagProcessorInfoResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.GetPagProcessorInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def getSegmentInfo(self, mode, segmentNumber, segmentInfo, mappingIndex):
@@ -953,17 +903,11 @@ class Master:
             mappingIndex,
         )
         if mode == 0:
-            return types.GetSegmentInfoMode0Response.parse(
-                response, byteOrder=self.slaveProperties.byteOrder
-            )
+            return types.GetSegmentInfoMode0Response.parse(response, byteOrder=self.slaveProperties.byteOrder)
         elif mode == 1:
-            return types.GetSegmentInfoMode1Response.parse(
-                response, byteOrder=self.slaveProperties.byteOrder
-            )
+            return types.GetSegmentInfoMode1Response.parse(response, byteOrder=self.slaveProperties.byteOrder)
         elif mode == 2:
-            return types.GetSegmentInfoMode2Response.parse(
-                response, byteOrder=self.slaveProperties.byteOrder
-            )
+            return types.GetSegmentInfoMode2Response.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def getPageInfo(self, segmentNumber, pageNumber):
@@ -974,13 +918,9 @@ class Master:
         segmentNumber : int
         pageNumber : int
         """
-        response = self.transport.request(
-            types.Command.GET_PAGE_INFO, 0, segmentNumber, pageNumber
-        )
+        response = self.transport.request(types.Command.GET_PAGE_INFO, 0, segmentNumber, pageNumber)
         return (
-            types.PageProperties.parse(
-                bytes([response[0]]), byteOrder=self.slaveProperties.byteOrder
-            ),
+            types.PageProperties.parse(bytes([response[0]]), byteOrder=self.slaveProperties.byteOrder),
             response[1],
         )
 
@@ -994,9 +934,7 @@ class Master:
             1 = enable FREEZE Mode
         segmentNumber : int
         """
-        return self.transport.request(
-            types.Command.SET_SEGMENT_MODE, mode, segmentNumber
-        )
+        return self.transport.request(types.Command.SET_SEGMENT_MODE, mode, segmentNumber)
 
     @wrapped
     def getSegmentMode(self, segmentNumber):
@@ -1006,9 +944,7 @@ class Master:
         ----------
         segmentNumber : int
         """
-        response = self.transport.request(
-            types.Command.GET_SEGMENT_MODE, 0, segmentNumber
-        )
+        response = self.transport.request(types.Command.GET_SEGMENT_MODE, 0, segmentNumber)
         return response[1]
 
     @wrapped
@@ -1022,21 +958,15 @@ class Master:
         dstSegment : int
         dstPage : int
         """
-        return self.transport.request(
-            types.Command.COPY_CAL_PAGE, srcSegment, srcPage, dstSegment, dstPage
-        )
+        return self.transport.request(types.Command.COPY_CAL_PAGE, srcSegment, srcPage, dstSegment, dstPage)
 
     # DAQ
 
     @wrapped
     def setDaqPtr(self, daqListNumber, odtNumber, odtEntryNumber):
-        self.currentDaqPtr = types.DaqPtr(
-            daqListNumber, odtNumber, odtEntryNumber
-        )  # Needed for errorhandling.
+        self.currentDaqPtr = types.DaqPtr(daqListNumber, odtNumber, odtEntryNumber)  # Needed for errorhandling.
         daqList = self.WORD_pack(daqListNumber)
-        response = self.transport.request(
-            types.Command.SET_DAQ_PTR, 0, *daqList, odtNumber, odtEntryNumber
-        )
+        response = self.transport.request(types.Command.SET_DAQ_PTR, 0, *daqList, odtNumber, odtEntryNumber)
         return response
 
     @wrapped
@@ -1064,19 +994,13 @@ class Master:
         address : int
         """
         addr = self.DWORD_pack(address)
-        return self.transport.request(
-            types.Command.WRITE_DAQ, bitOffset, entrySize, addressExt, *addr
-        )
+        return self.transport.request(types.Command.WRITE_DAQ, bitOffset, entrySize, addressExt, *addr)
 
     @wrapped
-    def setDaqListMode(
-        self, mode, daqListNumber, eventChannelNumber, prescaler, priority
-    ):
+    def setDaqListMode(self, mode, daqListNumber, eventChannelNumber, prescaler, priority):
         dln = self.WORD_pack(daqListNumber)
         ecn = self.WORD_pack(eventChannelNumber)
-        return self.transport.request(
-            types.Command.SET_DAQ_LIST_MODE, mode, *dln, *ecn, prescaler, priority
-        )
+        return self.transport.request(types.Command.SET_DAQ_LIST_MODE, mode, *dln, *ecn, prescaler, priority)
 
     @wrapped
     def getDaqListMode(self, daqListNumber):
@@ -1092,9 +1016,7 @@ class Master:
         """
         dln = self.WORD_pack(daqListNumber)
         response = self.transport.request(types.Command.GET_DAQ_LIST_MODE, 0, *dln)
-        return types.GetDaqListModeResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.GetDaqListModeResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def startStopDaqList(self, mode, daqListNumber):
@@ -1110,9 +1032,7 @@ class Master:
         """
         dln = self.WORD_pack(daqListNumber)
         response = self.transport.request(types.Command.START_STOP_DAQ_LIST, mode, *dln)
-        return types.StartStopDaqListResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.StartStopDaqListResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def startStopSynch(self, mode):
@@ -1136,20 +1056,12 @@ class Master:
         daqElements : list of `dict` containing the following keys: *bitOffset*, *size*, *address*, *addressExt*.
         """
         if len(daqElements) > self.slaveProperties.maxWriteDaqMultipleElements:
-            raise ValueError(
-                "At most {} daqElements are permitted.".format(
-                    self.slaveProperties.maxWriteDaqMultipleElements
-                )
-            )
+            raise ValueError("At most {} daqElements are permitted.".format(self.slaveProperties.maxWriteDaqMultipleElements))
         data = bytearray()
         data.append(len(daqElements))
 
         for daqElement in daqElements:
-            data.extend(
-                types.DaqElement.build(
-                    daqElement, byteOrder=self.slaveProperties.byteOrder
-                )
-            )
+            data.extend(types.DaqElement.build(daqElement, byteOrder=self.slaveProperties.byteOrder))
 
         return self.transport.request(types.Command.WRITE_DAQ_MULTIPLE, *data)
 
@@ -1164,9 +1076,7 @@ class Master:
             Current timestamp, format specified by `getDaqResolutionInfo`
         """
         response = self.transport.request(types.Command.GET_DAQ_CLOCK)
-        result = types.GetDaqClockResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        result = types.GetDaqClockResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
         return result.timestamp
 
     @wrapped
@@ -1178,9 +1088,7 @@ class Master:
         `pyxcp.types.ReadDaqResponse`
         """
         response = self.transport.request(types.Command.READ_DAQ)
-        return types.ReadDaqResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.ReadDaqResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def getDaqProcessorInfo(self):
@@ -1191,9 +1099,7 @@ class Master:
         `pyxcp.types.GetDaqProcessorInfoResponse`
         """
         response = self.transport.request(types.Command.GET_DAQ_PROCESSOR_INFO)
-        return types.GetDaqProcessorInfoResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.GetDaqProcessorInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def getDaqResolutionInfo(self):
@@ -1204,9 +1110,7 @@ class Master:
         `pyxcp.types.GetDaqResolutionInfoResponse`
         """
         response = self.transport.request(types.Command.GET_DAQ_RESOLUTION_INFO)
-        return types.GetDaqResolutionInfoResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.GetDaqResolutionInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def getDaqListInfo(self, daqListNumber):
@@ -1218,9 +1122,7 @@ class Master:
         """
         dln = self.WORD_pack(daqListNumber)
         response = self.transport.request(types.Command.GET_DAQ_LIST_INFO, 0, *dln)
-        return types.GetDaqListInfoResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.GetDaqListInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def getDaqEventInfo(self, eventChannelNumber):
@@ -1236,9 +1138,7 @@ class Master:
         """
         ecn = self.WORD_pack(eventChannelNumber)
         response = self.transport.request(types.Command.GET_DAQ_EVENT_INFO, 0, *ecn)
-        return types.GetEventChannelInfoResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.GetEventChannelInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def dtoCtrProperties(self, modifier, eventChannel, relatedEventChannel, mode):
@@ -1261,14 +1161,10 @@ class Master:
         data.extend(self.WORD_pack(relatedEventChannel))
         data.append(mode)
         response = self.transport.request(types.Command.DTO_CTR_PROPERTIES, *data)
-        return types.DtoCtrPropertiesResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.DtoCtrPropertiesResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
-    def setDaqPackedMode(
-        self, daqListNumber, daqPackedMode, dpmTimestampMode=None, dpmSampleCount=None
-    ):
+    def setDaqPackedMode(self, daqListNumber, daqPackedMode, dpmTimestampMode=None, dpmSampleCount=None):
         """Set DAQ List Packed Mode.
 
         Parameters
@@ -1301,9 +1197,7 @@ class Master:
         """
         dln = self.WORD_pack(daqListNumber)
         response = self.transport.request(types.Command.GET_DAQ_PACKED_MODE, *dln)
-        return types.GetDaqPackedModeResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.GetDaqPackedModeResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     # dynamic
     @wrapped
@@ -1331,9 +1225,7 @@ class Master:
     @wrapped
     def allocOdtEntry(self, daqListNumber, odtNumber, odtEntriesCount):
         dln = self.WORD_pack(daqListNumber)
-        return self.transport.request(
-            types.Command.ALLOC_ODT_ENTRY, 0, *dln, odtNumber, odtEntriesCount
-        )
+        return self.transport.request(types.Command.ALLOC_ODT_ENTRY, 0, *dln, odtNumber, odtEntriesCount)
 
     # PGM
     @wrapped
@@ -1345,23 +1237,15 @@ class Master:
         `pyxcp.types.ProgramStartResponse`
         """
         response = self.transport.request(types.Command.PROGRAM_START)
-        result = types.ProgramStartResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        result = types.ProgramStartResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
         self.slaveProperties.pgmProcessor.commModePgm = result.commModePgm
         self.slaveProperties.pgmProcessor.maxCtoPgm = result.maxCtoPgm
         self.slaveProperties.pgmProcessor.maxBsPgm = result.maxBsPgm
         self.slaveProperties.pgmProcessor.minStPgm = result.minStPgm
         self.slaveProperties.pgmProcessor.queueSizePgm = result.queueSizePgm
-        self.slaveProperties.pgmProcessor.slaveBlockMode = (
-            result.commModePgm.slaveBlockMode
-        )
-        self.slaveProperties.pgmProcessor.interleavedMode = (
-            result.commModePgm.interleavedMode
-        )
-        self.slaveProperties.pgmProcessor.masterBlockMode = (
-            result.commModePgm.masterBlockMode
-        )
+        self.slaveProperties.pgmProcessor.slaveBlockMode = result.commModePgm.slaveBlockMode
+        self.slaveProperties.pgmProcessor.interleavedMode = result.commModePgm.interleavedMode
+        self.slaveProperties.pgmProcessor.masterBlockMode = result.commModePgm.masterBlockMode
         return result
 
     @wrapped
@@ -1422,9 +1306,7 @@ class Master:
     def getPgmProcessorInfo(self):
         """Get general information on PGM processor."""
         response = self.transport.request(types.Command.GET_PGM_PROCESSOR_INFO)
-        result = types.GetPgmProcessorInfoResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        result = types.GetPgmProcessorInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
         self.slaveProperties.pgmProcessor.pgmProperties = result.pgmProperties
         self.slaveProperties.pgmProcessor.maxSector = result.maxSector
         return result
@@ -1432,17 +1314,11 @@ class Master:
     @wrapped
     def getSectorInfo(self, mode, sectorNumber):
         """Get specific information for a sector."""
-        response = self.transport.request(
-            types.Command.GET_SECTOR_INFO, mode, sectorNumber
-        )
+        response = self.transport.request(types.Command.GET_SECTOR_INFO, mode, sectorNumber)
         if mode == 0 or mode == 1:
-            return types.GetSectorInfoResponseMode01.parse(
-                response, byteOrder=self.slaveProperties.byteOrder
-            )
+            return types.GetSectorInfoResponseMode01.parse(response, byteOrder=self.slaveProperties.byteOrder)
         elif mode == 2:
-            return types.GetSectorInfoResponseMode2.parse(
-                response, byteOrder=self.slaveProperties.byteOrder
-            )
+            return types.GetSectorInfoResponseMode2.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def programPrepare(self, codesize):
@@ -1451,9 +1327,7 @@ class Master:
         return self.transport.request(types.Command.PROGRAM_PREPARE, 0x00, *cs)
 
     @wrapped
-    def programFormat(
-        self, compressionMethod, encryptionMethod, programmingMethod, accessMethod
-    ):
+    def programFormat(self, compressionMethod, encryptionMethod, programmingMethod, accessMethod):
         return self.transport.request(
             types.Command.PROGRAM_FORMAT,
             compressionMethod,
@@ -1472,16 +1346,12 @@ class Master:
         #    d.extend(self.AG_pack(e))
         if last:
             # last PROGRAM_NEXT packet in a block: the slave device has to send the response after this.
-            response = self.transport.request(
-                types.Command.PROGRAM_NEXT, remainingBlockLength, *data
-            )
+            response = self.transport.request(types.Command.PROGRAM_NEXT, remainingBlockLength, *data)
             return response
         else:
             # the slave device won't respond to consecutive PROGRAM_NEXT packets in block mode,
             # so we must not wait for any response
-            self.transport.block_request(
-                types.Command.PROGRAM_NEXT, remainingBlockLength, *data
-            )
+            self.transport.block_request(types.Command.PROGRAM_NEXT, remainingBlockLength, *data)
             return None
 
     @wrapped
@@ -1513,33 +1383,25 @@ class Master:
         `pyxcp.types.DbgAttachResponse`
         """
         response = self.transport.request(types.Command.DBG_ATTACH)
-        return types.DbgAttachResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.DbgAttachResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def dbgGetVendorInfo(self):
         """"""
         response = self.transport.request(types.Command.DBG_GET_VENDOR_INFO)
-        return types.DbgGetVendorInfoResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.DbgGetVendorInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def dbgGetModeInfo(self):
         """"""
         response = self.transport.request(types.Command.DBG_GET_MODE_INFO)
-        return types.DbgGetModeInfoResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.DbgGetModeInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def dbgGetJtagId(self):
         """"""
         response = self.transport.request(types.Command.DBG_GET_JTAG_ID)
-        return types.DbgGetJtagIdResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.DbgGetJtagIdResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def dbgHaltAfterReset(self):
@@ -1550,9 +1412,7 @@ class Master:
     def dbgGetHwioInfo(self, index: int):
         """"""
         response = self.transport.request(types.Command.DBG_GET_HWIO_INFO, index)
-        return types.DbgGetHwioInfoResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.DbgGetHwioInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def dbgSetHwioEvent(self, index: int, trigger: int):
@@ -1570,39 +1430,27 @@ class Master:
             d.extend(self.WORD_pack(p[2]))  # frequency
 
         response = self.transport.request(types.Command.DBG_HWIO_CONTROL, *d)
-        return types.DbgHwioControlResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.DbgHwioControlResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def dbgExclusiveTargetAccess(self, mode: int, context: int):
         """"""
-        return self.transport.request(
-            types.Command.DBG_EXCLUSIVE_TARGET_ACCESS, mode, context
-        )
+        return self.transport.request(types.Command.DBG_EXCLUSIVE_TARGET_ACCESS, mode, context)
 
     @wrapped
     def dbgSequenceMultiple(self, mode: int, num: int, *seq):
         """"""
-        response = self.transport.request(
-            types.Command.DBG_SEQUENCE_MULTIPLE, mode, self.WORD_pack(num), *seq
-        )
-        return types.DbgSequenceMultipleResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        response = self.transport.request(types.Command.DBG_SEQUENCE_MULTIPLE, mode, self.WORD_pack(num), *seq)
+        return types.DbgSequenceMultipleResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def dbgLlt(self, num: int, mode: int, *llts):
         """"""
         response = self.transport.request(types.Command.DBG_LLT, num, mode, *llts)
-        return types.DbgLltResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.DbgLltResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
-    def dbgReadModifyWrite(
-        self, tri: int, width: int, address: int, mask: int, data: int
-    ):
+    def dbgReadModifyWrite(self, tri: int, width: int, address: int, mask: int, data: int):
         """"""
         d = bytearray()
         d.extend(b"\x00")
@@ -1623,9 +1471,7 @@ class Master:
             d.extend(self.DLONG_pack(mask))
             d.extend(self.DLONG_pack(data))
         response = self.transport.request(types.Command.DBG_READ_MODIFY_WRITE, *d)
-        return types.DbgReadModifyWriteResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder, width=width
-        )
+        return types.DbgReadModifyWriteResponse.parse(response, byteOrder=self.slaveProperties.byteOrder, width=width)
 
     @wrapped
     def dbgWrite(self, tri: int, width: int, address: int, data):
@@ -1710,9 +1556,7 @@ class Master:
         d.extend(self.WORD_pack(num))
         d.extend(self.DLONG_pack(address))
         response = self.transport.request(types.Command.DBG_READ, *d)
-        return types.DbgReadResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder, width=width
-        )
+        return types.DbgReadResponse.parse(response, byteOrder=self.slaveProperties.byteOrder, width=width)
 
     @wrapped
     def dbgReadCan1(self, tri: int, address: int):
@@ -1734,12 +1578,8 @@ class Master:
     @wrapped
     def dbgGetTriDescTbl(self):
         """"""
-        response = self.transport.request(
-            types.Command.DBG_GET_TRI_DESC_TBL, b"\x00\x00\x00\x00\x00"
-        )
-        return types.DbgGetTriDescTblResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        response = self.transport.request(types.Command.DBG_GET_TRI_DESC_TBL, b"\x00\x00\x00\x00\x00")
+        return types.DbgGetTriDescTblResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def dbgLlbt(self, data):
@@ -1750,22 +1590,14 @@ class Master:
         for b in data:
             d.extend(self.BYTE_pack(b))
         response = self.transport.request(types.Command.DBG_LLBT, d)
-        return types.DbgLlbtResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.DbgLlbtResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
     def timeCorrelationProperties(self, setProperties, getPropertiesRequest, clusterId):
         response = self.transport.request(
-            types.Command.TIME_CORRELATION_PROPERTIES,
-            setProperties,
-            getPropertiesRequest,
-            0,
-            *self.WORD_pack(clusterId)
+            types.Command.TIME_CORRELATION_PROPERTIES, setProperties, getPropertiesRequest, 0, *self.WORD_pack(clusterId)
         )
-        return types.TimeCorrelationPropertiesResponse.parse(
-            response, byteOrder=self.slaveProperties.byteOrder
-        )
+        return types.TimeCorrelationPropertiesResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @broadcasted
     @wrapped
@@ -1788,9 +1620,7 @@ class Master:
         """
         self.setMta(addr)
         cs = self.buildChecksum(length)
-        self.logger.debug(
-            "BuildChecksum return'd: 0x{:08X} [{}]".format(cs.checksum, cs.checksumType)
-        )
+        self.logger.debug("BuildChecksum return'd: 0x{:08X} [{}]".format(cs.checksum, cs.checksumType))
         self.setMta(addr)
         data = self.fetch(length)
         cc = checksum.check(data, cs.checksumType)
@@ -1918,9 +1748,9 @@ class Master:
         protection_status = self.getCurrentProtectionStatus()
         resource_names = [r.lower() for r in re.split(r"[ ,]", resources) if r]
         for name in resource_names:
-            if not name in types.RESOURCE_VALUES:
+            if name not in types.RESOURCE_VALUES:
                 raise ValueError("Invalid resource name '{}'.".format(name))
-            if protection_status[name] == False:
+            if not protection_status[name]:
                 continue
             resource_value = types.RESOURCE_VALUES[name]
             result = self.getSeed(types.XcpGetSeedMode.FIRST_PART, resource_value)
@@ -1931,9 +1761,7 @@ class Master:
             if length > MAX_PAYLOAD:
                 remaining = length - len(seed)
                 while remaining > 0:
-                    result = self.getSeed(
-                        types.XcpGetSeedMode.REMAINING, resource_value
-                    )
+                    result = self.getSeed(types.XcpGetSeedMode.REMAINING, resource_value)
                     seed.extend(list(result.seed))
                     remaining = result.length
             result, key = getKey(
@@ -1950,11 +1778,9 @@ class Master:
                     data = key[offset : offset + MAX_PAYLOAD]
                     key_length = len(data)
                     offset += key_length
-                    res = self.unlock(key_length, data)
+                    self.unlock(key_length, data)
             else:
-                raise SeedNKeyError(
-                    "SeedAndKey DLL returned: {}".format(SeedNKeyResult(result).name)
-                )
+                raise SeedNKeyError("SeedAndKey DLL returned: {}".format(SeedNKeyResult(result).name))
 
 
 def ticks_to_seconds(ticks, resolution):
@@ -1970,11 +1796,7 @@ def ticks_to_seconds(ticks, resolution):
         "ticks_to_seconds() deprecated, use factory :func:`make_tick_converter` instead.",
         Warning,
     )
-    return (
-        (10 ** types.DAQ_TIMESTAMP_UNIT_TO_EXP[resolution.timestampMode.unit])
-        * resolution.timestampTicks
-        * ticks
-    )
+    return (10 ** types.DAQ_TIMESTAMP_UNIT_TO_EXP[resolution.timestampMode.unit]) * resolution.timestampTicks * ticks
 
 
 def make_tick_converter(resolution):

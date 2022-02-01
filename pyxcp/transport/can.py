@@ -137,14 +137,10 @@ class Identifier:
         self._is_extended = isExtendedIdentifier(raw_id)
         if self._is_extended:
             if self._id > MAX_29_BIT_IDENTIFIER:
-                raise IdentifierOutOfRangeError(
-                    "29-bit identifier '{}' is out of range".format(self._id)
-                )
+                raise IdentifierOutOfRangeError("29-bit identifier '{}' is out of range".format(self._id))
         else:
             if self._id > MAX_11_BIT_IDENTIFIER:
-                raise IdentifierOutOfRangeError(
-                    "11-bit identifier '{}' is out of range".format(self._id)
-                )
+                raise IdentifierOutOfRangeError("11-bit identifier '{}' is out of range".format(self._id))
 
     @property
     def id(self) -> int:
@@ -198,17 +194,13 @@ class Identifier:
         ------
         :class:`IdentifierOutOfRangeError`
         """
-        return Identifier(
-            identifier if not extended else (identifier | CAN_EXTENDED_ID)
-        )
+        return Identifier(identifier if not extended else (identifier | CAN_EXTENDED_ID))
 
     def __eq__(self, other):
         return (self.id == other.id) and (self.is_extended == other.is_extended)
 
     def __str__(self):
-        return "Identifier(id = 0x{:08x}, is_extended = {})".format(
-            self.id, self.is_extended
-        )
+        return "Identifier(id = 0x{:08x}, is_extended = {})".format(self.id, self.is_extended)
 
     def __repr__(self):
         return "Identifier(0x{:08x})".format(self.raw_id)
@@ -224,9 +216,7 @@ class Frame:
         self.timestamp = timestamp
 
     def __repr__(self):
-        return "Frame(id = 0x{:08x}, dlc = {}, data = {}, timestamp = {})".format(
-            self.id, self.dlc, self.data, self.timestamp
-        )
+        return "Frame(id = 0x{:08x}, dlc = {}, data = {}, timestamp = {})".format(self.id, self.dlc, self.data, self.timestamp)
 
     __str__ = __repr__
 
@@ -332,12 +322,8 @@ class Can(BaseTransport):
         self.loadConfig(config)
         drivers = registered_drivers()
         interfaceName = self.config.get("CAN_DRIVER")
-        if not interfaceName in drivers:
-            raise ValueError(
-                "{} is an invalid driver name -- choose from {}".format(
-                    interfaceName, [x for x in drivers.keys()]
-                )
-            )
+        if interfaceName not in drivers:
+            raise ValueError("{} is an invalid driver name -- choose from {}".format(interfaceName, [x for x in drivers.keys()]))
         canInterfaceClass = drivers[interfaceName]
         self.canInterface = canInterfaceClass()
         self.useDefaultListener = self.config.get("CAN_USE_DEFAULT_LISTENER")
@@ -349,15 +335,9 @@ class Can(BaseTransport):
         # Regarding CAN-FD s. AUTOSAR CP Release 4.3.0, Requirements on CAN; [SRS_Can_01160] Padding of bytes due to discrete CAN FD DLC]:
         #   "... If a PDU does not exactly match these configurable sizes the unused bytes shall be padded."
         #
-        self.max_dlc_required = (
-            self.config.get("MAX_DLC_REQUIRED") or self.canInterface.is_fd
-        )
+        self.max_dlc_required = self.config.get("MAX_DLC_REQUIRED") or self.canInterface.is_fd
         self.padding_value = self.config.get("PADDING_VALUE")
-        self.padding_len = (
-            self.config.get("MAX_CAN_FD_DLC")
-            if self.canInterface.is_fd
-            else MAX_DLC_CLASSIC
-        )
+        self.padding_len = self.config.get("MAX_CAN_FD_DLC") if self.canInterface.is_fd else MAX_DLC_CLASSIC
 
     def dataReceived(self, payload: bytes, recv_timestamp: float = None):
         self.processResponse(
@@ -394,12 +374,8 @@ class Can(BaseTransport):
             pre_send_timestamp = perf_counter()
             self.canInterface.transmit(payload=frame)
             post_send_timestamp = perf_counter()
-            self.pre_send_timestamp = (
-                self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
-            )
-            self.post_send_timestamp = (
-                self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
-            )
+            self.pre_send_timestamp = self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
+            self.post_send_timestamp = self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
 
     def closeConnection(self):
         if hasattr(self, "canInterface"):
@@ -449,12 +425,10 @@ def try_to_install_system_supplied_drivers():
     import pkgutil
     import pyxcp.transport.candriver as cdr
 
-    for _, modname, _ in pkgutil.walk_packages(
-        cdr.__path__, "{}.".format(cdr.__name__)
-    ):
+    for _, modname, _ in pkgutil.walk_packages(cdr.__path__, "{}.".format(cdr.__name__)):
         try:
             importlib.import_module(modname)
-        except Exception as e:
+        except Exception:
             pass
 
 
