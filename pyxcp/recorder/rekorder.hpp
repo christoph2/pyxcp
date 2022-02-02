@@ -89,39 +89,12 @@ struct ContainerHeaderType
 using blob_t = char;    // Signedness doesn't matter in this use-case.
 
 #if STANDALONE_REKORDER == 1
+    //using payload_t = std::shared_ptr<blob_t[]>;
     using payload_t = std::unique_ptr<blob_t[]>;
 #else
     using payload_t = py::array_t<blob_t>;
 #endif /* STANDALONE_REKORDER */
 
-#if 0
-struct FrameType
-{
-
-    explicit FrameType() = default;
-
-//    explicit FrameType(uint8_t cat, uint16_t cnt, double ts, uint16_t l, const payload_t& pl) :
-//        category(cat), counter(cnt), timestamp(ts), length(l), payload(std::move(pl)) {}
-
-    FrameType(FrameType&& rhs) {
-        this->category = rhs.category;
-        this->counter = rhs.counter;
-        this->timestamp = rhs.timestamp;
-        this->length = rhs.length;
-        std::swap(this->payload, rhs.payload);
-    }
-
-    // No copy semantics due to unique_ptr.
-    FrameType(FrameType const&) = delete;
-    FrameType& operator=(FrameType const&) = delete;
-
-    uint8_t category {0};
-    uint16_t counter {0};
-    double timestamp {0.0};
-    uint16_t length {0};
-    payload_t payload;
-};
-#endif
 
 struct frame_header_t
 {
@@ -164,6 +137,7 @@ namespace detail
     }
 
     payload_t create_payload(std::size_t size) {
+        //return std::make_shared<blob_t[]>(size);
         return std::make_unique<blob_t[]>(size);
     }
 #else
@@ -424,6 +398,7 @@ public:
         auto frame = frame_header_t{};
         size_t boffs = 0;
         auto result = FrameVector{};
+        payload_t payload;
 
         if (m_current_container >= m_header.num_containers) {
             return std::nullopt;
@@ -434,7 +409,7 @@ public:
 
         m_offset += detail::CONTAINER_SIZE;
         total += container.record_count;
-        result.resize(container.record_count);
+        result.reserve(container.record_count);
         const int uc_size = ::LZ4_decompress_safe(ptr(m_offset), buffer, container.size_compressed, container.size_uncompressed);
         if (uc_size < 0) {
             throw std::runtime_error("LZ4 decompression failed.");
@@ -443,7 +418,7 @@ public:
         for (std::uint32_t idx = 0; idx < container.record_count; ++idx) {
             _fcopy((blob_t*)&frame, &(buffer[boffs]), sizeof(frame_header_t));
             boffs += sizeof(frame_header_t);
-            auto payload = create_payload(frame.length);
+            payload = create_payload(frame.length);
             std::copy_n(&buffer[boffs], frame.length, reinterpret_cast<blob_t*>(get_payload_ptr(payload)));
             boffs += frame.length;
             result.emplace_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, std::move(payload)));

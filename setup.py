@@ -47,25 +47,12 @@ EXT_NAMES = ["rekorder"]
 
 if has_pybind11:
 
-    if sys.platform == "win32":  # Bruteforce for now -- assume MSVC on Windows.
-        options = [
-            "/Ox",
-            "/std:c++17",
-        ]
-    else:
-        options = [  # gcc or clang...
-            "-O3",
-            "-std=c++17",
-            #    ' -Rpass=loop-vectorize',  # clang only: uncomment to see which parts of code are vectorized.
-        ]
-
     ext_modules = [
         Pybind11Extension(
             EXT_NAMES[0],
             include_dirs=[PYB11_INCLUDE_DIRS, "pyxcp/recorder"],
-            sources=["pyxcp/recorder/lz4.c", "pyxcp/recorder/wrap.cpp"],
+            sources=["pyxcp/recorder/lz4.cpp", "pyxcp/recorder/wrap.cpp"],
             define_macros=[("EXTENSION_NAME", EXT_NAMES[0]), ("NDEBUG", 1)],
-            extra_compile_args=options,
             optional=False,
         ),
     ]

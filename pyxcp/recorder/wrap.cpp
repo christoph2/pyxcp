@@ -17,6 +17,7 @@ public:
     auto py_get_header() -> py::tuple {
         auto hdr = get_header();
         return py::make_tuple(
+            hdr.num_containers,
             hdr.record_count,
             hdr.size_uncompressed,
             hdr.size_compressed,

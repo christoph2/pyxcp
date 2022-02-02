@@ -5,7 +5,7 @@ import rekorder as rec
 
 XcpLogFileHeader = namedtuple(
     "XcpLogFileHeader",
-    "record_count size_uncompressed size_compressed compression_ratio",
+    "num_containers record_count size_uncompressed size_compressed compression_ratio",
 )
 
 
@@ -26,7 +26,7 @@ class XcpLogFileReader:
     """ """
 
     def __init__(self, file_name):
-        self._reader = rec._XcpLogFileReader(file_name)
+        self._reader = rec._PyXcpLogFileReader(file_name)
 
     def get_header(self):
         return XcpLogFileHeader(*self._reader.get_header())
@@ -47,7 +47,7 @@ class XcpLogFileWriter:
     """ """
 
     def __init__(self, file_name):
-        self._writer = rec._XcpLogFileWriter(file_name)
+        self._writer = rec._PyXcpLogFileWriter(file_name)
 
 
 print("Before c-tor()")
