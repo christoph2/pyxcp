@@ -57,7 +57,7 @@ hdr = reader.get_header()
 print(hdr)
 
 for frame in reader:
-    # print(frame)
+    print(frame)
     pass
 
 print("Finished.")

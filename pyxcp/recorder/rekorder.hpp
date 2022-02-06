@@ -8,6 +8,7 @@
 #endif /* STANDALONE_REKORDER */
 
 #include <array>
+#include <atomic>
 #include <functional>
 #include <optional>
 
@@ -19,7 +20,7 @@
 #include <cstdio>
 
 #include <ctime>
-
+#include <thread>
 #include <vector>
 
 #if defined(_WIN32)
@@ -131,35 +132,6 @@ namespace detail
     constexpr auto CONTAINER_SIZE = sizeof(ContainerHeaderType);
 }
 
-#if STANDALONE_REKORDER == 1
-    inline blob_t * get_payload_ptr(const payload_t& payload) {
-        return payload.get();
-    }
-
-    payload_t create_payload(std::size_t size) {
-        //return std::make_shared<blob_t[]>(size);
-        return std::make_unique<blob_t[]>(size);
-    }
-#else
-    payload_t create_payload(std::size_t size) {
-        return py::array_t<blob_t>(size);
-    }
-
-    inline blob_t * get_payload_ptr(const payload_t& payload) {
-        py::buffer_info buf = payload.request();
-
-        return  static_cast<blob_t *>(buf.ptr);
-    }
-#endif /* STANDALONE_REKORDER */
-
-
-inline auto init_ptr(blob_t * const data, std::size_t length) -> payload_t {
-    auto payload = create_payload(length);
-
-    std::copy_n(data, length, get_payload_ptr(payload));
-    return payload;
-}
-
 
 inline auto file_header_size() -> std::size_t {
     return (detail::FILE_HEADER_SIZE + detail::MAGIC_SIZE);
@@ -182,6 +154,29 @@ inline void _fcopy(blob_t * dest, const blob_t * src, std::size_t n)
         dest[i] = src[i];
     }
 }
+
+#if STANDALONE_REKORDER == 1
+    inline blob_t * get_payload_ptr(const payload_t& payload) {
+        return payload.get();
+    }
+
+    payload_t create_payload(std::size_t size, blob_t const * data) {
+        auto pl = std::make_unique<blob_t[]>(size);
+        //auto pl = std::make_shared<blob_t[]>(size);
+        _fcopy(pl.get(), data, size);
+        return pl;
+    }
+#else
+    payload_t create_payload(std::size_t size, blob_t const * data) {
+        return py::array_t<blob_t>(size, data);
+    }
+
+    inline blob_t * get_payload_ptr(const payload_t& payload) {
+        py::buffer_info buf = payload.request();
+
+        return  static_cast<blob_t *>(buf.ptr);
+    }
+#endif /* STANDALONE_REKORDER */
 
 inline void hexdump(blob_t const * buf, std::uint16_t sz)
 {
@@ -418,10 +413,8 @@ public:
         for (std::uint32_t idx = 0; idx < container.record_count; ++idx) {
             _fcopy((blob_t*)&frame, &(buffer[boffs]), sizeof(frame_header_t));
             boffs += sizeof(frame_header_t);
-            payload = create_payload(frame.length);
-            std::copy_n(&buffer[boffs], frame.length, reinterpret_cast<blob_t*>(get_payload_ptr(payload)));
+            result.emplace_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, create_payload(frame.length, &buffer[boffs])));
             boffs += frame.length;
-            result.emplace_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, std::move(payload)));
         }
         m_offset += container.size_compressed;
         m_current_container += 1;
@@ -447,12 +440,37 @@ protected:
         _fcopy(buf, addr, count);
     }
 
+    bool start_thread() {
+        if (decomp_thrd.joinable()) {
+            return false;
+        }
+        stop_thread_flag = false;
+        decomp_thrd = std::thread([this]() {
+            while (!stop_thread_flag) {
+            //    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            //    if (cb_) cb_(1234);
+            }
+        });
+        return true;
+    }
+
+    bool stop_thread() {
+        if (!decomp_thrd.joinable()) {
+            return false;
+        }
+        stop_thread_flag = true;
+        decomp_thrd.join();
+        return true;
+    }
+
 private:
     std::string m_file_name;
     std::size_t m_offset{0};
     std::size_t m_current_container{0};
     mio::mmap_source * m_mmap{nullptr};
     FileHeaderType m_header{0, 0, 0, 0, 0, 0, 0};
+    std::thread decomp_thrd{};
+    std::atomic_bool stop_thread_flag;
 };
 
 #endif // __REKORDER_HPP
