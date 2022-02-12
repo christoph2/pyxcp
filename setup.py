@@ -16,9 +16,7 @@ try:
         naive_recompile,
     )
 except ImportError:
-    print(
-        "package 'pybind11' not installed, could not build recorder extension module."
-    )
+    print("package 'pybind11' not installed, could not build recorder extension module.")
     has_pybind11 = False
 else:
     has_pybind11 = True
@@ -29,9 +27,7 @@ try:
 except Exception as e:
     print(str(e), end=" -- ")
     has_pybind11 = False
-    print(
-        "'pybind11-config' not properly working, could not build recorder extension module."
-    )
+    print("'pybind11-config' not properly working, could not build recorder extension module.")
 
 with open(os.path.join("pyxcp", "__init__.py"), "r") as f:
     for line in f:
