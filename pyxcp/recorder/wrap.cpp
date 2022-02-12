@@ -37,8 +37,8 @@ PYBIND11_MODULE(rekorder, m) {
     m.doc() = "XCP raw frame recorder.";
     py::class_<_PyXcpLogFileReader>(m, "_PyXcpLogFileReader")
         .def(py::init<const std::string &>())
-        .def("next",  &_PyXcpLogFileReader::next, py::return_value_policy::move)
-        //.def("next",  &_PyXcpLogFileReader::next, py::return_value_policy::reference)
+        //.def("next_block",  &_PyXcpLogFileReader::next, py::return_value_policy::move)
+        .def("next",  &_PyXcpLogFileReader::next_block, py::return_value_policy::reference)
         .def("get_header",  &_PyXcpLogFileReader::py_get_header)
         .def("reset",  &_PyXcpLogFileReader::reset)
     ;

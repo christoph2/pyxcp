@@ -11,6 +11,9 @@
 #include <atomic>
 #include <functional>
 #include <optional>
+#include <condition_variable>
+#include <mutex>
+#include <queue>
 
 #include <string>
 #include <stdexcept>
@@ -56,9 +59,15 @@
 #define __ALIGNMENT_REQUIREMENT     32
 #define __ALIGN                     alignas(__ALIGNMENT_REQUIREMENT)
 
+
+constexpr auto kilobytes(std::size_t value) -> std::size_t
+{
+    return value * 1024;
+}
+
 constexpr auto megabytes(std::size_t value) -> std::size_t
 {
-    return value * 1024 * 1024;
+    return kilobytes(value) * 1024;
 }
 
 
@@ -387,7 +396,7 @@ public:
     }
 
 
-    std::optional<FrameVector> next() {
+    std::optional<FrameVector> next_block() {
         auto container = ContainerHeaderType{};
         auto total = 0;
         auto frame = frame_header_t{};
@@ -413,7 +422,8 @@ public:
         for (std::uint32_t idx = 0; idx < container.record_count; ++idx) {
             _fcopy((blob_t*)&frame, &(buffer[boffs]), sizeof(frame_header_t));
             boffs += sizeof(frame_header_t);
-            result.emplace_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, create_payload(frame.length, &buffer[boffs])));
+            //result.emplace_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, create_payload(frame.length, &buffer[boffs])));
+            result.push_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, create_payload(frame.length, &buffer[boffs])));
             boffs += frame.length;
         }
         m_offset += container.size_compressed;
@@ -468,9 +478,15 @@ private:
     std::size_t m_offset{0};
     std::size_t m_current_container{0};
     mio::mmap_source * m_mmap{nullptr};
-    FileHeaderType m_header{0, 0, 0, 0, 0, 0, 0};
+    //FileHeaderType m_header{0, 0, 0, 0, 0, 0, 0};
+    FileHeaderType m_header;
     std::thread decomp_thrd{};
-    std::atomic_bool stop_thread_flag;
+    std::mutex mtx;
+    std::queue<FrameVector> data_queue;
+    std::condition_variable data_cond;
+    std::atomic_bool stop_thread_flag{false};
+    std::atomic_bool request_decompression{false};
+    std::atomic_bool final_block{false};
 };
 
 #endif // __REKORDER_HPP

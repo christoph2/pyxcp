@@ -49,6 +49,9 @@ class XcpLogFileWriter:
     def __init__(self, file_name):
         self._writer = rec._PyXcpLogFileWriter(file_name)
 
+    def add_frame(self, category: int, counter: int, timestamp: float, payload: bytes):
+        self._writer.add_frame(category, counter, timestamp, len(payload), payload)
+
 
 print("Before c-tor()")
 reader = XcpLogFileReader("test_logger")
@@ -57,7 +60,7 @@ hdr = reader.get_header()
 print(hdr)
 
 for frame in reader:
-    print(frame)
+    # print(frame)
     pass
 
 print("Finished.")
