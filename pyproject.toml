@@ -1,5 +1,5 @@
 [build-system]
-requires = ["pdm-pep517", "pybind11<3.0.0,>=2.9.0"]
+requires = ["pdm-pep517", "pybind11<3.0.0,>=2.9.0", "wheel"]
 build-backend = "pdm.pep517.api"
 
 [tool.pdm]
@@ -12,6 +12,9 @@ dev = [
     "pytest-cov<4.0.0,>=3.0.0",
     
 ]
+version = {from = "pyxcp/__init__.py"}
+dynamic = ["version"]
+
 [project]
 authors = [
     {name = "Christoph Schueler", email = "cpu12.gems@googlemail.com"}
@@ -26,12 +29,10 @@ dependencies = [
     "toml<1.0.0,>=0.10.2",
 ]
 name = "pyxcp"
-version = {from = "pyxcp/__init__.py"}
 readme = "README.md"
 description = "Universal Calibration Protocol for Python"
 keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
 classifiers = ["Development Status :: 4 - Beta", "Intended Audience :: Developers", "Topic :: Software Development", "Topic :: Scientific/Engineering", "License :: OSI Approved :: GNU General Public License v2 (GPLv2)", "Programming Language :: Python :: 3.5", "Programming Language :: Python :: 3.6", "Programming Language :: Python :: 3.7", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10"]
-dynamic = ["version"]
 [project.urls]
 homepage = "https://github.com/christoph2/pyxcp"
 
