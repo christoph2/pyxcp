@@ -53,10 +53,6 @@ class XcpLogFileWriter:
     def add_frame(self, category: int, counter: int, timestamp: float, payload: bytes):
         self._writer.add_frame(category, counter, timestamp, len(payload), payload)
 
-    def add_frame(self, category: int, counter: int, timestamp: float, payload: bytes):
-        length = len(payload)
-        self._writer.add_frame(category, counter, timestamp, length, payload)
-
     def finalize(self):
         self._writer.finalize()
 

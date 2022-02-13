@@ -35,6 +35,8 @@ jobs:
         pytest
     - name: Build wheel
       uses: pypa/cibuildwheel@v2.3.1
+      env:
+        CIBW_BUILD_VERBOSITY: 2
       #run: |
       #  python setup.py bdist_wheel
     - name: Upload to PyPI

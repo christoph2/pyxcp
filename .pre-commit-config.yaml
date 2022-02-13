@@ -86,6 +86,12 @@ repos:
     language: python
     types: [python]
     stages: [commit]
+  - id: selective_tests
+    name: selective_tests
+    entry: ./selective_tests.py
+    language: python
+    types: [python]
+    stages: [commit]
   - id: flake8
     name: flake8
     entry: flake8
