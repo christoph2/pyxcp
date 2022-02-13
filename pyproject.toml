@@ -1,5 +1,5 @@
 [build-system]
-requires = ["pdm-pep517"]
+requires = ["pdm-pep517", "pybind11<3.0.0,>=2.9.0"]
 build-backend = "pdm.pep517.api"
 
 [tool.pdm]
@@ -10,7 +10,7 @@ dev = [
     "pytest<7.0.0,>=6.2.5",
     "pytest-runner<6.0.0,>=5.3.1",
     "pytest-cov<4.0.0,>=3.0.0",
-    "pybind11<3.0.0,>=2.9.0",
+    
 ]
 [project]
 authors = [
