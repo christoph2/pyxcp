@@ -10,16 +10,14 @@ dev = [
     "pytest<7.0.0,>=6.2.5",
     "pytest-runner<6.0.0,>=5.3.1",
     "pytest-cov<4.0.0,>=3.0.0",
-    
+
 ]
-version = {from = "pyxcp/__init__.py"}
-dynamic = ["version"]
 
 [project]
 authors = [
     {name = "Christoph Schueler", email = "cpu12.gems@googlemail.com"}
 ]
-requires-python = ">=3.5,<4.0"
+requires-python = ">=3.5"
 dependencies = [
     "setuptools-cpp<1.0.0,>=0.1.0",
     "Mako<2.0.0,>=1.1.6",
@@ -29,6 +27,7 @@ dependencies = [
     "toml<1.0.0,>=0.10.2",
 ]
 name = "pyxcp"
+version = "0.18.28"
 readme = "README.md"
 description = "Universal Calibration Protocol for Python"
 keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
@@ -90,3 +89,8 @@ exclude = '''
     | dist
 )/
 '''
+
+[tool.cibuildwheel]
+build-verbosity = 3
+test-command = "pytest {project}/tests"
+
