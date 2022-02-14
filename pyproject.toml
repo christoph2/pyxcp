@@ -1,5 +1,5 @@
 [build-system]
-requires = ["pdm-pep517", "pybind11<3.0.0,>=2.9.0", "wheel"]
+requires = ["pdm-pep517", "pybind11<3.0.0,>=2.9.0", "wheel", "build"]
 build-backend = "pdm.pep517.api"
 
 [tool.pdm]
@@ -17,7 +17,7 @@ dev = [
 authors = [
     {name = "Christoph Schueler", email = "cpu12.gems@googlemail.com"}
 ]
-requires-python = ">=3.5"
+requires-python = ">=3.6"
 dependencies = [
     "setuptools-cpp<1.0.0,>=0.1.0",
     "Mako<2.0.0,>=1.1.6",
@@ -93,4 +93,5 @@ exclude = '''
 [tool.cibuildwheel]
 build-verbosity = 3
 test-command = "pytest {project}/tests"
-
+build = "cp3{6,7,8,9,10}-*"
+build_frontend = "build"

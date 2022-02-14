@@ -129,6 +129,7 @@ setuptools.setup(
         "build_py": CustomBuildPy,
         "develop": CustomDevelop,
     },
+    python_requires=">=3.6",
     include_package_data=True,
     install_requires=install_reqs,
     setup_requires=setup_reqs,
