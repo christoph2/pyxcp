@@ -199,6 +199,75 @@ inline void hexdump(blob_t const * buf, std::uint16_t sz)
 }
 
 
+template <typename T>
+class TsQueue {
+public:
+    explicit  TsQueue() {}
+
+    TsQueue(const TsQueue& other) {
+        std::lock_guard<std::mutex> lock(other.m_mtx);
+        m_queue = other.m_queue;
+    }
+
+    void push(T value) {
+        std::lock_guard<std::mutex> lock(m_mtx);
+        m_queue.push(value);
+        m_cond.notify_one();
+    }
+
+    std::shared_ptr<T> get() {
+        std::unique_lock<std::mutex> lock(m_mtx);
+        m_cond.wait(lock, [this]{return !m_queue.empty();});
+        std::shared_ptr<T> result(std::make_shared<T>(m_queue.front()));
+        m_queue.pop();
+        return res;
+    }
+
+    bool empty() const {
+        std::lock_guard<std::mutex> lock(m_mtx);
+        return m_queue.empty();
+    }
+
+private:
+    mutable std::mutex m_mtx;
+    std::queue<T> m_queue;
+    std::condition_variable m_cond;
+};
+
+
+class Event {
+public:
+    explicit Event() {}
+
+    Event(consti Event& other) {
+        std::lock_guard<std::mutex> lock(other.m_mtx);
+        m_flag = other.m_flag;
+    }
+
+    void signal() {
+        std::lock_guard<std::mutex> lock(m_mtx);
+        m_flag = true;
+        m_cond.notify_one();
+    }
+
+    void wait() {
+        std::unique_lock<std::mutex> lock(m_mtx);
+        m_cond.wait(lock, [this]{return m_flag;});
+        m_flag = false;
+    }
+
+    bool state() const {
+        std::lock_guard<std::mutex> lock(m_mtx);
+        return m_flag();
+    }
+
+private:
+    mutable std::mutex m_mtx;
+    bool m_flag {false};
+    std::condition_variable m_cond;
+};
+
+
 /**
  */
 class XcpLogFileWriter
