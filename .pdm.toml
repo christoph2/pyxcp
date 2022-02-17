@@ -20,6 +20,6 @@ verify_ssl = false
 use_pyenv = false
 
 [python.strategy]
-resolve_max_rounds = 10000
+resolve_max_rounds = 1 # 10000
 save = "minimum"
 update = "reuse"
