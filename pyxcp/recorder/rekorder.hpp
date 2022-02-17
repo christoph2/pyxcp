@@ -56,7 +56,8 @@
 
 #endif /* STANDALONE_REKORDER */
 
-#define __ALIGNMENT_REQUIREMENT     32
+//#define __ALIGNMENT_REQUIREMENT     32
+#define __ALIGNMENT_REQUIREMENT     __BIGGEST_ALIGNMENT__
 #define __ALIGN                     alignas(__ALIGNMENT_REQUIREMENT)
 
 
@@ -209,7 +210,7 @@ public:
         m_queue = other.m_queue;
     }
 
-    void push(T value) {
+    void put(T value) {
         std::lock_guard<std::mutex> lock(m_mtx);
         m_queue.push(value);
         m_cond.notify_one();
@@ -220,7 +221,7 @@ public:
         m_cond.wait(lock, [this]{return !m_queue.empty();});
         std::shared_ptr<T> result(std::make_shared<T>(m_queue.front()));
         m_queue.pop();
-        return res;
+        return result;
     }
 
     bool empty() const {
@@ -239,7 +240,7 @@ class Event {
 public:
     explicit Event() {}
 
-    Event(consti Event& other) {
+    Event(const Event& other) {
         std::lock_guard<std::mutex> lock(other.m_mtx);
         m_flag = other.m_flag;
     }
@@ -258,7 +259,7 @@ public:
 
     bool state() const {
         std::lock_guard<std::mutex> lock(m_mtx);
-        return m_flag();
+        return m_flag;
     }
 
 private:
