@@ -125,7 +125,7 @@ class Arguments:
             Keyword arguments.
     """
 
-    def __init__(self, args=None, kwargs={}):
+    def __init__(self, args=None, kwargs=None):
         if args is None:
             self.args = []
         else:

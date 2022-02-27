@@ -187,7 +187,7 @@ class XcpLogFileWriter:
         try:
             self._mapping[address : address + length] = data
         except IndexError:
-            raise XcpLogFileCapacityExceededError("Maximum file size of {} MBytes exceeded.".format(self.prealloc))
+            raise XcpLogFileCapacityExceededError("Maximum file size of {} MBytes exceeded.".format(self.prealloc)) from None
 
     def _write_header(
         self,
@@ -244,7 +244,7 @@ class XcpLogFileReader:
             self.total_size_uncompressed,
         ) = FILE_HEADER_STRUCT.unpack(self.get(0, FILE_HEADER_STRUCT.size))
         if magic != MAGIC:
-            raise XcpLogFileParseError("Invalid file magic: '{}'.".format(magic))
+            raise XcpLogFileParseError("Invalid file magic: '{}'.".format(magic)) from None
 
     def __del__(self):
         if not self._is_closed:

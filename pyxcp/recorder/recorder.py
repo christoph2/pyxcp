@@ -40,7 +40,7 @@ class XcpLogFileReader:
             frames = self._reader.next()
             if frames is None:
                 break
-            for category, counter, timestamp, length, payload in frames:
+            for category, counter, timestamp, _, payload in frames:
                 yield (category, counter, timestamp, payload)
 
 
@@ -70,7 +70,6 @@ hdr = reader.get_header()
 print(hdr)
 
 for frame in reader:
-    # print(frame)
-    pass
+    print(frame)
 
 print("Finished.")

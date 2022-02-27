@@ -237,7 +237,7 @@ def bench(xm):
     for pn in range(8, 257, 8):
         # for pn in range(8, 257, 32):
         result[pn] = []
-        for i in range(10):
+        for _ in range(10):
             gid = xm.getID(0x4)
             start = time.perf_counter()
             xm.fetch(gid.length, pn)

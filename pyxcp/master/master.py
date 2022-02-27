@@ -680,7 +680,7 @@ class Master:
             blocks = range(total_length // max_payload)
             percent_complete = 1
             remaining_block_size = total_length % max_payload
-            for idx in blocks:
+            for _ in blocks:
                 block = data[offset : offset + max_payload]
                 block_downloader(block)
                 offset += max_payload
