@@ -27,7 +27,7 @@ dependencies = [
     "toml<1.0.0,>=0.10.2",
 ]
 name = "pyxcp"
-version = "0.18.36"
+version = "0.18.37"
 readme = "README.md"
 license="LGPLv3"
 description = "Universal Calibration Protocol for Python"
