@@ -139,7 +139,7 @@ setuptools.setup(
     zip_safe=False,
     tests_require=["pytest", "pytest-runner"],
     test_suite="pyxcp.tests",
-    license="GPLv2",
+    license="LGPLv3",
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         # How mature is this project? Common values are
@@ -152,7 +152,7 @@ setuptools.setup(
         "Topic :: Software Development",
         "Topic :: Scientific/Engineering",
         # Pick your license as you wish (should match "license" above)
-        "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+        "License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv3)",
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         "Programming Language :: Python :: 3.6",

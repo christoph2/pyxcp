@@ -1,40 +1,74 @@
 # This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://help.github.com/actions/language-and-framework-u/using-python-with-github-actions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
-name: Build wheels
+name: pyXCP
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [master, develop]
   pull_request:
-    branches: [ master, develop ]
+    branches: [master, develop]
 
 jobs:
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
-      matrix:
-          os: [ubuntu-latest, windows-latest] # macos-latest
+        fail-fast: false
+        matrix:
+            os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-    - uses: actions/checkout@v2
-    #- name: Set up Python ${{ matrix.python }}
-    #  uses: actions/setup-python@v2
-    #  with:
-    #    python-version: ${{ matrix.python }}
-    #- name: Set up QEMU
-    #    if: ${{ matrix.archs == 'aarch64' }}
-    #    uses: docker/setup-qemu-action@v1
-    - name: Build wheel
-      uses: pypa/cibuildwheel@v2.3.1
-    - name: Upload to PyPI
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USER_NAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      if: env.TWINE_USERNAME != null
-      run: |
-        twine upload dist/*
-    - uses: actions/upload-artifact@v2
+      - uses: actions/checkout@v2
+
+      - name: Build wheel
+        uses: pypa/cibuildwheel@v2.3.1
+
+      - uses: actions/upload-artifact@v2
+        with:
+            path: ./wheelhouse/*.whl
+
+  build_sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+        - uses: actions/checkout@v2
+
+        - name: Build sdist
+          run: |
+            pip install -U build
+            python -m build --sdist
+
+        - uses: actions/upload-artifact@v2
+          with:
+            path: dist/*.tar.gz
+  upload_pypi:
+    needs: [build_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    #    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/')
+    # alternatively, to publish when a GitHub Release is created, use the following rule:
+    # if: github.event_name == 'release' && github.event.action == 'published'
+    steps:
+    - uses: actions/download-artifact@v2
       with:
-        path: ./wheelhouse/*.whl
+        name: artifact
+        path: dist
+    
+    - uses: pypa/gh-action-pypi-publish@v1.4.2
+      with:
+        user: ${{ secrets.PYPI_USER_NAME }}     # __token__
+        password: ${{ secrets.PYPI_PASSWORD }}
+    # To test: repository_url: https://test.pypi.org/legacy/
+    #
+        #      - name: Upload to PyPI
+        #uses: pypa/gh-action-pypi-publish@v1.4.2
+        #with:
+        #    user: ${{ secrets.PYPI_USER_NAME }}
+        #    password: ${{ secrets.PYPI_PASSWORD }}
+      #- name: Build and publish
+      #  env:
+      #    TWINE_USERNAME: ${{ secrets.PYPI_USER_NAME }}
+      #    TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      #  if: env.TWINE_USERNAME != null
+      #  run: |
+      #    python setup.py bdist_wheel
+      #    twine upload dist/*
