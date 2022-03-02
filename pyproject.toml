@@ -31,7 +31,18 @@ version = "0.18.38"
 readme = "README.md"
 description = "Universal Calibration Protocol for Python"
 keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
-classifiers = ["Development Status :: 4 - Beta", "Intended Audience :: Developers", "Topic :: Software Development", "Topic :: Scientific/Engineering", "License :: OSI Approved :: GNU General Public License v2 (GPLv2)", "Programming Language :: Python :: 3.5", "Programming Language :: Python :: 3.6", "Programming Language :: Python :: 3.7", "Programming Language :: Python :: 3.8", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers", "Topic :: Software Development",
+    "Topic :: Scientific/Engineering",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10"
+]
+license="LGPLv3+"
 [project.urls]
 homepage = "https://github.com/christoph2/pyxcp"
 
