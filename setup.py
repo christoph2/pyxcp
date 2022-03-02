@@ -4,7 +4,6 @@ import platform
 import subprocess
 import sys
 
-import distutils
 import setuptools.command.build_py
 import setuptools.command.develop
 
@@ -64,16 +63,9 @@ install_reqs = [
     "pyserial",
     "toml",
 ]
-setup_reqs = [
-    "pyusb",
-    "construct >= 2.9.0",
-    "mako",
-    "pyserial",
-    "toml",
-]
 
 
-class AsamKeyDllAutogen(distutils.cmd.Command):
+class AsamKeyDllAutogen(setuptools.Command):
     """Custom command to compile `asamkeydll.exe`."""
 
     description = "Compile `asamkeydll.exe`."
@@ -92,7 +84,7 @@ class AsamKeyDllAutogen(distutils.cmd.Command):
         word_width, _ = platform.architecture()
         if sys.platform == "win32" and word_width == "64bit":
             gccCmd = ["gcc", "-m32", "-O3", "-Wall"]
-            self.announce(" ".join(gccCmd + self.arguments), level=distutils.log.INFO)
+            self.announce(" ".join(gccCmd + self.arguments))
             try:
                 subprocess.check_call(gccCmd + self.arguments)
             except Exception as e:
@@ -132,7 +124,6 @@ setuptools.setup(
     python_requires=">=3.6",
     include_package_data=True,
     install_requires=install_reqs,
-    setup_requires=setup_reqs,
     extras_require={"docs": ["sphinxcontrib-napoleon"], "develop": ["bumpversion"]},
     ext_modules=ext_modules,
     package_dir={"tests": "pyxcp/tests"},
