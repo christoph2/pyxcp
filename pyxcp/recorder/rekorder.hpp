@@ -56,7 +56,11 @@
 
 #endif /* STANDALONE_REKORDER */
 
-//#define __ALIGNMENT_REQUIREMENT     32
+#if !defined(__BIGGEST_ALIGNMENT__)
+    #define __BIGGEST_ALIGNMENT__   (8)
+#endif
+
+
 #define __ALIGNMENT_REQUIREMENT     __BIGGEST_ALIGNMENT__
 #define __ALIGN                     alignas(__ALIGNMENT_REQUIREMENT)
 
@@ -100,8 +104,8 @@ struct ContainerHeaderType
 using blob_t = char;    // Signedness doesn't matter in this use-case.
 
 #if STANDALONE_REKORDER == 1
-    //using payload_t = std::shared_ptr<blob_t[]>;
-    using payload_t = std::unique_ptr<blob_t[]>;
+    using payload_t = std::shared_ptr<blob_t[]>;
+    //using payload_t = std::unique_ptr<blob_t[]>;
 #else
     using payload_t = py::array_t<blob_t>;
 #endif /* STANDALONE_REKORDER */
@@ -238,7 +242,7 @@ private:
 
 class Event {
 public:
-    explicit Event() {}
+     explicit Event() : m_mtx{}, m_flag{false}, m_cond{} {}
 
     Event(const Event& other) {
         std::lock_guard<std::mutex> lock(other.m_mtx);
@@ -502,7 +506,7 @@ public:
         m_current_container += 1;
         delete[] buffer;
         //printf("OK, retuning from next -- Total: %u\n", total);
-        return result;
+        return std::optional<FrameVector>{result};
     }
 
     ~XcpLogFileReader()
