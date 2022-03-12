@@ -136,9 +136,9 @@ class Usb(BaseTransport):
                         recv_timestamp = timestamp_origin + perf_counter() - perf_counter_origin
                     read_count = read(buffer, 10)  # 10ms timeout
                     if read_count != RECV_SIZE:
-                        _packets.append((bytes(buffer)[:read_count], recv_timestamp))
+                        _packets.append((buffer.tobytes()[:read_count], recv_timestamp))
                     else:
-                        _packets.append((bytes(buffer), recv_timestamp))
+                        _packets.append((buffer.tobytes(), recv_timestamp))
                 except BaseException:
                     # print(format_exc())
                     sleep(0.001)
