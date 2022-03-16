@@ -63,4 +63,4 @@ T.B.D.
 
 ## License
 
-GNU General Public License v2.0
+GNU Lesser General Public License v3 or later (LGPLv3+)
