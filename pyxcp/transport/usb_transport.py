@@ -115,7 +115,7 @@ class Usb(BaseTransport):
 
         close_event_set = self.closeEvent.isSet
 
-        high_resolution_time = self.perf_counter_origin > 0
+        high_resolution_time = self.perf_counter_origin < 0
         timestamp_origin = self.timestamp_origin
         perf_counter_origin = self.perf_counter_origin
 
@@ -204,7 +204,7 @@ class Usb(BaseTransport):
                             break
 
     def send(self, frame):
-        if self.perf_counter_origin > 0:
+        if self.perf_counter_origin < 0:
             self.pre_send_timestamp = time()
             try:
                 self.command_endpoint.write(frame)

@@ -366,7 +366,7 @@ class Can(BaseTransport):
         if self.max_dlc_required:
             frame = padFrame(frame, self.padding_value, self.padding_len)
         # send the request
-        if self.perf_counter_origin > 0:
+        if self.perf_counter_origin < 0:
             self.pre_send_timestamp = time()
             self.canInterface.transmit(payload=frame)
             self.post_send_timestamp = time()
