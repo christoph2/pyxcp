@@ -15,7 +15,7 @@ dev = [
 
 [project]
 authors = [
-    {name = "Christoph Schueler"}, 
+    {name = "Christoph Schueler"},
     {email = "cpu12.gems@googlemail.com"}
 ]
 requires-python = ">=3.6"
@@ -28,7 +28,7 @@ dependencies = [
     "toml<1.0.0,>=0.10.2",
 ]
 name = "pyxcp"
-version = "0.18.41"
+version = "0.18.43"
 readme = "README.md"
 description = "Universal Calibration Protocol for Python"
 keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
