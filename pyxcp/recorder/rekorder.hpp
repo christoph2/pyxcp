@@ -500,7 +500,7 @@ public:
             //result.emplace_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, create_payload(frame.length, &buffer[boffs])));
             result.push_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, create_payload(frame.length, &buffer[boffs])));
             boffs += frame.length;
-            result.emplace_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, std::move(payload)));
+            //result.emplace_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, std::move(payload)));
         }
         m_offset += container.size_compressed;
         m_current_container += 1;

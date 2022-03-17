@@ -44,6 +44,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10"
 ]
 license = {file = "LICENSE"}
+license="LGPLv3+"
 [project.urls]
 homepage = "https://github.com/christoph2/pyxcp"
 
