@@ -122,7 +122,7 @@ class Eth(BaseTransport):
         socket_fileno = self.sock.fileno
         select = self.selector.select
 
-        high_resolution_time = self.perf_counter_origin > 0
+        high_resolution_time = self.perf_counter_origin < 0
         timestamp_origin = self.timestamp_origin
         perf_counter_origin = self.perf_counter_origin
 
@@ -222,7 +222,7 @@ class Eth(BaseTransport):
                             break
 
     def send(self, frame):
-        if self.perf_counter_origin > 0:
+        if self.perf_counter_origin < 0:
             self.pre_send_timestamp = time()
             self.sock.send(frame)
             self.post_send_timestamp = time()
