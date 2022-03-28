@@ -48,7 +48,7 @@ with ap.run() as x:
         print("CTO-Size: {}".format(ctoSize))
         xs.append(ctoSize)
         start = time.perf_counter()
-        for idx in range(ITERATIONS):
+        for _ in range(ITERATIONS):
             x.setMta(ADDR)
             data = x.fetch(LENGTH, ctoSize)
         et = time.perf_counter() - start

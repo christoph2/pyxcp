@@ -125,7 +125,7 @@ class Arguments:
             Keyword arguments.
     """
 
-    def __init__(self, args=None, kwargs={}):
+    def __init__(self, args=None, kwargs=None):
         if args is None:
             self.args = []
         else:
@@ -133,7 +133,7 @@ class Arguments:
                 self.args = (args,)
             else:
                 self.args = tuple(args)
-        self.kwargs = kwargs
+        self.kwargs = kwargs or {}
 
     def __str__(self):
         res = "{}(ARGS = {}, KWS = {})".format(self.__class__.__name__, self.args, self.kwargs)

@@ -187,7 +187,7 @@ class XcpLogFileWriter:
         try:
             self._mapping[address : address + length] = data
         except IndexError:
-            raise XcpLogFileCapacityExceededError("Maximum file size of {} MBytes exceeded.".format(self.prealloc))
+            raise XcpLogFileCapacityExceededError("Maximum file size of {} MBytes exceeded.".format(self.prealloc)) from None
 
     def _write_header(
         self,

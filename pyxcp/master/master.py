@@ -680,7 +680,7 @@ class Master:
             blocks = range(total_length // max_payload)
             percent_complete = 1
             remaining_block_size = total_length % max_payload
-            for idx in blocks:
+            for _ in blocks:
                 block = data[offset : offset + max_payload]
                 block_downloader(block)
                 offset += max_payload
@@ -1809,7 +1809,7 @@ def make_tick_converter(resolution):
     """
     exponent = types.DAQ_TIMESTAMP_UNIT_TO_EXP[resolution.timestampMode.unit]
     tick_resolution = resolution.timestampTicks
-    base = (10 ** exponent) * tick_resolution
+    base = (10**exponent) * tick_resolution
 
     def ticks_to_seconds(ticks):
         """Convert DAQ timestamp/tick value to seconds.

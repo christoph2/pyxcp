@@ -694,12 +694,12 @@ def wordSum(modulus, step):
     return add
 
 
-ADD11 = adder(2 ** 8)
-ADD12 = adder(2 ** 16)
-ADD14 = adder(2 ** 32)
-ADD22 = wordSum(2 ** 16, 2)
-ADD24 = wordSum(2 ** 32, 2)
-ADD44 = wordSum(2 ** 32, 4)
+ADD11 = adder(2**8)
+ADD12 = adder(2**16)
+ADD14 = adder(2**32)
+ADD22 = wordSum(2**16, 2)
+ADD24 = wordSum(2**32, 2)
+ADD44 = wordSum(2**32, 4)
 CRC16 = Crc16(CRC16, 0x0000, 0x0000, True, True)
 CRC16_CCITT = Crc16(CRC16_CCITT, 0xFFFF, 0x0000, False, False)
 
