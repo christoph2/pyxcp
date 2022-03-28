@@ -108,4 +108,6 @@ build-verbosity = 3
 build = "cp3{6,7,8,9,10}-*"
 build-frontend = "build"
 [tool.cibuildwheel.linux]
-build-frontend = "pip"
+before-all = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+build-frontend = "build"
+
