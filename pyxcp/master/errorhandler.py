@@ -2,40 +2,20 @@
 # -*- coding: utf-8 -*-
 """Implements error-handling according to XCP spec.
 """
-
-__copyright__ = """
-    pySART - Simplified AUTOSAR-Toolkit for Python.
-
-   (C) 2009-2022 by Christoph Schueler <cpu12.gems@googlemail.com>
-
-   All Rights Reserved
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License along
-  with this program; if not, write to the Free Software Foundation, Inc.,
-  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-"""
-
-from collections import namedtuple
 import functools
-
 import os
-
-import time
 import threading
+import time
 import types
+from collections import namedtuple
+from pyxcp.errormatrix import Action
+from pyxcp.errormatrix import ERROR_MATRIX
+from pyxcp.errormatrix import PreAction
+from pyxcp.types import COMMAND_CATEGORIES
+from pyxcp.types import XcpError
+from pyxcp.types import XcpResponseError
+from pyxcp.types import XcpTimeoutError
 
-from pyxcp.types import XcpResponseError, XcpTimeoutError, XcpError, COMMAND_CATEGORIES
-from pyxcp.errormatrix import ERROR_MATRIX, PreAction, Action
 from ..logger import Logger
 
 handle_errors = True  # enable/disable XCP error-handling.

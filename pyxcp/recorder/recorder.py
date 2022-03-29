@@ -1,8 +1,7 @@
+import rekorder as rec
 from collections import namedtuple
 from enum import IntEnum
 from time import perf_counter
-
-import rekorder as rec
 
 XcpLogFileHeader = namedtuple(
     "XcpLogFileHeader",

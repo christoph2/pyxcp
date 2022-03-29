@@ -1,6 +1,6 @@
-import pytest
-
 from pyxcp import checksum
+
+import pytest
 
 """
 XCP_ADD_11          0x10        0x10

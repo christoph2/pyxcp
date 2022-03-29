@@ -1,6 +1,5 @@
 from collections import OrderedDict
 from io import StringIO
-
 from pyxcp.config import readConfiguration
 
 JSON = """{
