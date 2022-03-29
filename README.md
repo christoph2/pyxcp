@@ -41,7 +41,7 @@ pip install pyxcp
 
 ### Requirements
 
-- Python >= 3.6
+- Python >= 3.7
 - A running XCP slave (of course).
 - If you are using a 64bit Windows version and want to use seed-and-key .dlls (to unlock resources), a GCC compiler capable of creating 32bit
   executables is required:

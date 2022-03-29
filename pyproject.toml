@@ -18,7 +18,7 @@ authors = [
     {name = "Christoph Schueler"},
     {email = "cpu12.gems@googlemail.com"}
 ]
-requires-python = ">=3.6"
+requires-python = ">=3.7"
 dependencies = [
     "setuptools-cpp<1.0.0,>=0.1.0",
     "Mako<2.0.0,>=1.1.6",
@@ -37,7 +37,6 @@ classifiers = [
     "Intended Audience :: Developers", "Topic :: Software Development",
     "Topic :: Scientific/Engineering",
     "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
-    "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -105,7 +104,7 @@ exclude = '''
 [tool.cibuildwheel]
 build-verbosity = 3
 #test-command = "pytest {package}/tests"
-build = "cp3{6,7,8,9,10}-*"
+build = "cp3{7,8,9,10}-*"
 build-frontend = "build"
 [tool.cibuildwheel.linux]
 before-all = "curl https://sh.rustup.rs -sSf | sh -s -- -y"
