@@ -28,7 +28,7 @@ dependencies = [
     "toml<1.0.0,>=0.10.2",
 ]
 name = "pyxcp"
-version = "0.18.45"
+version = "0.18.46"
 readme = "README.md"
 description = "Universal Calibration Protocol for Python"
 keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
