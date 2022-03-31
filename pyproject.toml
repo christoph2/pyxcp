@@ -29,7 +29,7 @@ dependencies = [
     "python-can>=4.0.0",
 ]
 name = "pyxcp"
-version = "0.18.46"
+version = "0.18.47"
 readme = "README.md"
 description = "Universal Calibration Protocol for Python"
 keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
