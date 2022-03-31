@@ -26,6 +26,7 @@ dependencies = [
     "pyserial<4.0,>=3.5",
     "pyusb<2.0.0,>=1.2.1",
     "toml<1.0.0,>=0.10.2",
+    "python-can>=4.0.0",
 ]
 name = "pyxcp"
 version = "0.18.46"

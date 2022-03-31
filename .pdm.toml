@@ -5,7 +5,7 @@ check_update = false
 parallel_install = true
 project_max_depth = 5
 use_venv = false
-path = "/usr/local/bin/python3"
+path = "C:\\Users\\Chris\\PycharmProjects\\pyxcp\\venv\\Scripts\\python.EXE"
 
 [python.feature]
 install_cache = true
