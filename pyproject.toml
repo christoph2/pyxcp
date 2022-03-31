@@ -54,6 +54,8 @@ doc = [
     "sphinxcontrib-napoleon"
 ]
 
+[project.scripts]
+pyxcp-probe-can-drivers = "pyxcp.scripts.pyxcp_probe_can_drivers:main"
 
 [tool.pytest]
 addopts = "--verbose --tb=short --junitxml=result.xml -o junit_family=xunit2"

@@ -145,4 +145,9 @@ setuptools.setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
     ],
+    entry_points={
+        "console_scripts": [
+            "pyxcp-probe-can-drivers = pyxcp.scripts.pyxcp_probe_can_drivers:main",
+        ],
+    },
 )
