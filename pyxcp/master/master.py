@@ -23,14 +23,17 @@ from pyxcp.constants import makeDWordPacker
 from pyxcp.constants import makeDWordUnpacker
 from pyxcp.constants import makeWordPacker
 from pyxcp.constants import makeWordUnpacker
+from pyxcp.constants import PackerType
+from pyxcp.constants import UnpackerType
 from pyxcp.master.errorhandler import disable_error_handling
 from pyxcp.master.errorhandler import wrapped
 from pyxcp.transport.base import createTransport
 from pyxcp.utils import delay
 from time import sleep
+from typing import Callable
 
 
-def broadcasted(func):
+def broadcasted(func: Callable):
     """"""
     return func
 
