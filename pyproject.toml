@@ -12,7 +12,6 @@ dev = [
     "pytest-cov<4.0.0,>=3.0.0",
 
 ]
-
 [project]
 authors = [
     {name = "Christoph Schueler"},
@@ -34,6 +33,8 @@ version = "0.18.48"
 readme = "README.md"
 description = "Universal Calibration Protocol for Python"
 keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
+#license-expression = "LGPL-3.0-or-later"
+#license-files.paths = ["LICENSE"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers", "Topic :: Software Development",
@@ -45,6 +46,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10"
 ]
 license = {file = "LICENSE"}
+
 [project.urls]
 homepage = "https://github.com/christoph2/pyxcp"
 
