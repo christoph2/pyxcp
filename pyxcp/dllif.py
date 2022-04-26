@@ -64,6 +64,7 @@ else:
 
 
 def getKey(dllName: str, privilege: int, seed: str, assume_same_bit_width: bool):
+    use_ctypes = False
     if assume_same_bit_width:
         use_ctypes = True
     if use_ctypes:
@@ -88,11 +89,15 @@ def getKey(dllName: str, privilege: int, seed: str, assume_same_bit_width: bool)
         )
         return (ret_code, key_buffer.raw[0 : key_length.value])
     else:
-        p0 = subprocess.Popen(
-            [LOADER, dllName, str(privilege), binascii.hexlify(seed).decode("ascii")],
-            stdout=subprocess.PIPE,
-            shell=True,
-        )
+        try:
+            p0 = subprocess.Popen(
+                [LOADER, dllName, str(privilege), binascii.hexlify(seed).decode("ascii")],
+                stdout=subprocess.PIPE,
+                shell=False,
+            )
+        except OSError as exc:
+            print(f"Cannot execute {LOADER}: {exc}")
+            return (SeedNKeyResult.ERR_COULD_NOT_LOAD_DLL, None)
         key = p0.stdout.read()
         res = re.split(b"\r?\n", key)
         returnCode = int(res[0])
