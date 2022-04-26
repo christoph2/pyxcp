@@ -29,7 +29,7 @@ dependencies = [
     "uptime>=3.0.1",
 ]
 name = "pyxcp"
-version = "0.18.49"
+version = "0.18.50"
 readme = "README.md"
 description = "Universal Calibration Protocol for Python"
 keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
