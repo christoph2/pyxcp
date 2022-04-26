@@ -1,8 +1,7 @@
+import rekorder as rec
 from collections import namedtuple
 from enum import IntEnum
 from time import perf_counter
-
-import rekorder as rec
 
 XcpLogFileHeader = namedtuple(
     "XcpLogFileHeader",
@@ -40,7 +39,7 @@ class XcpLogFileReader:
             frames = self._reader.next()
             if frames is None:
                 break
-            for category, counter, timestamp, length, payload in frames:
+            for category, counter, timestamp, _, payload in frames:
                 yield (category, counter, timestamp, payload)
 
 
@@ -69,8 +68,7 @@ print("After c-tor()")
 hdr = reader.get_header()
 print(hdr)
 
-for frame in reader:
-    # print(frame)
-    pass
+# for frame in reader:
+# print(frame)
 
 print("Finished.")

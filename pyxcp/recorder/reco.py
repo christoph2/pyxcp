@@ -13,38 +13,12 @@ See
 
 -  ``_ for reading.
 """
-
-__copyright__ = """
-   pySART - Simplified AUTOSAR-Toolkit for Python.
-
-   (C) 2020-2021 by Christoph Schueler <cpu12.gems.googlemail.com>
-
-   All Rights Reserved
-
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License along
-   with this program; if not, write to the Free Software Foundation, Inc.,
-   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
-   s. FLOSS-EXCEPTION.txt
-"""
-
-
-from collections import namedtuple
 import enum
 import mmap
 import os
 import pathlib
 import struct
+from collections import namedtuple
 
 import lz4.block as lz4block
 
@@ -187,7 +161,7 @@ class XcpLogFileWriter:
         try:
             self._mapping[address : address + length] = data
         except IndexError:
-            raise XcpLogFileCapacityExceededError("Maximum file size of {} MBytes exceeded.".format(self.prealloc))
+            raise XcpLogFileCapacityExceededError("Maximum file size of {} MBytes exceeded.".format(self.prealloc)) from None
 
     def _write_header(
         self,

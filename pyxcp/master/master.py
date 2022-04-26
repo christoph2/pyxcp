@@ -7,55 +7,34 @@
 
 .. [1] XCP Specification, Part 2 - Protocol Layer Specification
 """
-
-__copyright__ = """
-    pySART - Simplified AUTOSAR-Toolkit for Python.
-
-   (C) 2009-2022 by Christoph Schueler <cpu12.gems@googlemail.com>
-
-   All Rights Reserved
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License along
-  with this program; if not, write to the Free Software Foundation, Inc.,
-  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-"""
-
 import functools
 import logging
 import struct
 import traceback
 import warnings
 from time import sleep
+from typing import Callable
 
 from pyxcp import checksum
 from pyxcp import types
 from pyxcp.config import Configuration
-from pyxcp.constants import (
-    makeBytePacker,
-    makeByteUnpacker,
-    makeWordPacker,
-    makeWordUnpacker,
-    makeDWordPacker,
-    makeDWordUnpacker,
-    makeDLongPacker,
-    makeDLongUnpacker,
-)
-from pyxcp.master.errorhandler import wrapped, disable_error_handling
+from pyxcp.constants import makeBytePacker
+from pyxcp.constants import makeByteUnpacker
+from pyxcp.constants import makeDLongPacker
+from pyxcp.constants import makeDLongUnpacker
+from pyxcp.constants import makeDWordPacker
+from pyxcp.constants import makeDWordUnpacker
+from pyxcp.constants import makeWordPacker
+from pyxcp.constants import makeWordUnpacker
+from pyxcp.constants import PackerType
+from pyxcp.constants import UnpackerType
+from pyxcp.master.errorhandler import disable_error_handling
+from pyxcp.master.errorhandler import wrapped
 from pyxcp.transport.base import createTransport
 from pyxcp.utils import delay
 
 
-def broadcasted(func):
+def broadcasted(func: Callable):
     """"""
     return func
 
@@ -680,7 +659,7 @@ class Master:
             blocks = range(total_length // max_payload)
             percent_complete = 1
             remaining_block_size = total_length % max_payload
-            for idx in blocks:
+            for _ in blocks:
                 block = data[offset : offset + max_payload]
                 block_downloader(block)
                 offset += max_payload
@@ -1732,7 +1711,7 @@ class Master:
 
         MAX_PAYLOAD = self.slaveProperties["maxCto"] - 2
 
-        if self.seedNKeyDLL is None:
+        if not self.seedNKeyDLL:
             raise RuntimeError("No seed and key DLL specified, cannot proceed.")
         if resources is None:
             result = []
@@ -1809,7 +1788,7 @@ def make_tick_converter(resolution):
     """
     exponent = types.DAQ_TIMESTAMP_UNIT_TO_EXP[resolution.timestampMode.unit]
     tick_resolution = resolution.timestampTicks
-    base = (10 ** exponent) * tick_resolution
+    base = (10**exponent) * tick_resolution
 
     def ticks_to_seconds(ticks):
         """Convert DAQ timestamp/tick value to seconds.

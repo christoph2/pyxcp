@@ -18,7 +18,7 @@ authors = [
     {name = "Christoph Schueler"},
     {email = "cpu12.gems@googlemail.com"}
 ]
-requires-python = ">=3.6"
+requires-python = ">=3.7"
 dependencies = [
     "setuptools-cpp<1.0.0,>=0.1.0",
     "Mako<2.0.0,>=1.1.6",
@@ -26,9 +26,11 @@ dependencies = [
     "pyserial<4.0,>=3.5",
     "pyusb<2.0.0,>=1.2.1",
     "toml<1.0.0,>=0.10.2",
+    "python-can>=4.0.0",
+    "uptime>=3.0.1",
 ]
 name = "pyxcp"
-version = "0.18.45"
+version = "0.18.48"
 readme = "README.md"
 description = "Universal Calibration Protocol for Python"
 keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
@@ -37,7 +39,6 @@ classifiers = [
     "Intended Audience :: Developers", "Topic :: Software Development",
     "Topic :: Scientific/Engineering",
     "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
-    "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -53,6 +54,8 @@ doc = [
     "sphinxcontrib-napoleon"
 ]
 
+[project.scripts]
+pyxcp-probe-can-drivers = "pyxcp.scripts.pyxcp_probe_can_drivers:main"
 
 [tool.pytest]
 addopts = "--verbose --tb=short --junitxml=result.xml -o junit_family=xunit2"
@@ -105,7 +108,9 @@ exclude = '''
 [tool.cibuildwheel]
 build-verbosity = 3
 #test-command = "pytest {package}/tests"
-build = "cp3{6,7,8,9,10}-*"
+build = "cp3{7,8,9,10}-*"
 build-frontend = "build"
 [tool.cibuildwheel.linux]
-build-frontend = "pip"
+before-all = "curl https://sh.rustup.rs -sSf | sh -s -- -y"
+build-frontend = "build"
+

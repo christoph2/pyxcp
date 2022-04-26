@@ -1,6 +1,6 @@
-import pytest
-
 import pyxcp.transport.base as tr
+
+import pytest
 
 
 def test_factory_works():

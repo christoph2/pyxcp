@@ -1,6 +1,6 @@
-import pytest
-
 from pyxcp.asam import types
+
+import pytest
 
 
 def testEncodeUint32_0():

@@ -1,54 +1,28 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-__copyright__ = """
-    pySART - Simplified AUTOSAR-Toolkit for Python.
-
-   (C) 2009-2020 by Christoph Schueler <cpu12.gems@googlemail.com>
-
-   All Rights Reserved
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License along
-  with this program; if not, write to the Free Software Foundation, Inc.,
-  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-"""
-
-from collections import namedtuple
 import enum
+from collections import namedtuple
 
 import construct
-
-from construct import (
-    BitsInteger,
-    BitStruct,
-    Enum,
-    Flag,
-    GreedyBytes,
-    GreedyRange,
-    If,
-    IfThenElse,
-    Int16ub,
-    Int16ul,
-    Int32ub,
-    Int32ul,
-    Int64ub,
-    Int64ul,
-    Int8ul,
-    Padding,
-    Struct,
-    Switch,
-    this,
-)
+from construct import BitsInteger
+from construct import BitStruct
+from construct import Enum
+from construct import Flag
+from construct import GreedyBytes
+from construct import GreedyRange
+from construct import If
+from construct import IfThenElse
+from construct import Int16ub
+from construct import Int16ul
+from construct import Int32ub
+from construct import Int32ul
+from construct import Int64ub
+from construct import Int64ul
+from construct import Int8ul
+from construct import Padding
+from construct import Struct
+from construct import Switch
+from construct import this
 
 
 if construct.version < (2, 8):
