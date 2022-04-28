@@ -164,9 +164,11 @@ const auto round_to_alignment = create_rounding_func(__ALIGNMENT_REQUIREMENT);
 
 inline void _fcopy(blob_t * dest, const blob_t * src, std::size_t n)
 {
+    printf("before _fcopy\n");
     for (std::size_t i = 0; i < n; ++i) {
         dest[i] = src[i];
     }
+    printf("after _fcopy\n");
 }
 
 #if STANDALONE_REKORDER == 1
@@ -285,11 +287,13 @@ public:
         m_fd = CreateFile(
             m_file_name.c_str(),
             GENERIC_READ | GENERIC_WRITE,
-            NULL,
+            0,
             (LPSECURITY_ATTRIBUTES)NULL,
-            CREATE_NEW, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS,
+            CREATE_ALWAYS,
+            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS,
             NULL
         );
+        printf("m_fd: %d\n", m_fd);
 #else
         m_fd = open(m_file_name.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0666);
 #endif
@@ -457,6 +461,7 @@ public:
         }
 
         m_offset += detail::FILE_HEADER_SIZE;
+        printf("leaving c-tor\n");
     }
 
     const FileHeaderType get_header() const {

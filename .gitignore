@@ -126,3 +126,5 @@ result.xml
 
 .vscode/
 
+# VIM temporaries
+*~
