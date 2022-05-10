@@ -14,6 +14,10 @@ import traceback
 import warnings
 from time import sleep
 from typing import Callable
+from typing import Collection
+from typing import Dict
+from typing import Optional
+from typing import Union
 
 from pyxcp import checksum
 from pyxcp import types
@@ -1760,6 +1764,75 @@ class Master:
                     self.unlock(key_length, data)
             else:
                 raise SeedNKeyError("SeedAndKey DLL returned: {}".format(SeedNKeyResult(result).name))
+
+    def id_scanner(self, scan_ranges: Optional[Collection[Collection[int]]] = None) -> Dict[str, str]:
+        """Scan for available standard identification types (GET_ID).
+
+        Parameters
+        ----------
+        scan_ranges: Optional[Collection[Collection[int]]]
+
+        - If parameter is omitted or `None` test every standard identification type (s. GET_ID service)
+          plus extensions by Vector Informatik.
+        - Else `scan_ranges` must be a list-of-list.
+            e.g: [[12, 80], [123], [240, 16, 35]]
+                - The first list is a range (closed interval).
+                - The second is a single value.
+                - The third is a value list.
+
+        Returns
+        -------
+        Dict[str, str]
+
+        """
+        result = {}
+
+        def make_generator(sr):
+            STD_IDS = {int(v): k for k, v in types.XcpGetIdType.__members__.items()}
+            if sr is None:
+                scan_range = STD_IDS.keys()
+            else:
+                scan_range = []
+                if not isinstance(sr, Collection):
+                    raise TypeError("scan_ranges must be of type `Collection`")
+                for element in sr:
+                    if not isinstance(element, Collection):
+                        raise TypeError("scan_ranges elements must be of type `Collection`")
+                    if not element:
+                        raise ValueError("scan_ranges elements cannot be empty")
+                    if len(element) == 1:
+                        scan_range.append(element[0])  # Single value
+                    elif len(element) == 2:
+                        start, stop = element  # Value range
+                        scan_range.extend(list(range(start, stop + 1)))
+                    else:
+                        scan_range.extend(element)  # Value list.
+            scan_range = sorted(frozenset(scan_range))
+
+            def generate():
+                for idx, id_value in enumerate(scan_range):
+                    if id_value in STD_IDS:
+                        name = STD_IDS[id_value]
+                    else:
+                        name = f"USER_{idx}"
+                    yield id_value, name,
+
+            return generate()
+
+        gen = make_generator(scan_ranges)
+        for id_value, name in gen:
+            response = b""
+            try:
+                gid = self.getId(id_value)
+                response = self.fetch(gid.length)
+            except types.XcpResponseError:
+                # don't depend on confirming implementation, i.e.: ID not implemented ==> empty response.
+                pass
+            except Exception:
+                raise
+            if response:
+                result[name] = response.decode("utf8")
+        return result
 
 
 def ticks_to_seconds(ticks, resolution):
