@@ -25,7 +25,7 @@ ext_modules = [
         include_dirs=[INCLUDE_DIRS],
         sources=["lz4.cpp", "wrap.cpp"],
         define_macros=[("EXTENSION_NAME", EXT_NAMES[0])],
-        cxx_std=17,
+        cxx_std=20,  # Extension will use C++20 generators/coroutines.
     ),
 ]
 

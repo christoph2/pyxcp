@@ -720,4 +720,4 @@ def check(frame, algo):
     if fun:
         return fun(frame)
     else:
-        raise NotImplementedError("Invalid algorithm '{}'.".format(algo))
+        raise NotImplementedError(f"Invalid algorithm '{algo:d}'")
