@@ -732,7 +732,7 @@ class Master:
             delay(minSt)
 
     @wrapped
-    def download(self, data: bytes, blockModeLength=None):
+    def download(self, data: bytes, blockModeLength=None, **kwargs):
         """Transfer data from master to slave.
 
         Parameters
