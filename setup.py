@@ -108,6 +108,7 @@ setuptools.setup(
     author="Christoph Schueler",
     author_email="cpu12.gems@googlemail.com",
     url="https://github.com/christoph2/pyxcp",
+    package_dir={"": "pyxcp"},
     packages=setuptools.find_packages(),
     cmdclass={
         "asamkeydll": AsamKeyDllAutogen,

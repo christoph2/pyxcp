@@ -5,7 +5,6 @@ check_update = false
 parallel_install = true
 project_max_depth = 5
 use_venv = false
-path = "C:\\Users\\Chris\\PycharmProjects\\pyxcp\\venv\\Scripts\\python.EXE"
 
 [python.feature]
 install_cache = true
@@ -20,6 +19,6 @@ verify_ssl = false
 use_pyenv = false
 
 [python.strategy]
-resolve_max_rounds = 1 # 10000
+resolve_max_rounds = 10
 save = "minimum"
 update = "reuse"
