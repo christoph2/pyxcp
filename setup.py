@@ -119,7 +119,7 @@ setuptools.setup(
     install_requires=install_reqs,
     extras_require={"docs": ["sphinxcontrib-napoleon"], "develop": ["bumpversion"]},
     ext_modules=ext_modules,
-    package_dir={"": "pyxcp", "tests": "pyxcp/tests"},
+    package_dir={"tests": "pyxcp/tests"},
     zip_safe=False,
     tests_require=["pytest", "pytest-runner"],
     test_suite="pyxcp.tests",
