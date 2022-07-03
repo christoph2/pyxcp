@@ -1,5 +1,5 @@
 [build-system]
-requires = ["pdm", "pdm-pep517", "pybind11<3.0.0,>=2.9.0", "wheel", "build", "twine", "setuptools"]
+requires = ["pdm", "pdm-pep517", "pybind11<3.0.0,>=2.9.0", "wheel", "build", "twine", "setuptools", "pytest"]
 build-backend = "pdm.pep517.api"
 
 [tool.pdm]
