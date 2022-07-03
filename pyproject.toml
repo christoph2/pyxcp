@@ -1,5 +1,5 @@
 [build-system]
-requires = ["pdm", "pdm-pep517", "pybind11<3.0.0,>=2.9.0", "wheel", "build", "twine", "setuptools", "pytest"]
+requires = ["pdm", "pdm-pep517", "pybind11<3.0.0,>=2.9.0", "wheel", "build", "twine", "setuptools"]
 build-backend = "pdm.pep517.api"
 
 [tool.pdm]
@@ -114,7 +114,7 @@ exclude = '''
 [tool.cibuildwheel]
 build-verbosity = 3
 #test-command = "pytest {package}/tests"
-test-command = "pytest -svv pyxcp/tests"
+#test-command = "pytest -svv pyxcp/tests"
 build = "cp3{7,8,9,10}-*"
 build-frontend = "build"
 [tool.cibuildwheel.linux]
