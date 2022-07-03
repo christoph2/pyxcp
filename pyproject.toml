@@ -111,6 +111,7 @@ exclude = '''
 [tool.cibuildwheel]
 build-verbosity = 3
 #test-command = "pytest {package}/tests"
+test-command = "pytest -svv pyxcp/tests"
 build = "cp3{7,8,9,10}-*"
 build-frontend = "build"
 [tool.cibuildwheel.linux]
