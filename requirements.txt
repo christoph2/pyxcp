@@ -7,4 +7,5 @@ pyserial
 numpydoc
 sphinxcontrib-napoleon
 toml
+traitlets
 pyusb

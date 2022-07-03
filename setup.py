@@ -49,13 +49,13 @@ if has_pybind11:
             sources=["pyxcp/recorder/lz4.cpp", "pyxcp/recorder/wrap.cpp"],
             define_macros=[("EXTENSION_NAME", EXT_NAMES[0]), ("NDEBUG", 1)],
             optional=False,
-            cxx_std=17,
+            cxx_std=20,
         ),
     ]
 else:
     ext_modules = []
 
-install_reqs = ["pybind11", "pyusb", "construct >= 2.9.0", "mako", "pyserial", "toml", "python-can", "uptime"]
+install_reqs = ["pybind11", "pyusb", "construct >= 2.9.0", "mako", "pyserial", "toml", "python-can", "uptime", "traitlets"]
 
 
 class AsamKeyDllAutogen(setuptools.Command):

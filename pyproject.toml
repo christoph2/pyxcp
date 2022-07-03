@@ -27,6 +27,7 @@ dependencies = [
     "toml<1.0.0,>=0.10.2",
     "python-can>=4.0.0",
     "uptime>=3.0.1",
+    "traitlets",
 ]
 name = "pyxcp"
 version = "0.18.52"
