@@ -12,7 +12,7 @@ from time import time
 import usb.core
 import usb.util
 
-RECV_SIZE = 4096
+RECV_SIZE = 16384
 
 
 class Usb(BaseTransport):
@@ -113,7 +113,7 @@ class Usb(BaseTransport):
                         recv_timestamp = time()
                     else:
                         recv_timestamp = timestamp_origin + perf_counter() - perf_counter_origin
-                    read_count = read(buffer, 10)  # 10ms timeout
+                    read_count = read(buffer, 100)  # 100ms timeout
                     if read_count != RECV_SIZE:
                         _packets.append((buffer.tobytes()[:read_count], recv_timestamp))
                     else:
@@ -141,6 +141,8 @@ class Usb(BaseTransport):
 
         data = bytearray(b"")
 
+        last_sleep = perf_counter()
+
         while True:
             if close_event_set():
                 return
@@ -149,6 +151,7 @@ class Usb(BaseTransport):
 
             if not count:
                 sleep(0.001)
+                last_sleep = perf_counter()
                 continue
 
             for _ in range(count):
@@ -159,6 +162,10 @@ class Usb(BaseTransport):
                 current_position = 0
 
                 while True:
+                    if perf_counter() - last_sleep >= 0.005:
+                        sleep(0.001)
+                        last_sleep = perf_counter()
+
                     if length is None:
                         if current_size >= HEADER_SIZE:
                             length, counter = HEADER_UNPACK_FROM(data, current_position)
