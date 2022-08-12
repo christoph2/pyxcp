@@ -29,7 +29,6 @@
 #include <thread>
 #include <vector>
 
-//#include "coro/mcnellis_generator.h"
 
 #if defined(_WIN32)
     #include <io.h>
@@ -51,12 +50,14 @@
     namespace py = pybind11;
     using namespace pybind11::literals;
 
+    /*
     struct DType {
         uint8_t category {0};
         uint16_t counter {0};
         double timestamp  {0.0};
         uint8_t payload[];
     };
+    */
 
 
 #endif /* STANDALONE_REKORDER */
@@ -96,6 +97,8 @@ struct FileHeaderType
     uint32_t size_compressed;
     uint32_t size_uncompressed;
 };
+
+using HeaderTuple = std::tuple<std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, double>;
 
 static_assert(sizeof(FileHeaderType) == 22);
 
@@ -532,6 +535,17 @@ public:
 
     const FileHeaderType get_header()  const noexcept  {
         return m_header;
+    }
+
+    auto get_header_as_tuple() -> HeaderTuple {
+        auto hdr = get_header();
+        return std::make_tuple(
+            hdr.num_containers,
+            hdr.record_count,
+            hdr.size_uncompressed,
+            hdr.size_compressed,
+            ((std::uint64_t)(((double)hdr.size_uncompressed / (double)hdr.size_compressed * (double)100.0) + (double)0.5)) / 100.0
+        );
     }
 
     generator<FrameTuple> next_record() /*noexcept */ {
