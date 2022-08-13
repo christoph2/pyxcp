@@ -10,7 +10,6 @@
 #include <array>
 #include <atomic>
 #include <exception>
-#include <coroutine>
 #include <functional>
 #include <optional>
 #include <condition_variable>
@@ -49,17 +48,6 @@
 
     namespace py = pybind11;
     using namespace pybind11::literals;
-
-    /*
-    struct DType {
-        uint8_t category {0};
-        uint16_t counter {0};
-        double timestamp  {0.0};
-        uint8_t payload[];
-    };
-    */
-
-
 #endif /* STANDALONE_REKORDER */
 
 #if !defined(__BIGGEST_ALIGNMENT__)
@@ -109,11 +97,10 @@ struct ContainerHeaderType
     uint32_t size_uncompressed;
 };
 
-using blob_t = char;    // Signedness doesn't matter in this use-case.
+using blob_t = unsigned char;
 
 #if STANDALONE_REKORDER == 1
     using payload_t = std::shared_ptr<blob_t[]>;
-    //using payload_t = std::unique_ptr<blob_t[]>;
 #else
     using payload_t = py::array_t<blob_t>;
 #endif /* STANDALONE_REKORDER */
@@ -143,69 +130,6 @@ enum class FrameCategory : std::uint8_t {
     STIM,
 };
 
-
-template<class T>
-struct generator {
-    struct promise_type {
-        T current_value_;
-        auto yield_value(T value) {
-            this->current_value_ = value;
-            return std::suspend_always{};
-        }
-        auto initial_suspend() { return std::suspend_always{}; }
-        auto final_suspend() noexcept { return std::suspend_always{}; }
-        generator get_return_object() { return generator{ this }; };
-        void unhandled_exception() { std::terminate(); }
-        void return_void() {}
-    };
-
-    using handle_t = std::coroutine_handle<promise_type>;
-
-    struct iterator {
-        handle_t coro_;
-        bool done_;
-
-        iterator() : done_(true) {}
-
-        explicit iterator(handle_t coro, bool done)
-            : coro_(coro), done_(done) {}
-
-        iterator& operator++() {
-            coro_.resume();
-            done_ = coro_.done();
-            return *this;
-        }
-
-        bool operator==(const iterator& rhs) const { return done_ == rhs.done_; }
-        bool operator!=(const iterator& rhs) const { return !(*this == rhs); }
-        const T& operator*() const { return coro_.promise().current_value_; }
-        const T* operator->() const { return &*(*this); }
-    };
-
-    iterator begin() {
-        coro_.resume();
-        return iterator(coro_, coro_.done());
-    }
-
-    iterator end() { return iterator(); }
-
-    generator(const generator&) = delete;
-    generator(generator&& rhs) : coro_(std::exchange(rhs.coro_, nullptr)) {}
-
-    ~generator() {
-        if (coro_) {
-            coro_.destroy();
-        }
-    }
-
-private:
-    explicit generator(promise_type* p)
-        : coro_(handle_t::from_promise(*p)) {}
-
-    handle_t coro_;
-};
-
-
 namespace detail
 {
     const std::string FILE_EXTENSION(".xmraw");
@@ -232,7 +156,7 @@ const rounding_func_t create_rounding_func(std::size_t multiple) {
 const auto round_to_alignment = create_rounding_func(__ALIGNMENT_REQUIREMENT);
 
 
-inline void _fcopy(blob_t * dest, const blob_t * src, std::size_t n)
+inline void _fcopy(char * dest, char const * src, std::size_t n)
 {
     for (std::size_t i = 0; i < n; ++i) {
         dest[i] = src[i];
@@ -385,6 +309,7 @@ public:
                 compress_frames();
             }
             write_header(detail::VERSION, 0x0000, m_num_containers, m_record_count, m_total_size_compressed, m_total_size_uncompressed);
+            m_mmap->unmap();
             truncate(m_offset);
 #if defined(_WIN32)
             CloseHandle(m_fd);
@@ -411,9 +336,14 @@ public:
 protected:
     void truncate(off_t size) const
     {
+        //printf("truncating to: %lldKBytes.\n", kilobytes(size));
 #if defined(_WIN32)
-        SetFilePointer(m_fd, size, NULL, FILE_BEGIN);
-        SetEndOfFile(m_fd);
+
+        DWORD result;
+        result = SetFilePointer(m_fd, size, NULL, FILE_BEGIN);
+        //printf("SetFilePointer returned: %ld\n", result);
+        result = SetEndOfFile(m_fd);
+        //printf("SetEndOfFile returned: %ld\n", result);
 #else
         ftruncate(m_fd, size);
 #endif
@@ -421,11 +351,11 @@ protected:
 
     blob_t * ptr(std::size_t pos = 0) const
     {
-        return m_mmap->data() + pos;
+        return (blob_t *)(m_mmap->data() + pos);
     }
 
     void store_im(void const * data, std::size_t length) {
-        _fcopy(m_intermediate_storage + m_intermediate_storage_offset, (const blob_t*)data, length);
+        _fcopy(reinterpret_cast<char *>(m_intermediate_storage + m_intermediate_storage_offset), reinterpret_cast<char const*>(data), length);
         m_intermediate_storage_offset += length;
     }
 
@@ -433,7 +363,7 @@ protected:
         auto container = ContainerHeaderType{};
         //printf("Compressing %u frames... [%d]\n", m_container_record_count, m_intermediate_storage_offset);
         const int cp_size = ::LZ4_compress_default(
-            reinterpret_cast<blob_t*>(m_intermediate_storage), ptr(m_offset + detail::CONTAINER_SIZE),
+            reinterpret_cast<char const*>(m_intermediate_storage), reinterpret_cast<char *>(ptr(m_offset + detail::CONTAINER_SIZE)),
             m_intermediate_storage_offset, LZ4_COMPRESSBOUND(m_intermediate_storage_offset)
         );
         if (cp_size < 0) {
@@ -443,7 +373,7 @@ protected:
         container.record_count = m_container_record_count;
         container.size_compressed = cp_size;
         container.size_uncompressed = m_container_size_uncompressed;
-        _fcopy(ptr(m_offset), (blob_t*)&container, detail::CONTAINER_SIZE);
+        _fcopy(reinterpret_cast<char *>(ptr(m_offset)), reinterpret_cast<char const*>(&container), detail::CONTAINER_SIZE);
         m_offset += (detail::CONTAINER_SIZE + cp_size);
         m_total_size_uncompressed += m_container_size_uncompressed;
         m_total_size_compressed += cp_size;
@@ -455,9 +385,9 @@ protected:
         m_num_containers += 1;
     }
 
-    void write_bytes(std::size_t pos, std::size_t count, blob_t const * buf)
+    void write_bytes(std::size_t pos, std::size_t count, char const * buf)
     {
-        auto addr = ptr(pos);
+        auto addr = reinterpret_cast<char *>(ptr(pos));
 
         _fcopy(addr, buf, count);
     }
@@ -473,7 +403,7 @@ protected:
         header.record_count = record_count;
         header.size_compressed = size_compressed;
         header.size_uncompressed = size_uncompressed;
-        write_bytes(0x00000000UL + detail::MAGIC_SIZE, detail::FILE_HEADER_SIZE, reinterpret_cast<blob_t *>(&header));
+        write_bytes(0x00000000UL + detail::MAGIC_SIZE, detail::FILE_HEADER_SIZE, reinterpret_cast<char const*>(&header));
     }
 
 private:
@@ -539,6 +469,7 @@ public:
 
     auto get_header_as_tuple() -> HeaderTuple {
         auto hdr = get_header();
+
         return std::make_tuple(
             hdr.num_containers,
             hdr.record_count,
@@ -548,46 +479,44 @@ public:
         );
     }
 
-    generator<FrameTuple> next_record() /*noexcept */ {
+    void reset() {
+        m_current_container = 0;
+        m_offset = file_header_size();
+    }
+
+
+    std::optional<FrameVector> next_block() /*noexcept*/ {
         auto container = ContainerHeaderType{};
         auto total = 0;
         auto frame = frame_header_t{};
         size_t boffs = 0;
         auto result = FrameVector{};
         payload_t payload;
-        uint32_t current_container{ 0 };
 
-        while (true) {
-            if (current_container >= m_header.num_containers) {
-                co_return;
-            }
-            read_bytes(m_offset, detail::CONTAINER_SIZE, reinterpret_cast<blob_t*>(&container));
-            //printf("rc: %d c: %d u: %d \n", container.record_count, container.size_compressed, container.size_uncompressed);
-
-            __ALIGN auto buffer = new blob_t[container.size_uncompressed];
-
-            m_offset += detail::CONTAINER_SIZE;
-            total += container.record_count;
-            result.reserve(container.record_count);
-            const int uc_size = ::LZ4_decompress_safe(ptr(m_offset), buffer, container.size_compressed, container.size_uncompressed);
-            if (uc_size < 0) {
-                throw std::runtime_error("LZ4 decompression failed.");
-            }
-            boffs = 0;
-            for (std::uint32_t idx = 0; idx < container.record_count; ++idx) {
-                _fcopy((blob_t*)&frame, &(buffer[boffs]), sizeof(frame_header_t));
-                boffs += sizeof(frame_header_t);
-                //result.emplace_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, create_payload(frame.length, &buffer[boffs])));
-                co_yield std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, create_payload(frame.length, &buffer[boffs]));
-                boffs += frame.length;
-                //result.emplace_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, std::move(payload)));
-            }
-            m_offset += container.size_compressed;
-            current_container += 1;
-            delete[] buffer;
+        if (m_current_container >= m_header.num_containers) {
+            return std::nullopt;
         }
-        //printf("OK, retuning from next -- Total: %u\n", total);
-        //return std::optional<FrameVector>{result};
+        read_bytes(m_offset, detail::CONTAINER_SIZE, reinterpret_cast<blob_t*>(&container));
+        __ALIGN auto buffer = new blob_t[container.size_uncompressed];
+        m_offset += detail::CONTAINER_SIZE;
+        total += container.record_count;
+        result.reserve(container.record_count);
+        const int uc_size = ::LZ4_decompress_safe(reinterpret_cast<char const*>(ptr(m_offset)), reinterpret_cast<char *>(buffer), container.size_compressed, container.size_uncompressed);
+        if (uc_size < 0) {
+            throw std::runtime_error("LZ4 decompression failed.");
+        }
+        boffs = 0;
+        for (std::uint32_t idx = 0; idx < container.record_count; ++idx) {
+            _fcopy(reinterpret_cast<char *>(&frame), reinterpret_cast<char const*>(&(buffer[boffs])), sizeof(frame_header_t));
+            boffs += sizeof(frame_header_t);
+            result.push_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, create_payload(frame.length, &buffer[boffs])));
+            boffs += frame.length;
+        }
+        m_offset += container.size_compressed;
+        m_current_container += 1;
+        delete[] buffer;
+
+        return std::optional<FrameVector>{result};
     }
 
     ~XcpLogFileReader()
@@ -598,13 +527,13 @@ public:
 protected:
     blob_t const *ptr(std::size_t pos = 0) const
     {
-        return m_mmap->data() + pos;
+        return reinterpret_cast<blob_t const*>(m_mmap->data() + pos);
     }
 
     void read_bytes(std::size_t pos, std::size_t count, blob_t * buf) const
     {
-        auto addr = ptr(pos);
-        _fcopy(buf, addr, count);
+        auto addr = reinterpret_cast<char const*>(ptr(pos));
+        _fcopy(reinterpret_cast<char *>(buf), addr, count);
     }
 
     bool start_thread() {
@@ -633,8 +562,8 @@ protected:
 private:
     std::string m_file_name;
     std::size_t m_offset{0};
+    std::size_t m_current_container{0};
     mio::mmap_source * m_mmap{nullptr};
-    //FileHeaderType m_header{0, 0, 0, 0, 0, 0, 0};
     FileHeaderType m_header;
     std::thread decomp_thrd{};
     std::mutex mtx;
