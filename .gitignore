@@ -128,3 +128,6 @@ result.xml
 
 # VIM temporaries
 *~
+/pyxcp/recorder/mio/
+/pyxcp/recorder/simde/
+/pyxcp/recorder/coro/

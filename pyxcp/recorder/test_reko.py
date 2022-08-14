@@ -1,55 +1,37 @@
-import struct
-import time
-from functools import partial
-from random import choice
-from random import randint
+from time import perf_counter
 
-import reco
+import pandas as pd
 
-CNT = 1024 * 10 * 5
+from pyxcp.recorder import FrameCategory
+from pyxcp.recorder import XcpLogFileReader
+from pyxcp.recorder import XcpLogFileWriter
 
-ri = partial(randint, 0, 255)
+writer = XcpLogFileWriter("test_logger", p=220)
+# for idx in range(255):
+for idx in range(512 * 1024):
+    value = idx % 256
+    writer.add_frame(1, idx, perf_counter(), [value] * value)
+writer.finalize()
+del writer
+# """
 
-rs = [ri() for _ in range(CNT)]
+print("Before c-tor()")
+reader = XcpLogFileReader("test_logger")
+print("After c-tor()")
+hdr = reader.get_header()
+print(hdr)
 
-# print(dir(time))
-TS_STRUCT = struct.Struct("<Hd")
+cnt = 0
 
-frames = []
-for counter in range(CNT):
-    ts = time.perf_counter()
-    length = choice(rs)
-    db = bytes([choice(rs)] * length)
+df = pd.DataFrame((f for f in reader), columns=["category", "counter", "timestamp", "payload"])
+df = df.set_index("timestamp")
+df.category = df.category.map({v: k for k, v in FrameCategory.__members__.items()}).astype("category")
+print(df)
+print(df.info())
+print(df.describe())
 
-    FS = "<H{}s".format(length)
-    frame = struct.Struct(FS).pack(length, db)
-    # print(length, db)
-    # frame = TS_STRUCT.pack(
-    #   counter, ts
-    # )
-    frames.append([counter, ts, frame])
+# for frame in reader:
+#    print(frame)
+#    cnt += 1
 
-# help(bytes)
-DAQ_RECORD_STRUCT = struct.Struct("<BHdL")
-# DAQRecord = namedtuple("DAQRecord", "category counter timestamp payload")
-
-log = reco.XcpLogFileWriter("test_logger")
-
-print(log)
-log.add_xcp_frames(frames)
-
-"""
-def wockser(self, catagory, *args):
-        response, counter, length, timestamp = args
-        #print(catagory, response, counter, length, timestamp)   # .tobytes()
-        raw_data = response.tobytes()
-        self.intermediate_storage.append((counter, timestamp, raw_data, ))
-        #li = DAQ_RECORD_STRUCT.pack(1, counter, timestamp, length)
-        self.uncompressed_size += len(raw_data) + 12
-        if self.uncompressed_size > 10 * 1024:
-            #print("PUSH to worker!!")
-            self.log_writer.add_xcp_frames(self.intermediate_storage)
-            self.intermediate_storage = []
-            self.uncompressed_size = 0
-
-"""
+print("Finished.")
