@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 """XCP Frame Recording Facility.
 """
+
 from dataclasses import dataclass
 from enum import IntEnum
 
 try:
-    import numpy as np
     import pandas as pd
 except ImportError:
     HAS_PANDAS = False
@@ -60,12 +61,24 @@ class XcpLogFileReader:
             for category, counter, timestamp, _, payload in frames:
                 yield (category, counter, timestamp, payload)
 
+    def reset_iter(self):
+        self._reader.reset()
+
+    def as_dataframe(self):
+        if HAS_PANDAS:
+            df = pd.DataFrame((f for f in self), columns=["category", "counter", "timestamp", "payload"])
+            df = df.set_index("timestamp")
+            df.category = df.category.map({v: k for k, v in FrameCategory.__members__.items()}).astype("category")
+            return df
+        else:
+            raise NotImplementedError("method as_dataframe() requires 'pandas' package")
+
 
 class XcpLogFileWriter:
     """ """
 
-    def __init__(self, file_name, p=10, c=1):
-        self._writer = rec._PyXcpLogFileWriter(file_name, p, c)
+    def __init__(self, file_name: str, prealloc=10, chunk_size=1):
+        self._writer = rec._PyXcpLogFileWriter(file_name, prealloc, chunk_size)
 
     def add_frame(self, category: FrameCategory, counter: int, timestamp: float, payload: bytes):
         self._writer.add_frame(category, counter % (COUNTER_MAX + 1), timestamp, len(payload), payload)

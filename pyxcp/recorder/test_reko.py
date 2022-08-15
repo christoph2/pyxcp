@@ -1,37 +1,34 @@
 from time import perf_counter
 
-import pandas as pd
-
 from pyxcp.recorder import FrameCategory
 from pyxcp.recorder import XcpLogFileReader
 from pyxcp.recorder import XcpLogFileWriter
 
-writer = XcpLogFileWriter("test_logger", p=220)
-# for idx in range(255):
+# Pre-allocate a 100MB file -- Note: due to the nature of memory-mapped files, this is a HARD limit.
+# Chunk size is 1MB (i.e. compression granularity).
+writer = XcpLogFileWriter("test_logger", prealloc = 100, chunk_size=1)
+
+# Write some records.
 for idx in range(512 * 1024):
     value = idx % 256
-    writer.add_frame(1, idx, perf_counter(), [value] * value)
-writer.finalize()
-del writer
-# """
+    writer.add_frame(FrameCategory.CMD, idx, perf_counter(), [value] * value)
+writer.finalize() # We're done.
 
-print("Before c-tor()")
+
 reader = XcpLogFileReader("test_logger")
-print("After c-tor()")
-hdr = reader.get_header()
+hdr = reader.get_header() # Get file information.
 print(hdr)
 
-cnt = 0
-
-df = pd.DataFrame((f for f in reader), columns=["category", "counter", "timestamp", "payload"])
-df = df.set_index("timestamp")
-df.category = df.category.map({v: k for k, v in FrameCategory.__members__.items()}).astype("category")
-print(df)
+df = reader.as_dataframe() # Return recordings as Pandas DataFrame.
 print(df.info())
 print(df.describe())
 
-# for frame in reader:
-#    print(frame)
-#    cnt += 1
 
-print("Finished.")
+reader.reset_iter() # Non-standard method to restart iteration.
+
+idx = 0
+# Iterate over frames/records.
+for frame in reader:
+    idx += 1
+print("---")
+print(f"Iterated over {idx} frames")

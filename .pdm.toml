@@ -5,6 +5,7 @@ check_update = false
 parallel_install = true
 project_max_depth = 5
 use_venv = false
+path = "/usr/bin/python"
 
 [python.feature]
 install_cache = true

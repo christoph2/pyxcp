@@ -288,8 +288,6 @@ public:
         //printf("CreateFile returned: %u\n", GetLastError());
 #else
         m_fd = open(m_file_name.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0666);
-
-        printf("open returned: %u\n", errno);
 #endif
         truncate(megabytes(prealloc));
         m_mmap = new mio::mmap_sink(m_fd);
