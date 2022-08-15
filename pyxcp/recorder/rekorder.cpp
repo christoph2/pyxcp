@@ -18,8 +18,7 @@ void some_records(XcpLogFileWriter& writer)
         fr.length = 10 + (rand() % 240);
         filler = (filler + 1) % 16;
         memset(buffer, filler, fr.length);
-        auto payload = create_payload(fr.length, buffer);
-		writer.add_frame(fr.category, fr.counter, fr.timestamp, fr.length, payload);
+		writer.add_frame(fr.category, fr.counter, fr.timestamp, fr.length, reinterpret_cast<blob_t *>(buffer));
     }
 }
 
