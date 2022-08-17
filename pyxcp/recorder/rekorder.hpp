@@ -118,7 +118,7 @@ struct frame_header_t
 using FrameTuple = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, payload_t>;
 using FrameVector = std::vector<FrameTuple>;
 
-using FrameTupleWriter = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, std::shared_ptr<char[]>>;
+using FrameTupleWriter = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, char *>;
 
 
 enum class FrameCategory : std::uint8_t {
@@ -325,25 +325,12 @@ public:
     }
 
     void add_frame(uint8_t category, uint16_t counter, double timestamp, uint16_t length, char const * data) {
-    	auto pl = std::make_shared<char []>(length);
-        printf("data: %p length: %u\n", data, length);
-        _fcopy(pl.get(), data, length);
+        auto payload= new char[length];
 
-        my_queue.put(
-            std::make_tuple(category, counter, timestamp, length, std::move(pl))
+    	_fcopy(payload, data, length);
+    	my_queue.put(
+            std::make_tuple(category, counter, timestamp, length, payload)
         );
-
-#if 0
-        const frame_header_t frame {category, counter, timestamp, length};
-
-        store_im(&frame, sizeof(frame));
-        store_im(get_payload_ptr(payload), length);
-        m_container_record_count += 1;
-        m_container_size_uncompressed += (sizeof(frame) + length);
-        if (m_container_size_uncompressed > m_chunk_size) {
-            compress_frames();
-        }
-#endif
     }
 
 protected:
@@ -439,8 +426,8 @@ protected:
                 const frame_header_t frame{ category, counter, timestamp, length };
 
                 store_im(&frame, sizeof(frame));
-                //store_im(get_payload_ptr(payload), length);
-                store_im(payload.get(), length);
+                store_im(payload, length);
+                delete[] payload;
                 m_container_record_count += 1;
                 m_container_size_uncompressed += (sizeof(frame) + length);
                 if (m_container_size_uncompressed > m_chunk_size) {
