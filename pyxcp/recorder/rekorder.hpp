@@ -118,6 +118,8 @@ struct frame_header_t
 using FrameTuple = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, payload_t>;
 using FrameVector = std::vector<FrameTuple>;
 
+using FrameTupleWriter = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, std::shared_ptr<blob_t[]>>;
+
 
 enum class FrameCategory : std::uint8_t {
     META,
@@ -322,12 +324,12 @@ public:
         }
     }
 
-    void add_frame(uint8_t category, uint16_t counter, double timestamp, uint16_t length, blob_t * payload/*payload_t& payload*/) {
+    void add_frame(uint8_t category, uint16_t counter, double timestamp, uint16_t length, blob_t * data/*payload_t& payload*/) {
     	auto pl = std::make_shared<blob_t[]>(length);
-        _fcopy(reinterpret_cast<char*>(pl.get()), reinterpret_cast<char const *>(payload), length);
+        _fcopy(reinterpret_cast<char*>(pl.get()), reinterpret_cast<char const *>(data), length);
 //#if 0
         my_queue.put(
-            std::make_tuple(category, counter, timestamp, length, pl)
+            std::make_tuple(category, counter, timestamp, length, std::move(pl))
         );
 //#endif
 
@@ -431,19 +433,19 @@ protected:
                 {
                     break;
                 }
+
+                auto values = content->value();
                 auto [category, counter, timestamp, length, payload] = content->value();
                 const frame_header_t frame{ category, counter, timestamp, length };
-            	//          /*
-
 
                 store_im(&frame, sizeof(frame));
-                store_im(get_payload_ptr(payload), length);
+                //store_im(get_payload_ptr(payload), length);
+                store_im(payload.get(), length);
                 m_container_record_count += 1;
                 m_container_size_uncompressed += (sizeof(frame) + length);
                 if (m_container_size_uncompressed > m_chunk_size) {
                     compress_frames();
                 }
-//            */
             }
         });
         return true;
@@ -480,7 +482,7 @@ private:
     std::queue<FrameVector> data_queue;
     std::condition_variable data_cond;
 
-    TsQueue<std::optional<FrameTuple>> my_queue;
+    TsQueue<std::optional<FrameTupleWriter>> my_queue;
 
     std::atomic_bool stop_collector_thread_flag{false};
 };
