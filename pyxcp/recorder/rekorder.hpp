@@ -324,14 +324,13 @@ public:
         }
     }
 
-    void add_frame(uint8_t category, uint16_t counter, double timestamp, uint16_t length, blob_t * data/*payload_t& payload*/) {
+    void add_frame(uint8_t category, uint16_t counter, double timestamp, uint16_t length, char const * data) {
     	auto pl = std::make_shared<blob_t[]>(length);
-        _fcopy(reinterpret_cast<char*>(pl.get()), reinterpret_cast<char const *>(data), length);
-//#if 0
+        _fcopy(reinterpret_cast<char*>(pl.get()), data, length);
+
         my_queue.put(
             std::make_tuple(category, counter, timestamp, length, std::move(pl))
         );
-//#endif
 
 #if 0
         const frame_header_t frame {category, counter, timestamp, length};

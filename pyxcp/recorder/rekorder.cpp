@@ -8,7 +8,7 @@ void some_records(XcpLogFileWriter& writer)
 {
     const auto COUNT = 1024 * 100 * 5;
     unsigned filler = 0x00;
-    blob_t buffer[1024];
+    char buffer[1024];
 
     for (auto idx = 0; idx < COUNT; ++idx) {
         auto fr = frame_header_t{};
@@ -18,7 +18,7 @@ void some_records(XcpLogFileWriter& writer)
         fr.length = 10 + (rand() % 240);
         filler = (filler + 1) % 16;
         memset(buffer, filler, fr.length);
-		writer.add_frame(fr.category, fr.counter, fr.timestamp, fr.length, reinterpret_cast<blob_t *>(buffer));
+		writer.add_frame(fr.category, fr.counter, fr.timestamp, fr.length, reinterpret_cast<char*>(&buffer));
     }
 }
 
