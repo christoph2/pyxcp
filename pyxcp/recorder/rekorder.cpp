@@ -17,6 +17,7 @@ void some_records(XcpLogFileWriter& writer)
         fr.timestamp = std::clock();
         fr.length = 10 + (rand() % 240);
         filler = (filler + 1) % 16;
+        printf("buffer: %p\n", buffer);
         memset(buffer, filler, fr.length);
 		writer.add_frame(fr.category, fr.counter, fr.timestamp, fr.length, reinterpret_cast<char*>(&buffer));
     }

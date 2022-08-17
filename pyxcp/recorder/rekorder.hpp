@@ -118,7 +118,7 @@ struct frame_header_t
 using FrameTuple = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, payload_t>;
 using FrameVector = std::vector<FrameTuple>;
 
-using FrameTupleWriter = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, std::shared_ptr<blob_t[]>>;
+using FrameTupleWriter = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, std::shared_ptr<char[]>>;
 
 
 enum class FrameCategory : std::uint8_t {
@@ -325,8 +325,9 @@ public:
     }
 
     void add_frame(uint8_t category, uint16_t counter, double timestamp, uint16_t length, char const * data) {
-    	auto pl = std::make_shared<blob_t[]>(length);
-        _fcopy(reinterpret_cast<char*>(pl.get()), data, length);
+    	auto pl = std::make_shared<char []>(length);
+        printf("data: %p length: %u\n", data, length);
+        _fcopy(pl.get(), data, length);
 
         my_queue.put(
             std::make_tuple(category, counter, timestamp, length, std::move(pl))
