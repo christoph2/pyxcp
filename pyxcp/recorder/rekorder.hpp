@@ -9,6 +9,7 @@
 
 #include <array>
 #include <atomic>
+#include <bitset>
 #include <exception>
 #include <functional>
 #include <optional>
@@ -69,6 +70,7 @@ constexpr auto megabytes(std::size_t value) -> std::size_t
     return kilobytes(value) * 1024;
 }
 
+constexpr uint16_t XCP_PAYLOAD_MAX = 0xFFFF;
 
 /*
 byte-order is, where applicable little ending (LSB first).
@@ -269,6 +271,58 @@ private:
 };
 
 
+/*
+ *
+ * Super simplicistic block memory manager.
+ *
+ */
+template <typename T, int _IS, int _NB>
+class BlockMemory {
+
+public:
+
+    using mem_block_t = T[_IS];
+
+    explicit BlockMemory() : m_memory{nullptr}, m_allocation_count{0} {
+        m_memory = new T[_IS * _NB];	// Ts to allocate: itemsize * number of items.
+        //printf("mem-base  : %p\n", m_memory);
+    }
+
+    ~BlockMemory() {
+        if (m_memory) {
+            delete[] m_memory;
+        }
+    }
+
+    T * acquire() noexcept {
+        const std::lock_guard<std::mutex> lock(m_mtx);
+
+        if (m_allocation_count >= _NB) {
+            return nullptr;
+        }
+        T * ptr = reinterpret_cast<T *>((m_memory + (m_allocation_count * _IS)));
+        //printf("acquire() %p\n", ptr);
+        m_allocation_count++;
+        return ptr;
+    }
+
+    void release() noexcept {
+        const std::lock_guard<std::mutex> lock(m_mtx);
+        //printf("release() %u\n", m_allocation_count);
+        if (m_allocation_count == 0) {
+            return;
+        }
+        m_allocation_count--;
+    }
+
+private:
+
+    T * m_memory;
+    std::size_t m_allocation_count;
+    std::mutex m_mtx;
+};
+
+
 /**
  */
 class XcpLogFileWriter
@@ -326,6 +380,7 @@ public:
 
     void add_frame(uint8_t category, uint16_t counter, double timestamp, uint16_t length, char const * data) {
         auto payload= new char[length];
+        //auto payload = mem.acquire();
 
     	_fcopy(payload, data, length);
     	my_queue.put(
@@ -420,14 +475,13 @@ protected:
                 {
                     break;
                 }
-
-                auto values = content->value();
                 auto [category, counter, timestamp, length, payload] = content->value();
                 const frame_header_t frame{ category, counter, timestamp, length };
 
                 store_im(&frame, sizeof(frame));
                 store_im(payload, length);
                 delete[] payload;
+                //mem.release();
                 m_container_record_count += 1;
                 m_container_size_uncompressed += (sizeof(frame) + length);
                 if (m_container_size_uncompressed > m_chunk_size) {
@@ -466,11 +520,8 @@ private:
     bool m_finalized{false};
     std::thread collector_thread{};
     std::mutex mtx;
-    std::queue<FrameVector> data_queue;
-    std::condition_variable data_cond;
-
     TsQueue<std::optional<FrameTupleWriter>> my_queue;
-
+    BlockMemory<char, XCP_PAYLOAD_MAX, 16> mem{};
     std::atomic_bool stop_collector_thread_flag{false};
 };
 

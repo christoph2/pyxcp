@@ -9,9 +9,10 @@ from pyxcp.recorder import XcpLogFileWriter
 writer = XcpLogFileWriter("test_logger", prealloc=100, chunk_size=1)
 
 # Write some records.
+start_time = perf_counter()
 for idx in range(512 * 1024):
     value = idx % 256
-    writer.add_frame(FrameCategory.CMD, idx, perf_counter(), bytes([value] * value))
+    writer.add_frame(FrameCategory.CMD, idx, perf_counter() - start_time, bytes([value] * value))
 writer.finalize()  # We're done.
 
 
@@ -22,7 +23,7 @@ print(hdr)
 df = reader.as_dataframe()  # Return recordings as Pandas DataFrame.
 print(df.info())
 print(df.describe())
-
+print(df)
 
 reader.reset_iter()  # Non-standard method to restart iteration.
 
