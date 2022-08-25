@@ -1765,6 +1765,26 @@ class Master:
             else:
                 raise SeedNKeyError("SeedAndKey DLL returned: {}".format(SeedNKeyResult(result).name))
 
+    def identifier(self, id_value: int) -> str:
+        """Return the identifier for the given value.
+        Use this method instead of calling `getId()` directly.
+
+        Parameters
+        ----------
+        id_value: int
+            For standard identifiers, use the constants from `pyxcp.types.XcpGetIdType`.
+
+        Returns
+        -------
+        str
+        """
+        gid = self.getId(0x01)
+        if (gid.mode & 0x01) == 0x01:
+            value = bytes(gid.identification or b"")
+        else:
+            value = self.fetch(gid.length)
+        return value.decode("utf-8")
+
     def id_scanner(self, scan_ranges: Optional[Collection[Collection[int]]] = None) -> Dict[str, str]:
         """Scan for available standard identification types (GET_ID).
 
@@ -1823,15 +1843,14 @@ class Master:
         for id_value, name in gen:
             response = b""
             try:
-                gid = self.getId(id_value)
-                response = self.fetch(gid.length)
+                response = self.identifier(id_value)
             except types.XcpResponseError:
                 # don't depend on confirming implementation, i.e.: ID not implemented ==> empty response.
                 pass
             except Exception:
                 raise
             if response:
-                result[name] = response.decode("utf8")
+                result[name] = response
         return result
 
 

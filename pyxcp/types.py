@@ -69,6 +69,11 @@ class XcpGetIdType(enum.IntEnum):
     VECTOR_MDI = 0xDC
 
 
+class XcpGetIdModeType(enum.IntEnum):
+    TRANSFER_MODE = 1
+    COMPRESSED_ENCRYPTED = 2
+
+
 class Command(enum.IntEnum):
 
     # STD

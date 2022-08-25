@@ -3,6 +3,7 @@
 """Use this as a copy-and-paste template for your own scripts.
 """
 from pprint import pprint
+
 from pyxcp.cmdline import ArgumentParser
 
 
@@ -30,8 +31,7 @@ with ap.run() as x:
         x.getCommModeInfo()
 
     # getId() is not strictly required.
-    gid = x.getId(0x1)
-    slave_name = x.fetch(gid.length)
+    slave_name = x.identifier(0x01)
 
     # Unlock resources, if necessary.
     # Could be more specific, like cond_unlock("DAQ")

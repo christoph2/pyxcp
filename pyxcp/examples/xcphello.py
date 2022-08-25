@@ -3,6 +3,7 @@
 """Very basic hello-world example.
 """
 from pprint import pprint
+
 from pyxcp.cmdline import ArgumentParser
 
 daq_info = False
@@ -27,13 +28,11 @@ with ap.run() as x:
     x.connect()
     if x.slaveProperties.optionalCommMode:
         x.getCommModeInfo()
-    gid = x.getId(0x1)
-    result = x.fetch(gid.length)
+    identifier = x.identifier(0x01)
     print("\nSlave properties:")
     print("=================")
-    print("ID: '{}'".format(result.decode("utf8")))
+    print(f"ID: '{identifier}'")
     pprint(x.slaveProperties)
-
     if daq_info:
         dqp = x.getDaqProcessorInfo()
         print("\nDAQProcessor info:")
@@ -44,7 +43,7 @@ with ap.run() as x:
         print("===================")
         print(dqr)
         for idx in range(dqp.maxDaq):
-            print("\nDAQList info #{}".format(idx))
+            print(f"\nDAQList info #{idx}")
             print("================")
-            print("{}".format(x.getDaqListInfo(idx)))
+            print(f"{x.getDaqListInfo(idx)}")
     x.disconnect()
