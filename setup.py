@@ -149,6 +149,7 @@ setuptools.setup(
         "console_scripts": [
             "pyxcp-probe-can-drivers = pyxcp.scripts.pyxcp_probe_can_drivers:main",
             "xcp-id-scanner = pyxcp.scripts.xcp_id_scanner:main",
+            "xcp-fetch-a2l = pyxcp.scripts.xcp_fetch_a2l:main",
         ],
     },
 )

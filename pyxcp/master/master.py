@@ -1778,7 +1778,7 @@ class Master:
         -------
         str
         """
-        gid = self.getId(0x01)
+        gid = self.getId(id_value)
         if (gid.mode & 0x01) == 0x01:
             value = bytes(gid.identification or b"")
         else:
