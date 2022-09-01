@@ -359,6 +359,7 @@ class Can(BaseTransport):
             self.canInterface.close()
 
     def close(self):
+        self.finishListener()
         self.closeConnection()
 
 
