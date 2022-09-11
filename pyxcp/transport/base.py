@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import abc
-import pyxcp.types as types
 import threading
 from collections import deque
 from datetime import datetime
-from pyxcp.config import Configuration
 from time import get_clock_info
 from time import sleep
 from time import time
 
+import pyxcp.types as types
 from ..logger import Logger
 from ..timing import Timing
 from ..utils import flatten
 from ..utils import hexDump
 from ..utils import time_perfcounter_correlation
+from pyxcp.config import Configuration
 
 
 class Empty(Exception):
@@ -123,7 +123,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
         pass
 
     def startListener(self):
-        self.listener.start()
+        if not self.listener.is_alive():
+            self.listener.start()
 
     def finishListener(self):
         if hasattr(self, "closeEvent"):
