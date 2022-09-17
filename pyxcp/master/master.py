@@ -732,7 +732,7 @@ class Master:
             delay(minSt)
 
     @wrapped
-    def download(self, data: bytes, blockModeLength=None, **kwargs):
+    def download(self, data: bytes, blockModeLength=None, last=False):
         """Transfer data from master to slave.
 
         Parameters
@@ -749,7 +749,7 @@ class Master:
         Adress is set via :meth:`setMta`
         """
 
-        if blockModeLength is None:
+        if blockModeLength is None or last:
             # standard mode
             length = len(data)
             response = self.transport.request(types.Command.DOWNLOAD, length, *data)
