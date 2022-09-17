@@ -1289,9 +1289,12 @@ class Master:
             return None
 
     @wrapped
-    def programReset(self):
+    def programReset(self, wait_for_optional_response=True):
         """Indicate the end of a programming sequence."""
-        return self.transport.request_optional_response(types.Command.PROGRAM_RESET)
+        if wait_for_optional_response:
+            return self.transport.request_optional_response(types.Command.PROGRAM_RESET)
+        else:
+            return self.transport.block_request(types.Command.PROGRAM_RESET)
 
     @wrapped
     def getPgmProcessorInfo(self):
