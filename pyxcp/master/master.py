@@ -680,13 +680,21 @@ class Master:
             chunk_size = max_payload
             chunks = range(total_length // chunk_size)
             remaining = total_length % chunk_size
+            percent_complete = 1
+            callback_remaining = total_length
             for _ in chunks:
                 block = data[offset : offset + max_payload]
-                self.download(block, max_payload)
+                dl_func(block, max_payload, last=True)
                 offset += max_payload
+                callback_remaining -= chunk_size
+                if callback and callback_remaining <= total_length - (total_length / 100) * percent_complete:
+                    callback(percent_complete)
+                    percent_complete += 1
             if remaining:
                 block = data[offset : offset + remaining]
-                self.download(block, remaining)
+                dl_func(block, remaining, last=True)
+                if callback:
+                    callback(percent_complete)
 
     def _block_downloader(self, data: bytes, dl_func=None, dl_next_func=None, minSt=0):
         """Re-usable block downloader.
