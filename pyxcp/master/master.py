@@ -680,13 +680,21 @@ class Master:
             chunk_size = max_payload
             chunks = range(total_length // chunk_size)
             remaining = total_length % chunk_size
+            percent_complete = 1
+            callback_remaining = total_length
             for _ in chunks:
                 block = data[offset : offset + max_payload]
-                self.download(block, max_payload)
+                dl_func(block, max_payload, last=True)
                 offset += max_payload
+                callback_remaining -= chunk_size
+                if callback and callback_remaining <= total_length - (total_length / 100) * percent_complete:
+                    callback(percent_complete)
+                    percent_complete += 1
             if remaining:
                 block = data[offset : offset + remaining]
-                self.download(block, remaining)
+                dl_func(block, remaining, last=True)
+                if callback:
+                    callback(percent_complete)
 
     def _block_downloader(self, data: bytes, dl_func=None, dl_next_func=None, minSt=0):
         """Re-usable block downloader.
@@ -732,7 +740,7 @@ class Master:
             delay(minSt)
 
     @wrapped
-    def download(self, data: bytes, blockModeLength=None, **kwargs):
+    def download(self, data: bytes, blockModeLength=None, last=False):
         """Transfer data from master to slave.
 
         Parameters
@@ -749,7 +757,7 @@ class Master:
         Adress is set via :meth:`setMta`
         """
 
-        if blockModeLength is None:
+        if blockModeLength is None or last:
             # standard mode
             length = len(data)
             response = self.transport.request(types.Command.DOWNLOAD, length, *data)
@@ -1281,9 +1289,12 @@ class Master:
             return None
 
     @wrapped
-    def programReset(self):
+    def programReset(self, wait_for_optional_response=True):
         """Indicate the end of a programming sequence."""
-        return self.transport.request_optional_response(types.Command.PROGRAM_RESET)
+        if wait_for_optional_response:
+            return self.transport.request_optional_response(types.Command.PROGRAM_RESET)
+        else:
+            return self.transport.block_request(types.Command.PROGRAM_RESET)
 
     @wrapped
     def getPgmProcessorInfo(self):
