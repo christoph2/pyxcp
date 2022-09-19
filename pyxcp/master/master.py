@@ -499,7 +499,7 @@ class Master:
         ----
         For details refer to XCP specification.
         """
-        return self.transport.request(types.Command.TRANSPORT_LAYER_CMD, subCommand, *data)
+        return self.transport.request_optional_response(types.Command.TRANSPORT_LAYER_CMD, subCommand, *data)
 
     @wrapped
     def userCmd(self, subCommand: int, data: bytes):
