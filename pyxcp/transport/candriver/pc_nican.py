@@ -16,7 +16,7 @@ class NiCan(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     PARAMETER_TO_KW_ARG_MAP = {
-        "LOG_ERRORS" "log_errors",
+        "LOG_ERRORS": "log_errors",
     }
 
     def __init__(self):
