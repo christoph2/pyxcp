@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-python-can driver for National Instruments interfaces.
+python-can driver for National Instruments xnet interfaces.
 """
 import pyxcp.transport.can as can
 import pyxcp.transport.candriver.python_can as python_can
 
 
-class NiCan(python_can.PythonCAN, can.CanInterfaceBase):
+class NiXnet(python_can.PythonCAN, can.CanInterfaceBase):
     """"""
 
     PARAMETER_MAP = {
@@ -20,4 +20,4 @@ class NiCan(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(NiCan, self).__init__(bustype="nican")
+        super(NiXnet, self).__init__(bustype="nixnet")

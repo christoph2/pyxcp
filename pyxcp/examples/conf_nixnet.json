@@ -1,0 +1,20 @@
+{
+    "TRANSPORT": "CAN",
+    "CAN_DRIVER": "NiXnet",
+    "CAN_USE_DEFAULT_LISTENER": true,
+    "CHANNEL": "CAN4",
+    "ACCEPT_VIRTUAL": true,
+    "BAUDRATE_PRESET": true,
+    "CAN_ID_MASTER": 1911,
+    "CAN_ID_SLAVE": 819,
+    "CAN_ID_BROADCAST": 256,
+    "MAX_DLC_REQUIRED": false,
+    "BITRATE": 500000,
+    "BTL_CYCLES": 16,
+    "SAMPLE_RATE": 1,
+    "SAMPLE_POINT": 87.5,
+    "SJW": 2,
+    "TSEG1": 5,
+    "TSEG2": 2,
+    "CREATE_DAQ_TIMESTAMPS": false
+}
