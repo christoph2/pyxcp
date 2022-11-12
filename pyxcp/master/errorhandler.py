@@ -321,40 +321,53 @@ class Executor(SingletonBase):
         self.arguments = arguments
         handler = Handler(inst, func, arguments)
         self.handlerStack.push(handler)
-        while True:
-            try:
-                handler = self.handlerStack.tos()
-                res = handler.execute()
-            except XcpResponseError as e:
-                self.logger.error("XcpResponseError [{}]".format(str(e)))
-                if self.newHandler:
-                    self.error_code = e.get_error_code()
-            except XcpTimeoutError:
-                self.logger.error("XcpTimeoutError")
-                if self.newHandler:
-                    self.error_code = XcpError.ERR_TIMEOUT
-            except Exception as e:
-                raise UnrecoverableError("Don't know how to handle exception '{}'".format(repr(e))) from e
-            else:
-                self.error_code = None
-                # print("\t\t\t*** SUCCESS ***")
-                self.handlerStack.pop()
-                if self.handlerStack.empty():
-                    # print("OK, all handlers passed: '{}'.".format(res))
-                    return res
-            if self.error_code is not None:
-                preActions, actions, repeater = handler.actions(*getActions(inst.service, self.error_code))
-                self.repeater = repeater
-                for f, a in reversed(preActions):
-                    self.handlerStack.push(Handler(inst, f, a, self.error_code))
-                self.newHandler = False
-                continue
-            self.previous_error_code = self.error_code
-            if self.repeater:
-                if self.repeater.repeat():
-                    continue
+
+        try:
+            while True:
+                try:
+                    handler = self.handlerStack.tos()
+                    res = handler.execute()
+                except XcpResponseError as e:
+                    self.logger.error("XcpResponseError [{}]".format(str(e)))
+                    if self.newHandler:
+                        self.error_code = e.get_error_code()
+                except XcpTimeoutError:
+                    self.logger.error("XcpTimeoutError")
+                    if self.newHandler:
+                        self.error_code = XcpError.ERR_TIMEOUT
+                except Exception as e:
+                    raise UnrecoverableError("Don't know how to handle exception '{}'".format(repr(e))) from e
                 else:
-                    raise UnrecoverableError("Finish for now.")
+                    self.error_code = None
+                    # print("\t\t\t*** SUCCESS ***")
+                    self.handlerStack.pop()
+                    if self.handlerStack.empty():
+                        # print("OK, all handlers passed: '{}'.".format(res))
+                        return res
+                if self.error_code is not None:
+                    if self.error_code != self.previous_error_code:
+                        preActions, actions, repeater = handler.actions(*getActions(inst.service, self.error_code))
+                        self.repeater = repeater
+                        for f, a in reversed(preActions):
+                            self.handlerStack.push(Handler(inst, f, a, self.error_code))
+                    self.newHandler = False
+
+                self.previous_error_code = self.error_code
+                if self.repeater:
+                    if self.repeater.repeat():
+                        continue
+                    else:
+                        raise UnrecoverableError("Finish for now.")
+        finally:
+            # cleanup of class variables
+            self.repeater = None
+            self.newHandler = True
+            self.previous_error_code = None
+            if self.error_code is not None:
+                self.handlerStack.pop()
+            self.error_code = None
+            self.func = None
+            self.arguments = None
 
 
 def disable_error_handling(value: bool):
