@@ -8,6 +8,8 @@ import threading
 import time
 import types
 from collections import namedtuple
+
+from ..logger import Logger
 from pyxcp.errormatrix import Action
 from pyxcp.errormatrix import ERROR_MATRIX
 from pyxcp.errormatrix import PreAction
@@ -15,8 +17,6 @@ from pyxcp.types import COMMAND_CATEGORIES
 from pyxcp.types import XcpError
 from pyxcp.types import XcpResponseError
 from pyxcp.types import XcpTimeoutError
-
-from ..logger import Logger
 
 handle_errors = True  # enable/disable XCP error-handling.
 
@@ -107,7 +107,7 @@ class Arguments:
 
     def __init__(self, args=None, kwargs=None):
         if args is None:
-            self.args = []
+            self.args = ()
         else:
             if not hasattr(args, "__iter__"):
                 self.args = (args,)
@@ -151,7 +151,7 @@ class Repeater:
         -------
             bool
         """
-        # print("\t\tCOUNTER:", self._counter)
+        print("\t\tCOUNTER:", self._counter)
         if self._counter == Repeater.INFINITE:
             return True
         elif self._counter > 0:
@@ -344,9 +344,11 @@ class Executor(SingletonBase):
                     if self.handlerStack.empty():
                         # print("OK, all handlers passed: '{}'.".format(res))
                         return res
+                print("\tECs", self.error_code, self.previous_error_code)
                 if self.error_code is not None:
                     if self.error_code != self.previous_error_code:
                         preActions, actions, repeater = handler.actions(*getActions(inst.service, self.error_code))
+                        print("\tPA", preActions)
                         self.repeater = repeater
                         for f, a in reversed(preActions):
                             self.handlerStack.push(Handler(inst, f, a, self.error_code))
@@ -357,7 +359,7 @@ class Executor(SingletonBase):
                     if self.repeater.repeat():
                         continue
                     else:
-                        raise UnrecoverableError("Finish for now.")
+                        raise UnrecoverableError("Finish for now (Max. repetition count reached).")
         finally:
             # cleanup of class variables
             self.repeater = None
