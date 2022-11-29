@@ -82,6 +82,7 @@ class Master:
         ),  # Bypass error-handling for performance reasons.
         "SEED_N_KEY_DLL": (str, False, ""),
         "SEED_N_KEY_DLL_SAME_BIT_WIDTH": (bool, False, False),
+        "DISCONNECT_RESPONSE_OPTIONAL": (bool, False, False),
     }
 
     def __init__(self, transportName, config=None):
@@ -117,6 +118,7 @@ class Master:
         self.currentProtectionStatus = None
         self.seedNKeyDLL = self.config.get("SEED_N_KEY_DLL")
         self.seedNKeyDLL_same_bit_width = self.config.get("SEED_N_KEY_DLL_SAME_BIT_WIDTH")
+        self.disconnect_response_optional = self.config.get("DISCONNECT_RESPONSE_OPTIONAL")
         self.slaveProperties = SlaveProperties()
         self.slaveProperties.pgmProcessor = SlaveProperties()
 
@@ -235,9 +237,16 @@ class Master:
 
         Note
         -----
-        If DISCONNECT is currently not possible, ERR_CMD_BUSY will be returned.
+        - If DISCONNECT is currently not possible, ERR_CMD_BUSY will be returned.
+        - While XCP spec. requires a response, this behavior can be made optional by adding
+            - `DISCONNECT_RESPONSE_OPTIONAL = true` (TOML)
+            - `"DISCONNECT_RESPONSE_OPTIONAL": true` (JSON)
+            to your configuration file.
         """
-        response = self.transport.request(types.Command.DISCONNECT)
+        if self.disconnect_response_optional:
+            response = self.transport.request_optional_response(types.Command.DISCONNECT)
+        else:
+            response = self.transport.request(types.Command.DISCONNECT)
         # self.connected = False
         return response
 

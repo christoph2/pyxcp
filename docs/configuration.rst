@@ -13,7 +13,7 @@ General pyXCP Parameters
 * `CREATE_DAQ_TIMESTAMPS`:    bool,     False, False    -- Generate DAQ records with timestamp.
 * `TIMEOUT`:                  float,    False, 2.0      -- General XCP timeout in seconds.
 * `ALIGNMENT`:                int,      False, 1        -- 1 | 2 | 4, byte alignment.
-
+* `DISCONNECT_RESPONSE_OPTIONAL`: bool, False, False    -- Don't require response from DISCONNECT service.
 
 
 eth
