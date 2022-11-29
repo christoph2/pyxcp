@@ -184,6 +184,7 @@ class Handler:
         self.arguments = arguments
         self.service = self.instance.service
         self.error_code = error_code
+        self.repeater = None
 
     def __str__(self):
         return "Handler(func = {} arguments = {} service = {} error_code = {})".format(
@@ -331,8 +332,8 @@ class Executor(SingletonBase):
                     self.logger.error("XcpResponseError [{}]".format(str(e)))
                     if self.newHandler:
                         self.error_code = e.get_error_code()
-                except XcpTimeoutError:
-                    self.logger.error("XcpTimeoutError")
+                except XcpTimeoutError as e:
+                    self.logger.error("XcpTimeoutError [{}]".format(str(e)))
                     if self.newHandler:
                         self.error_code = XcpError.ERR_TIMEOUT
                 except Exception as e:
@@ -344,13 +345,21 @@ class Executor(SingletonBase):
                     if self.handlerStack.empty():
                         # print("OK, all handlers passed: '{}'.".format(res))
                         return res
-                if self.error_code is not None:
-                    if self.error_code != self.previous_error_code:
-                        preActions, actions, repeater = handler.actions(*getActions(inst.service, self.error_code))
-                        self.repeater = repeater
-                        for f, a in reversed(preActions):
-                            self.handlerStack.push(Handler(inst, f, a, self.error_code))
+
+                if self.error_code is not None and self.newHandler is True:
+                    preActions, actions, repeater = handler.actions(*getActions(inst.service, self.error_code))
+                    if handler.repeater is None:
+                        handler.repeater = repeater
+                    for f, a in reversed(preActions):
+                        self.handlerStack.push(Handler(inst, f, a, self.error_code))
+
+                if self.handlerStack.tos() != handler:
+                    self.newHandler = True
+                    self.error_code = None
+                    continue
+                else:
                     self.newHandler = False
+                    self.repeater = handler.repeater
 
                 self.previous_error_code = self.error_code
                 if self.repeater:
@@ -363,7 +372,7 @@ class Executor(SingletonBase):
             self.repeater = None
             self.newHandler = True
             self.previous_error_code = None
-            if self.error_code is not None:
+            while not self.handlerStack.empty():
                 self.handlerStack.pop()
             self.error_code = None
             self.func = None
