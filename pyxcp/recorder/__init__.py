@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """XCP Frame Recording Facility.
 """
-
 from dataclasses import dataclass
 from enum import IntEnum
+from typing import Union
 
 try:
     import pandas as pd
@@ -80,7 +79,7 @@ class XcpLogFileWriter:
     def __init__(self, file_name: str, prealloc=10, chunk_size=1):
         self._writer = rec._PyXcpLogFileWriter(file_name, prealloc, chunk_size)
 
-    def add_frame(self, category: FrameCategory, counter: int, timestamp: float, payload: bytes):
+    def add_frame(self, category: FrameCategory, counter: int, timestamp: float, payload: Union[bytes, bytearray]):
         self._writer.add_frame(category, counter % (COUNTER_MAX + 1), timestamp, len(payload), payload)
 
     def finalize(self):
