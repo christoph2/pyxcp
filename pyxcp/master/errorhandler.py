@@ -77,11 +77,11 @@ def getActions(service, error_code):
     else:
         eh = getErrorHandler(service)
         if eh is None:
-            raise InternalError("Invalid Service 0x{:02x}".format(service))
-        print("Try to handle error -- Service: {} Error-Code: {}".format(service.name, error_code))
+            raise InternalError(f"Invalid Service 0x{service:02x}")
+        print(f"Try to handle error -- Service: {service.name} Error-Code: {error_code}")
         handler = eh.get(error_str)
         if handler is None:
-            raise UnhandledError("Service '{}' has no handler for '{}'.".format(service.name, error_code))
+            raise UnhandledError(f"Service '{service.name}' has no handler for '{error_code}'.")
         preActions, actions = handler
     return preActions, actions
 
@@ -108,7 +108,7 @@ class Arguments:
 
     def __init__(self, args=None, kwargs=None):
         if args is None:
-            self.args = []
+            self.args = ()
         else:
             if not hasattr(args, "__iter__"):
                 self.args = (args,)
@@ -117,7 +117,7 @@ class Arguments:
         self.kwargs = kwargs or {}
 
     def __str__(self):
-        res = "{}(ARGS = {}, KWS = {})".format(self.__class__.__name__, self.args, self.kwargs)
+        res = f"{self.__class__.__name__}(ARGS = {self.args}, KWS = {self.kwargs})"
         return res
 
     def __eq__(self, other):
@@ -189,9 +189,7 @@ class Handler:
         self._repeater = None
 
     def __str__(self):
-        return "Handler(func = {} arguments = {} service = {} error_code = {})".format(
-            func_name(self.func), self.arguments, self.service, self.error_code
-        )
+        return f"Handler(func = {func_name(self.func)} arguments = {self.arguments} service = {self.service} error_code = {self.error_code})"
 
     def __eq__(self, other):
         if other is None:
@@ -209,7 +207,7 @@ class Handler:
         self._repeater = value
 
     def execute(self):
-        self.logger.debug("EXECUTE func = {} arguments = {})".format(func_name(self.func), self.arguments))
+        self.logger.debug(f"EXECUTE func = {func_name(self.func)} arguments = {self.arguments})")
         if isinstance(self.func, types.MethodType):
             return self.func(*self.arguments.args, **self.arguments.kwargs)
         else:
@@ -310,7 +308,7 @@ class HandlerStack:
         result = []
         for idx in range(len(self)):
             result.append(str(self[idx]))
-        return "{}".format("\n".join(result))
+        return "\n".join(result)
 
     def __getitem__(self, ndx):
         return self._stack[ndx]
@@ -330,7 +328,7 @@ class Executor(SingletonBase):
     arguments = None
 
     def __call__(self, inst, func, arguments):
-        self.logger.debug("__call__({})".format(func.__qualname__))
+        self.logger.debug(f"__call__({func.__qualname__})")
         self.inst = inst
         self.func = func
         self.arguments = arguments
@@ -344,13 +342,13 @@ class Executor(SingletonBase):
                     #print("\t\tEXEC", hex(id(handler)))
                     res = handler.execute()
                 except XcpResponseError as e:
-                    self.logger.error("XcpResponseError [{}]".format(str(e)))
+                    self.logger.error(f"XcpResponseError [{str(e)}]")
                     self.error_code = e.get_error_code()
                 except XcpTimeoutError as e:
-                    self.logger.error("XcpTimeoutError [{}]".format(str(e)))
+                    self.logger.error(f"XcpTimeoutError [{str(e)}]")
                     self.error_code = XcpError.ERR_TIMEOUT
                 except Exception as e:
-                    raise UnrecoverableError("Don't know how to handle exception '{}'".format(repr(e))) from e
+                    raise UnrecoverableError(f"Don't know how to handle exception '{repr(e)}'") from e
                 else:
                     self.error_code = None
                     # print("\t\t\t*** SUCCESS ***")
