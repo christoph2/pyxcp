@@ -144,6 +144,15 @@ class Repeater:
     def __init__(self, initial_value: int):
         self._counter = initial_value
 
+    def is_exhausted(self):
+        """Check if repeater has exhausted it's all attempts
+
+        """
+        if self._counter == 0:
+            return True
+        else:
+            return False
+
     def repeat(self):
         """Check if repetition is required.
 
@@ -263,7 +272,11 @@ class Handler:
                 pass
             elif item == Action.NEW_FLASH_WARE:
                 raise UnhandledError("Could not proceed due to unhandled error")
-        return result_pre_actions, result_actions, Repeater(repetitionCount)
+
+        if not self.repeater:
+            self.repeater = Repeater(repetitionCount)
+
+        return result_pre_actions, result_actions
 
 
 class HandlerStack:
@@ -345,21 +358,22 @@ class Executor(SingletonBase):
                     if self.handlerStack.empty():
                         # print("OK, all handlers passed: '{}'.".format(res))
                         return res
+                    else:
+                        self.newHandler = True
+                        self.repeater = self.handlerStack.tos().repeater  # repeater of next handler
 
-                if self.error_code is not None and self.newHandler is True:
-                    preActions, actions, repeater = handler.actions(*getActions(inst.service, self.error_code))
-                    if handler.repeater is None:
-                        handler.repeater = repeater
+                if self.error_code is not None and self.newHandler is True and \
+                        not (self.repeater.is_exhausted() if self.repeater else False):
+                    preActions, actions = handler.actions(*getActions(inst.service, self.error_code))
                     for f, a in reversed(preActions):
                         self.handlerStack.push(Handler(inst, f, a, self.error_code))
-
-                if self.handlerStack.tos() != handler:
-                    self.newHandler = True
-                    self.error_code = None
-                    continue
-                else:
-                    self.newHandler = False
-                    self.repeater = handler.repeater
+                    if preActions:
+                        self.newHandler = True
+                        self.error_code = None
+                        continue
+                    else:
+                        self.newHandler = False
+                        self.repeater = handler.repeater  # repeater of current handler
 
                 self.previous_error_code = self.error_code
                 if self.repeater:
