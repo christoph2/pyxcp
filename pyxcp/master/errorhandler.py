@@ -3,6 +3,7 @@
 """Implements error-handling according to XCP spec.
 """
 import functools
+import logging
 import os
 import threading
 import time
@@ -16,10 +17,10 @@ from pyxcp.types import XcpError
 from pyxcp.types import XcpResponseError
 from pyxcp.types import XcpTimeoutError
 
-from ..logger import Logger
 
 handle_errors = True  # enable/disable XCP error-handling.
 
+logger = logging.getLogger("pyxcp.errorhandler")
 
 class SingletonBase(object):
     _lock = threading.Lock()
@@ -173,7 +174,7 @@ def display_error():
 class Handler:
     """"""
 
-    logger = Logger(__name__)
+    logger = logger
 
     def __init__(self, instance, func, arguments, error_code=None):
         self.instance = instance
@@ -323,7 +324,7 @@ class Executor(SingletonBase):
     handlerStack = HandlerStack()
     repeater = None
     newHandler = True
-    logger = Logger(__name__)
+    logger = logger
     previous_error_code = None
     error_code = None
     func = None

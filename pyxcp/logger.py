@@ -18,6 +18,7 @@ class Logger(object):
         formatter = logging.Formatter(self.FORMAT)
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
+        #self.logger.propagate = False
         self.lastMessage = None
         self.lastSeverity = None
 
