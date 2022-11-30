@@ -143,6 +143,7 @@ class Repeater:
 
     def __init__(self, initial_value: int):
         self._counter = initial_value
+        #print("\tREPEATER ctor", hex(id(self)))
 
     def repeat(self):
         """Check if repetition is required.
@@ -151,7 +152,7 @@ class Repeater:
         -------
             bool
         """
-        # print("\t\tCOUNTER:", self._counter)
+        #print("\t\tCOUNTER:", hex(id(self)), self._counter)
         if self._counter == Repeater.INFINITE:
             return True
         elif self._counter > 0:
@@ -184,7 +185,7 @@ class Handler:
         self.arguments = arguments
         self.service = self.instance.service
         self.error_code = error_code
-        self.repeater = None
+        self._repeater = None
 
     def __str__(self):
         return "Handler(func = {} arguments = {} service = {} error_code = {})".format(
@@ -192,7 +193,19 @@ class Handler:
         )
 
     def __eq__(self, other):
+        if other is None:
+            return False
         return (self.instance == other.instance) and (self.func == other.func) and (self.arguments == other.arguments)
+
+    @property
+    def repeater(self):
+        #print("\tGet repeater", hex(id(self._repeater)), self._repeater is None)
+        return self._repeater
+
+    @repeater.setter
+    def repeater(self, value):
+        #print("\tSet repeater", hex(id(value)))
+        self._repeater = value
 
     def execute(self):
         self.logger.debug("EXECUTE func = {} arguments = {})".format(func_name(self.func), self.arguments))
@@ -273,7 +286,8 @@ class HandlerStack:
         self._stack = []
 
     def push(self, handler):
-        self._stack.append(handler)
+        if handler != self.tos():
+            self._stack.append(handler)
 
     def pop(self):
         if len(self) > 0:
@@ -322,11 +336,12 @@ class Executor(SingletonBase):
         self.arguments = arguments
         handler = Handler(inst, func, arguments)
         self.handlerStack.push(handler)
-
+        #print("\tENTER handler:", hex(id(handler)))
         try:
             while True:
                 try:
                     handler = self.handlerStack.tos()
+                    #print("\t\tEXEC", hex(id(handler)))
                     res = handler.execute()
                 except XcpResponseError as e:
                     self.logger.error("XcpResponseError [{}]".format(str(e)))
@@ -352,24 +367,14 @@ class Executor(SingletonBase):
                         handler.repeater = repeater
                     for f, a in reversed(preActions):
                         self.handlerStack.push(Handler(inst, f, a, self.error_code))
-
-                if self.handlerStack.tos() != handler:
-                    self.newHandler = True
-                    self.error_code = None
-                    continue
-                else:
-                    self.newHandler = False
-                    self.repeater = handler.repeater
-
                 self.previous_error_code = self.error_code
-                if self.repeater:
-                    if self.repeater.repeat():
+                if handler.repeater:
+                    if handler.repeater.repeat():
                         continue
                     else:
-                        raise UnrecoverableError("Finish for now.")
+                        raise UnrecoverableError(f"Max. repetition count reached while trying to execute service '{handler.func.__name__}'.")
         finally:
             # cleanup of class variables
-            self.repeater = None
             self.newHandler = True
             self.previous_error_code = None
             while not self.handlerStack.empty():
