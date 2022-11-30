@@ -323,7 +323,6 @@ class Executor(SingletonBase):
 
     handlerStack = HandlerStack()
     repeater = None
-    newHandler = True
     logger = logger
     previous_error_code = None
     error_code = None
@@ -346,12 +345,10 @@ class Executor(SingletonBase):
                     res = handler.execute()
                 except XcpResponseError as e:
                     self.logger.error("XcpResponseError [{}]".format(str(e)))
-                    if self.newHandler:
-                        self.error_code = e.get_error_code()
+                    self.error_code = e.get_error_code()
                 except XcpTimeoutError as e:
                     self.logger.error("XcpTimeoutError [{}]".format(str(e)))
-                    if self.newHandler:
-                        self.error_code = XcpError.ERR_TIMEOUT
+                    self.error_code = XcpError.ERR_TIMEOUT
                 except Exception as e:
                     raise UnrecoverableError("Don't know how to handle exception '{}'".format(repr(e))) from e
                 else:
@@ -362,7 +359,7 @@ class Executor(SingletonBase):
                         # print("OK, all handlers passed: '{}'.".format(res))
                         return res
 
-                if self.error_code is not None and self.newHandler is True:
+                if self.error_code is not None:
                     preActions, actions, repeater = handler.actions(*getActions(inst.service, self.error_code))
                     if handler.repeater is None:
                         handler.repeater = repeater
@@ -376,7 +373,6 @@ class Executor(SingletonBase):
                         raise UnrecoverableError(f"Max. repetition count reached while trying to execute service '{handler.func.__name__}'.")
         finally:
             # cleanup of class variables
-            self.newHandler = True
             self.previous_error_code = None
             while not self.handlerStack.empty():
                 self.handlerStack.pop()
