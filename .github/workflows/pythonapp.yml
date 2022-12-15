@@ -19,7 +19,7 @@ jobs:
             os: [
               #macos-latest, 
               windows-latest, 
-              ubuntu-latest
+              #ubuntu-latest
             ]
     steps:
       - uses: actions/checkout@v2
