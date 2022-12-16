@@ -118,8 +118,6 @@ build-verbosity = 3
 #test-command = "pytest {package}/tests"
 #test-command = "pytest -svv pyxcp/tests"
 build = "cp3{7,8,9,10,11}-*"
+skip = ["*-manylinux_i686"] # Skip Linux 32bit builds.
 build-frontend = "build"
-[tool.cibuildwheel.linux]
-#before-all = "curl https://sh.rustup.rs -sSf | sh -s -- -y"
-build-frontend = "build" # "build"
 
