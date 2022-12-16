@@ -118,6 +118,6 @@ build-verbosity = 3
 #test-command = "pytest {package}/tests"
 #test-command = "pytest -svv pyxcp/tests"
 build = "cp3{7,8,9,10,11}-*"
-skip = ["*-manylinux_i686", "*-musllinux_x86_64"] # Skip Linux 32bit and MUSL builds.
+skip = ["*-manylinux_i686", "*-musllinux_x86_64", "*-musllinux_i686"] # Skip Linux 32bit and MUSL builds.
 build-frontend = "build"
 
