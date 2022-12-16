@@ -21,6 +21,10 @@ jobs:
               windows-latest, 
               ubuntu-latest
             ]
+            cibw_archs: ["auto"]
+            include:
+              - os: ubuntu-latest
+                cibw_archs: "aarch64"
     steps:
       - uses: actions/checkout@v2
       - name: Install Rust
