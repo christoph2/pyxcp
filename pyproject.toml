@@ -120,6 +120,6 @@ build-verbosity = 3
 build = "cp3{7,8,9,10,11}-*"
 build-frontend = "build"
 [tool.cibuildwheel.linux]
-before-all = "curl https://sh.rustup.rs -sSf | sh -s -- -y"
+#before-all = "curl https://sh.rustup.rs -sSf | sh -s -- -y"
 build-frontend = "build" # "build"
 

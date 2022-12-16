@@ -19,11 +19,16 @@ jobs:
             os: [
               #macos-latest, 
               windows-latest, 
-              #ubuntu-latest
+              ubuntu-latest
             ]
     steps:
       - uses: actions/checkout@v2
-
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            override: true
+            components: rustfmt, clippy
       - name: Build wheel
         uses: pypa/cibuildwheel@v2.11.3
 
