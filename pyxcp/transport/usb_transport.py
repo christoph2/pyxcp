@@ -162,8 +162,6 @@ class Usb(BaseTransport):
                 current_size = len(data)
                 current_position = 0
 
-                data_view = memoryview(data)
-
                 while True:
                     if perf_counter() - last_sleep >= 0.005:
                         sleep(0.001)
@@ -171,7 +169,7 @@ class Usb(BaseTransport):
 
                     if length is None:
                         if current_size >= HEADER_SIZE:
-                            length, counter = HEADER_UNPACK_FROM(data_view, current_position)
+                            length, counter = HEADER_UNPACK_FROM(data, current_position)
                             current_position += HEADER_SIZE
                             current_size -= HEADER_SIZE
                         else:
@@ -179,7 +177,7 @@ class Usb(BaseTransport):
                             break
                     else:
                         if current_size >= length:
-                            response = data_view[current_position : current_position + length]
+                            response = data[current_position : current_position + length]
                             processResponse(response, length, counter, timestamp)
 
                             current_size -= length
