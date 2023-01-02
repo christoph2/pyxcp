@@ -284,15 +284,12 @@ class BaseTransport(metaclass=abc.ABCMeta):
                     )
                 )
             if pid >= 0xFE:
-                # self.resQueue.put(response)
                 self.resQueue.append(response)
                 self.recv_timestamp = recv_timestamp
             elif pid == 0xFD:
-                # self.evQueue.put(response)
                 self.process_event_packet(response)
                 self.evQueue.append(response)
             elif pid == 0xFC:
-                # self.servQueue.put(response)
                 self.servQueue.append(response)
         else:
             if self._debug:

@@ -102,6 +102,7 @@ class Usb(BaseTransport):
         read = self.reply_endpoint.read
 
         buffer = array("B", bytes(RECV_SIZE))
+        buffer_view = memoryview(buffer)
 
         while True:
             try:
@@ -115,7 +116,7 @@ class Usb(BaseTransport):
                         recv_timestamp = timestamp_origin + perf_counter() - perf_counter_origin
                     read_count = read(buffer, 100)  # 100ms timeout
                     if read_count != RECV_SIZE:
-                        _packets.append((buffer.tobytes()[:read_count], recv_timestamp))
+                        _packets.append((buffer_view[:read_count].tobytes(), recv_timestamp))
                     else:
                         _packets.append((buffer.tobytes(), recv_timestamp))
                 except BaseException:
@@ -161,6 +162,8 @@ class Usb(BaseTransport):
                 current_size = len(data)
                 current_position = 0
 
+                data_view = memoryview(data)
+
                 while True:
                     if perf_counter() - last_sleep >= 0.005:
                         sleep(0.001)
@@ -168,7 +171,7 @@ class Usb(BaseTransport):
 
                     if length is None:
                         if current_size >= HEADER_SIZE:
-                            length, counter = HEADER_UNPACK_FROM(data, current_position)
+                            length, counter = HEADER_UNPACK_FROM(data_view, current_position)
                             current_position += HEADER_SIZE
                             current_size -= HEADER_SIZE
                         else:
@@ -176,7 +179,7 @@ class Usb(BaseTransport):
                             break
                     else:
                         if current_size >= length:
-                            response = memoryview(data[current_position : current_position + length])
+                            response = data_view[current_position : current_position + length]
                             processResponse(response, length, counter, timestamp)
 
                             current_size -= length
@@ -198,7 +201,7 @@ class Usb(BaseTransport):
                 # sometimes usb.core.USBError: [Errno 5] Input/Output Error is raised
                 # even though the command is send and a reply is received from the device.
                 # Ignore this here since a Timeout error will be raised anyway if
-                # the device does not responde
+                # the device does not respond
                 pass
             self.post_send_timestamp = time()
         else:
@@ -209,7 +212,7 @@ class Usb(BaseTransport):
                 # sometimes usb.core.USBError: [Errno 5] Input/Output Error is raised
                 # even though the command is send and a reply is received from the device.
                 # Ignore this here since a Timeout error will be raised anyway if
-                # the device does not responde
+                # the device does not respond
                 pass
             post_send_timestamp = perf_counter()
             self.pre_send_timestamp = self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
