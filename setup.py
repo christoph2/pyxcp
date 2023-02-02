@@ -114,7 +114,7 @@ setuptools.setup(
         "build_py": CustomBuildPy,
         "develop": CustomDevelop,
     },
-    python_requires=">3.6",
+    python_requires=">=3.7",
     include_package_data=True,
     install_requires=install_reqs,
     extras_require={"docs": ["sphinxcontrib-napoleon"], "develop": ["bumpversion"]},
