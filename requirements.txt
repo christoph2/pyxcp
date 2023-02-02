@@ -8,3 +8,4 @@ numpydoc
 sphinxcontrib-napoleon
 toml
 pyusb
+win-precise-time; python_version >= "3.7" and sys_platform == "win32"

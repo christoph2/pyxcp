@@ -35,7 +35,7 @@ from pyxcp.constants import UnpackerType
 from pyxcp.master.errorhandler import disable_error_handling
 from pyxcp.master.errorhandler import wrapped
 from pyxcp.transport.base import createTransport
-from pyxcp.utils import delay
+from pyxcp.utils import delay, SHORT_SLEEP
 
 
 def broadcasted(func: Callable):
@@ -452,7 +452,7 @@ class Master:
                     response += data[1 : rem + 1]
                     rem = length - len(response)
                 else:
-                    sleep(0.001)
+                    sleep(SHORT_SLEEP)
 
         return response
 
