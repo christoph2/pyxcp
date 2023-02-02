@@ -6,6 +6,7 @@ import struct
 import threading
 from collections import deque
 from pyxcp.transport.base import BaseTransport
+from pyxcp.utils import SHORT_SLEEP
 from time import perf_counter
 from time import sleep
 from time import time
@@ -100,10 +101,6 @@ class Eth(BaseTransport):
         socket_fileno = self.sock.fileno
         select = self.selector.select
 
-        high_resolution_time = self.perf_counter_origin < 0
-        timestamp_origin = self.timestamp_origin
-        perf_counter_origin = self.perf_counter_origin
-
         _packets = self._packets
 
         if use_tcp:
@@ -118,10 +115,7 @@ class Eth(BaseTransport):
                 sel = select(0.02)
                 for _, events in sel:
                     if events & EVENT_READ:
-                        if high_resolution_time:
-                            recv_timestamp = time()
-                        else:
-                            recv_timestamp = timestamp_origin + perf_counter() - perf_counter_origin
+                        recv_timestamp = time()
 
                         if use_tcp:
                             response = sock_recv(RECV_SIZE)
@@ -164,7 +158,7 @@ class Eth(BaseTransport):
             count = len(_packets)
 
             if not count:
-                sleep(0.002)
+                sleep(SHORT_SLEEP)
                 continue
 
             for _ in range(count):
@@ -199,16 +193,9 @@ class Eth(BaseTransport):
                             break
 
     def send(self, frame):
-        if self.perf_counter_origin < 0:
-            self.pre_send_timestamp = time()
-            self.sock.send(frame)
-            self.post_send_timestamp = time()
-        else:
-            pre_send_timestamp = perf_counter()
-            self.sock.send(frame)
-            post_send_timestamp = perf_counter()
-            self.pre_send_timestamp = self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
-            self.post_send_timestamp = self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
+        self.pre_send_timestamp = time()
+        self.sock.send(frame)
+        self.post_send_timestamp = time()
 
     def closeConnection(self):
         if not self.invalidSocket:

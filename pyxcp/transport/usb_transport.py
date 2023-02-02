@@ -5,6 +5,7 @@ import threading
 from array import array
 from collections import deque
 from pyxcp.transport.base import BaseTransport
+from pyxcp.utils import SHORT_SLEEP
 from time import perf_counter
 from time import sleep
 from time import time
@@ -94,10 +95,6 @@ class Usb(BaseTransport):
 
         close_event_set = self.closeEvent.isSet
 
-        high_resolution_time = self.perf_counter_origin < 0
-        timestamp_origin = self.timestamp_origin
-        perf_counter_origin = self.perf_counter_origin
-
         _packets = self._packets
         read = self.reply_endpoint.read
 
@@ -110,10 +107,7 @@ class Usb(BaseTransport):
                     return
 
                 try:
-                    if high_resolution_time:
-                        recv_timestamp = time()
-                    else:
-                        recv_timestamp = timestamp_origin + perf_counter() - perf_counter_origin
+                    recv_timestamp = time()
                     read_count = read(buffer, 100)  # 100ms timeout
                     if read_count != RECV_SIZE:
                         _packets.append((buffer_view[:read_count].tobytes(), recv_timestamp))
@@ -121,7 +115,7 @@ class Usb(BaseTransport):
                         _packets.append((buffer.tobytes(), recv_timestamp))
                 except BaseException:
                     # print(format_exc())
-                    sleep(0.001)
+                    sleep(SHORT_SLEEP)
                     continue
 
             except BaseException:
@@ -151,7 +145,7 @@ class Usb(BaseTransport):
             count = len(_packets)
 
             if not count:
-                sleep(0.001)
+                sleep(SHORT_SLEEP)
                 last_sleep = perf_counter()
                 continue
 
@@ -164,7 +158,7 @@ class Usb(BaseTransport):
 
                 while True:
                     if perf_counter() - last_sleep >= 0.005:
-                        sleep(0.001)
+                        sleep(SHORT_SLEEP)
                         last_sleep = perf_counter()
 
                     if length is None:
@@ -191,30 +185,17 @@ class Usb(BaseTransport):
                             break
 
     def send(self, frame):
-        if self.perf_counter_origin < 0:
-            self.pre_send_timestamp = time()
-            try:
-                self.command_endpoint.write(frame)
-            except BaseException:
-                # sometimes usb.core.USBError: [Errno 5] Input/Output Error is raised
-                # even though the command is send and a reply is received from the device.
-                # Ignore this here since a Timeout error will be raised anyway if
-                # the device does not respond
-                pass
-            self.post_send_timestamp = time()
-        else:
-            pre_send_timestamp = perf_counter()
-            try:
-                self.command_endpoint.write(frame)
-            except BaseException:
-                # sometimes usb.core.USBError: [Errno 5] Input/Output Error is raised
-                # even though the command is send and a reply is received from the device.
-                # Ignore this here since a Timeout error will be raised anyway if
-                # the device does not respond
-                pass
-            post_send_timestamp = perf_counter()
-            self.pre_send_timestamp = self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
-            self.post_send_timestamp = self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
+
+        self.pre_send_timestamp = time()
+        try:
+            self.command_endpoint.write(frame)
+        except BaseException:
+            # sometimes usb.core.USBError: [Errno 5] Input/Output Error is raised
+            # even though the command is send and a reply is received from the device.
+            # Ignore this here since a Timeout error will be raised anyway if
+            # the device does not respond
+            pass
+        self.post_send_timestamp = time()
 
     def closeConnection(self):
         if self.device is not None:

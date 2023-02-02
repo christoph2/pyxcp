@@ -343,16 +343,9 @@ class Can(BaseTransport):
         if self.max_dlc_required:
             frame = padFrame(frame, self.padding_value, self.padding_len)
         # send the request
-        if self.perf_counter_origin < 0:
-            self.pre_send_timestamp = time()
-            self.canInterface.transmit(payload=frame)
-            self.post_send_timestamp = time()
-        else:
-            pre_send_timestamp = perf_counter()
-            self.canInterface.transmit(payload=frame)
-            post_send_timestamp = perf_counter()
-            self.pre_send_timestamp = self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
-            self.post_send_timestamp = self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
+        self.pre_send_timestamp = time()
+        self.canInterface.transmit(payload=frame)
+        self.post_send_timestamp = time()
 
     def closeConnection(self):
         if hasattr(self, "canInterface"):

@@ -58,19 +58,14 @@ class SxI(BaseTransport):
         self.commPort.flush()
 
     def listen(self):
-        high_resolution_time = self.perf_counter_origin < 0
-        timestamp_origin = self.timestamp_origin
-        perf_counter_origin = self.perf_counter_origin
 
         while True:
             if self.closeEvent.isSet():
                 return
             if not self.commPort.inWaiting():
                 continue
-            if high_resolution_time:
-                recv_timestamp = time()
-            else:
-                recv_timestamp = timestamp_origin + perf_counter() - perf_counter_origin
+
+            recv_timestamp = time()
             length, counter = self.HEADER.unpack(self.commPort.read(self.HEADER_SIZE))
 
             response = self.commPort.read(length)
@@ -82,16 +77,9 @@ class SxI(BaseTransport):
             self.processResponse(response, length, counter, recv_timestamp)
 
     def send(self, frame):
-        if self.perf_counter_origin < 0:
-            self.pre_send_timestamp = time()
-            self.commPort.write(frame)
-            self.post_send_timestamp = time()
-        else:
-            pre_send_timestamp = perf_counter()
-            self.commPort.write(frame)
-            post_send_timestamp = perf_counter()
-            self.pre_send_timestamp = self.timestamp_origin + pre_send_timestamp - self.perf_counter_origin
-            self.post_send_timestamp = self.timestamp_origin + post_send_timestamp - self.perf_counter_origin
+        self.pre_send_timestamp = time()
+        self.commPort.write(frame)
+        self.post_send_timestamp = time()
 
     def closeConnection(self):
         if hasattr(self, "commPort") and self.commPort.isOpen():

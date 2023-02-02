@@ -32,13 +32,13 @@ dependencies = [
     "uptime>=3.0.1",
 ]
 name = "pyxcp"
-version = "0.19.9"
+version = "0.20.0"
 readme = "README.md"
 description = "Universal Calibration Protocol for Python"
 keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
 license = {file = "LICENSE"}
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers", "Topic :: Software Development",
     "Topic :: Scientific/Engineering",
     "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",

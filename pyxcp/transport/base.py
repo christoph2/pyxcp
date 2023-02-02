@@ -4,7 +4,6 @@ import abc
 import threading
 from collections import deque
 from datetime import datetime
-from time import get_clock_info
 from time import sleep
 from time import time
 
@@ -13,7 +12,7 @@ from ..logger import Logger
 from ..timing import Timing
 from ..utils import flatten
 from ..utils import hexDump
-from ..utils import time_perfcounter_correlation
+from ..utils import SHORT_SLEEP
 from pyxcp.config import Configuration
 
 
@@ -30,7 +29,7 @@ def get(q, timeout, restart_event):
             restart_event.clear()
         if time() - start > timeout:
             raise Empty
-        sleep(0.001)
+        sleep(SHORT_SLEEP)
 
     item = q.popleft()
     return item
@@ -86,18 +85,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.cro_callback = None
 
         self.first_daq_timestamp = None
-        if get_clock_info("time").resolution > 1e-5:
-            ts, pc = time_perfcounter_correlation()
-            self.timestamp_origin = ts
-            self.datetime_origin = datetime.fromtimestamp(ts)
-            self.perf_counter_origin = pc
-        else:
-            self.timestamp_origin = time()
-            self.datetime_origin = datetime.fromtimestamp(self.timestamp_origin)
 
-            # we will later use this to know if the current platform has a high
-            # resolution time.time implementation
-            self.perf_counter_origin = -1
+        self.timestamp_origin = time()
+        self.datetime_origin = datetime.fromtimestamp(self.timestamp_origin)
 
         self.pre_send_timestamp = time()
         self.post_send_timestamp = time()
@@ -233,7 +223,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             else:
                 if time() - start > self.timeout:
                     raise types.XcpTimeoutError("Response timed out [block_receive].") from None
-                sleep(0.001)
+                sleep(SHORT_SLEEP)
         return block_response
 
     @abc.abstractmethod
