@@ -24,4 +24,4 @@ from .transport import SxI
 from .transport import Usb
 
 # if you update this manually, do not forget to update .bumpversion.cfg
-__version__ = "0.20.0"
+__version__ = "0.20.1"
