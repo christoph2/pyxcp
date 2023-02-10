@@ -26,6 +26,8 @@ class Usb(BaseTransport):
         "interface_number": (int, True, 2),
         "command_endpoint_number": (int, True, 0),
         "reply_endpoint_number": (int, True, 1),
+        "vendor_id": (int, False, 0),
+        "product_id": (int, False, 0),
     }
     HEADER = struct.Struct("<2H")
     HEADER_SIZE = HEADER.size
@@ -34,6 +36,8 @@ class Usb(BaseTransport):
         super(Usb, self).__init__(config)
         self.loadConfig(config)
         self.serial_number = self.config.get("serial_number").strip()
+        self.vendor_id = self.config.get("vendor_id")
+        self.product_id = self.config.get("product_id")
         self.configuration_number = self.config.get("configuration_number")
         self.interface_number = self.config.get("interface_number")
         self.command_endpoint_number = self.config.get("command_endpoint_number")
@@ -50,16 +54,22 @@ class Usb(BaseTransport):
         self._packets = deque()
 
     def connect(self):
-        for device in usb.core.find(find_all=True):
+        if self.vendor_id and self.product_id:
+            kwargs = {
+                "find_all": True,
+                "idVendor": self.vendor_id,
+                "idProduct": self.product_id,
+            }
+        else:
+            kwargs = {
+                "find_all": True,
+            }
+
+        for device in usb.core.find(**kwargs):
             try:
                 if device.serial_number.strip().strip("\0").lower() == self.serial_number.lower():
                     self.device = device
                     break
-                else:
-                    print(
-                        device.serial_number.strip().strip("\0").lower(),
-                        self.serial_number.lower(),
-                    )
             except BaseException:
                 continue
         else:
