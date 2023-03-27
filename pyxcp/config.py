@@ -41,10 +41,10 @@ class Configuration:
         for key, (tp, required, default) in self.parameters.items():
             if key in self.config:
                 if not isinstance(self.config[key], tp):
-                    raise TypeError(f"Parameter {key:s} requires {tp:s}")
+                    raise TypeError(f"Parameter {key} requires {tp}")
             else:
                 if required:
-                    raise AttributeError(f"{key:s} must be specified in config!")
+                    raise AttributeError(f"{key} must be specified in config!")
                 else:
                     self.config[key] = default
 

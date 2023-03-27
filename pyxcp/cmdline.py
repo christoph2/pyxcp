@@ -5,6 +5,7 @@ Parse (transport-layer specific) command line parameters
 and create a XCP master instance.
 """
 import argparse
+
 from pyxcp.config import readConfiguration
 from pyxcp.master import Master
 from pyxcp.transport.can import registered_drivers
@@ -52,6 +53,8 @@ class ArgumentParser:
         """"""
         self._args = self.parser.parse_args()
         args = self.args
+        if args.conf is None:
+            raise RuntimeError("Configuration file must be specified! (option: -c <file>)")
         config = readConfiguration(args.conf)
         config["LOGLEVEL"] = args.loglevel
         if "TRANSPORT" not in config:

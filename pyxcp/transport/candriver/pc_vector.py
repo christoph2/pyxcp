@@ -17,7 +17,8 @@ class Vector(python_can.PythonCAN, can.CanInterfaceBase):
         "SERIAL": (int, False, None),
         "RX_QUEUE_SIZE": (int, False, 16384),
         "FD": (bool, False, False),
-        "DATA_BITRATE": (int, False, None),
+        "DATA_BITRATE": (int, False, 0),
+        "DATA_SAMPLE_POINT": (float, False, 0),
     }
 
     PARAMETER_TO_KW_ARG_MAP = {
