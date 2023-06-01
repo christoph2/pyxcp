@@ -5,11 +5,12 @@ import socket
 import struct
 import threading
 from collections import deque
-from pyxcp.transport.base import BaseTransport
-from pyxcp.utils import SHORT_SLEEP
 from time import perf_counter
 from time import sleep
 from time import time
+
+from pyxcp.transport.base import BaseTransport
+from pyxcp.utils import SHORT_SLEEP
 
 DEFAULT_XCP_PORT = 5555
 RECV_SIZE = 8196
@@ -31,15 +32,17 @@ class Eth(BaseTransport):
     HEADER = struct.Struct("<HH")
     HEADER_SIZE = HEADER.size
 
-    def __init__(self, config=None):
-        super(Eth, self).__init__(config)
+    def __init__(self, config=None, policy=None):
+        super(Eth, self).__init__(config, policy)
         self.loadConfig(config)
         self.host = self.config.get("HOST")
         self.port = self.config.get("PORT")
         self.protocol = self.config.get("PROTOCOL")
         self.ipv6 = self.config.get("IPV6")
         self.use_tcp_no_delay = self.config.get("TCP_NODELAY")
-
+        address_to_bind = self.config.get("IPV6_BIND_TO_ADDRESS")
+        port_to_bind = self.config.get("IPV6_BIND_TO_PORT")
+        self._local_address = (address_to_bind, port_to_bind) if address_to_bind else None
         if self.ipv6 and not socket.has_ipv6:
             raise RuntimeError("IPv6 not supported by your platform.")
         else:
@@ -66,7 +69,11 @@ class Eth(BaseTransport):
         if hasattr(socket, "SO_REUSEPORT"):
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.sock.settimeout(0.5)
-
+        if self._local_address:
+            try:
+                self.sock.bind(self._local_address)
+            except BaseException as ex:
+                raise Exception(f"Failed to bind socket to given address {self._local_address}") from ex
         self._packet_listener = threading.Thread(
             target=self._packet_listen,
             args=(),
