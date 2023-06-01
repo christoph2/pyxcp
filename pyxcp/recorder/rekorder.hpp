@@ -60,12 +60,12 @@
 #define __ALIGN                     alignas(__ALIGNMENT_REQUIREMENT)
 
 
-constexpr auto kilobytes(std::size_t value) -> std::size_t
+constexpr auto kilobytes(std::uint32_t value) -> std::uint32_t
 {
     return value * 1024;
 }
 
-constexpr auto megabytes(std::size_t value) -> std::size_t
+constexpr auto megabytes(std::uint32_t value) -> std::uint32_t
 {
     return kilobytes(value) * 1024;
 }
@@ -145,14 +145,14 @@ namespace detail
 }
 
 
-inline auto file_header_size() -> std::size_t {
+constexpr auto file_header_size() -> std::uint32_t {
     return (detail::FILE_HEADER_SIZE + detail::MAGIC_SIZE);
 }
 
-using rounding_func_t = std::function<std::size_t(std::size_t)>;
+using rounding_func_t = std::function<std::uint32_t(std::uint32_t)>;
 
-inline const rounding_func_t create_rounding_func(std::size_t multiple) {
-    return [=](std::size_t value) -> std::size_t {
+inline const rounding_func_t create_rounding_func(std::uint32_t multiple)  {
+    return [=](std::uint32_t value) -> std::uint32_t {
         return (value + (multiple - 1)) & ~(multiple -1 );
     };
 }
@@ -160,38 +160,37 @@ inline const rounding_func_t create_rounding_func(std::size_t multiple) {
 const auto round_to_alignment = create_rounding_func(__ALIGNMENT_REQUIREMENT);
 
 
-inline void _fcopy(char * dest, char const * src, std::size_t n)
+inline void _fcopy(char * dest, char const * src, std::uint32_t n) noexcept
 {
-    for (std::size_t i = 0; i < n; ++i) {
+    for (std::uint32_t i = 0; i < n; ++i) {
         dest[i] = src[i];
     }
 }
 
 #if STANDALONE_REKORDER == 1
-    inline blob_t * get_payload_ptr(const payload_t& payload) {
+    inline blob_t * get_payload_ptr(const payload_t& payload) const noexcept {
         return payload.get();
     }
 
-    inline payload_t create_payload(std::size_t size, blob_t const * data) {
+    inline payload_t create_payload(std::uint32_t size, blob_t const * data) noexcept {
         //auto pl = std::make_unique<char[]>(size);
         auto pl = std::make_shared<blob_t[]>(size);
         _fcopy(reinterpret_cast<char*>(pl.get()), reinterpret_cast<char const*>(data), size);
         return pl;
     }
 #else
-	inline payload_t create_payload(std::size_t size, blob_t const * data) {
+	inline payload_t create_payload(std::uint32_t size, blob_t const * data) {
         return py::array_t<blob_t>(size, data);
     }
 
-    inline blob_t * get_payload_ptr(const payload_t& payload) {
+    inline blob_t * get_payload_ptr(const payload_t& payload) noexcept {
         py::buffer_info buf = payload.request();
 
         return  static_cast<blob_t *>(buf.ptr);
     }
 #endif /* STANDALONE_REKORDER */
 
-inline void hexdump(blob_t const * buf, std::uint16_t sz)
-{
+inline void hexdump(blob_t const * buf, std::uint16_t sz) {
     std::uint16_t idx;
 
     for (idx = 0; idx < sz; ++idx)
@@ -207,18 +206,18 @@ class TsQueue {
 public:
     explicit  TsQueue() {}
 
-    TsQueue(const TsQueue& other) : m_mtx{}, m_cond{} {
+    TsQueue(const TsQueue& other) noexcept : m_mtx{}, m_cond{}  {
         std::lock_guard<std::mutex> lock(other.m_mtx);
         m_queue = other.m_queue;
     }
 
-    void put(T value) {
+    void put(T value) noexcept {
         std::lock_guard<std::mutex> lock(m_mtx);
         m_queue.push(value);
         m_cond.notify_one();
     }
 
-    std::shared_ptr<T> get() {
+    std::shared_ptr<T> get() noexcept {
         std::unique_lock<std::mutex> lock(m_mtx);
         m_cond.wait(lock, [this]{return !m_queue.empty();});
         std::shared_ptr<T> result(std::make_shared<T>(m_queue.front()));
@@ -226,7 +225,7 @@ public:
         return result;
     }
 
-    bool empty() const {
+    bool empty() const noexcept {
         std::lock_guard<std::mutex> lock(m_mtx);
         return m_queue.empty();
     }
@@ -242,24 +241,24 @@ class Event {
 public:
     explicit Event() {}
 
-    Event(const Event& other) {
+    Event(const Event& other) noexcept {
         std::lock_guard<std::mutex> lock(other.m_mtx);
         m_flag = other.m_flag;
     }
 
-    void signal() {
+    void signal() noexcept {
         std::lock_guard<std::mutex> lock(m_mtx);
         m_flag = true;
         m_cond.notify_one();
     }
 
-    void wait() {
+    void wait() noexcept {
         std::unique_lock<std::mutex> lock(m_mtx);
         m_cond.wait(lock, [this]{return m_flag;});
         m_flag = false;
     }
 
-    bool state() const {
+    bool state() const noexcept {
         std::lock_guard<std::mutex> lock(m_mtx);
         return m_flag;
     }
@@ -283,12 +282,12 @@ public:
 
     using mem_block_t = T[_IS];
 
-    explicit BlockMemory() : m_memory{nullptr}, m_allocation_count{0} {
+    explicit BlockMemory() noexcept : m_memory{nullptr}, m_allocation_count{0} {
         m_memory = new T[_IS * _NB];	// Ts to allocate: itemsize * number of items.
         //printf("mem-base  : %p\n", m_memory);
     }
 
-    ~BlockMemory() {
+    ~BlockMemory() noexcept {
         if (m_memory) {
             delete[] m_memory;
         }
@@ -318,7 +317,7 @@ public:
 private:
 
     T * m_memory;
-    std::size_t m_allocation_count;
+    std::uint32_t m_allocation_count;
     std::mutex m_mtx;
 };
 
@@ -328,9 +327,14 @@ private:
 class XcpLogFileWriter
 {
 public:
-    explicit XcpLogFileWriter(const std::string& file_name, uint32_t prealloc = 10UL, uint32_t chunk_size = 1)
+    explicit XcpLogFileWriter(const std::string& file_name, uint32_t prealloc = 10UL, uint32_t chunk_size = 1) noexcept
     {
-        m_file_name = file_name + detail::FILE_EXTENSION;
+        if (!file_name.ends_with(detail::FILE_EXTENSION)) {
+            m_file_name = file_name + detail::FILE_EXTENSION;
+        } else {
+            m_file_name = file_name;
+        }
+
 #if defined(_WIN32)
         m_fd = CreateFileA(
             m_file_name.c_str(),
@@ -354,11 +358,11 @@ public:
         start_thread();
     }
 
-    ~XcpLogFileWriter() {
+    ~XcpLogFileWriter() noexcept {
         finalize();
     }
 
-    void finalize() {
+    void finalize() noexcept {
         if (!m_finalized) {
             m_finalized = true;
             stop_thread();
@@ -378,7 +382,7 @@ public:
         }
     }
 
-    void add_frame(uint8_t category, uint16_t counter, double timestamp, uint16_t length, char const * data) {
+    void add_frame(uint8_t category, uint16_t counter, double timestamp, uint16_t length, char const * data) noexcept {
         auto payload= new char[length];
         //auto payload = mem.acquire();
 
@@ -389,7 +393,7 @@ public:
     }
 
 protected:
-    void truncate(off_t size) const
+    void truncate(off_t size) const noexcept
     {
         //printf("truncating to: %lldKBytes.\n", kilobytes(size));
 #if defined(_WIN32)
@@ -405,12 +409,12 @@ protected:
 #endif
     }
 
-    blob_t * ptr(std::size_t pos = 0) const
+    blob_t * ptr(std::uint32_t pos = 0) const noexcept
     {
         return (blob_t *)(m_mmap->data() + pos);
     }
 
-    void store_im(void const * data, std::size_t length) {
+    void store_im(void const * data, std::uint32_t length) noexcept {
         _fcopy(reinterpret_cast<char *>(m_intermediate_storage + m_intermediate_storage_offset), reinterpret_cast<char const*>(data), length);
         m_intermediate_storage_offset += length;
     }
@@ -441,7 +445,7 @@ protected:
         m_num_containers += 1;
     }
 
-    void write_bytes(std::size_t pos, std::size_t count, char const * buf) const
+    void write_bytes(std::uint32_t pos, std::uint32_t count, char const * buf) const noexcept
     {
         auto addr = reinterpret_cast<char *>(ptr(pos));
 
@@ -449,7 +453,7 @@ protected:
     }
 
     void write_header(uint16_t version, uint16_t options, uint32_t num_containers,
-                      uint32_t record_count, uint32_t size_compressed, uint32_t size_uncompressed) {
+                      uint32_t record_count, uint32_t size_compressed, uint32_t size_uncompressed) noexcept {
         auto header = FileHeaderType{};
         write_bytes(0x00000000UL, detail::MAGIC_SIZE, detail::MAGIC.c_str());
         header.hdr_size = detail::FILE_HEADER_SIZE + detail::MAGIC_SIZE;
@@ -462,7 +466,7 @@ protected:
         write_bytes(0x00000000UL + detail::MAGIC_SIZE, detail::FILE_HEADER_SIZE, reinterpret_cast<char const*>(&header));
     }
 
-    bool start_thread() {
+    bool start_thread() noexcept {
         if (collector_thread.joinable()) {
             return false;
         }
@@ -492,7 +496,7 @@ protected:
         return true;
     }
 
-    bool stop_thread() {
+    bool stop_thread() noexcept {
         if (!collector_thread.joinable()) {
             return false;
         }
@@ -504,7 +508,7 @@ protected:
 
 private:
     std::string m_file_name;
-    std::size_t m_offset{0};
+    std::uint32_t m_offset{0};
     std::uint32_t m_chunk_size{0};
     std::uint32_t m_num_containers{0};
     std::uint32_t m_record_count{0UL};
@@ -533,7 +537,12 @@ class XcpLogFileReader
 public:
     explicit XcpLogFileReader(const std::string& file_name)
     {
-        m_file_name = file_name + detail::FILE_EXTENSION;
+        if (!file_name.ends_with(detail::FILE_EXTENSION)) {
+            m_file_name = file_name + detail::FILE_EXTENSION;
+        } else {
+            m_file_name = file_name;
+        }
+
         m_mmap = new mio::mmap_source(m_file_name);
         blob_t magic[detail::MAGIC_SIZE + 1];
 
@@ -569,7 +578,7 @@ public:
     }
 
     [[nodiscard]]
-    auto get_header_as_tuple() const -> HeaderTuple {
+    auto get_header_as_tuple() const noexcept -> HeaderTuple {
         auto hdr = get_header();
 
         return std::make_tuple(
@@ -581,17 +590,17 @@ public:
         );
     }
 
-    void reset() {
+    void reset() noexcept {
         m_current_container = 0;
         m_offset = file_header_size();
     }
 
 
-    std::optional<FrameVector> next_block() /*noexcept*/ {
+    std::optional<FrameVector> next_block() {
         auto container = ContainerHeaderType{};
         auto total = 0;
         auto frame = frame_header_t{};
-        size_t boffs = 0;
+        std::uint32_t boffs = 0;
         auto result = FrameVector{};
         payload_t payload;
 
@@ -621,19 +630,19 @@ public:
         return std::optional<FrameVector>{result};
     }
 
-    ~XcpLogFileReader()
+    ~XcpLogFileReader() noexcept
     {
         delete m_mmap;
     }
 
 protected:
     [[nodiscard]]
-    blob_t const *ptr(std::size_t pos = 0) const
+    blob_t const *ptr(std::uint32_t pos = 0) const
     {
         return reinterpret_cast<blob_t const*>(m_mmap->data() + pos);
     }
 
-    void read_bytes(std::size_t pos, std::size_t count, blob_t * buf) const
+    void read_bytes(std::uint32_t pos, std::uint32_t count, blob_t * buf) const
     {
         auto addr = reinterpret_cast<char const*>(ptr(pos));
         _fcopy(reinterpret_cast<char *>(buf), addr, count);
@@ -641,8 +650,8 @@ protected:
 
 private:
     std::string m_file_name;
-    std::size_t m_offset{0};
-    std::size_t m_current_container{0};
+    std::uint32_t m_offset{0};
+    std::uint32_t m_current_container{0};
     mio::mmap_source * m_mmap{nullptr};
     FileHeaderType m_header;
 };

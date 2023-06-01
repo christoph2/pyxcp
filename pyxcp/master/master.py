@@ -35,7 +35,8 @@ from pyxcp.constants import UnpackerType
 from pyxcp.master.errorhandler import disable_error_handling
 from pyxcp.master.errorhandler import wrapped
 from pyxcp.transport.base import createTransport
-from pyxcp.utils import delay, SHORT_SLEEP
+from pyxcp.utils import delay
+from pyxcp.utils import SHORT_SLEEP
 
 
 def broadcasted(func: Callable):
@@ -85,7 +86,7 @@ class Master:
         "DISCONNECT_RESPONSE_OPTIONAL": (bool, False, False),
     }
 
-    def __init__(self, transportName, config=None):
+    def __init__(self, transportName, config=None, policy=None):
         self.ctr = 0
         self.succeeded = True
         self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
@@ -93,7 +94,7 @@ class Master:
         self.logger.setLevel(self.config.get("LOGLEVEL"))
         disable_error_handling(self.config.get("DISABLE_ERROR_HANDLING"))
 
-        self.transport = createTransport(transportName, config)
+        self.transport = createTransport(transportName, config, policy)
         self.transport_name = transportName
 
         # In some cases the transport-layer needs to communicate with us.
@@ -156,6 +157,7 @@ class Master:
 
     def close(self):
         """Closes transport layer connection."""
+        self.transport.policy.finalize()
         self.transport.close()
 
     # Mandatory Commands.

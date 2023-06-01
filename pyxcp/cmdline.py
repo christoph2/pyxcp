@@ -49,7 +49,7 @@ class ArgumentParser:
     def args(self):
         return self._args
 
-    def run(self):
+    def run(self, policy=None):
         """"""
         self._args = self.parser.parse_args()
         args = self.args
@@ -60,7 +60,7 @@ class ArgumentParser:
         if "TRANSPORT" not in config:
             raise AttributeError("TRANSPORT must be specified in config!")
         transport = config["TRANSPORT"].lower()
-        master = Master(transport, config=config)
+        master = Master(transport, config=config, policy=policy)
         if self.callout:
             self.callout(master, args)
         return master

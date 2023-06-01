@@ -7,10 +7,11 @@ import functools
 import operator
 from bisect import bisect_left
 from collections import OrderedDict
-from pyxcp.config import Configuration
-from pyxcp.transport.base import BaseTransport
 from time import perf_counter
 from time import time
+
+from pyxcp.config import Configuration
+from pyxcp.transport.base import BaseTransport
 
 
 CAN_EXTENDED_ID = 0x80000000
@@ -291,11 +292,11 @@ class Can(BaseTransport):
     HEADER = EmptyHeader()
     HEADER_SIZE = 0
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, policy=None):
         """init for CAN transport
         :param config: configuration
         """
-        super().__init__(config)
+        super().__init__(config, policy)
         self.loadConfig(config)
         drivers = registered_drivers()
         interfaceName = self.config.get("CAN_DRIVER")

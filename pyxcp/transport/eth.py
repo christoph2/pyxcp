@@ -23,6 +23,8 @@ class Eth(BaseTransport):
         #                  Type    Req'd   Default
         "HOST": (str, False, "localhost"),
         "PORT": (int, False, 5555),
+        "BIND_TO_ADDRESS": (str, False, ""),
+        "BIND_TO_PORT": (int, False, 5555),
         "PROTOCOL": (str, False, "TCP"),
         "IPV6": (bool, False, False),
         "TCP_NODELAY": (bool, False, False),
@@ -40,8 +42,8 @@ class Eth(BaseTransport):
         self.protocol = self.config.get("PROTOCOL")
         self.ipv6 = self.config.get("IPV6")
         self.use_tcp_no_delay = self.config.get("TCP_NODELAY")
-        address_to_bind = self.config.get("IPV6_BIND_TO_ADDRESS")
-        port_to_bind = self.config.get("IPV6_BIND_TO_PORT")
+        address_to_bind = self.config.get("BIND_TO_ADDRESS")
+        port_to_bind = self.config.get("BIND_TO_PORT")
         self._local_address = (address_to_bind, port_to_bind) if address_to_bind else None
         if self.ipv6 and not socket.has_ipv6:
             raise RuntimeError("IPv6 not supported by your platform.")

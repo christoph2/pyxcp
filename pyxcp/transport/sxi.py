@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import pyxcp.types as types
 import struct
-from pyxcp.transport.base import BaseTransport
 from time import perf_counter
 from time import time
 
 import serial
+
+import pyxcp.types as types
+from pyxcp.transport.base import BaseTransport
 
 
 class SxI(BaseTransport):
@@ -26,8 +27,8 @@ class SxI(BaseTransport):
     HEADER = struct.Struct("<HH")
     HEADER_SIZE = HEADER.size
 
-    def __init__(self, config=None):
-        super(SxI, self).__init__(config)
+    def __init__(self, config=None, policy=None):
+        super(SxI, self).__init__(config, policy)
         self.loadConfig(config)
         self.portName = self.config.get("PORT")
         self.baudrate = self.config.get("BITRATE")

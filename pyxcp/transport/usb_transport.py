@@ -4,14 +4,15 @@ import struct
 import threading
 from array import array
 from collections import deque
-from pyxcp.transport.base import BaseTransport
-from pyxcp.utils import SHORT_SLEEP
 from time import perf_counter
 from time import sleep
 from time import time
 
 import usb.core
 import usb.util
+
+from pyxcp.transport.base import BaseTransport
+from pyxcp.utils import SHORT_SLEEP
 
 RECV_SIZE = 16384
 
@@ -32,8 +33,8 @@ class Usb(BaseTransport):
     HEADER = struct.Struct("<2H")
     HEADER_SIZE = HEADER.size
 
-    def __init__(self, config=None):
-        super(Usb, self).__init__(config)
+    def __init__(self, config=None, policy=None):
+        super(Usb, self).__init__(config, policy)
         self.loadConfig(config)
         self.serial_number = self.config.get("serial_number").strip()
         self.vendor_id = self.config.get("vendor_id")

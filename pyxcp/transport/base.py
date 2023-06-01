@@ -2,13 +2,17 @@
 # -*- coding: utf-8 -*-
 import abc
 import threading
+import typing
 from collections import deque
 from datetime import datetime
+from enum import IntEnum
+from time import perf_counter
 from time import sleep
 from time import time
 
 import pyxcp.types as types
 from ..logger import Logger
+from ..recorder import XcpLogFileWriter
 from ..timing import Timing
 from ..utils import flatten
 from ..utils import hexDump
@@ -16,8 +20,96 @@ from ..utils import SHORT_SLEEP
 from pyxcp.config import Configuration
 
 
-class Empty(Exception):
-    pass
+class FrameAcquisitionPolicy:
+    """
+    Base class for all frame acquisition policies.
+
+    Parameters
+    ---------
+    filter_out: set or None
+        A set of frame types to filter out.
+        If None, all frame types are accepted for further processing.
+
+        Example: (FrameType.REQUEST, FrameType.RESPONSE, FrameType.EVENT, FrameType.SERV)
+                  ==> care only about DAQ frames.
+    """
+
+    def __init__(self, filter_out: typing.Optional[typing.Set[types.FrameCategory]] = None):
+        self._frame_types_to_filter_out = filter_out or set()
+
+    @property
+    def filtered_out(self) -> typing.Set[types.FrameCategory]:
+        return self._frame_types_to_filter_out
+
+    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: float, payload: bytes) -> None:
+        ...
+
+    def finalize(self) -> None:
+        """
+        Finalize the frame acquisition policy (if required).
+        """
+
+
+class LegacyFrameAcquisitionPolicy(FrameAcquisitionPolicy):
+    """Dequeue based frame acquisition policy.
+
+    Deprecated: Use only for compatibility reasons.
+    """
+
+    def __init__(self, filter_out: typing.Optional[typing.Set[types.FrameCategory]] = None):
+        super().__init__(filter_out)
+        self.reqQueue = deque()
+        self.resQueue = deque()
+        self.daqQueue = deque()
+        self.evQueue = deque()
+        self.servQueue = deque()
+        self.QUEUE_MAP = {
+            types.FrameCategory.CMD: self.reqQueue,
+            types.FrameCategory.RESPONSE: self.resQueue,
+            types.FrameCategory.EVENT: self.evQueue,
+            types.FrameCategory.SERV: self.servQueue,
+            types.FrameCategory.DAQ: self.daqQueue,
+        }
+
+    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: float, payload: bytes) -> None:
+        if frame_type not in self.filtered_out:
+            self.QUEUE_MAP[frame_type].append((counter, timestamp, payload))
+
+
+class FrameRecorderAcquisitionPolicy(FrameAcquisitionPolicy):
+    """Frame acquisition policy that records frames."""
+
+    def __init__(
+        self,
+        file_name: str,
+        filter_out: typing.Optional[typing.Set[types.FrameCategory]] = None,
+        prealloc: int = 10,
+        chunk_size: int = 1,
+    ):
+        super().__init__(filter_out)
+        self.recorder = XcpLogFileWriter(file_name, prealloc=prealloc, chunk_size=chunk_size)
+
+    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: float, payload: bytes) -> None:
+        if frame_type not in self.filtered_out:
+            self.recorder.add_frame(frame_type, counter, timestamp, payload)
+
+    def finalize(self) -> None:
+        self.recorder.finalize()
+
+
+class StdoutPolicy(FrameAcquisitionPolicy):
+    """Frame acquisition policy that prints frames to stdout."""
+
+    def __init__(self, filter_out: typing.Optional[typing.Set[types.FrameCategory]] = None):
+        super().__init__(filter_out)
+
+    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: float, payload: bytes) -> None:
+        if frame_type not in self.filtered_out:
+            print(f"{frame_type.name:8} {counter:6}  {timestamp:7.7f} {hexDump(payload)}")
+
+
+class EmptyFrameError(Exception):
+    """Raised when an empty frame is received."""
 
 
 def get(q, timeout, restart_event):
@@ -28,9 +120,8 @@ def get(q, timeout, restart_event):
             start = time()
             restart_event.clear()
         if time() - start > timeout:
-            raise Empty
+            raise EmptyFrameError
         sleep(SHORT_SLEEP)
-
     item = q.popleft()
     return item
 
@@ -55,9 +146,10 @@ class BaseTransport(metaclass=abc.ABCMeta):
         "ALIGNMENT": (int, False, 1),
     }
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, policy: FrameAcquisitionPolicy = None):
         self.parent = None
         self.config = Configuration(BaseTransport.PARAMETER_MAP or {}, config or {})
+        self.policy = policy or LegacyFrameAcquisitionPolicy()
         self.closeEvent = threading.Event()
 
         self.command_lock = threading.Lock()
@@ -76,15 +168,11 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.timer_restart_event = threading.Event()
         self.timing = Timing()
         self.resQueue = deque()
-        self.daqQueue = deque()
-        self.evQueue = deque()
-        self.servQueue = deque()
         self.listener = threading.Thread(
             target=self.listen,
             args=(),
             kwargs={},
         )
-        self.cro_callback = None
 
         self.first_daq_timestamp = None
 
@@ -126,8 +214,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
         with self.command_lock:
             frame = self._prepare_request(cmd, *data)
             self.timing.start()
+            self.policy.feed(types.FrameCategory.CMD, self.counterSend, perf_counter(), frame)
             self.send(frame)
-
             try:
                 xcpPDU = get(
                     self.resQueue,
@@ -136,17 +224,19 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 )
             except Empty:
                 if not ignore_timeout:
-                    raise types.XcpTimeoutError("Response timed out (timeout={}s)".format(self.timeout)) from None
+                    MSG = f"Response timed out (timeout={self.timeout}s)"
+                    self.policy.feed(types.FrameCategory.METADATA, self.counterSend, perf_counter(), bytes(MSG, "ascii"))
+                    raise types.XcpTimeoutError(MSG) from None
                 else:
                     self.timing.stop()
                     return
             self.timing.stop()
             pid = types.Response.parse(xcpPDU).type
             if pid == "ERR" and cmd.name != "SYNCH":
+                self.policy.feed(types.FrameCategory.ERROR, self.counterReceived, perf_counter(), xcpPDU[1:])
                 err = types.XcpError.parse(xcpPDU[1:])
                 raise types.XcpResponseError(err)
-            else:
-                pass  # Und nu??
+
             return xcpPDU[1:]
 
     def request(self, cmd, *data):
@@ -195,7 +285,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             frame += b"\0" * (self.alignment - remainder)
 
         if self._debug:
-            self.logger.debug("-> {}".format(hexDump(frame)))
+            self.logger.debug(f"-> {hexDump(frame)}")
         return frame
 
     def block_receive(self, length_required: int) -> bytes:
@@ -247,62 +337,40 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def process_event_packet(self, packet):
         packet = packet[1:]
         ev_type = packet[0]
-        self.logger.debug("EVENT-PACKET: {}".format(hexDump(packet)))
+        self.logger.debug(f"EVENT-PACKET: {hexDump(packet)}")
         if ev_type == types.Event.EV_CMD_PENDING:
             self.timer_restart_event.set()
 
     def processResponse(self, response, length, counter, recv_timestamp=None):
         if counter == self.counterReceived:
-            self.logger.warn("Duplicate message counter {} received from the XCP slave".format(counter))
+            self.logger.warn(f"Duplicate message counter {counter} received from the XCP slave")
             if self._debug:
-                self.logger.debug(
-                    "<- L{} C{} {}".format(
-                        length,
-                        counter,
-                        hexDump(response[:512]),
-                    )
-                )
+                self.logger.debug(f"<- L{length} C{counter} {hexDump(response[:512])}")
             return
-
         self.counterReceived = counter
-
         pid = response[0]
         if pid >= 0xFC:
             if self._debug:
-                self.logger.debug(
-                    "<- L{} C{} {}".format(
-                        length,
-                        counter,
-                        hexDump(response),
-                    )
-                )
+                self.logger.debug(f"<- L{length} C{counter} {hexDump(response)}")
             if pid >= 0xFE:
                 self.resQueue.append(response)
+                self.policy.feed(types.FrameCategory.RESPONSE, self.counterReceived, perf_counter(), response)
                 self.recv_timestamp = recv_timestamp
             elif pid == 0xFD:
                 self.process_event_packet(response)
-                self.evQueue.append(response)
+                self.policy.feed(types.FrameCategory.EVENT, self.counterReceived, perf_counter(), response)
             elif pid == 0xFC:
-                self.servQueue.append(response)
+                self.policy.feed(types.FrameCategory.SERV, self.counterReceived, perf_counter(), response)
         else:
             if self._debug:
-                self.logger.debug(
-                    "<- L{} C{} ODT_Data[0:8] {}".format(
-                        length,
-                        counter,
-                        hexDump(response[:8]),
-                    )
-                )
+                self.logger.debug(f"<- L{length} C{counter} ODT_Data[0:8] {hexDump(response[:8])}")
             if self.first_daq_timestamp is None:
                 self.first_daq_timestamp = recv_timestamp
             if self.create_daq_timestamps:
                 timestamp = recv_timestamp
             else:
                 timestamp = 0.0
-            element = (response, counter, length, timestamp)
-            if self.cro_callback:
-                self.cro_callback("DAQ", *element)
-            self.daqQueue.append(element)
+            self.policy.feed(types.FrameCategory.DAQ, self.counterReceived, timestamp, response)
 
 
 def createTransport(name, *args, **kws):
@@ -317,7 +385,7 @@ def createTransport(name, *args, **kws):
     if name in transports:
         transportClass = transports[name]
     else:
-        raise ValueError("'{}' is an invalid transport -- please choose one of [{}].".format(name, " | ".join(transports.keys())))
+        raise ValueError(f"'{name}' is an invalid transport -- please choose one of [{' | '.join(transports.keys())}].")
     return transportClass(*args, **kws)
 
 
