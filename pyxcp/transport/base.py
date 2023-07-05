@@ -59,6 +59,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.parent = None
         self.config = Configuration(BaseTransport.PARAMETER_MAP or {}, config or {})
         self.closeEvent = threading.Event()
+
+        self.command_lock = threading.Lock()
         loglevel = self.config.get("LOGLEVEL")
         self._debug = loglevel == "DEBUG"
 
@@ -121,30 +123,31 @@ class BaseTransport(metaclass=abc.ABCMeta):
             self.closeEvent.set()
 
     def _request_internal(self, cmd, ignore_timeout=False, *data):
-        frame = self._prepare_request(cmd, *data)
-        self.timing.start()
-        self.send(frame)
+        with self.command_lock:
+            frame = self._prepare_request(cmd, *data)
+            self.timing.start()
+            self.send(frame)
 
-        try:
-            xcpPDU = get(
-                self.resQueue,
-                timeout=self.timeout,
-                restart_event=self.timer_restart_event,
-            )
-        except Empty:
-            if not ignore_timeout:
-                raise types.XcpTimeoutError("Response timed out (timeout={}s)".format(self.timeout)) from None
+            try:
+                xcpPDU = get(
+                    self.resQueue,
+                    timeout=self.timeout,
+                    restart_event=self.timer_restart_event,
+                )
+            except Empty:
+                if not ignore_timeout:
+                    raise types.XcpTimeoutError("Response timed out (timeout={}s)".format(self.timeout)) from None
+                else:
+                    self.timing.stop()
+                    return
+            self.timing.stop()
+            pid = types.Response.parse(xcpPDU).type
+            if pid == "ERR" and cmd.name != "SYNCH":
+                err = types.XcpError.parse(xcpPDU[1:])
+                raise types.XcpResponseError(err)
             else:
-                self.timing.stop()
-                return
-        self.timing.stop()
-        pid = types.Response.parse(xcpPDU).type
-        if pid == "ERR" and cmd.name != "SYNCH":
-            err = types.XcpError.parse(xcpPDU[1:])
-            raise types.XcpResponseError(err)
-        else:
-            pass  # Und nu??
-        return xcpPDU[1:]
+                pass  # Und nu??
+            return xcpPDU[1:]
 
     def request(self, cmd, *data):
         return self._request_internal(cmd, False, *data)
