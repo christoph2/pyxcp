@@ -119,9 +119,7 @@ struct frame_header_t
 
 using FrameTuple = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, payload_t>;
 using FrameVector = std::vector<FrameTuple>;
-
 using FrameTupleWriter = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, char *>;
-
 
 enum class FrameCategory : std::uint8_t {
     META,
@@ -151,8 +149,8 @@ constexpr auto file_header_size() -> std::uint32_t {
 
 using rounding_func_t = std::function<std::uint32_t(std::uint32_t)>;
 
-inline const rounding_func_t create_rounding_func(std::uint32_t multiple)  {
-    return [=](std::uint32_t value) -> std::uint32_t {
+inline rounding_func_t create_rounding_func(std::uint32_t multiple)  {
+    return [multiple](std::uint32_t value) {
         return (value + (multiple - 1)) & ~(multiple -1 );
     };
 }
@@ -168,14 +166,13 @@ inline void _fcopy(char * dest, char const * src, std::uint32_t n) noexcept
 }
 
 #if STANDALONE_REKORDER == 1
-    inline blob_t * get_payload_ptr(const payload_t& payload) const noexcept {
+    inline blob_t * get_payload_ptr(const payload_t& payload) noexcept {
         return payload.get();
     }
 
     inline payload_t create_payload(std::uint32_t size, blob_t const * data) noexcept {
-        //auto pl = std::make_unique<char[]>(size);
         auto pl = std::make_shared<blob_t[]>(size);
-        _fcopy(reinterpret_cast<char*>(pl.get()), reinterpret_cast<char const*>(data), size);
+        _fcopy(std::bit_cast<char*>(pl.get()), std::bit_cast<char const*>(data), size);
         return pl;
     }
 #else
@@ -191,9 +188,7 @@ inline void _fcopy(char * dest, char const * src, std::uint32_t n) noexcept
 #endif /* STANDALONE_REKORDER */
 
 inline void hexdump(blob_t const * buf, std::uint16_t sz) {
-    std::uint16_t idx;
-
-    for (idx = 0; idx < sz; ++idx)
+    for (std::uint16_t idx = 0; idx < sz; ++idx)
     {
         printf("%02X ", buf[idx]);
     }
@@ -204,21 +199,21 @@ inline void hexdump(blob_t const * buf, std::uint16_t sz) {
 template <typename T>
 class TsQueue {
 public:
-    explicit  TsQueue() {}
+    TsQueue() = default;
 
-    TsQueue(const TsQueue& other) noexcept : m_mtx{}, m_cond{}  {
-        std::lock_guard<std::mutex> lock(other.m_mtx);
+    TsQueue(const TsQueue& other) noexcept {
+        std::scoped_lock lock(other.m_mtx);
         m_queue = other.m_queue;
     }
 
     void put(T value) noexcept {
-        std::lock_guard<std::mutex> lock(m_mtx);
+        std::scoped_lock lock(m_mtx);
         m_queue.push(value);
         m_cond.notify_one();
     }
 
     std::shared_ptr<T> get() noexcept {
-        std::unique_lock<std::mutex> lock(m_mtx);
+        std::unique_lock lock(m_mtx);
         m_cond.wait(lock, [this]{return !m_queue.empty();});
         std::shared_ptr<T> result(std::make_shared<T>(m_queue.front()));
         m_queue.pop();
@@ -226,7 +221,7 @@ public:
     }
 
     bool empty() const noexcept {
-        std::lock_guard<std::mutex> lock(m_mtx);
+        std::scoped_lock lock(m_mtx);
         return m_queue.empty();
     }
 
@@ -239,27 +234,29 @@ private:
 
 class Event {
 public:
-    explicit Event() {}
 
     Event(const Event& other) noexcept {
-        std::lock_guard<std::mutex> lock(other.m_mtx);
+        std::scoped_lock lock(other.m_mtx);
         m_flag = other.m_flag;
     }
 
+    ~Event() = default;
+    Event() = default;
+
     void signal() noexcept {
-        std::lock_guard<std::mutex> lock(m_mtx);
+        std::scoped_lock lock(m_mtx);
         m_flag = true;
         m_cond.notify_one();
     }
 
     void wait() noexcept {
-        std::unique_lock<std::mutex> lock(m_mtx);
+        std::unique_lock lock(m_mtx);
         m_cond.wait(lock, [this]{return m_flag;});
         m_flag = false;
     }
 
     bool state() const noexcept {
-        std::lock_guard<std::mutex> lock(m_mtx);
+        std::scoped_lock lock(m_mtx);
         return m_flag;
     }
 
@@ -280,11 +277,10 @@ class BlockMemory {
 
 public:
 
-    using mem_block_t = T[_IS];
+    using mem_block_t = std::array<T, _IS>;
 
     explicit BlockMemory() noexcept : m_memory{nullptr}, m_allocation_count{0} {
-        m_memory = new T[_IS * _NB];	// Ts to allocate: itemsize * number of items.
-        //printf("mem-base  : %p\n", m_memory);
+        m_memory = new T[_IS * _NB];
     }
 
     ~BlockMemory() noexcept {
@@ -294,20 +290,18 @@ public:
     }
 
     T * acquire() noexcept {
-        const std::lock_guard<std::mutex> lock(m_mtx);
+        const std::scoped_lock lock(m_mtx);
 
         if (m_allocation_count >= _NB) {
             return nullptr;
         }
-        T * ptr = reinterpret_cast<T *>((m_memory + (m_allocation_count * _IS)));
-        //printf("acquire() %p\n", ptr);
+        T * ptr = std::bit_cast<T *>(m_memory + (m_allocation_count * _IS));
         m_allocation_count++;
         return ptr;
     }
 
     void release() noexcept {
-        const std::lock_guard<std::mutex> lock(m_mtx);
-        //printf("release() %u\n", m_allocation_count);
+        const std::scoped_lock lock(m_mtx);
         if (m_allocation_count == 0) {
             return;
         }
@@ -319,6 +313,15 @@ private:
     T * m_memory;
     std::uint32_t m_allocation_count;
     std::mutex m_mtx;
+
+public:
+
+    BlockMemory(T* m_memory, const std::uint32_t& m_allocation_count, const std::mutex& m_mtx)
+        : m_memory(m_memory), m_allocation_count(m_allocation_count), m_mtx(m_mtx)
+    {
+    }
+
+    bool operator==(const BlockMemory& other) const = default;
 };
 
 
@@ -345,7 +348,6 @@ public:
             FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS,
             nullptr
         );
-        //printf("CreateFile returned: %u\n", GetLastError());
 #else
         m_fd = open(m_file_name.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0666);
 #endif
@@ -362,7 +364,7 @@ public:
         finalize();
     }
 
-    void finalize() noexcept {
+    void finalize() {
         if (!m_finalized) {
             m_finalized = true;
             stop_thread();
@@ -395,15 +397,13 @@ public:
 protected:
     void truncate(off_t size) const noexcept
     {
-        //printf("truncating to: %lldKBytes.\n", kilobytes(size));
 #if defined(_WIN32)
-
-        DWORD result;
-
-        result = SetFilePointer(m_fd, size, nullptr, FILE_BEGIN);
-
-        result = SetEndOfFile(m_fd);
-
+        if (SetFilePointer(m_fd, size, nullptr, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
+            // TODO: Errorhandling.
+        }
+        if (SetEndOfFile(m_fd) == 0) {
+            // TODO: Errorhandling.
+        }
 #else
         ftruncate(m_fd, size);
 #endif
@@ -414,8 +414,9 @@ protected:
         return (blob_t *)(m_mmap->data() + pos);
     }
 
-    void store_im(void const * data, std::uint32_t length) noexcept {
-        _fcopy(reinterpret_cast<char *>(m_intermediate_storage + m_intermediate_storage_offset), reinterpret_cast<char const*>(data), length);
+    template<typename T>
+    void store_im(T const * data, std::uint32_t length) noexcept {
+        _fcopy(std::bit_cast<char*>(m_intermediate_storage + m_intermediate_storage_offset), std::bit_cast<char const*>(data), length);
         m_intermediate_storage_offset += length;
     }
 
@@ -423,7 +424,7 @@ protected:
         auto container = ContainerHeaderType{};
         //printf("Compressing %u frames... [%d]\n", m_container_record_count, m_intermediate_storage_offset);
         const int cp_size = ::LZ4_compress_default(
-            reinterpret_cast<char const*>(m_intermediate_storage), reinterpret_cast<char *>(ptr(m_offset + detail::CONTAINER_SIZE)),
+            std::bit_cast<char const*>(m_intermediate_storage), std::bit_cast<char *>(ptr(m_offset + detail::CONTAINER_SIZE)),
             m_intermediate_storage_offset, LZ4_COMPRESSBOUND(m_intermediate_storage_offset)
         );
         if (cp_size < 0) {
@@ -433,7 +434,7 @@ protected:
         container.record_count = m_container_record_count;
         container.size_compressed = cp_size;
         container.size_uncompressed = m_container_size_uncompressed;
-        _fcopy(reinterpret_cast<char *>(ptr(m_offset)), reinterpret_cast<char const*>(&container), detail::CONTAINER_SIZE);
+        _fcopy(std::bit_cast<char *>(ptr(m_offset)), std::bit_cast<char const*>(&container), detail::CONTAINER_SIZE);
         m_offset += (detail::CONTAINER_SIZE + cp_size);
         m_total_size_uncompressed += m_container_size_uncompressed;
         m_total_size_compressed += cp_size;
@@ -447,7 +448,7 @@ protected:
 
     void write_bytes(std::uint32_t pos, std::uint32_t count, char const * buf) const noexcept
     {
-        auto addr = reinterpret_cast<char *>(ptr(pos));
+        auto addr = std::bit_cast<char *>(ptr(pos));
 
         _fcopy(addr, buf, count);
     }
@@ -463,7 +464,7 @@ protected:
         header.record_count = record_count;
         header.size_compressed = size_compressed;
         header.size_uncompressed = size_uncompressed;
-        write_bytes(0x00000000UL + detail::MAGIC_SIZE, detail::FILE_HEADER_SIZE, reinterpret_cast<char const*>(&header));
+        write_bytes(0x00000000UL + detail::MAGIC_SIZE, detail::FILE_HEADER_SIZE, std::bit_cast<char const*>(&header));
     }
 
     bool start_thread() noexcept {
@@ -471,7 +472,7 @@ protected:
             return false;
         }
         stop_collector_thread_flag = false;
-        collector_thread = std::thread([this]() {
+        collector_thread = std::jthread([this]() {
             while (!stop_collector_thread_flag) {
                 auto item = my_queue.get();
                 const auto content = item.get();
@@ -479,7 +480,7 @@ protected:
                 {
                     break;
                 }
-                auto [category, counter, timestamp, length, payload] = content->value();
+                auto const& [category, counter, timestamp, length, payload] = content->value();
                 const frame_header_t frame{ category, counter, timestamp, length };
 
                 store_im(&frame, sizeof(frame));
@@ -522,7 +523,7 @@ private:
     mio::file_handle_type m_fd{INVALID_HANDLE_VALUE};
     mio::mmap_sink * m_mmap{nullptr};
     bool m_finalized{false};
-    std::thread collector_thread{};
+    std::jthread collector_thread{};
     std::mutex mtx;
     TsQueue<std::optional<FrameTupleWriter>> my_queue;
     BlockMemory<char, XCP_PAYLOAD_MAX, 16> mem{};
@@ -546,13 +547,13 @@ public:
         m_mmap = new mio::mmap_source(m_file_name);
         blob_t magic[detail::MAGIC_SIZE + 1];
 
-        read_bytes(0ul, detail::MAGIC_SIZE, magic);
+        read_bytes(0UL, detail::MAGIC_SIZE, magic);
         if (memcmp(detail::MAGIC.c_str(), magic, detail::MAGIC_SIZE) != 0) {
             throw std::runtime_error("Invalid file magic.");
         }
         m_offset = detail::MAGIC_SIZE;
 
-        read_bytes(m_offset, detail::FILE_HEADER_SIZE, reinterpret_cast<blob_t*>(&m_header));
+        read_bytes(m_offset, detail::FILE_HEADER_SIZE, std::bit_cast<blob_t*>(&m_header));
         //printf("Sizes: %u %u %.3f\n", m_header.size_uncompressed,
         //       m_header.size_compressed,
         //       float(m_header.size_uncompressed) / float(m_header.size_compressed));
@@ -586,7 +587,7 @@ public:
             hdr.record_count,
             hdr.size_uncompressed,
             hdr.size_compressed,
-            ((std::uint64_t)(((double)hdr.size_uncompressed / (double)hdr.size_compressed * (double)100.0) + (double)0.5)) / 100.0
+            (double)((std::uint64_t)(((double)hdr.size_uncompressed / (double)hdr.size_compressed * 100.0) + 0.5)) / 100.0
         );
     }
 
@@ -594,7 +595,6 @@ public:
         m_current_container = 0;
         m_offset = file_header_size();
     }
-
 
     std::optional<FrameVector> next_block() {
         auto container = ContainerHeaderType{};
@@ -607,20 +607,20 @@ public:
         if (m_current_container >= m_header.num_containers) {
             return std::nullopt;
         }
-        read_bytes(m_offset, detail::CONTAINER_SIZE, reinterpret_cast<blob_t*>(&container));
+        read_bytes(m_offset, detail::CONTAINER_SIZE, std::bit_cast<blob_t*>(&container));
         __ALIGN auto buffer = new blob_t[container.size_uncompressed];
         m_offset += detail::CONTAINER_SIZE;
         total += container.record_count;
         result.reserve(container.record_count);
-        const int uc_size = ::LZ4_decompress_safe(reinterpret_cast<char const*>(ptr(m_offset)), reinterpret_cast<char *>(buffer), container.size_compressed, container.size_uncompressed);
+        const int uc_size = ::LZ4_decompress_safe(std::bit_cast<char const*>(ptr(m_offset)), std::bit_cast<char *>(buffer), container.size_compressed, container.size_uncompressed);
         if (uc_size < 0) {
             throw std::runtime_error("LZ4 decompression failed.");
         }
         boffs = 0;
         for (std::uint32_t idx = 0; idx < container.record_count; ++idx) {
-            _fcopy(reinterpret_cast<char *>(&frame), reinterpret_cast<char const*>(&(buffer[boffs])), sizeof(frame_header_t));
+            _fcopy(std::bit_cast<char *>(&frame), std::bit_cast<char const*>(&(buffer[boffs])), sizeof(frame_header_t));
             boffs += sizeof(frame_header_t);
-            result.emplace_back(std::make_tuple(frame.category, frame.counter, frame.timestamp, frame.length, create_payload(frame.length, &buffer[boffs])));
+            result.emplace_back(frame.category, frame.counter, frame.timestamp, frame.length, create_payload(frame.length, &buffer[boffs]));
             boffs += frame.length;
         }
         m_offset += container.size_compressed;
@@ -639,13 +639,13 @@ protected:
     [[nodiscard]]
     blob_t const *ptr(std::uint32_t pos = 0) const
     {
-        return reinterpret_cast<blob_t const*>(m_mmap->data() + pos);
+        return std::bit_cast<blob_t const*>(m_mmap->data() + pos);
     }
 
     void read_bytes(std::uint32_t pos, std::uint32_t count, blob_t * buf) const
     {
-        auto addr = reinterpret_cast<char const*>(ptr(pos));
-        _fcopy(reinterpret_cast<char *>(buf), addr, count);
+        auto addr = std::bit_cast<char const*>(ptr(pos));
+        _fcopy(std::bit_cast<char *>(buf), addr, count);
     }
 
 private:

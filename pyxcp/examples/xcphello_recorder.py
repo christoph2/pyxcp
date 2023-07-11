@@ -5,6 +5,8 @@
 from pprint import pprint
 
 from pyxcp.cmdline import ArgumentParser
+from pyxcp.recorder import XcpLogFileReader
+from pyxcp.transport import FrameRecorderPolicy
 
 daq_info = False
 
@@ -25,7 +27,11 @@ ap.parser.add_argument(
     action="store_true",
 )
 
-with ap.run() as x:
+RECORDER_FILE_NAME = "xcphello"
+
+recorder_policy = FrameRecorderPolicy(RECORDER_FILE_NAME)  # Create frame recorder.
+
+with ap.run(recorder_policy) as x:  # parameter policy is new.
     x.connect()
     if x.slaveProperties.optionalCommMode:
         x.getCommModeInfo()
@@ -73,3 +79,28 @@ with ap.run() as x:
             print("=================")
             print(f"{x.getDaqListInfo(idx)}")
     x.disconnect()
+
+##
+## Now read and dump recorded frames.
+##
+reader = XcpLogFileReader(RECORDER_FILE_NAME)
+
+hdr = reader.get_header()  # Get file information.
+print("\n\n")
+print("=" * 82)
+pprint(hdr)
+print("=" * 82)
+
+print("\nIterating over frames")
+print("=" * 82)
+for _frame in reader:
+    print(_frame)
+print("---")
+
+reader.reset_iter()  # Non-standard method to restart iteration.
+
+df = reader.as_dataframe()  # Return recordings as Pandas DataFrame.
+print("\nRecording as Pandas DataFrame")
+print("=" * 82)
+print(df.head(24))
+print("=" * 82)

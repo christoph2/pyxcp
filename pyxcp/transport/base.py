@@ -50,6 +50,12 @@ class FrameAcquisitionPolicy:
         """
 
 
+class NoOpPolicy(FrameAcquisitionPolicy):
+    """
+    No operation / do nothing policy.
+    """
+
+
 class LegacyFrameAcquisitionPolicy(FrameAcquisitionPolicy):
     """Dequeue based frame acquisition policy.
 
@@ -63,20 +69,27 @@ class LegacyFrameAcquisitionPolicy(FrameAcquisitionPolicy):
         self.daqQueue = deque()
         self.evQueue = deque()
         self.servQueue = deque()
+        self.metaQueue = deque()
+        self.errorQueue = deque()
+        self.stimQueue = deque()
         self.QUEUE_MAP = {
             types.FrameCategory.CMD: self.reqQueue,
             types.FrameCategory.RESPONSE: self.resQueue,
             types.FrameCategory.EVENT: self.evQueue,
             types.FrameCategory.SERV: self.servQueue,
             types.FrameCategory.DAQ: self.daqQueue,
+            types.FrameCategory.METADATA: self.metaQueue,
+            types.FrameCategory.ERROR: self.errorQueue,
+            types.FrameCategory.STIM: self.stimQueue,
         }
 
     def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: float, payload: bytes) -> None:
+        # print(f"{frame_type.name:8} {counter:6}  {timestamp:7.7f} {hexDump(payload)}")
         if frame_type not in self.filtered_out:
-            self.QUEUE_MAP[frame_type].append((counter, timestamp, payload))
+            self.QUEUE_MAP.get(frame_type).append((counter, timestamp, payload))
 
 
-class FrameRecorderAcquisitionPolicy(FrameAcquisitionPolicy):
+class FrameRecorderPolicy(FrameAcquisitionPolicy):
     """Frame acquisition policy that records frames."""
 
     def __init__(
@@ -222,7 +235,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                     timeout=self.timeout,
                     restart_event=self.timer_restart_event,
                 )
-            except Empty:
+            except EmptyFrameError:
                 if not ignore_timeout:
                     MSG = f"Response timed out (timeout={self.timeout}s)"
                     self.policy.feed(types.FrameCategory.METADATA, self.counterSend, perf_counter(), bytes(MSG, "ascii"))

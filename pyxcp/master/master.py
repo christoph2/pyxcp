@@ -1770,6 +1770,7 @@ class Master:
                     seed.extend(list(result.seed))
                     remaining = result.length
             result, key = getKey(
+                self.logger,
                 self.seedNKeyDLL,
                 resource_value,
                 bytes(seed),

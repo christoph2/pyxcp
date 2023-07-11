@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from .base import FrameAcquisitionPolicy
-from .base import FrameRecorderAcquisitionPolicy
+from .base import FrameRecorderPolicy
 from .base import LegacyFrameAcquisitionPolicy
 from .base import StdoutPolicy
 from .can import Can

@@ -18,7 +18,7 @@ void some_records(XcpLogFileWriter& writer)
         fr.length = 10 + (rand() % 240);
         filler = (filler + 1) % 16;
         memset(buffer, filler, fr.length);
-        writer.add_frame(fr.category, fr.counter, fr.timestamp, fr.length, reinterpret_cast<char const*>(&buffer));
+        writer.add_frame(fr.category, fr.counter, fr.timestamp, fr.length, std::bit_cast<char const*>(&buffer));
     }
 }
 
@@ -55,7 +55,7 @@ int main()
 	        break;
 	    }
         for (const auto& frame: frames.value()) {
-            auto [category, counter, timestamp, length, payload] = frame;
+            auto const& [category, counter, timestamp, length, payload] = frame;
         }
 	}
     printf("---\n");
