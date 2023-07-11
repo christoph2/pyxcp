@@ -24,7 +24,7 @@ ext_modules = [
     Pybind11Extension(
         EXT_NAMES[0],
         include_dirs=[PYB11_INCLUDE_DIRS, "pyxcp/recorder"],
-        sources=["pyxcp/recorder/lz4.cpp", "pyxcp/recorder/wrap.cpp"],
+        sources=["pyxcp/recorder/lz4.c", "pyxcp/recorder/wrap.cpp"],
         define_macros=[("EXTENSION_NAME", EXT_NAMES[0]), ("NDEBUG", 1)],
         optional=False,
         cxx_std=20,  # Extension will use C++20 generators/coroutines.
