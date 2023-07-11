@@ -172,7 +172,7 @@ inline void _fcopy(char * dest, char const * src, std::uint32_t n) noexcept
 
     inline payload_t create_payload(std::uint32_t size, blob_t const * data) noexcept {
         auto pl = std::make_shared<blob_t[]>(size);
-        _fcopy(std::bit_cast<char*>(pl.get()), std::bit_cast<char const*>(data), size);
+        _fcopy(reinterpret_cast<char*>(pl.get()), reinterpret_cast<char const*>(data), size);
         return pl;
     }
 #else
@@ -295,7 +295,7 @@ public:
         if (m_allocation_count >= _NB) {
             return nullptr;
         }
-        T * ptr = std::bit_cast<T *>(m_memory + (m_allocation_count * _IS));
+        T * ptr = reinterpret_cast<T *>(m_memory + (m_allocation_count * _IS));
         m_allocation_count++;
         return ptr;
     }
@@ -416,7 +416,7 @@ protected:
 
     template<typename T>
     void store_im(T const * data, std::uint32_t length) noexcept {
-        _fcopy(std::bit_cast<char*>(m_intermediate_storage + m_intermediate_storage_offset), std::bit_cast<char const*>(data), length);
+        _fcopy(reinterpret_cast<char*>(m_intermediate_storage + m_intermediate_storage_offset), reinterpret_cast<char const*>(data), length);
         m_intermediate_storage_offset += length;
     }
 
@@ -424,7 +424,7 @@ protected:
         auto container = ContainerHeaderType{};
         //printf("Compressing %u frames... [%d]\n", m_container_record_count, m_intermediate_storage_offset);
         const int cp_size = ::LZ4_compress_default(
-            std::bit_cast<char const*>(m_intermediate_storage), std::bit_cast<char *>(ptr(m_offset + detail::CONTAINER_SIZE)),
+            reinterpret_cast<char const*>(m_intermediate_storage), reinterpret_cast<char *>(ptr(m_offset + detail::CONTAINER_SIZE)),
             m_intermediate_storage_offset, LZ4_COMPRESSBOUND(m_intermediate_storage_offset)
         );
         if (cp_size < 0) {
@@ -434,7 +434,7 @@ protected:
         container.record_count = m_container_record_count;
         container.size_compressed = cp_size;
         container.size_uncompressed = m_container_size_uncompressed;
-        _fcopy(std::bit_cast<char *>(ptr(m_offset)), std::bit_cast<char const*>(&container), detail::CONTAINER_SIZE);
+        _fcopy(reinterpret_cast<char *>(ptr(m_offset)), reinterpret_cast<char const*>(&container), detail::CONTAINER_SIZE);
         m_offset += (detail::CONTAINER_SIZE + cp_size);
         m_total_size_uncompressed += m_container_size_uncompressed;
         m_total_size_compressed += cp_size;
@@ -448,7 +448,7 @@ protected:
 
     void write_bytes(std::uint32_t pos, std::uint32_t count, char const * buf) const noexcept
     {
-        auto addr = std::bit_cast<char *>(ptr(pos));
+        auto addr = reinterpret_cast<char *>(ptr(pos));
 
         _fcopy(addr, buf, count);
     }
@@ -464,7 +464,7 @@ protected:
         header.record_count = record_count;
         header.size_compressed = size_compressed;
         header.size_uncompressed = size_uncompressed;
-        write_bytes(0x00000000UL + detail::MAGIC_SIZE, detail::FILE_HEADER_SIZE, std::bit_cast<char const*>(&header));
+        write_bytes(0x00000000UL + detail::MAGIC_SIZE, detail::FILE_HEADER_SIZE, reinterpret_cast<char const*>(&header));
     }
 
     bool start_thread() noexcept {
@@ -553,7 +553,7 @@ public:
         }
         m_offset = detail::MAGIC_SIZE;
 
-        read_bytes(m_offset, detail::FILE_HEADER_SIZE, std::bit_cast<blob_t*>(&m_header));
+        read_bytes(m_offset, detail::FILE_HEADER_SIZE, reinterpret_cast<blob_t*>(&m_header));
         //printf("Sizes: %u %u %.3f\n", m_header.size_uncompressed,
         //       m_header.size_compressed,
         //       float(m_header.size_uncompressed) / float(m_header.size_compressed));
@@ -607,18 +607,18 @@ public:
         if (m_current_container >= m_header.num_containers) {
             return std::nullopt;
         }
-        read_bytes(m_offset, detail::CONTAINER_SIZE, std::bit_cast<blob_t*>(&container));
+        read_bytes(m_offset, detail::CONTAINER_SIZE, reinterpret_cast<blob_t*>(&container));
         __ALIGN auto buffer = new blob_t[container.size_uncompressed];
         m_offset += detail::CONTAINER_SIZE;
         total += container.record_count;
         result.reserve(container.record_count);
-        const int uc_size = ::LZ4_decompress_safe(std::bit_cast<char const*>(ptr(m_offset)), std::bit_cast<char *>(buffer), container.size_compressed, container.size_uncompressed);
+        const int uc_size = ::LZ4_decompress_safe(reinterpret_cast<char const*>(ptr(m_offset)), reinterpret_cast<char *>(buffer), container.size_compressed, container.size_uncompressed);
         if (uc_size < 0) {
             throw std::runtime_error("LZ4 decompression failed.");
         }
         boffs = 0;
         for (std::uint32_t idx = 0; idx < container.record_count; ++idx) {
-            _fcopy(std::bit_cast<char *>(&frame), std::bit_cast<char const*>(&(buffer[boffs])), sizeof(frame_header_t));
+            _fcopy(reinterpret_cast<char *>(&frame), reinterpret_cast<char const*>(&(buffer[boffs])), sizeof(frame_header_t));
             boffs += sizeof(frame_header_t);
             result.emplace_back(frame.category, frame.counter, frame.timestamp, frame.length, create_payload(frame.length, &buffer[boffs]));
             boffs += frame.length;
@@ -639,13 +639,13 @@ protected:
     [[nodiscard]]
     blob_t const *ptr(std::uint32_t pos = 0) const
     {
-        return std::bit_cast<blob_t const*>(m_mmap->data() + pos);
+        return reinterpret_cast<blob_t const*>(m_mmap->data() + pos);
     }
 
     void read_bytes(std::uint32_t pos, std::uint32_t count, blob_t * buf) const
     {
-        auto addr = std::bit_cast<char const*>(ptr(pos));
-        _fcopy(std::bit_cast<char *>(buf), addr, count);
+        auto addr = reinterpret_cast<char const*>(ptr(pos));
+        _fcopy(reinterpret_cast<char *>(buf), addr, count);
     }
 
 private:
