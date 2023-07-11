@@ -7,10 +7,7 @@ import platform
 import re
 import subprocess
 import sys
-
-
-CMD_GET_KEY = 0x20
-CMD_QUIT = 0x30
+from pathlib import Path
 
 
 class SeedNKeyResult(enum.IntEnum):
@@ -27,7 +24,7 @@ class SeedNKeyError(Exception):
     """"""
 
 
-LOADER = "asamkeydll"
+LOADER = Path(sys.modules["pyxcp"].__file__).parent / "asamkeydll"  # Absolute path to DLL loader.
 
 bwidth, _ = platform.architecture()
 
@@ -40,12 +37,19 @@ else:
     raise RuntimeError("Platform '{}' currently not supported.".format(sys.platform))
 
 
-def getKey(dllName: str, privilege: int, seed: str, assume_same_bit_width: bool):
+def getKey(logger, dllName: str, privilege: int, seed: str, assume_same_bit_width: bool):
+
+    dllName = str(Path(dllName).absolute())  # Fix loader issues.
+
     use_ctypes = False
     if assume_same_bit_width:
         use_ctypes = True
     if use_ctypes:
-        lib = ctypes.cdll.LoadLibrary(dllName)
+        try:
+            lib = ctypes.cdll.LoadLibrary(dllName)
+        except OSError:
+            logger.error(f"Could not load DLL '{dllName}' -- Probably an 64bit vs 32bit issue?")
+            return (SeedNKeyResult.ERR_COULD_NOT_LOAD_DLL, None)
         func = lib.XCP_ComputeKeyFromSeed
         func.restype = ctypes.c_uint32
         func.argtypes = [
@@ -72,15 +76,17 @@ def getKey(dllName: str, privilege: int, seed: str, assume_same_bit_width: bool)
                 stdout=subprocess.PIPE,
                 shell=False,
             )
+        except FileNotFoundError as exc:
+            logger.error(f"Could not find executable '{LOADER}' -- {exc}")
+            return (SeedNKeyResult.ERR_COULD_NOT_LOAD_DLL, None)
         except OSError as exc:
-            print(f"Cannot execute {LOADER}: {exc}")
+            logger.error(f"Cannot execute {LOADER} -- {exc}")
             return (SeedNKeyResult.ERR_COULD_NOT_LOAD_DLL, None)
         key = p0.stdout.read()
         if not key:
+            logger.error(f"Something went wrong while calling seed-and-key-DLL '{dllName}'")
             return (SeedNKeyResult.ERR_COULD_NOT_LOAD_DLL, None)
         res = re.split(b"\r?\n", key)
         returnCode = int(res[0])
-        if len(res) < 2:
-            return (returnCode, None)
         key = binascii.unhexlify(res[1])
     return (returnCode, key)
