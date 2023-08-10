@@ -52,7 +52,7 @@ def stripIdentifier(identifier: int) -> int:
     -------
     int
     """
-    return identifier & (~CAN_EXTENDED_ID)
+    return identifier & (~0xE0000000)
 
 
 def samplePointToTsegs(tqs: int, samplePoint: float) -> tuple:
