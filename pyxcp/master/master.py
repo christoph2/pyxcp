@@ -20,6 +20,8 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+from .stim import DaqEventInfo
+from .stim import Stim
 from pyxcp import checksum
 from pyxcp import types
 from pyxcp.config import Configuration
@@ -124,6 +126,8 @@ class Master:
         self.disconnect_response_optional = self.config.get("DISCONNECT_RESPONSE_OPTIONAL")
         self.slaveProperties = SlaveProperties()
         self.slaveProperties.pgmProcessor = SlaveProperties()
+        self.stim = Stim()
+        self.stim.clear()
 
     def __enter__(self):
         """Context manager entry part."""
@@ -967,14 +971,15 @@ class Master:
     # DAQ
 
     @wrapped
-    def setDaqPtr(self, daqListNumber, odtNumber, odtEntryNumber):
+    def setDaqPtr(self, daqListNumber: int, odtNumber: int, odtEntryNumber: int):
         self.currentDaqPtr = types.DaqPtr(daqListNumber, odtNumber, odtEntryNumber)  # Needed for errorhandling.
         daqList = self.WORD_pack(daqListNumber)
         response = self.transport.request(types.Command.SET_DAQ_PTR, 0, *daqList, odtNumber, odtEntryNumber)
+        self.stim.setDaqPtr(daqListNumber, odtNumber, odtEntryNumber)
         return response
 
     @wrapped
-    def clearDaqList(self, daqListNumber):
+    def clearDaqList(self, daqListNumber: int):
         """Clear DAQ list configuration.
 
         Parameters
@@ -982,10 +987,12 @@ class Master:
         daqListNumber : int
         """
         daqList = self.WORD_pack(daqListNumber)
-        return self.transport.request(types.Command.CLEAR_DAQ_LIST, 0, *daqList)
+        result = self.transport.request(types.Command.CLEAR_DAQ_LIST, 0, *daqList)
+        self.stim.clearDaqList(daqListNumber)
+        return result
 
     @wrapped
-    def writeDaq(self, bitOffset, entrySize, addressExt, address):
+    def writeDaq(self, bitOffset: int, entrySize: int, addressExt: int, address: int):
         """Write element in ODT entry.
 
         Parameters
@@ -998,12 +1005,15 @@ class Master:
         address : int
         """
         addr = self.DWORD_pack(address)
-        return self.transport.request(types.Command.WRITE_DAQ, bitOffset, entrySize, addressExt, *addr)
+        result = self.transport.request(types.Command.WRITE_DAQ, bitOffset, entrySize, addressExt, *addr)
+        self.stim.writeDaq(bitOffset, entrySize, addressExt, address)
+        return result
 
     @wrapped
     def setDaqListMode(self, mode, daqListNumber, eventChannelNumber, prescaler, priority):
         dln = self.WORD_pack(daqListNumber)
         ecn = self.WORD_pack(eventChannelNumber)
+        self.stim.setDaqListMode(mode, daqListNumber, eventChannelNumber, prescaler, priority)
         return self.transport.request(types.Command.SET_DAQ_LIST_MODE, mode, *dln, *ecn, prescaler, priority)
 
     @wrapped
@@ -1023,7 +1033,7 @@ class Master:
         return types.GetDaqListModeResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
-    def startStopDaqList(self, mode, daqListNumber):
+    def startStopDaqList(self, mode: int, daqListNumber: int):
         """Start /stop/select DAQ list.
 
         Parameters
@@ -1036,6 +1046,7 @@ class Master:
         """
         dln = self.WORD_pack(daqListNumber)
         response = self.transport.request(types.Command.START_STOP_DAQ_LIST, mode, *dln)
+        self.stim.startStopDaqList(mode, daqListNumber)
         return types.StartStopDaqListResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
@@ -1207,10 +1218,12 @@ class Master:
     @wrapped
     def freeDaq(self):
         """Clear dynamic DAQ configuration."""
-        return self.transport.request(types.Command.FREE_DAQ)
+        result = self.transport.request(types.Command.FREE_DAQ)
+        self.stim.freeDaq()
+        return result
 
     @wrapped
-    def allocDaq(self, daqCount):
+    def allocDaq(self, daqCount: int):
         """Allocate DAQ lists.
 
         Parameters
@@ -1219,17 +1232,23 @@ class Master:
             number of DAQ lists to be allocated
         """
         dq = self.WORD_pack(daqCount)
-        return self.transport.request(types.Command.ALLOC_DAQ, 0, *dq)
+        result = self.transport.request(types.Command.ALLOC_DAQ, 0, *dq)
+        self.stim.allocDaq(daqCount)
+        return result
 
     @wrapped
-    def allocOdt(self, daqListNumber, odtCount):
+    def allocOdt(self, daqListNumber: int, odtCount: int):
         dln = self.WORD_pack(daqListNumber)
-        return self.transport.request(types.Command.ALLOC_ODT, 0, *dln, odtCount)
+        result = self.transport.request(types.Command.ALLOC_ODT, 0, *dln, odtCount)
+        self.stim.allocOdt(daqListNumber, odtCount)
+        return result
 
     @wrapped
-    def allocOdtEntry(self, daqListNumber, odtNumber, odtEntriesCount):
+    def allocOdtEntry(self, daqListNumber: int, odtNumber: int, odtEntriesCount: int):
         dln = self.WORD_pack(daqListNumber)
-        return self.transport.request(types.Command.ALLOC_ODT_ENTRY, 0, *dln, odtNumber, odtEntriesCount)
+        result = self.transport.request(types.Command.ALLOC_ODT_ENTRY, 0, *dln, odtNumber, odtEntriesCount)
+        self.stim.allocOdtEntry(daqListNumber, odtNumber, odtEntriesCount)
+        return result
 
     # PGM
     @wrapped
@@ -1686,28 +1705,52 @@ class Master:
             },
         }
         result["resolution"] = resolutionInfo
-
         channels = []
+        daq_events = []
         for ecn in range(dpi.maxEventChannel):
             eci = self.getDaqEventInfo(ecn)
+            cycle = eci["eventChannelTimeCycle"]
+            maxDaqList = eci["maxDaqList"]
+            priority = eci["eventChannelPriority"]
+            time_unit = eci["eventChannelTimeUnit"]
+            consistency = eci["daqEventProperties"]["consistency"]
+            daq_supported = eci["daqEventProperties"]["daq"]
+            stim_supported = eci["daqEventProperties"]["stim"]
+            packed_supported = eci["daqEventProperties"]["packed"]
             name = self.fetch(eci.eventChannelNameLength)
             if name:
                 name = decode_bytes(name)
             channel = {
                 "name": name,
-                "priority": eci["eventChannelPriority"],
-                "unit": eci["eventChannelTimeUnit"],
-                "cycle": eci["eventChannelTimeCycle"],
-                "maxDaqList": eci["maxDaqList"],
+                "priority": priority,
+                "unit": time_unit,
+                "cycle": cycle,
+                "maxDaqList": maxDaqList,
                 "properties": {
-                    "consistency": eci["daqEventProperties"]["consistency"],
-                    "daq": eci["daqEventProperties"]["daq"],
-                    "stim": eci["daqEventProperties"]["stim"],
-                    "packed": eci["daqEventProperties"]["packed"],
+                    "consistency": consistency,
+                    "daq": daq_supported,
+                    "stim": stim_supported,
+                    "packed": packed_supported,
                 },
             }
+            print(
+                "EC-U", "unit", time_unit, types.EVENT_CHANNEL_TIME_UNIT_TO_EXP[time_unit], eci["daqEventProperties"]["consistency"]
+            )
+            daq_event_info = DaqEventInfo(
+                name,
+                types.EVENT_CHANNEL_TIME_UNIT_TO_EXP[time_unit],
+                cycle,
+                maxDaqList,
+                priority,
+                consistency,
+                daq_supported,
+                stim_supported,
+                packed_supported,
+            )
+            daq_events.append(daq_event_info)
             channels.append(channel)
         result["channels"] = channels
+        self.stim.setDaqEventInfo(daq_events)
         return result
 
     def getCurrentProtectionStatus(self):
