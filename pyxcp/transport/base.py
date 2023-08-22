@@ -19,6 +19,7 @@ from ..utils import hexDump
 from ..utils import SHORT_SLEEP
 from pyxcp.config import Configuration
 
+
 class FrameAcquisitionPolicy:
     """
     Base class for all frame acquisition policies.
@@ -202,6 +203,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def loadConfig(self, config):
         """Load configuration data."""
         self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
+
     def set_writer_lock(self, lock):
         self.writer_lock = lock
 

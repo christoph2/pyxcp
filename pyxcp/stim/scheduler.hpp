@@ -3,18 +3,17 @@
 #ifndef STIM_SCHEDULER_HPP
 #define STIM_SCHEDULER_HPP
 
-#define _CRT_SECURE_NO_WARNINGS     (1)
+#define _CRT_SECURE_NO_WARNINGS (1)
+
+#include <stdio.h>
+#include <windows.h>
 
 #include <thread>
-
-#include <windows.h>
-#include <stdio.h>
 
 VOID CALLBACK TimerRoutine(PVOID lpParam, BOOLEAN TimerOrWaitFired);
 
 struct Scheduler {
-
-    Scheduler() = default;
+    Scheduler()  = default;
     ~Scheduler() = default;
 
     bool start_thread() noexcept {
@@ -29,19 +28,17 @@ struct Scheduler {
         }
 
         // Set a timer to call the timer routine in 10 seconds.
-        if (!CreateTimerQueueTimer( &m_timer, m_TimerQueue,
-                                    (WAITORTIMERCALLBACK)TimerRoutine, nullptr , 1, 500, 0))
-        {
+        if (!CreateTimerQueueTimer(&m_timer, m_TimerQueue, (WAITORTIMERCALLBACK)TimerRoutine, nullptr, 1, 500, 0)) {
             printf("CreateTimerQueueTimer failed (%d)\n", GetLastError());
             return false;
         }
 
         stop_timer_thread_flag = false;
-        timer_thread = std::jthread([this]() {
+        timer_thread           = std::jthread([this]() {
             while (!stop_timer_thread_flag) {
                 printf("ENTER SLEEP loop!!!\n");
-                SleepEx(INFINITE,TRUE );
-                stop_timer_thread_flag=TRUE;
+                SleepEx(INFINITE, TRUE);
+                stop_timer_thread_flag = TRUE;
             }
         });
         return true;
@@ -52,15 +49,15 @@ struct Scheduler {
             return false;
         }
         stop_timer_thread_flag = true;
-        //my_queue.put(std::nullopt);
+        // my_queue.put(std::nullopt);
         timer_thread.join();
         return true;
     }
 
     std::jthread timer_thread{};
-    bool stop_timer_thread_flag{};
-    HANDLE m_timer{};
-    HANDLE m_TimerQueue;
+    bool         stop_timer_thread_flag{};
+    HANDLE       m_timer{};
+    HANDLE       m_TimerQueue;
 };
 
-#endif //STIM_SCHEDULER_HPP
+#endif  // STIM_SCHEDULER_HPP

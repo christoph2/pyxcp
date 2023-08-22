@@ -6,7 +6,6 @@ logging.basicConfig()
 
 
 class Logger(object):
-
     LOGGER_BASE_NAME = "pyxcp"
     FORMAT = "[%(levelname)s (%(name)s)]: %(message)s"
 
@@ -18,7 +17,7 @@ class Logger(object):
         formatter = logging.Formatter(self.FORMAT)
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
-        #self.logger.propagate = False
+        # self.logger.propagate = False
         self.lastMessage = None
         self.lastSeverity = None
 

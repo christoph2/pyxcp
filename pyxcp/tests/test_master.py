@@ -3,10 +3,11 @@
 import struct
 import time
 from collections import deque
+from unittest import mock
+
 from pyxcp import types
 from pyxcp.master import Master
 from pyxcp.transport.can import CanInterfaceBase
-from unittest import mock
 
 
 class MockSocket:
@@ -92,7 +93,6 @@ class MockCanInterface(CanInterfaceBase):
 
 
 class TestMaster:
-
     DefaultConnectCmd = bytes([0x02, 0x00, 0x00, 0x00, 0xFF, 0x00])
     DefaultConnectResponse = "FF 3D C0 FF DC 05 01 01"
 

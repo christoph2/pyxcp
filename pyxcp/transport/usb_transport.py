@@ -106,7 +106,6 @@ class Usb(BaseTransport):
         self.closeConnection()
 
     def _packet_listen(self):
-
         close_event_set = self.closeEvent.isSet
 
         _packets = self._packets
@@ -194,12 +193,10 @@ class Usb(BaseTransport):
                             length = None
 
                         else:
-
                             data = data[current_position:]
                             break
 
     def send(self, frame):
-
         self.pre_send_timestamp = time()
         try:
             self.command_endpoint.write(frame)

@@ -4,7 +4,6 @@ import time
 
 
 class Timing:
-
     T_US = 1000 * 1000
     T_MS = 1000
     T_S = 1

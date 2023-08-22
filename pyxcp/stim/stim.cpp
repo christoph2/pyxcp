@@ -5,12 +5,9 @@
 #include "stim.hpp"
 
 void make_dto() {
-
 }
 
 void init() {
-
-
 }
 
 static Mutex writer_lock{};

@@ -21,6 +21,8 @@ from typing import Optional
 from typing import Union
 
 from .stim import DaqEventInfo
+from .stim import get_policy_lock
+from .stim import get_writer_lock
 from .stim import Stim
 from pyxcp import checksum
 from pyxcp import types
@@ -41,13 +43,7 @@ from pyxcp.transport.base import createTransport
 from pyxcp.utils import decode_bytes
 from pyxcp.utils import delay
 from pyxcp.utils import SHORT_SLEEP
-<<<<<<< HEAD
 
-||||||| parent of cb36baf (Today())
-from .stim import Stim, DaqEventInfo
-=======
-from .stim import Stim, DaqEventInfo, get_writer_lock, get_policy_lock
->>>>>>> cb36baf (Today())
 
 def broadcasted(func: Callable):
     """"""
@@ -1742,7 +1738,7 @@ class Master:
                     "stim": stim_supported,
                     "packed": packed_supported,
                 },
-            }git ns
+            }
             daq_event_info = DaqEventInfo(
                 name,
                 types.EVENT_CHANNEL_TIME_UNIT_TO_EXP[time_unit],

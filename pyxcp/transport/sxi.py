@@ -37,7 +37,6 @@ class SxI(BaseTransport):
         self.closeConnection()
 
     def connect(self):
-
         self.logger.debug("Trying to open serial commPort {}.".format(self.portName))
         try:
             self.commPort = serial.Serial(self.portName, self.baudrate, timeout=SxI.TIMEOUT)
@@ -59,7 +58,6 @@ class SxI(BaseTransport):
         self.commPort.flush()
 
     def listen(self):
-
         while True:
             if self.closeEvent.isSet():
                 return

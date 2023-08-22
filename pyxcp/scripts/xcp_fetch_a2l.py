@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 """Fetch A2L file from XCP slave (if supported).
 """
-
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from pyxcp.cmdline import ArgumentParser
 from pyxcp.types import XcpGetIdType
@@ -27,9 +25,10 @@ def main():
         if phile.exists():
             print(f"{file_name} already exists.")
             sys.exit(1)
-        with phile.open("wt", encoding = "utf-8") as of:
+        with phile.open("wt", encoding="utf-8") as of:
             of.write(content)
         print(f"Created {file_name}")
+
 
 if __name__ == "__main__":
     main()

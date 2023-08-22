@@ -3,13 +3,14 @@
 """
 Support for python-can - github.com/hardbyte/python-can
 """
-import pyxcp.transport.can as can
 import re
 from collections import OrderedDict
 
 from can import Bus
 from can import CanError
 from can import Message
+
+import pyxcp.transport.can as can
 
 NUMBER = re.compile(r"(?P<hex>0[x|X])?(?P<number>[0-9]+)", re.VERBOSE)
 

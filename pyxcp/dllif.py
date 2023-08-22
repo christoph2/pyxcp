@@ -38,7 +38,6 @@ else:
 
 
 def getKey(logger, dllName: str, privilege: int, seed: str, assume_same_bit_width: bool):
-
     dllName = str(Path(dllName).absolute())  # Fix loader issues.
 
     use_ctypes = False

@@ -200,7 +200,6 @@ class Eth(BaseTransport):
                             length = None
 
                         else:
-
                             data = data[current_position:]
                             break
 
