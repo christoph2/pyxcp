@@ -13,8 +13,13 @@ void init() {
 
 }
 
-Mutex _writer_lock{};
+static Mutex writer_lock{};
+static Mutex policy_lock{};
 
-const Mutex& get_writer_lock() {
-    return _writer_lock;
+Mutex& get_writer_lock() {
+    return writer_lock;
+}
+
+Mutex& get_policy_lock() {
+    return policy_lock;
 }

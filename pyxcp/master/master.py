@@ -41,7 +41,13 @@ from pyxcp.transport.base import createTransport
 from pyxcp.utils import decode_bytes
 from pyxcp.utils import delay
 from pyxcp.utils import SHORT_SLEEP
+<<<<<<< HEAD
 
+||||||| parent of cb36baf (Today())
+from .stim import Stim, DaqEventInfo
+=======
+from .stim import Stim, DaqEventInfo, get_writer_lock, get_policy_lock
+>>>>>>> cb36baf (Today())
 
 def broadcasted(func: Callable):
     """"""
@@ -100,6 +106,12 @@ class Master:
 
         self.transport = createTransport(transportName, config, policy)
         self.transport_name = transportName
+        self.transport.set_writer_lock(get_writer_lock())
+        self.transport.set_policy_lock(get_policy_lock())
+        self.stim = Stim()
+        self.stim.clear()
+        self.stim.set_policy_feeder(self.transport.policy.feed)
+        self.stim.set_frame_sender(self.transport.send)
 
         # In some cases the transport-layer needs to communicate with us.
         self.transport.parent = self
@@ -126,8 +138,6 @@ class Master:
         self.disconnect_response_optional = self.config.get("DISCONNECT_RESPONSE_OPTIONAL")
         self.slaveProperties = SlaveProperties()
         self.slaveProperties.pgmProcessor = SlaveProperties()
-        self.stim = Stim()
-        self.stim.clear()
 
     def __enter__(self):
         """Context manager entry part."""
@@ -1732,10 +1742,7 @@ class Master:
                     "stim": stim_supported,
                     "packed": packed_supported,
                 },
-            }
-            print(
-                "EC-U", "unit", time_unit, types.EVENT_CHANNEL_TIME_UNIT_TO_EXP[time_unit], eci["daqEventProperties"]["consistency"]
-            )
+            }git ns
             daq_event_info = DaqEventInfo(
                 name,
                 types.EVENT_CHANNEL_TIME_UNIT_TO_EXP[time_unit],

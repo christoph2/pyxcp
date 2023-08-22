@@ -11,22 +11,14 @@ using namespace py::literals;
 
 #include "stim.hpp"
 
-void print_dict(const py::dict& dict) {
-/* Easily interact with Python types */
-	for (auto item : dict) {
-		std::cout << "key=" << std::string(py::str(item.first)) << ", " << "value=" << std::string(py::str(item.second)) << std::endl;
-	}
-}
 
 PYBIND11_MODULE(stim, m) {
-	//m.def("parse", &parse, "A2LParser");
-
-	m.def("print_dict", &print_dict);
 	
-	m.attr("writer_lock") = &_writer_lock;
+	m.def("get_writer_lock", &get_writer_lock, py::return_value_policy::reference);
+	m.def("get_policy_lock", &get_policy_lock, py::return_value_policy::reference);
 	
 	py::class_<DaqEventInfo>(m, "DaqEventInfo")
-		.def(py::init<std::string_view, std::int8_t, std::size_t, std::size_t, std::size_t, std::string_view, bool, bool, bool>())
+		.def(py::init<const std::string&, std::int8_t, std::size_t, std::size_t, std::size_t, std::string_view, bool, bool, bool>())
 	;
 
     py::class_<Stim>(m, "Stim")
@@ -42,6 +34,14 @@ PYBIND11_MODULE(stim, m) {
 		.def("writeDaq", &Stim::writeDaq)
 		.def("setDaqListMode", &Stim::setDaqListMode)
 		.def("startStopDaqList", &Stim::startStopDaqList)
+		
+		.def("set_policy_feeder", [](Stim& self, const py::function& callback) { 
+			self.set_policy_feeder(callback); 
+		})
+		
+		.def("set_frame_sender", [](Stim& self, const py::function& callback) { 
+			self.set_frame_sender(callback); 
+		})
 		
 	;
 	

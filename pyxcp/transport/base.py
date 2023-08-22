@@ -19,7 +19,6 @@ from ..utils import hexDump
 from ..utils import SHORT_SLEEP
 from pyxcp.config import Configuration
 
-
 class FrameAcquisitionPolicy:
     """
     Base class for all frame acquisition policies.
@@ -203,6 +202,11 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def loadConfig(self, config):
         """Load configuration data."""
         self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
+    def set_writer_lock(self, lock):
+        self.writer_lock = lock
+
+    def set_policy_lock(self, lock):
+        self.policy_lock = lock
 
     def close(self):
         """Close the transport-layer connection and event-loop."""
@@ -231,8 +235,10 @@ class BaseTransport(metaclass=abc.ABCMeta):
         with self.command_lock:
             frame = self._prepare_request(cmd, *data)
             self.timing.start()
-            self.policy.feed(types.FrameCategory.CMD, self.counterSend, perf_counter(), frame)
-            self.send(frame)
+            with self.policy_lock:
+                self.policy.feed(types.FrameCategory.CMD, self.counterSend, perf_counter(), frame)
+            with self.writer_lock:
+                self.send(frame)
             try:
                 xcpPDU = get(
                     self.resQueue,
@@ -242,7 +248,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
             except EmptyFrameError:
                 if not ignore_timeout:
                     MSG = f"Response timed out (timeout={self.timeout}s)"
-                    self.policy.feed(types.FrameCategory.METADATA, self.counterSend, perf_counter(), bytes(MSG, "ascii"))
+                    with self.policy_lock:
+                        self.policy.feed(types.FrameCategory.METADATA, self.counterSend, perf_counter(), bytes(MSG, "ascii"))
                     raise types.XcpTimeoutError(MSG) from None
                 else:
                     self.timing.stop()
@@ -250,7 +257,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
             self.timing.stop()
             pid = types.Response.parse(xcpPDU).type
             if pid == "ERR" and cmd.name != "SYNCH":
-                self.policy.feed(types.FrameCategory.ERROR, self.counterReceived, perf_counter(), xcpPDU[1:])
+                with self.policy_lock:
+                    self.policy.feed(types.FrameCategory.ERROR, self.counterReceived, perf_counter(), xcpPDU[1:])
                 err = types.XcpError.parse(xcpPDU[1:])
                 raise types.XcpResponseError(err)
 
@@ -279,7 +287,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 raise types.XcpResponseError(err)
 
         frame = self._prepare_request(cmd, *data)
-        self.send(frame)
+        with self.writer_lock:
+            self.send(frame)
 
     def _prepare_request(self, cmd, *data):
         """
@@ -371,13 +380,16 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 self.logger.debug(f"<- L{length} C{counter} {hexDump(response)}")
             if pid >= 0xFE:
                 self.resQueue.append(response)
-                self.policy.feed(types.FrameCategory.RESPONSE, self.counterReceived, perf_counter(), response)
+                with self.policy_lock:
+                    self.policy.feed(types.FrameCategory.RESPONSE, self.counterReceived, perf_counter(), response)
                 self.recv_timestamp = recv_timestamp
             elif pid == 0xFD:
                 self.process_event_packet(response)
-                self.policy.feed(types.FrameCategory.EVENT, self.counterReceived, perf_counter(), response)
+                with self.policy_lock:
+                    self.policy.feed(types.FrameCategory.EVENT, self.counterReceived, perf_counter(), response)
             elif pid == 0xFC:
-                self.policy.feed(types.FrameCategory.SERV, self.counterReceived, perf_counter(), response)
+                with self.policy_lock:
+                    self.policy.feed(types.FrameCategory.SERV, self.counterReceived, perf_counter(), response)
         else:
             if self._debug:
                 self.logger.debug(f"<- L{length} C{counter} ODT_Data[0:8] {hexDump(response[:8])}")
@@ -387,7 +399,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 timestamp = recv_timestamp
             else:
                 timestamp = 0.0
-            self.policy.feed(types.FrameCategory.DAQ, self.counterReceived, timestamp, response)
+            with self.policy_lock:
+                self.policy.feed(types.FrameCategory.DAQ, self.counterReceived, timestamp, response)
 
 
 def createTransport(name, *args, **kws):
