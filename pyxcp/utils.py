@@ -6,6 +6,8 @@ from time import get_clock_info
 from time import perf_counter
 from time import time
 
+import chardet
+
 
 def hexDump(arr):
     if isinstance(arr, (bytes, bytearray)):
@@ -48,6 +50,15 @@ def getPythonVersion():
     return sys.version_info
 
 
+def decode_bytes(byte_str: bytes) -> str:
+    """Decode bytes with the help of ``chardet"""
+    encoding = chardet.detect(byte_str).get("encoding")
+    if not encoding:
+        return byte_str.decode("ascii", "ignore")
+    else:
+        return byte_str.decode(encoding)
+
+
 PYTHON_VERSION = getPythonVersion()
 SHORT_SLEEP = 0.0005
 
@@ -58,4 +69,3 @@ def delay(amount: float):
     start = perf_counter()
     while perf_counter() < start + amount:
         pass
-

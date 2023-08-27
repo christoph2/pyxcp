@@ -7,6 +7,7 @@ from pprint import pprint
 from pyxcp.cmdline import ArgumentParser
 from pyxcp.recorder import XcpLogFileReader
 from pyxcp.transport import FrameRecorderPolicy
+from pyxcp.utils import decode_bytes
 
 daq_info = False
 
@@ -55,7 +56,7 @@ with ap.run(recorder_policy) as x:  # parameter policy is new.
         for idx in range(dqp.maxEventChannel):
             evt = x.getDaqEventInfo(idx)
             length = evt.eventChannelNameLength
-            name = x.pull(length).decode("utf-8")
+            name = decode_bytes(x.pull(length))
             dq = "DAQ" if evt.daqEventProperties.daq else ""
             st = "STIM" if evt.daqEventProperties.stim else ""
             dq_st = dq + " " + st

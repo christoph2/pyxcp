@@ -35,6 +35,7 @@ from pyxcp.constants import UnpackerType
 from pyxcp.master.errorhandler import disable_error_handling
 from pyxcp.master.errorhandler import wrapped
 from pyxcp.transport.base import createTransport
+from pyxcp.utils import decode_bytes
 from pyxcp.utils import delay
 from pyxcp.utils import SHORT_SLEEP
 
@@ -1676,8 +1677,10 @@ class Master:
         for ecn in range(dpi.maxEventChannel):
             eci = self.getDaqEventInfo(ecn)
             name = self.fetch(eci.eventChannelNameLength)
+            if name:
+                name = decode_bytes(name)
             channel = {
-                "name": name.decode("latin-1"),
+                "name": name,
                 "priority": eci["eventChannelPriority"],
                 "unit": eci["eventChannelTimeUnit"],
                 "cycle": eci["eventChannelTimeCycle"],
@@ -1806,7 +1809,7 @@ class Master:
             value = bytes(gid.identification or b"")
         else:
             value = self.fetch(gid.length)
-        return value.decode("utf-8")
+        return decode_bytes(value)
 
     def id_scanner(self, scan_ranges: Optional[Collection[Collection[int]]] = None) -> Dict[str, str]:
         """Scan for available standard identification types (GET_ID).

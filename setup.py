@@ -41,7 +41,6 @@ with open("README.md", "r") as fh:
 EXT_NAMES = ["rekorder"]
 
 if has_pybind11:
-
     ext_modules = [
         Pybind11Extension(
             EXT_NAMES[0],
@@ -55,7 +54,7 @@ if has_pybind11:
 else:
     ext_modules = []
 
-install_reqs = ["pybind11", "pyusb", "construct >= 2.9.0", "mako", "pyserial", "toml", "python-can", "uptime"]
+install_reqs = ["pybind11", "pyusb", "construct >= 2.9.0", "mako", "pyserial", "toml", "python-can", "uptime", "chardet"]
 
 
 class AsamKeyDllAutogen(setuptools.Command):

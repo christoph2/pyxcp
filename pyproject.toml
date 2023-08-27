@@ -30,6 +30,7 @@ dependencies = [
     "toml<1.0.0,>=0.10.2",
     "python-can>=4.0.0",
     "uptime>=3.0.1",
+    "chardet>=5.2.0",
 ]
 name = "pyxcp"
 version = "0.21.2"
