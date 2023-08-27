@@ -1053,7 +1053,9 @@ class Master:
         dln = self.WORD_pack(daqListNumber)
         response = self.transport.request(types.Command.START_STOP_DAQ_LIST, mode, *dln)
         self.stim.startStopDaqList(mode, daqListNumber)
-        return types.StartStopDaqListResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+        firstPid = types.StartStopDaqListResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+        self.stim.set_first_pid(daqListNumber, firstPid.firstPid)
+        return firstPid
 
     @wrapped
     def startStopSynch(self, mode):
@@ -1066,7 +1068,9 @@ class Master:
             1 = start selected
             2 = stop selected
         """
-        return self.transport.request(types.Command.START_STOP_SYNCH, mode)
+        res = self.transport.request(types.Command.START_STOP_SYNCH, mode)
+        self.stim.startStopSynch(mode)
+        return res
 
     @wrapped
     def writeDaqMultiple(self, daqElements):

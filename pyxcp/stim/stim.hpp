@@ -2,9 +2,6 @@
 #if !defined(__STIM_HPP)
     #define __STIM_HPP
 
-    #include <Avrt.h>
-    #include <Windows.h>
-
     #include <algorithm>
     #include <cstdint>
     #include <functional>
@@ -17,6 +14,9 @@
     #include <set>
     #include <tuple>
     #include <vector>
+
+    #include <Windows.h>
+    #include <Avrt.h>
 
     #include "scheduler.hpp"
 
@@ -305,8 +305,15 @@ void sched_init();  // TODO: Incl.
 class Stim {
    public:
 
+    const std::uint8_t RESUME = 0x80;
+    const std::uint8_t RUNNING = 0x40;
+    const std::uint8_t PID_OFF = 0x20;
+    const std::uint8_t TIMESTAMP = 0x10;
+    const std::uint8_t DIRECTION = 0x02;
+    const std::uint8_t SELECTED = 0x01;
+
     const std::uint8_t DIRECTION_STIM = 0x02;
-    using event_info_t                = std::vector<DaqEventInfo>;
+
     using feed_function_t             = std::function<void(std::size_t, std::size_t, float, std::vector<std::uint8_t>)>;
     using send_function_t             = std::function<void(std::vector<std::uint8_t>)>;
 
@@ -323,22 +330,24 @@ class Stim {
         std::cout << "AvSetMmThreadCharacteristics() " << xxx << ":" << task_index << std::endl;
 
         auto start = timeGetTime();
-        m_scheduler.start_thread();
-        // Sleep(1650);
-        // std::cout << "Elapsed: " << timeGetTime() - start;
+
+        //m_scheduler.start_thread();
     }
 
     void setParameters(const StimParameters& params) {
         m_params = params;
     }
 
-    void setDaqEventInfo(const event_info_t& daq_event_info) {
-        m_daq_event_info = daq_event_info;
-        std::size_t idx  = 0;
+    void setDaqEventInfo(const std::vector<DaqEventInfo>& daq_event_info) {
+        std::uint16_t idx  = 0;
+
+        std::cout << "SET_DAQ_EVENT_INFO" << std::endl;
 
         for (const auto& event : daq_event_info) {
+            //m_daq_event_info.try_emplace(std::make_pair(idx, event));
+            m_daq_event_info.try_emplace(idx, event);
+            //m_daq_event_info[idx] = event;
             if (event.m_stim) {
-                m_stim_events.emplace(idx);
                 std::cout << "\tSTIM: " << event.m_name << ":" << idx << std::endl;
             }
             idx++;
@@ -364,7 +373,7 @@ class Stim {
 
     void writeDaq(std::uint16_t bitOffset, std::uint16_t entrySize, std::uint16_t addressExt, std::uint32_t address) {
         auto [d, o, e] = m_daq_ptr;
-        auto entry     = m_daq_lists[d].m_odts[o].m_entries[e];
+        auto& entry     = m_daq_lists[d].m_odts[o].m_entries[e];
 
         std::cout << "WRITE_DAQ " << bitOffset << ":" << entrySize << ":" << addressExt << ":" << address << std::endl;
 
@@ -383,10 +392,15 @@ class Stim {
         std::uint16_t mode, std::uint16_t daqListNumber, std::uint16_t eventChannelNumber, std::uint16_t prescaler,
         std::uint16_t priority
     ) {
+        std::cout << "<<< Enter setDaqListMode() !!!\n";
         if (!validateEntryNumber(daqListNumber)) {
+            std::cout << "Invalid DAQ list number!!!\b\n";
             return;
         }
-        auto entry      = m_daq_lists[daqListNumber];
+        std::cout << "SET_DAQ_LIST_MODE: " << mode << ":" << daqListNumber << ":" << eventChannelNumber << ":" << prescaler << ":"
+                  << priority << std::endl;
+
+        auto& entry      = m_daq_lists.at(daqListNumber);
         entry.mode      = mode;
         entry.prescaler = prescaler;
         // The use of a prescaler is only used for DAQ lists with DIRECTION = DAQ.
@@ -394,28 +408,53 @@ class Stim {
         entry.priority             = priority;
         entry.event_channel_number = eventChannelNumber;
 
-        auto& event = m_daq_event_info[eventChannelNumber];
+        std::cout << "\tAnzahl / Events: " << std::size(m_daq_event_info) << std::endl;
+        auto& event = m_daq_event_info.at(eventChannelNumber);
         event.m_daq_lists.emplace(daqListNumber);
 
-        std::cout << "SET_DAQ_LIST_MODE: " << mode << ":" << daqListNumber << ":" << eventChannelNumber << ":" << prescaler << ":"
-                  << priority << std::endl;
         if ((mode & DIRECTION_STIM) == DIRECTION_STIM) {
             std::cout << "\tSTIM-MODE!!!\n";
-            // TODO: Calculate timebase on the fly.
+
+            m_stim_lists.emplace(daqListNumber);
 
             std::cout << "\t\tEvent: " << event.m_name << " ==> " << event.m_cycle_time << " - " << event.m_periodic << std::endl;
             calculate_scheduler_period(event.m_cycle_time);
         }
+        std::cout << ">>> Exit setDaqListMode() !!!\n";
     }
 
     void startStopDaqList(std::uint16_t mode, std::uint16_t daqListNumber) {
         if (!validateEntryNumber(daqListNumber)) {
             return;
         }
+        auto& entry      = m_daq_lists.at(daqListNumber);
+        /*
+         * 00 = stop
+         * 01 = start
+         * 02 = select
+         */
+        if (mode == 0) {
+            entry.mode &= ~(SELECTED | RUNNING);
+        } else if (mode == 1) {
+            entry.mode |= (RUNNING);
+        } else if (mode == 2) {
+            entry.mode |= (SELECTED);
+        }
+
         std::cout << "START_STOP_DAQ_LIST " << mode << ":" << daqListNumber << std::endl;
     }
 
     void startStopSynch(std::uint16_t mode) {
+        std::cout << "START_STOP_SYNCH " << mode << ":" << std::endl;
+
+        for (auto dl: m_stim_lists) {
+            std::cout << "\tRunning list: " << dl << std::endl;
+        }
+        auto idx = 0;
+        for (auto dl: m_daq_lists) {
+            std::cout << "DAQ-L: " << idx << " " << dl.mode << " - " << dl.event_channel_number << ":" << dl.prescaler << std::endl;
+            idx++;
+        }
     }
 
     void writeDaqMultiple(/* const std::vector<DaqElement>&*/ std::uint16_t daqElements) {
@@ -438,8 +477,9 @@ class Stim {
 
     void clear() {
         m_daq_lists.clear();
-        m_daq_event_info.clear();
-        m_stim_events.clear();
+        //m_daq_event_info.clear();
+        m_stim_lists.clear();
+        m_first_pids.clear();
     }
 
     void freeDaq() {
@@ -469,6 +509,11 @@ class Stim {
         m_daq_lists[daqListNumber].m_odts[odtNumber].resize(odtEntriesCount);
     }
 
+    void set_first_pid(std::uint16_t daqListNumber, std::uint16_t firstPid) {
+        std::cout << "set_first_pid(" << daqListNumber << ", " << firstPid << ")\n";
+        m_first_pids[daqListNumber] = firstPid;
+    }
+
     void set_policy_feeder(const feed_function_t& fun) {
         m_feed_function = fun;
     }
@@ -488,15 +533,20 @@ class Stim {
 
     void calculate_scheduler_period(std::size_t value) {
         if (!m_scheduler_period) {
-            *m_scheduler_period = value;
+            m_scheduler_period = value;
+            std::cout << "\tSet Period\n";
         }
         if (!m_scheduler_max_value) {
-            *m_scheduler_max_value = value;
+            m_scheduler_max_value = value;
+            std::cout << "\tSet Max\n";
         }
-        std::cout << "SCHED_Value: " << value << std::endl;
-        *m_scheduler_period    = std::gcd(*m_scheduler_period, value);
-        *m_scheduler_max_value = std::lcm(*m_scheduler_max_value, value);
-        std::cout << "SCHED_Period: " << *m_scheduler_period << " max: " << *m_scheduler_max_value << std::endl;
+        if (value==1) {
+            value=3;
+        }
+        std::cout << "\tSCHED_Value: " << value << " - BEFORE: " << *m_scheduler_period << ":" << *m_scheduler_max_value << std::endl;
+        m_scheduler_period    = std::gcd(*m_scheduler_period, value);
+        m_scheduler_max_value = std::lcm(*m_scheduler_max_value, value);
+        std::cout << "\tSCHED_Period: " << *m_scheduler_period << " max: " << *m_scheduler_max_value << std::endl;
     }
 
     bool validateEntryNumber(
@@ -518,7 +568,6 @@ class Stim {
                 return false;
             }
         }
-        std::cout << "\tOK, number is valid!!!\n";
         return true;
     }
 
@@ -529,12 +578,13 @@ class Stim {
     std::tuple<std::uint16_t, std::uint16_t, std::uint16_t> m_daq_ptr;
     std::optional<std::size_t>                              m_scheduler_period{ std::nullopt };
     std::optional<std::size_t>                              m_scheduler_max_value{ std::nullopt };
-    event_info_t                                            m_daq_event_info;
-    // std::map<std::uint16_t, std::vector<std::uint16_t>> m_event_mapping{};
-    std::set<std::size_t>          m_stim_events{};
+    std::map<std::uint16_t, DaqEventInfo>                  m_daq_event_info;
+    std::map<std::uint16_t, std::uint16_t> m_first_pids{};
+    std::set<std::size_t> m_stim_lists{};
     std::optional<feed_function_t> m_feed_function{ std::nullopt };
     std::optional<send_function_t> m_send_function{ std::nullopt };
     Scheduler                      m_scheduler{};
+    bool m_daq_running{false};
 };
 
 #endif  // __STIM_HPP

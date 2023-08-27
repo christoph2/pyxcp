@@ -32,9 +32,10 @@ PYBIND11_MODULE(stim, m) {
         .def("writeDaq", &Stim::writeDaq)
         .def("setDaqListMode", &Stim::setDaqListMode)
         .def("startStopDaqList", &Stim::startStopDaqList)
+		.def("startStopSynch", &Stim::startStopSynch)
 
+		.def("set_first_pid", &Stim::set_first_pid)
         .def("set_policy_feeder", [](Stim& self, const py::function& callback) { self.set_policy_feeder(callback); })
-
         .def("set_frame_sender", [](Stim& self, const py::function& callback) { self.set_frame_sender(callback); })
 
         ;
