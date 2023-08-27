@@ -1732,10 +1732,10 @@ class Master:
                 name = decode_bytes(name)
             channel = {
                 "name": name,
-                "priority": priority,
-                "unit": time_unit,
-                "cycle": cycle,
-                "maxDaqList": maxDaqList,
+                "priority": eci["eventChannelPriority"],
+                "unit": eci["eventChannelTimeUnit"],
+                "cycle": eci["eventChannelTimeCycle"],
+                "maxDaqList": eci["maxDaqList"],
                 "properties": {
                     "consistency": consistency,
                     "daq": daq_supported,

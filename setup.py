@@ -71,7 +71,6 @@ install_reqs = [
     "traitlets",
 ]
 
-
 class AsamKeyDllAutogen(setuptools.Command):
     """Custom command to compile `asamkeydll.exe`."""
 

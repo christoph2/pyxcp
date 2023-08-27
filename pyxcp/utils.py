@@ -58,7 +58,6 @@ def decode_bytes(byte_str: bytes) -> str:
     else:
         return byte_str.decode(encoding)
 
-
 PYTHON_VERSION = getPythonVersion()
 SHORT_SLEEP = 0.0005
 
