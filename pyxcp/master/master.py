@@ -16,6 +16,7 @@ from time import sleep
 from typing import Callable
 from typing import Collection
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Union
 
@@ -499,7 +500,7 @@ class Master:
         return types.BuildChecksumResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
-    def transportLayerCmd(self, subCommand: int, data: bytes):
+    def transportLayerCmd(self, subCommand: int, *data: List[bytes]):
         """Execute transfer-layer specific command.
 
         Parameters
@@ -1605,10 +1606,23 @@ class Master:
         )
         return types.TimeCorrelationPropertiesResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
+    # Transport layer commands / CAN.
+
     @broadcasted
     @wrapped
     def getSlaveID(self, mode: int):
-        self.transportLayerCmd(0xFF, "X", "C", "P", mode)
+        self.transportLayerCmd(types.TransportLayerCommands.GET_SLAVE_ID, "X", "C", "P", mode)
+
+    def getDaqId(self, daqListNumber: int):
+        response = self.transportLayerCmd(types.TransportLayerCommands.GET_DAQ_ID, *self.WORD_pack(daqListNumber))
+        if response:
+            return types.GetDaqIdResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+
+    def setDaqId(self, daqListNumber: int, identifier: int):
+        response = self.transportLayerCmd(
+            types.TransportLayerCommands.SET_DAQ_ID, *self.WORD_pack(daqListNumber), *self.DWORD_pack(identifier)
+        )
+        return response
 
     # Convenience Functions.
     def verify(self, addr, length):

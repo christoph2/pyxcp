@@ -75,7 +75,6 @@ class XcpGetIdModeType(enum.IntEnum):
 
 
 class Command(enum.IntEnum):
-
     # STD
 
     # Mandatory Commands
@@ -271,6 +270,25 @@ COMMAND_CATEGORIES = {  # Mainly needed to automatically UNLOCK.
     # Well... ?
     # TIME_CORRELATION_PROPERTIES
 }
+
+
+class TransportLayerCommands(enum.IntEnum):
+    # CAN
+    GET_SLAVE_ID = 0xFF
+    GET_DAQ_ID = 0xFE
+    SET_DAQ_ID = 0xFD
+
+    # Flexray
+    FLX_ASSIGN = 0xFF
+    FLX_ACTIVATE = 0xFE
+    FLX_DEACTIVATE = 0xFD
+    GET_DAQ_FLX_BUF = 0xFC
+    SET_DAQ_FLX_BUF = 0xFB
+
+    # USB
+    GET_DAQ_EP = 0xFF
+    SET_DAQ_EP = 0xFE
+
 
 XcpError = Enum(
     Int8ul,
@@ -715,6 +733,17 @@ GetEventChannelInfoResponse = Struct(
         EVENT_CHANNEL_TIME_UNIT_100PS=12,
     ),
     "eventChannelPriority" / Int8ul,
+)
+
+GetDaqIdResponse = Struct(
+    "canIdFixed"
+    / Enum(
+        Int8ul,
+        CONFIGURABLE=0,
+        FIXED=1,
+    ),
+    Padding(2),
+    "identifier" / Int32u,
 )
 
 DtoCtrProperties = BitStruct(
