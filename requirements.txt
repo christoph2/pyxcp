@@ -3,6 +3,8 @@ pytest
 pytest-runner
 construct>=2.9
 mako
+traitlets
+chardet
 pyserial
 numpydoc
 sphinxcontrib-napoleon

@@ -51,7 +51,7 @@ def getPythonVersion():
 
 
 def decode_bytes(byte_str: bytes) -> str:
-    """Decode bytes with the help of ``chardet"""
+    """Decode bytes with the help of chardet"""
     encoding = chardet.detect(byte_str).get("encoding")
     if not encoding:
         return byte_str.decode("ascii", "ignore")

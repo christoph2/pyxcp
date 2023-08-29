@@ -54,7 +54,18 @@ if has_pybind11:
 else:
     ext_modules = []
 
-install_reqs = ["pybind11", "pyusb", "construct >= 2.9.0", "mako", "pyserial", "toml", "python-can", "uptime", "chardet"]
+install_reqs = [
+    "pybind11",
+    "pyusb",
+    "construct >= 2.9.0",
+    "mako",
+    "pyserial",
+    "toml",
+    "python-can",
+    "uptime",
+    "chardet",
+    "traitlets",
+]
 
 
 class AsamKeyDllAutogen(setuptools.Command):
