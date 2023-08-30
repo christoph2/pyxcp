@@ -30,6 +30,7 @@ class General(SingletonConfigurable):
 
     loglevel = Unicode("WARN").tag(config=True)
     disable_error_handling = Bool(False).tag(config=True)
+    disconnect_response_optional = Bool(False).tag(config=True)
     seed_n_key_dll = Unicode(allow_none=True, default_value=None).tag(config=True)
     seed_n_key_dll_same_bit_width = Bool(False).tag(config=True)
 
@@ -82,12 +83,12 @@ candriver/iscan (pyXCP.Transport.CAN.iscan)
 
 
 class CAN(SingletonConfigurable):
-    can_driver = Unicode("").tag(config=True)
+    driver = Unicode("").tag(config=True)
     channel = Unicode("").tag(config=True)
     max_dlc_required = Bool(False).tag(config=True)
     max_can_fd_dlc = Integer(64).tag(config=True)
     padding_value = Integer(0).tag(config=True)
-    can_use_default_listener = Bool(True).tag(config=True)
+    use_default_listener = Bool(True).tag(config=True)
     can_id_master = Integer().tag(config=True)
     can_id_slave = Integer().tag(config=True)
     can_id_broadcast = Integer().tag(config=True)
