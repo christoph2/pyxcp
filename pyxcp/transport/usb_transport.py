@@ -35,14 +35,14 @@ class Usb(BaseTransport):
 
     def __init__(self, config=None, policy=None):
         super(Usb, self).__init__(config, policy)
-        self.loadConfig(config)
-        self.serial_number = self.config.get("serial_number").strip()
-        self.vendor_id = self.config.get("vendor_id")
-        self.product_id = self.config.get("product_id")
-        self.configuration_number = self.config.get("configuration_number")
-        self.interface_number = self.config.get("interface_number")
-        self.command_endpoint_number = self.config.get("command_endpoint_number")
-        self.reply_endpoint_number = self.config.get("reply_endpoint_number")
+        self.load_config(config)
+        self.serial_number = self.config.serial_number
+        self.vendor_id = self.config.vendor_id
+        self.product_id = self.config.product_id
+        self.configuration_number = self.config.configuration_number
+        self.interface_number = self.config.interface_number
+        self.command_endpoint_number = self.config.command_endpoint_number
+        self.reply_endpoint_number = self.config.reply_endpoint_number
         self.device = None
 
         self.status = 0

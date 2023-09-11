@@ -35,20 +35,15 @@ LEGACY_KEYWORDS = {
     "RECEIVE_OWN_MESSAGES": "Transport.Can.receive_own_messages",
 }
 
-"""
-{'General': {'seed_n_key_dll': 'vector_xcp.dll'},
- 'Transport': {'CAN': {'bitrate': 10000, 'channel': '123'},
-               'alignment': 2,
-               'layer': 'USB',
-               'timeout': 3.5}}
-"""
 
-
-def nested_update(d: dict, key: str, value) -> dict:
+def nested_dict_update(d: dict, key: str, value) -> None:
     root, *path, key = key.split(".")
-    if path:
-        print("???")
-    d[root][key] = value
+    sub_dict = d[root]
+    for part in path:
+        if part not in sub_dict:
+            sub_dict[part] = defaultdict(dict)
+        sub_dict = sub_dict[part]
+    sub_dict[key] = value
 
 
 def convert_config(legacy_config: dict) -> Config:
@@ -56,5 +51,5 @@ def convert_config(legacy_config: dict) -> Config:
     for key, value in legacy_config.items():
         item = LEGACY_KEYWORDS.get(key)
         print(key, value)
-        nested_update(d=d, key=item, value=value)
+        nested_dict_update(d=d, key=item, value=value)
     return Config(d)

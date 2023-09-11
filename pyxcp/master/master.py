@@ -26,7 +26,6 @@ from .stim import get_writer_lock
 from .stim import Stim
 from pyxcp import checksum
 from pyxcp import types
-from pyxcp.config import Configuration
 from pyxcp.constants import makeBytePacker
 from pyxcp.constants import makeByteUnpacker
 from pyxcp.constants import makeDLongPacker
@@ -74,7 +73,7 @@ class Master:
 
     Parameters
     ----------
-    transportName : str
+    transport_name : str
         XCP transport layer name ['can', 'eth', 'sxi']
     config: dict
     """
@@ -92,16 +91,20 @@ class Master:
         "DISCONNECT_RESPONSE_OPTIONAL": (bool, False, False),
     }
 
-    def __init__(self, transportName, config=None, policy=None):
+    def __init__(self, transport_name: str, config, policy=None):
         self.ctr = 0
         self.succeeded = True
-        self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
-        self.logger = logging.getLogger("pyXCP")
-        self.logger.setLevel(self.config.get("LOGLEVEL"))
-        disable_error_handling(self.config.get("DISABLE_ERROR_HANDLING"))
+        self.config = config.general
+        print(self.config.seed_n_key_dll)
+        self.logger = config.log
+        self.logger.setLevel("INFO")
+        self.logger.info("NEW cfg system!!!")
 
-        self.transport = createTransport(transportName, config, policy)
-        self.transport_name = transportName
+        disable_error_handling(self.config.disable_error_handling)
+        self.transport_name = transport_name.lower()
+        transport_config = config.transport  # getattr(config.transport, self.transport_name)
+        self.transport = createTransport(transport_name, transport_config, policy)
+
         self.transport.set_writer_lock(get_writer_lock())
         self.transport.set_policy_lock(get_policy_lock())
         self.stim = Stim()
@@ -129,9 +132,9 @@ class Master:
         self.mta = types.MtaType(None, None)
         self.currentDaqPtr = None
         self.currentProtectionStatus = None
-        self.seedNKeyDLL = self.config.get("SEED_N_KEY_DLL")
-        self.seedNKeyDLL_same_bit_width = self.config.get("SEED_N_KEY_DLL_SAME_BIT_WIDTH")
-        self.disconnect_response_optional = self.config.get("DISCONNECT_RESPONSE_OPTIONAL")
+        self.seedNKeyDLL = self.config.seed_n_key_dll  # .get("SEED_N_KEY_DLL")
+        self.seedNKeyDLL_same_bit_width = self.config.seed_n_key_dll_same_bit_width
+        self.disconnect_response_optional = self.config.disconnect_response_optional
         self.slaveProperties = SlaveProperties()
         self.slaveProperties.pgmProcessor = SlaveProperties()
 

@@ -292,22 +292,22 @@ class Can(BaseTransport):
     HEADER = EmptyHeader()
     HEADER_SIZE = 0
 
-    def __init__(self, config=None, policy=None):
+    def __init__(self, config, policy=None):
         """init for CAN transport
         :param config: configuration
         """
         super().__init__(config, policy)
-        self.loadConfig(config)
+        self.load_config(config)
         drivers = registered_drivers()
-        interfaceName = self.config.get("CAN_DRIVER")
-        if interfaceName not in drivers:
-            raise ValueError("{} is an invalid driver name -- choose from {}".format(interfaceName, [x for x in drivers.keys()]))
-        canInterfaceClass = drivers[interfaceName]
+        interface_name = self.config.interface
+        if interface_name not in drivers:
+            raise ValueError("{} is an invalid driver name -- choose from {}".format(interface_name, [x for x in drivers.keys()]))
+        canInterfaceClass = drivers[interface_name]
         self.canInterface = canInterfaceClass()
         self.useDefaultListener = self.config.get("CAN_USE_DEFAULT_LISTENER")
         self.can_id_master = Identifier(self.config.get("CAN_ID_MASTER"))
         self.can_id_slave = Identifier(self.config.get("CAN_ID_SLAVE"))
-        self.canInterface.loadConfig(config)
+        self.canInterface.load_config(config)
         self.canInterface.init(self, self.dataReceived)
         #
         # Regarding CAN-FD s. AUTOSAR CP Release 4.3.0, Requirements on CAN; [SRS_Can_01160] Padding of bytes due to discrete CAN FD DLC]:

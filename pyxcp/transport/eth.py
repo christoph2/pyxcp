@@ -36,15 +36,15 @@ class Eth(BaseTransport):
 
     def __init__(self, config=None, policy=None):
         super(Eth, self).__init__(config, policy)
-        self.loadConfig(config)
-        self.host = self.config.get("HOST")
-        self.port = self.config.get("PORT")
-        self.protocol = self.config.get("PROTOCOL")
-        self.ipv6 = self.config.get("IPV6")
-        self.use_tcp_no_delay = self.config.get("TCP_NODELAY")
-        address_to_bind = self.config.get("BIND_TO_ADDRESS")
-        port_to_bind = self.config.get("BIND_TO_PORT")
-        self._local_address = (address_to_bind, port_to_bind) if address_to_bind else None
+        self.load_config(config)
+        self.host = self.config.host
+        self.port = self.config.port
+        self.protocol = self.config.protocol
+        self.ipv6 = self.config.ipv6
+        self.use_tcp_no_delay = self.config.tcp_nodelay
+        address_to_bind = self.config.bind_to_address
+        bind_to_port = self.config.bind_to_port
+        self._local_address = (address_to_bind, bind_to_port) if address_to_bind else None
         if self.ipv6 and not socket.has_ipv6:
             raise RuntimeError("IPv6 not supported by your platform.")
         else:

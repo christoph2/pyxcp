@@ -11,13 +11,11 @@ from time import sleep
 from time import time
 
 import pyxcp.types as types
-from ..logger import Logger
 from ..recorder import XcpLogFileWriter
 from ..timing import Timing
 from ..utils import flatten
 from ..utils import hexDump
 from ..utils import SHORT_SLEEP
-from pyxcp.config import Configuration
 
 
 class FrameAcquisitionPolicy:
@@ -159,25 +157,27 @@ class BaseTransport(metaclass=abc.ABCMeta):
         "ALIGNMENT": (int, False, 1),
     }
 
-    def __init__(self, config=None, policy: FrameAcquisitionPolicy = None):
+    def __init__(self, config, policy: FrameAcquisitionPolicy = None):
         self.parent = None
-        self.config = Configuration(BaseTransport.PARAMETER_MAP or {}, config or {})
         self.policy = policy or LegacyFrameAcquisitionPolicy()
         self.closeEvent = threading.Event()
 
         self.command_lock = threading.Lock()
-        loglevel = self.config.get("LOGLEVEL")
-        self._debug = loglevel == "DEBUG"
 
-        self.logger = Logger("transport.Base")
-        self.logger.setLevel(loglevel)
+        # loglevel = self.config.get("LOGLEVEL")
+
+        # self._debug = True
+        self._debug = False
+        self.logger = config.log
+        # self._debug = loglevel == "DEBUG"
+        # self.logger = Logger("transport.Base")
+        # self.logger.setLevel(loglevel)
+
         self.counterSend = 0
         self.counterReceived = -1
-        create_daq_timestamps = self.config.get("CREATE_DAQ_TIMESTAMPS")
-        self.create_daq_timestamps = False if create_daq_timestamps is None else create_daq_timestamps
-        timeout = self.config.get("TIMEOUT")
-        self.alignment = self.config.get("ALIGNMENT")
-        self.timeout = 2.0 if timeout is None else timeout
+        self.create_daq_timestamps = config.create_daq_timestamps
+        self.alignment = config.alignment
+        self.timeout = config.timeout
         self.timer_restart_event = threading.Event()
         self.timing = Timing()
         self.resQueue = deque()
@@ -200,9 +200,10 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.finishListener()
         self.closeConnection()
 
-    def loadConfig(self, config):
+    def load_config(self, config):
         """Load configuration data."""
-        self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
+        class_name = self.__class__.__name__.lower()
+        self.config = getattr(config, class_name)
 
     def set_writer_lock(self, lock):
         self.writer_lock = lock

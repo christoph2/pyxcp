@@ -349,8 +349,8 @@ class Executor(SingletonBase):
                 except XcpTimeoutError as e:
                     self.logger.error(f"XcpTimeoutError [{str(e)}]")
                     self.error_code = XcpError.ERR_TIMEOUT
-                except Exception as e:
-                    raise UnrecoverableError(f"Don't know how to handle exception '{repr(e)}'") from e
+                except Exception:
+                    raise
                 else:
                     self.error_code = None
                     # print("\t\t\t*** SUCCESS ***")

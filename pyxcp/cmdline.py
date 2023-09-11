@@ -6,6 +6,7 @@ and create a XCP master instance.
 """
 import argparse
 
+from pyxcp.config import application
 from pyxcp.config import readConfiguration
 from pyxcp.master import Master
 from pyxcp.transport.can import registered_drivers
@@ -56,11 +57,15 @@ class ArgumentParser:
         if args.conf is None:
             raise RuntimeError("Configuration file must be specified! (option: -c <file>)")
         config = readConfiguration(args.conf)
-        config["LOGLEVEL"] = args.loglevel
-        if "TRANSPORT" not in config:
-            raise AttributeError("TRANSPORT must be specified in config!")
-        transport = config["TRANSPORT"].lower()
-        master = Master(transport, config=config, policy=policy)
+        from pprint import pprint
+
+        pprint(config)
+        # config["LOGLEVEL"] = args.loglevel
+        # if "TRANSPORT" not in config:
+        #    raise AttributeError("TRANSPORT must be specified in config!")
+        # transport = config["TRANSPORT"].lower()
+        transport = application.transport.layer
+        master = Master(transport, config=application, policy=policy)
         if self.callout:
             self.callout(master, args)
         return master
