@@ -7,6 +7,10 @@ import sys
 import setuptools.command.build_py
 import setuptools.command.develop
 
+if sys.platform == "darwin":
+    os.environ["CC"] = "clang++"
+    os.environ["CXX"] = "clang++"
+
 try:
     from pybind11.setup_helpers import (
         Pybind11Extension,
