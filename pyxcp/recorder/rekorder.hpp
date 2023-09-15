@@ -288,6 +288,7 @@ public:
             delete[] m_memory;
         }
     }
+    BlockMemory(const BlockMemory&) = delete;
 
     T * acquire() noexcept {
         const std::scoped_lock lock(m_mtx);
@@ -314,14 +315,6 @@ private:
     std::uint32_t m_allocation_count;
     std::mutex m_mtx;
 
-public:
-
-    BlockMemory(T* m_memory, const std::uint32_t& m_allocation_count, const std::mutex& m_mtx)
-        : m_memory(m_memory), m_allocation_count(m_allocation_count), m_mtx(m_mtx)
-    {
-    }
-
-    bool operator==(const BlockMemory& other) const = default;
 };
 
 
@@ -361,7 +354,12 @@ public:
     }
 
     ~XcpLogFileWriter() noexcept {
-        finalize();
+    finalize();
+    #ifdef __APPLE__
+        if (collector_thread.joinable()) {
+            collector_thread.join();
+        }
+    #endif
     }
 
     void finalize() {
@@ -472,7 +470,11 @@ protected:
             return false;
         }
         stop_collector_thread_flag = false;
-        collector_thread = std::jthread([this]() {
+            #ifdef __APPLE__
+                collector_thread = std::thread([this]() {
+            #else
+                collector_thread = std::jthread([this]() {
+            #endif
             while (!stop_collector_thread_flag) {
                 auto item = my_queue.get();
                 const auto content = item.get();
@@ -523,7 +525,11 @@ private:
     mio::file_handle_type m_fd{INVALID_HANDLE_VALUE};
     mio::mmap_sink * m_mmap{nullptr};
     bool m_finalized{false};
+    #ifdef __APPLE__
+    std::thread collector_thread{};
+    #else
     std::jthread collector_thread{};
+    #endif
     std::mutex mtx;
     TsQueue<std::optional<FrameTupleWriter>> my_queue;
     BlockMemory<char, XCP_PAYLOAD_MAX, 16> mem{};
@@ -598,7 +604,6 @@ public:
 
     std::optional<FrameVector> next_block() {
         auto container = ContainerHeaderType{};
-        auto total = 0;
         auto frame = frame_header_t{};
         std::uint32_t boffs = 0;
         auto result = FrameVector{};
@@ -610,7 +615,6 @@ public:
         read_bytes(m_offset, detail::CONTAINER_SIZE, reinterpret_cast<blob_t*>(&container));
         __ALIGN auto buffer = new blob_t[container.size_uncompressed];
         m_offset += detail::CONTAINER_SIZE;
-        total += container.record_count;
         result.reserve(container.record_count);
         const int uc_size = ::LZ4_decompress_safe(reinterpret_cast<char const*>(ptr(m_offset)), reinterpret_cast<char *>(buffer), container.size_compressed, container.size_uncompressed);
         if (uc_size < 0) {
