@@ -146,6 +146,7 @@ ERROR_MATRIX = {
     Command.GET_COMM_MODE_INFO: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
+        XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
         XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (PreAction.NONE, Action.SKIP),
     },
