@@ -482,7 +482,7 @@ protected:
                 {
                     break;
                 }
-                auto const& [category, counter, timestamp, length, payload] = content->value();
+                auto [category, counter, timestamp, length, payload] = content->value();
                 const frame_header_t frame{ category, counter, timestamp, length };
 
                 store_im(&frame, sizeof(frame));
