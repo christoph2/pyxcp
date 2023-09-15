@@ -354,7 +354,7 @@ public:
     }
 
     ~XcpLogFileWriter() noexcept {
-    finalize();
+      finalize();
     #ifdef __APPLE__
         if (collector_thread.joinable()) {
             collector_thread.join();
@@ -482,13 +482,11 @@ protected:
                 {
                     break;
                 }
-                auto [category, counter, timestamp, length, payload] = content->value();
+                const auto [category, counter, timestamp, length, payload] = *content;
                 const frame_header_t frame{ category, counter, timestamp, length };
-
                 store_im(&frame, sizeof(frame));
                 store_im(payload, length);
                 delete[] payload;
-                //mem.release();
                 m_container_record_count += 1;
                 m_container_size_uncompressed += (sizeof(frame) + length);
                 if (m_container_size_uncompressed > m_chunk_size) {
@@ -504,7 +502,7 @@ protected:
             return false;
         }
         stop_collector_thread_flag = true;
-        my_queue.put(std::nullopt);
+        my_queue.put(FrameTupleWriter{}); // Put something into the queue, otherwise the thread will hang forever.
         collector_thread.join();
         return true;
     }
@@ -531,7 +529,7 @@ private:
     std::jthread collector_thread{};
     #endif
     std::mutex mtx;
-    TsQueue<std::optional<FrameTupleWriter>> my_queue;
+    TsQueue<FrameTupleWriter> my_queue;
     BlockMemory<char, XCP_PAYLOAD_MAX, 16> mem{};
     std::atomic_bool stop_collector_thread_flag{false};
 };
