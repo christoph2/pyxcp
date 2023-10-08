@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Demostrates how to use frame recording policies.
+"""Demostrates how to use frame recording policies including recorder extension.
 """
 from pprint import pprint
 
 from pyxcp.cmdline import ArgumentParser
-from pyxcp.transport.base import FrameRecorderAcquisitionPolicy
+from pyxcp.transport.base import FrameRecorderPolicy
 from pyxcp.transport.base import StdoutPolicy
 
 ap = ArgumentParser(description="pyXCP frame recording policy example.")
 
 LOG_FILE = "pyxcp"
 
-policy = FrameRecorderAcquisitionPolicy(LOG_FILE)
+policy = FrameRecorderPolicy(LOG_FILE)
 use_recorder = True
 
 # policy = StdoutPolicy()  # You may also try this one.

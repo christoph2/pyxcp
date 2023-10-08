@@ -15,7 +15,11 @@ except ImportError:
 else:
     HAS_PANDAS = True
 
-import rekorder as rec
+import pyxcp.recorder.rekorder as rec
+
+
+UnfoldingParameters = rec._UnfoldingParameters
+XcpLogFileUnfolder = rec._XcpLogFileUnfolder
 
 
 @dataclass

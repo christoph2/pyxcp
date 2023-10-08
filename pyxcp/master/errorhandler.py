@@ -9,6 +9,7 @@ import threading
 import time
 import types
 from collections import namedtuple
+
 from pyxcp.errormatrix import Action
 from pyxcp.errormatrix import ERROR_MATRIX
 from pyxcp.errormatrix import PreAction
@@ -21,6 +22,7 @@ from pyxcp.types import XcpTimeoutError
 handle_errors = True  # enable/disable XCP error-handling.
 
 logger = logging.getLogger("pyxcp.errorhandler")
+
 
 class SingletonBase(object):
     _lock = threading.Lock()
@@ -144,7 +146,7 @@ class Repeater:
 
     def __init__(self, initial_value: int):
         self._counter = initial_value
-        #print("\tREPEATER ctor", hex(id(self)))
+        # print("\tREPEATER ctor", hex(id(self)))
 
     def repeat(self):
         """Check if repetition is required.
@@ -153,7 +155,7 @@ class Repeater:
         -------
             bool
         """
-        #print("\t\tCOUNTER:", hex(id(self)), self._counter)
+        # print("\t\tCOUNTER:", hex(id(self)), self._counter)
         if self._counter == Repeater.INFINITE:
             return True
         elif self._counter > 0:
@@ -198,12 +200,12 @@ class Handler:
 
     @property
     def repeater(self):
-        #print("\tGet repeater", hex(id(self._repeater)), self._repeater is None)
+        # print("\tGet repeater", hex(id(self._repeater)), self._repeater is None)
         return self._repeater
 
     @repeater.setter
     def repeater(self, value):
-        #print("\tSet repeater", hex(id(value)))
+        # print("\tSet repeater", hex(id(value)))
         self._repeater = value
 
     def execute(self):
@@ -334,12 +336,11 @@ class Executor(SingletonBase):
         self.arguments = arguments
         handler = Handler(inst, func, arguments)
         self.handlerStack.push(handler)
-        #print("\tENTER handler:", hex(id(handler)))
+        # print("\tENTER handler:", hex(id(handler)))
         try:
             while True:
                 try:
                     handler = self.handlerStack.tos()
-                    #print("\t\tEXEC", hex(id(handler)))
                     res = handler.execute()
                 except XcpResponseError as e:
                     self.logger.error(f"XcpResponseError [{str(e)}]")
@@ -351,11 +352,14 @@ class Executor(SingletonBase):
                     raise UnrecoverableError(f"Don't know how to handle exception '{repr(e)}'") from e
                 else:
                     self.error_code = None
-                    # print("\t\t\t*** SUCCESS ***")
                     self.handlerStack.pop()
                     if self.handlerStack.empty():
-                        # print("OK, all handlers passed: '{}'.".format(res))
                         return res
+
+                if self.error_code == XcpError.ERR_CMD_SYNCH:
+                    # Don't care about SYNCH for now...
+                    self.inst.logger.info("SYNCH received.")
+                    continue
 
                 if self.error_code is not None:
                     preActions, actions, repeater = handler.actions(*getActions(inst.service, self.error_code))
@@ -368,7 +372,9 @@ class Executor(SingletonBase):
                     if handler.repeater.repeat():
                         continue
                     else:
-                        raise UnrecoverableError(f"Max. repetition count reached while trying to execute service '{handler.func.__name__}'.")
+                        raise UnrecoverableError(
+                            f"Max. repetition count reached while trying to execute service '{handler.func.__name__}'."
+                        )
         finally:
             # cleanup of class variables
             self.previous_error_code = None

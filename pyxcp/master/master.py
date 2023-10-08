@@ -1785,7 +1785,7 @@ class Master:
                 while remaining > 0:
                     result = self.getSeed(types.XcpGetSeedMode.REMAINING, resource_value)
                     seed.extend(list(result.seed))
-                    remaining = result.length
+                    remaining -= result.length
             result, key = getKey(
                 self.logger,
                 self.seedNKeyDLL,
@@ -1795,13 +1795,13 @@ class Master:
             )
             if result == SeedNKeyResult.ACK:
                 key = list(key)
-                total_length = len(key)
-                offset = 0
-                while offset < total_length:
-                    data = key[offset : offset + MAX_PAYLOAD]
-                    key_length = len(data)
-                    offset += key_length
-                    self.unlock(key_length, data)
+                remaining = len(key)
+                while key:
+                    data = key[:MAX_PAYLOAD]
+                    key_len = len(data)
+                    self.unlock(remaining, data)
+                    key = key[MAX_PAYLOAD:]
+                    remaining -= key_len
             else:
                 raise SeedNKeyError("SeedAndKey DLL returned: {}".format(SeedNKeyResult(result).name))
 
