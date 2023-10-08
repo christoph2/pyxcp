@@ -356,11 +356,14 @@ class Executor(SingletonBase):
                     raise
                 else:
                     self.error_code = None
-                    # print("\t\t\t*** SUCCESS ***")
                     self.handlerStack.pop()
                     if self.handlerStack.empty():
-                        # print("OK, all handlers passed: '{}'.".format(res))
                         return res
+
+                if self.error_code == XcpError.ERR_CMD_SYNCH:
+                    # Don't care about SYNCH for now...
+                    self.inst.logger.info("SYNCH received.")
+                    continue
 
                 if self.error_code is not None:
                     preActions, actions, repeater = handler.actions(*getActions(inst.service, self.error_code))
