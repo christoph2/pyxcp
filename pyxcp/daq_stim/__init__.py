@@ -69,22 +69,51 @@ class Daq:
             else:
                 self.ts_size = 0
                 self.ts_fixed = False
+                self.ts_scale_factor = 0.0
             key_byte = processor.get("keyByte")
             header_len = DAQ_ID_FIELD_SIZE[key_byte["identificationField"]]
             max_dto = self.xcp_master.slaveProperties.maxDto
+            self.min_daq = processor.get("minDaq")
             max_odt_entry_size = resolution.get("maxOdtEntrySizeDaq")
             max_payload_size = min(max_odt_entry_size, max_dto - header_len)
-            self.min_daq = processor.get("minDaq")
+            # First ODT may contain timestamp.
+            self.selectable_timestamps = False
+            if not self.supports_timestampes:
+                max_payload_size_first = max_payload_size
+                print("NO TIMESTAMP SUPPORT")
+            else:
+                if self.ts_fixed:
+                    print("Fixed timestamp")
+                    max_payload_size_first = max_payload_size - self.ts_size
+                else:
+                    print("timestamp variable.")
+                    self.selectable_timestamps = True
+
         except Exception as e:
             raise TypeError(f"DAQ_INFO corrupted: {e}") from e
 
         # DAQ optimization.
         for daq_list in self.daq_lists:
-            ttt = make_continuous_blocks(daq_list.measurements, max_payload_size)
-            daq_list.measurements_opt = first_fit_decreasing(ttt, max_payload_size)
-
+            if self.selectable_timestamps:
+                if daq_list.enable_timestamps:
+                    max_payload_size_first = max_payload_size - self.ts_size
+                else:
+                    max_payload_size_first = max_payload_size
+            ttt = make_continuous_blocks(daq_list.measurements, max_payload_size, max_payload_size_first)
+            daq_list.measurements_opt = first_fit_decreasing(ttt, max_payload_size, max_payload_size_first)
         byte_order = 0 if self.xcp_master.slaveProperties.byteOrder == "INTEL" else 1
-        self.uf = UnfoldingParameters(byte_order, header_len, self.ts_scale_factor, False, self.ts_size, self.daq_lists)
+        self.uf = UnfoldingParameters(
+            byte_order,
+            header_len,
+            self.supports_timestampes,
+            self.ts_fixed,
+            self.supports_prescaler,
+            self.selectable_timestamps,
+            self.ts_scale_factor,
+            self.ts_size,
+            self.min_daq,
+            self.daq_lists,
+        )
 
         self.first_pids = []
         daq_count = len(self.daq_lists)
@@ -100,7 +129,6 @@ class Daq:
                 self.xcp_master.allocOdtEntry(i, j, entry_count)
         # Write DAQs
         for i, daq_list in enumerate(self.daq_lists, self.min_daq):
-            # self.xcp_master.setDaqListMode(daqListNumber=i, mode=0x10, eventChannelNumber=daq_list.event_num, prescaler=1, priority=0xff)
             measurements = daq_list.measurements_opt
             for j, measurement in enumerate(measurements):
                 self.xcp_master.setDaqPtr(i, j, 0)
@@ -109,7 +137,9 @@ class Daq:
 
     def start(self):
         for i, daq_list in enumerate(self.daq_lists, self.min_daq):
-            mode = 0x10 if daq_list.enable_timestamps else 0x00
+            mode = 0x00
+            if self.supports_timestampes and (self.ts_fixed or (self.selectable_timestamps and daq_list.enable_timestamps)):
+                mode = 0x10
             self.xcp_master.setDaqListMode(
                 daqListNumber=i, mode=mode, eventChannelNumber=daq_list.event_num, prescaler=1, priority=0xFF  # TODO: + MIN_DAQ
             )
@@ -126,32 +156,3 @@ class Daq:
 
         for block in unfolder.next_block():
             print(block)
-
-
-class Collector:
-    def __init__(self, daq_num: int, num_odts: int, unfolder, callback):
-        self.daq_num = daq_num
-        self.num_odts = num_odts
-        self.current_odt_num = 0
-        self.frames = [None] * num_odts
-        self.unfolder = unfolder
-        self.callback = callback
-
-    def add(self, odt_num, frame):
-        if odt_num != self.current_odt_num:
-            print(f"WRONG SEQ-NO {odt_num} expected {self.current_odt_num} [LIST: {self.daq_num}]")
-            self.current_odt_num = odt_num
-        self.frames[self.current_odt_num] = frame
-        self.current_odt_num += 1
-        if self.current_odt_num == self.num_odts:
-            result = {}
-            for idx, frame in enumerate(self.frames):
-                offset = 0
-                for name, length in self.unfolder[idx]:
-                    data = frame[offset : offset + length]
-                    result[name] = bytes(data)
-                    offset += length
-            if self.callback is not None:
-                self.callback(0, result)
-            # print("DAQ", self.daq_num, result)
-        self.current_odt_num %= self.num_odts

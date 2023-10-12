@@ -9,6 +9,7 @@
 
     #include <array>
     #include <atomic>
+    #include <bit>
     #include <bitset>
     #include <cerrno>
     #include <condition_variable>
