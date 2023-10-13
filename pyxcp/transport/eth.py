@@ -90,8 +90,11 @@ class Eth(BaseTransport):
             self.status = 1  # connected
 
     def startListener(self):
+        super().startListener()
+        if self._packet_listener.is_alive():
+            self._packet_listener.join()
+        self._packet_listener = threading.Thread(target=self._packet_listen)
         self._packet_listener.start()
-        self.listener.start()
 
     def close(self):
         """Close the transport-layer connection and event-loop."""

@@ -216,8 +216,12 @@ class BaseTransport(metaclass=abc.ABCMeta):
         pass
 
     def startListener(self):
-        if not self.listener.is_alive():
-            self.listener.start()
+        if self.listener.is_alive():
+            self.finishListener()
+            self.listener.join()
+
+        self.listener = threading.Thread(target=self.listen)
+        self.listener.start()
 
     def finishListener(self):
         if hasattr(self, "closeEvent"):
