@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import struct
+import time
 from collections import defaultdict
 from dataclasses import dataclass
 from dataclasses import field
@@ -17,7 +18,7 @@ from pyxcp.cpp_ext import DaqList
 from pyxcp.daq_stim.optimize import make_continuous_blocks
 from pyxcp.daq_stim.optimize import McObject
 from pyxcp.daq_stim.optimize.binpacking import first_fit_decreasing
-from pyxcp.recorder import UnfoldingParameters
+from pyxcp.recorder import MeasurementParameters
 from pyxcp.recorder import XcpLogFileReader
 from pyxcp.recorder import XcpLogFileUnfolder
 from pyxcp.types import FrameCategory
@@ -102,7 +103,7 @@ class Daq:
             ttt = make_continuous_blocks(daq_list.measurements, max_payload_size, max_payload_size_first)
             daq_list.measurements_opt = first_fit_decreasing(ttt, max_payload_size, max_payload_size_first)
         byte_order = 0 if self.xcp_master.slaveProperties.byteOrder == "INTEL" else 1
-        self.uf = UnfoldingParameters(
+        self.uf = MeasurementParameters(
             byte_order,
             header_len,
             self.supports_timestampes,
@@ -150,9 +151,23 @@ class Daq:
     def stop(self):
         self.xcp_master.startStopSynch(0x00)
 
+    import time
+
     def reader(self):
         unfolder = XcpLogFileUnfolder(self.file_name, self.uf)
         unfolder.start(self.first_pids)
 
-        for block in unfolder.next_block():
-            print(block)
+        print("HEADERS")
+        philez = []
+        for idx, d in enumerate(self.daq_lists):
+            philez.append(open(f"{d.name}.csv", "wt"))
+            print(d.name, d.header_names)
+            hdr = ",".join(["timestamp0", "timestamp1"] + d.header_names)
+            philez[idx].write(f"{hdr}\n")
+        print("DATA")
+        start_time = time.perf_counter()
+        for daq_list, ts0, ts1, payload in unfolder:
+            philez[daq_list].write(f'{ts0},{ts1},{", ".join([str(x) for x in payload])}\n')
+        for ph in philez:
+            ph.close()
+        print("ETA: ", time.perf_counter() - start_time, "seconds")

@@ -22,11 +22,12 @@ PYBIND11_MODULE(rekorder, m) {
         .def("finalize", &XcpLogFileWriter::finalize)
         .def("add_frame", &XcpLogFileWriter::add_frame);
 
-    py::class_<UnfoldingParameters>(m, "_UnfoldingParameters")
+    py::class_<MeasurementParameters>(m, "_MeasurementParameters")
         .def(py::init<std::uint8_t, std::uint8_t, bool, bool, bool, bool, double, std::uint8_t, std::uint16_t, const std::vector<DaqList>&>());
 
     py::class_<XcpLogFileUnfolder>(m, "_XcpLogFileUnfolder")
-        .def(py::init<const std::string &, const UnfoldingParameters &>())
+        .def(py::init<const std::string &, const MeasurementParameters &>())
         .def("next_block", &XcpLogFileUnfolder::next_block)
-        .def("start", &XcpLogFileUnfolder::start);
+        .def("start", &XcpLogFileUnfolder::start)
+        ;
 }
