@@ -20,7 +20,6 @@ class SxI(BaseTransport):
     def __init__(self, config=None, policy=None):
         super(SxI, self).__init__(config, policy)
         self.load_config(config)
-        self.logger = config.log
         self.port_name = self.config.port
         self.baudrate = self.config.bitrate
         self.bytesize = self.config.bytesize
@@ -42,7 +41,7 @@ class SxI(BaseTransport):
             self.comm_port.timeout = self.timeout
             self.comm_port.open()
         except serial.SerialException as e:
-            self.logger.error("{}".format(e))
+            self.logger.critical(f"{e}")
             raise
         self.logger.info("Serial comm_port openend as '{}' @ {} Bits/Sec.".format(self.comm_port.portstr, self.baudrate))
         self.startListener()

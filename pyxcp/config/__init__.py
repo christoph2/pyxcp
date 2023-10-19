@@ -3,19 +3,22 @@
 import io
 import json
 import sys
+import typing
 import warnings
 from pathlib import Path
-from pprint import pprint
 
 import can
 import toml
 from traitlets import Any
 from traitlets import Bool
+from traitlets import Callable
+from traitlets import Dict
 from traitlets import Enum
 from traitlets import Float
 from traitlets import Int
 from traitlets import Integer
 from traitlets import List
+from traitlets import TraitError
 from traitlets import Unicode
 from traitlets import Union
 from traitlets.config import Application
@@ -27,6 +30,8 @@ from traitlets.config.loader import load_pyconfig_files
 
 from pyxcp.config import legacy
 
+warnings.simplefilter("always")
+
 
 class CanBase:
     has_fd = False
@@ -36,7 +41,16 @@ class CanBase:
     has_receive_own_messages = False
     has_timing = False
 
-    can_param_map = {
+    OPTIONAL_BASE_PARAMS = (
+        "has_fd",
+        "has_bitrate",
+        "has_data_bitrate",
+        "has_poll_interval",
+        "has_receive_own_messages",
+        "has_timing",
+    )
+
+    CAN_PARAM_MAP = {
         "sjw_abr": None,
         "tseg1_abr": None,
         "tseg2_abr": None,
@@ -104,10 +118,10 @@ If specified, bus/address shall not be provided.""",
     )
 
 
-class Ics_Neovi(SingletonConfigurable, CanBase):
+class Neovi(SingletonConfigurable, CanBase):
     """Intrepid Control Systems (ICS) neoVI interfaces."""
 
-    interface_name = "ics_neovi"
+    interface_name = "neovi"
 
     has_fd = True
     has_data_bitrate = True
@@ -154,7 +168,8 @@ class Ixxat(SingletonConfigurable, CanBase):
         allow_none=True,
         help="Secondary sample point (data). Only takes effect with fd and bitrate switch enabled.",
     ).tag(config=True)
-    can_param_map = {
+
+    CAN_PARAM_MAP = {
         "sjw_abr": "sjw_abr",
         "tseg1_abr": "tseg1_abr",
         "tseg2_abr": "tseg2_abr",
@@ -173,7 +188,7 @@ class Kvaser(SingletonConfigurable, CanBase):
     has_data_bitrate = True
     has_receive_own_messages = True
 
-    can_param_map = {
+    CAN_PARAM_MAP = {
         "sjw_abr": "sjw",
         "tseg1_abr": "tseg1",
         "tseg2_abr": "tseg2",
@@ -228,6 +243,13 @@ class NixNet(SingletonConfigurable, CanBase):
     has_poll_interval = True
     has_receive_own_messages = True
     has_timing = True
+    has_fd = True
+
+    CAN_PARAM_MAP = {
+        "data_bitrate": "fd_bitrate",
+    }
+
+    can_termination = Bool(default_value=None, allow_none=True, help="Enable bus termination.")
 
 
 class PCan(SingletonConfigurable, CanBase):
@@ -238,7 +260,7 @@ class PCan(SingletonConfigurable, CanBase):
     has_fd = True
     has_timing = True
 
-    can_param_map = {
+    CAN_PARAM_MAP = {
         "sjw_abr": "nom_sjw",
         "tseg1_abr": "nom_tseg1",
         "tseg2_abr": "nom_tseg2",
@@ -257,70 +279,108 @@ The constructor searches all connected interfaces and initializes the
 first one that matches the parameter value. If no device is found,
 an exception is raised.""",
     ).tag(config=True)
-    state = Instance(can.bus.BusState, default_value=None, allow_none=True, help="BusState of the channel.").tag(config=True)
+    state = Instance(can.BusState, default_value=None, allow_none=True, help="BusState of the channel.").tag(config=True)
 
+    f_clock = Enum(
+        [20000000, 24000000, 30000000, 40000000, 60000000, 80000000],
+        default_value=None,
+        allow_none=True,
+        help="""Ignored if not using CAN-FD.
+Pass either f_clock or f_clock_mhz.""",
+    ).tag(config=True)
+    f_clock_mhz = Enum(
+        [20, 24, 30, 40, 60, 80],
+        default_value=None,
+        allow_none=True,
+        help="""Ignored if not using CAN-FD.
+Pass either f_clock or f_clock_mhz. """,
+    ).tag(config=True)
 
-#     f_clock = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     f_clock_mhz = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
+    nom_brp = Integer(
+        min=1,
+        max=1024,
+        default_value=None,
+        allow_none=True,
+        help="""Clock prescaler for nominal time quantum.
+Ignored if not using CAN-FD.""",
+    ).tag(config=True)
+    data_brp = Integer(
+        min=1,
+        max=1024,
+        default_value=None,
+        allow_none=True,
+        help="""Clock prescaler for fast data time quantum.
+Ignored if not using CAN-FD.""",
+    ).tag(config=True)
 
-#     nom_brp = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     data_brp = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-
-#     auto_reset = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
+    auto_reset = Bool(
+        default_value=None,
+        allow_none=True,
+        help="""Enable automatic recovery in bus off scenario.
+Resetting the driver takes ~500ms during which
+it will not be responsive.""",
+    ).tag(config=True)
 
 
 class Robotell(SingletonConfigurable, CanBase):
-    """ """
+    """Interface for Chinese Robotell compatible interfaces"""
 
     interface_name = "robotell"
 
-
-#     ttyBaudrate = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     rtscts = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
+    ttyBaudrate = Integer(
+        default_value=None,
+        allow_none=True,
+        help="""baudrate of underlying serial or usb device
+(Ignored if set via the `channel` parameter, e.g. COM7@11500).""",
+    ).tag(config=True)
+    rtscts = Bool(default_value=None, allow_none=True, help="turn hardware handshake (RTS/CTS) on and off.").tag(config=True)
 
 
 class SeeedStudio(SingletonConfigurable, CanBase):
-    """ """
+    """Seeed USB-Can analyzer interface."""
 
     interface_name = "seeedstudio"
 
-
-#     timeout = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     baudrate = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     frame_type = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     operation_mode = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
+    timeout = Float(default_value=None, allow_none=True, help="Timeout for the serial device in seconds.").tag(config=True)
+    baudrate = Integer(default_value=None, allow_none=True, help="Baud rate of the serial device in bit/s.").tag(config=True)
+    frame_type = Enum(["STD", "EXT"], default_value=None, allow_none=True, help="To select standard or extended messages.").tag(
+        config=True
+    )
+    operation_mode = Enum(
+        ["normal", "loopback", "silent", "loopback_and_silent"], default_value=None, allow_none=True, help=""" """
+    ).tag(config=True)
 
 
 class Serial(SingletonConfigurable, CanBase):
-    """ """
+    """A text based interface."""
 
     interface_name = "serial"
 
     has_bitrate = False
 
-
-#     rtscts = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     timeout = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     baudrate = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
+    rtscts = Bool(default_value=None, allow_none=True, help="turn hardware handshake (RTS/CTS) on and off.").tag(config=True)
+    timeout = Float(default_value=None, allow_none=True, help="Timeout for the serial device in seconds.").tag(config=True)
+    baudrate = Integer(default_value=None, allow_none=True, help="Baud rate of the serial device in bit/s.").tag(config=True)
 
 
 class SlCan(SingletonConfigurable, CanBase):
-    """ """
+    """CAN over Serial / SLCAN."""
 
     interface_name = "slcan"
 
     has_poll_interval = True
 
-
-#     ttyBaudrate = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     rtscts = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     timeout = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     btr = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     sleep_after_open = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
+    ttyBaudrate = Integer(default_value=None, allow_none=True, help="Baud rate of the serial device in bit/s.").tag(config=True)
+    rtscts = Bool(default_value=None, allow_none=True, help="turn hardware handshake (RTS/CTS) on and off.").tag(config=True)
+    timeout = Float(default_value=None, allow_none=True, help="Timeout for the serial device in seconds.").tag(config=True)
+    btr = Integer(default_value=None, allow_none=True, help="BTR register value to set custom can speed.").tag(config=True)
+    sleep_after_open = Float(
+        default_value=None, allow_none=True, help="Time to wait in seconds after opening serial connection."
+    ).tag(config=True)
 
 
 class SocketCan(SingletonConfigurable, CanBase):
-    """ """
+    """Linux SocketCAN."""
 
     interface_name = "socketcan"
 
@@ -328,35 +388,50 @@ class SocketCan(SingletonConfigurable, CanBase):
     has_bitrate = False
     has_receive_own_messages = True
 
+    local_loopback = Bool(
+        default_value=None,
+        allow_none=True,
+        help="""If local loopback should be enabled on this bus.
+Please note that local loopback does not mean that messages sent
+on a socket will be readable on the same socket, they will only
+be readable on other open sockets on the same machine. More info
+can be read on the socketcan documentation:
+See https://www.kernel.org/doc/html/latest/networking/can.html#socketcan-local-loopback1""",
+    ).tag(config=True)
+
 
 class SocketCanD(SingletonConfigurable, CanBase):
-    """ """
+    """Network-to-CAN bridge as a Linux damon."""
 
     interface_name = "socketcand"
 
     has_bitrate = False
 
-
-#     host = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     port = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
+    host = Unicode(default_value=None, allow_none=True, help=""" """).tag(config=True)
+    port = Integer(default_value=None, allow_none=True, help=""" """).tag(config=True)
 
 
 class Systec(SingletonConfigurable, CanBase):
-    """ """
+    """SYSTEC interface"""
 
     interface_name = "systec"
 
     has_receive_own_messages = True
 
-
-#     state = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     device_number = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     rx_buffer_entries = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     tx_buffer_entries = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
+    state = Instance(can.BusState, default_value=None, allow_none=True, help="BusState of the channel.").tag(config=True)
+    device_number = Integer(min=0, max=254, default_value=None, allow_none=True, help="The device number of the USB-CAN.").tag(
+        config=True
+    )
+    rx_buffer_entries = Integer(
+        default_value=None, allow_none=True, help="The maximum number of entries in the receive buffer."
+    ).tag(config=True)
+    tx_buffer_entries = Integer(
+        default_value=None, allow_none=True, help="The maximum number of entries in the transmit buffer."
+    ).tag(config=True)
 
 
 class Udp_Multicast(SingletonConfigurable, CanBase):
-    """ """
+    """A virtual interface for CAN communications between multiple processes using UDP over Multicast IP."""
 
     interface_name = "udp_multicast"
 
@@ -364,24 +439,28 @@ class Udp_Multicast(SingletonConfigurable, CanBase):
     has_bitrate = False
     has_receive_own_messages = True
 
-
-#     port = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     hop_limit = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
+    port = Integer(default_value=None, allow_none=True, help="The IP port to read from and write to.").tag(config=True)
+    hop_limit = Integer(default_value=None, allow_none=True, help="The hop limit in IPv6 or in IPv4 the time to live (TTL).").tag(
+        config=True
+    )
 
 
 class Usb2Can(SingletonConfigurable, CanBase):
-    """ """
+    """Interface to a USB2CAN Bus."""
 
     interface_name = "usb2can"
 
-
-#     flags = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     dll = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     serial.1 = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
+    flags = Integer(
+        default_value=None, allow_none=True, help="Flags to directly pass to open function of the usb2can abstraction layer."
+    ).tag(config=True)
+    dll = Unicode(default_value=None, allow_none=True, help="Path to the DLL with the CANAL API to load.").tag(config=True)
+    serial = Unicode(default_value=None, allow_none=True, help="Alias for `channel` that is provided for legacy reasons.").tag(
+        config=True
+    )
 
 
 class Vector(SingletonConfigurable, CanBase):
-    """ """
+    """Vector Informatik CAN interfaces."""
 
     interface_name = "vector"
 
@@ -391,16 +470,29 @@ class Vector(SingletonConfigurable, CanBase):
     has_receive_own_messages = True
     has_timing = True
 
+    CAN_PARAM_MAP = {
+        "sjw_abr": "sjw_abr",
+        "tseg1_abr": "tseg1_abr",
+        "tseg2_abr": "tseg2_abr",
+        "sjw_dbr": "sjw_dbr",
+        "tseg1_dbr": "tseg1_dbr",
+        "tseg2_dbr": "tseg2_dbr",
+    }
 
-#     sjw_abr = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     tseg1_abr = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     tseg2_abr = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     sjw_dbr = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     tseg1_dbr = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     tseg2_dbr = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     serial.1 = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     rx_queue_size.1 = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     app_name = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
+    serial = Integer(
+        default_value=None,
+        allow_none=True,
+        help="""Serial number of the hardware to be used.
+If set, the channel parameter refers to the channels ONLY on the specified hardware.
+If set, the `app_name` does not have to be previously defined in
+*Vector Hardware Config*.""",
+    ).tag(config=True)
+    rx_queue_size = Integer(
+        min=16, max=32768, default_value=None, allow_none=True, help="Number of messages in receive queue (power of 2)."
+    ).tag(config=True)
+    app_name = Unicode(default_value=None, allow_none=True, help="Name of application in *Vector Hardware Config*.").tag(
+        config=True
+    )
 
 
 class Virtual(SingletonConfigurable, CanBase):
@@ -411,25 +503,70 @@ class Virtual(SingletonConfigurable, CanBase):
     has_bitrate = False
     has_receive_own_messages = True
 
+    rx_queue_size = Integer(
+        default_value=None,
+        allow_none=True,
+        help="""The size of the reception queue. The reception
+queue stores messages until they are read. If the queue reaches
+its capacity, it will start dropping the oldest messages to make
+room for new ones. If set to 0, the queue has an infinite capacity.
+Be aware that this can cause memory leaks if messages are read
+with a lower frequency than they arrive on the bus. """,
+    ).tag(config=True)
+    preserve_timestamps = Bool(
+        default_value=None,
+        allow_none=True,
+        help="""If set to True, messages transmitted via
+will keep the timestamp set in the
+:class:`~can.Message` instance. Otherwise, the timestamp value
+will be replaced with the current system time.""",
+    ).tag(
+        config=True
+    )  #     protocol = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
 
-#     rx_queue_size.1 = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     preserve_timestamps = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
-#     protocol = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
+
+CAN_INTERFACE_MAP = {
+    "canalystii": CanAlystii,
+    "cantact": CanTact,
+    "etas": Etas,
+    "gs_usb": Gs_Usb,
+    "iscan": IsCan,
+    "ixxat": Ixxat,
+    "kvaser": Kvaser,
+    "neousys": NeouSys,
+    "neovi": Neovi,
+    "nican": NiCan,
+    "nixnet": NixNet,
+    "pcan": PCan,
+    "robotell": Robotell,
+    "seeedstudio": SeeedStudio,
+    "serial": Serial,
+    "slcan": SlCan,
+    "socketcan": SocketCan,
+    "socketcand": SocketCanD,
+    "systec": Systec,
+    "udp_multicast": Udp_Multicast,
+    "usb2can": Usb2Can,
+    "vector": Vector,
+    "virtual": Virtual,
+}
 
 
-class CAN(SingletonConfigurable):
-    interface = Unicode("", help="").tag(config=True)
-    channel = Any(help="").tag(config=True)
+class Can(SingletonConfigurable):
+    VALID_INTERFACES = can.interfaces.VALID_INTERFACES
+
+    interface = Enum(VALID_INTERFACES, default_value=None, allow_none=True, help="CAN interface supported by python-can").tag(
+        config=True
+    )
+    channel = Any(
+        default_value=None, allow_none=True, help="Channel identification. Expected type and value is backend dependent."
+    ).tag(config=True)
     max_dlc_required = Bool(False, help="Master to slave frames always to have DLC = MAX_DLC = 8").tag(config=True)
     max_can_fd_dlc = Integer(64, help="").tag(config=True)
     padding_value = Integer(0, help="Fill value, if max_dlc_required == True and DLC < MAX_DLC").tag(config=True)
     use_default_listener = Bool(True, help="").tag(config=True)
-    can_id_master = Integer(default_value=None, allow_none=True, help="CAN-ID master -> slave (Bit31= 1: extended identifier)").tag(
-        config=True
-    )
-    can_id_slave = Integer(default_value=None, allow_none=True, help="CAN-ID slave -> master (Bit31= 1: extended identifier)").tag(
-        config=True
-    )
+    can_id_master = Integer(allow_none=False, help="CAN-ID master -> slave (Bit31= 1: extended identifier)").tag(config=True)
+    can_id_slave = Integer(allow_none=True, help="CAN-ID slave -> master (Bit31= 1: extended identifier)").tag(config=True)
     can_id_broadcast = Integer(
         default_value=None, allow_none=True, help="Auto detection CAN-ID (Bit31= 1: extended identifier)"
     ).tag(config=True)
@@ -459,13 +596,11 @@ class CAN(SingletonConfigurable):
         default_value=None,
         allow_none=True,
         help="""Custom bit timing settings.
-    (.s https://github.com/hardbyte/python-can/blob/develop/can/bit_timing.py)
-    If this parameter is provided, it takes precedence over all other
-    timing-related parameters.
+(.s https://github.com/hardbyte/python-can/blob/develop/can/bit_timing.py)
+If this parameter is provided, it takes precedence over all other
+timing-related parameters.
     """,
     ).tag(config=True)
-
-    EXCLUDE_FROM_DRIVERS = ()
 
     classes = List(
         [
@@ -473,7 +608,7 @@ class CAN(SingletonConfigurable):
             CanTact,
             Etas,
             Gs_Usb,
-            Ics_Neovi,
+            Neovi,
             IsCan,
             Ixxat,
             Kvaser,
@@ -498,11 +633,18 @@ class CAN(SingletonConfigurable):
     def __init__(self, **kws):
         super().__init__(**kws)
 
+        tos = self.class_own_traits()
+
+        if self.parent.layer == "CAN":
+            if self.interface is None or self.interface not in self.VALID_INTERFACES:
+                raise TraitError(
+                    f"CAN interface must be one of {sorted(list(self.VALID_INTERFACES))} not the {type(self.interface).__name__} {self.interface}."
+                )
         self.canalystii = CanAlystii.instance(config=self.config, parent=self)
         self.cantact = CanTact.instance(config=self.config, parent=self)
         self.etas = Etas.instance(config=self.config, parent=self)
         self.gs_usb = Gs_Usb.instance(config=self.config, parent=self)
-        self.ics_neovi = Ics_Neovi.instance(config=self.config, parent=self)
+        self.neovi = Neovi.instance(config=self.config, parent=self)
         self.iscan = IsCan.instance(config=self.config, parent=self)
         self.ixxat = Ixxat.instance(config=self.config, parent=self)
         self.kvaser = Kvaser.instance(config=self.config, parent=self)
@@ -521,10 +663,6 @@ class CAN(SingletonConfigurable):
         self.usb2can = Usb2Can.instance(config=self.config, parent=self)
         self.vector = Vector.instance(config=self.config, parent=self)
         self.virtual = Virtual.instance(config=self.config, parent=self)
-
-    def __str__(self):
-        # return f"Can(can_driver='{self.can_driver}', channel='{self.channel}', max_dlc_required={self.max_dlc_required}, max_can_fd_dlc={self.max_can_fd_dlc}, padding_value={self.padding_value}), CanAlystii={self.CanAlystii}, Etas={self.Etas}"
-        return f"Can(can_driver='{self.interface}', channel='{self.channel}', bitrate={self.bitrate}, max_dlc_required={self.max_dlc_required}, max_can_fd_dlc={self.max_can_fd_dlc}, padding_value={self.padding_value})"
 
 
 class Eth(SingletonConfigurable):
@@ -578,21 +716,29 @@ class USB(SingletonConfigurable):
 class Transport(SingletonConfigurable):
     """ """
 
-    classes = List([CAN, Eth, SxI, USB])
+    classes = List([Can, Eth, SxI, USB])
 
-    layer = Enum(["CAN", "ETH", "SXI", "USB"], default_value=None, allow_none=False).tag(config=True)  # Enum
-    create_daq_timestamps = Bool(False).tag(config=True)
-    timeout = Float(2.0).tag(config=True)
+    layer = Enum(
+        ["CAN", "ETH", "SXI", "USB"], default_value=None, allow_none=False, help="Choose one of the supported XCP transport layers."
+    ).tag(
+        config=True
+    )  # Enum
+    create_daq_timestamps = Bool(False, help="Record time of frame reception or set timestamp to 0.").tag(config=True)
+    timeout = Float(
+        2.0,
+        help="""raise `XcpTimeoutError` after `timeout` seconds
+if there is no response to a command.""",
+    ).tag(config=True)
     alignment = Enum([1, 2, 4, 8], default_value=1).tag(config=True)
 
-    can = Instance(CAN).tag(config=True)
+    can = Instance(Can).tag(config=True)
     eth = Instance(Eth).tag(config=True)
     sxi = Instance(SxI).tag(config=True)
     usb = Instance(USB).tag(config=True)
 
     def __init__(self, **kws):
         super().__init__(**kws)
-        self.can = CAN.instance(config=self.config, parent=self)
+        self.can = Can.instance(config=self.config, parent=self)
         self.eth = Eth.instance(config=self.config, parent=self)
         self.sxi = SxI.instance(config=self.config, parent=self)
         self.usb = USB.instance(config=self.config, parent=self)
@@ -611,6 +757,7 @@ class General(SingletonConfigurable):
     disconnect_response_optional = Bool(False).tag(config=True)
     seed_n_key_dll = Unicode("", allow_none=False).tag(config=True)
     seed_n_key_dll_same_bit_width = Bool(False).tag(config=True)
+    seed_n_key_function = Callable(default_value=None, allow_none=True).tag(config=True)
 
     def __str__(self):
         return str(
@@ -625,23 +772,89 @@ class PyXCP(Application):
 
     def initialize(self, argv=None):
         self.parse_command_line(argv)
-        if self.config_file:
-            self.load_config_file(self.config_file)
-            # res = load_pyconfig_files([self.config_file], "c:\csprojects")
-            # print("Loaded CFG-File: ", self.config_file, res, self.config)
-        print("SC", self.config)
+        self.read_configuration_file()
         self.general = General.instance(config=self.config, parent=self)
-        self.transport = Transport.instance(parent=self)  # Transport(config=self.config, parent=self)
+        self.transport = Transport.instance(parent=self)
 
-    def confy(self):
-        for klass in application._classes_with_config_traits():
-            # pprint(klass.class_config_section())
-            if hasattr(klass, "classes"):
-                print("KLASEES", klass.classes)
-            for name, tr_type in klass._traits.items():
-                if isinstance(tr_type, Instance):
-                    print(name, tr_type)
-            # ctr = klass.class_traits(config=True)
+    def read_configuration_file(self):
+        pth = Path(self.config_file)
+        suffix = pth.suffix.lower()
+        if suffix == ".py":
+            self.load_config_file(self.config_file)
+        else:
+            if suffix == ".json":
+                reader = json
+            elif suffix == ".toml":
+                reader = toml
+            else:
+                raise ValueError(f"Unknown file type for config: {suffix}")
+            with pth.open("r") as f:
+                warnings.warn("Old-style configuration file. Please user python based configuration.", DeprecationWarning)
+                cfg = reader.loads(f.read())
+                if cfg:
+                    cfg = legacy.convert_config(cfg)
+                    self.config = cfg
+            return cfg
+
+    flags = Dict(  # type:ignore[assignment]
+        dict(
+            debug=({"PyXCP": {"log_level": 10}}, "Set loglevel to DEBUG"),
+        )
+    )
+
+    aliases = Dict(  # type:ignore[assignment]
+        dict(
+            c="PyXCP.config_file",
+            log_level="PyXCP.log_level",
+            l="PyXCP.log_level",
+        )
+    )
+
+    def _iterate_config_class(self, klass, class_names: typing.List[str]) -> None:
+        sub_classes = []
+        class_path = ".".join(class_names)
+        print(
+            f"""\n# ------------------------------------------------------------------------------
+# {class_path} configuration
+# ------------------------------------------------------------------------------""",
+            end="\n\n",
+        )
+        if hasattr(klass, "classes"):
+            kkk = klass.classes
+            if hasattr(kkk, "default"):
+                if class_names[-1] not in ("PyXCP"):
+                    sub_classes.extend(kkk.default())
+        for name, tr in klass.class_own_traits().items():
+            md = tr.metadata
+            if md.get("config"):
+                help = md.get("help", "").lstrip()
+                commented_lines = "\n".join([f"# {line}" for line in help.split("\n")])
+                print(f"#{commented_lines}")
+                value = tr.default()
+                if isinstance(tr, Instance) and tr.__class__.__name__ not in ("Dict",):
+                    continue
+                if isinstance(tr, Unicode) and value is not None:
+                    value = f"'{value}'"
+                if isinstance(tr, Enum):
+                    print(f"#  Choices: {tr.info()}")
+                else:
+                    print(f"#  Type: {tr.info()}")
+                print(f"#  Default: {value}")
+
+                print(f"#  c.{class_path}.{name} = {value}", end="\n\n")
+        if class_names is None:
+            class_names = []
+        for sub_klass in sub_classes:
+            self._iterate_config_class(sub_klass, class_names + [sub_klass.__name__])
+
+    def generate_config_file(self, file_like: io.IOBase, config=None) -> None:
+        print("#")
+        print("# Configuration file for pyXCP.")
+        print("#")
+        print("c = get_config()  # noqa", end="\n\n")
+
+        for klass in self._classes_with_config_traits():
+            self._iterate_config_class(klass, [klass.__name__])
 
     def __str__(self):
         return f"PyXCP: {self.config.general}"
@@ -656,21 +869,9 @@ application = PyXCP()
 application.initialize(sys.argv)
 application.start()
 
+# print(application.generate_config_file())
+# print("*" * 80)
 
-def readConfiguration(phile: io.TextIOWrapper):
-    pth = Path(phile.name)
-    suffix = pth.suffix.lower()
-    if suffix == ".py":
-        pass
-    else:
-        if suffix == ".json":
-            reader = json
-        elif suffix == ".toml":
-            reader = toml
-        else:
-            raise ValueError(f"Unknown file type for config: {suffix}")
-        with pth.open("r") as f:
-            cfg = reader.loads(f.read())
-            if cfg:
-                cfg = legacy.convert_config(cfg)
-        return cfg
+import sys
+
+application.generate_config_file(sys.stdout)

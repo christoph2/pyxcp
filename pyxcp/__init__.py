@@ -3,6 +3,10 @@
 """Universal Calibration Protocol for Python"""
 import sys
 
+from rich.traceback import install
+
+install(show_locals=True, max_frames=3)  # Install custom exception handler.
+
 if sys.platform == "win32" and sys.version_info[:2] < (3, 11):
     # patch the time module with the high resolution alternatives
     try:

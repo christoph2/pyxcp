@@ -69,6 +69,7 @@ install_reqs = [
     "uptime",
     "chardet",
     "traitlets",
+    "rich",
 ]
 
 class AsamKeyDllAutogen(setuptools.Command):

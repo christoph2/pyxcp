@@ -78,31 +78,15 @@ class Master:
     config: dict
     """
 
-    PARAMETER_MAP = {
-        #            Type Req'd  Default
-        "LOGLEVEL": (str, False, "WARN"),
-        "DISABLE_ERROR_HANDLING": (
-            bool,
-            False,
-            False,
-        ),  # Bypass error-handling for performance reasons.
-        "SEED_N_KEY_DLL": (str, False, ""),
-        "SEED_N_KEY_DLL_SAME_BIT_WIDTH": (bool, False, False),
-        "DISCONNECT_RESPONSE_OPTIONAL": (bool, False, False),
-    }
-
     def __init__(self, transport_name: str, config, policy=None):
         self.ctr = 0
         self.succeeded = True
         self.config = config.general
-        print(self.config.seed_n_key_dll)
         self.logger = config.log
-        self.logger.setLevel("INFO")
-        self.logger.info("NEW cfg system!!!")
 
         disable_error_handling(self.config.disable_error_handling)
         self.transport_name = transport_name.lower()
-        transport_config = config.transport  # getattr(config.transport, self.transport_name)
+        transport_config = config.transport
         self.transport = createTransport(transport_name, transport_config, policy)
 
         self.transport.set_writer_lock(get_writer_lock())
@@ -132,8 +116,9 @@ class Master:
         self.mta = types.MtaType(None, None)
         self.currentDaqPtr = None
         self.currentProtectionStatus = None
-        self.seedNKeyDLL = self.config.seed_n_key_dll  # .get("SEED_N_KEY_DLL")
-        self.seedNKeyDLL_same_bit_width = self.config.seed_n_key_dll_same_bit_width
+        self.seed_n_key_dll = self.config.seed_n_key_dll
+        self.seed_n_key_function = self.config.seed_n_key_function
+        self.seed_n_key_dll_same_bit_width = self.config.seed_n_key_dll_same_bit_width
         self.disconnect_response_optional = self.config.disconnect_response_optional
         self.slaveProperties = SlaveProperties()
         self.slaveProperties.pgmProcessor = SlaveProperties()
@@ -1807,8 +1792,8 @@ class Master:
 
         MAX_PAYLOAD = self.slaveProperties["maxCto"] - 2
 
-        if not self.seedNKeyDLL:
-            raise RuntimeError("No seed and key DLL specified, cannot proceed.")
+        if not (self.seed_n_key_dll or self.seed_n_key_function):
+            raise RuntimeError("Neither seed and key DLL  or function specified, cannot proceed.")
         if resources is None:
             result = []
             if self.slaveProperties["supportsCalpag"]:
@@ -1839,15 +1824,23 @@ class Master:
                     result = self.getSeed(types.XcpGetSeedMode.REMAINING, resource_value)
                     seed.extend(list(result.seed))
                     remaining = result.length
-            result, key = getKey(
-                self.logger,
-                self.seedNKeyDLL,
-                resource_value,
-                bytes(seed),
-                self.seedNKeyDLL_same_bit_width,
-            )
+            self.logger.debug(f"Got seed {seed} for resource {resource_value}.")
+            if self.seed_n_key_function:
+                key = self.seed_n_key_function(resource_value, bytes(seed))
+                self.logger.debug(f"Using seed and key function '{self.seed_n_key_function.__name__}()'.")
+                result = SeedNKeyResult.ACK
+            elif self.seed_n_key_dll:
+                self.logger.debug(f"Using seed and key DLL '{self.seed_n_key_dll}'.")
+                result, key = getKey(
+                    self.logger,
+                    self.seed_n_key_dll,
+                    resource_value,
+                    bytes(seed),
+                    self.seed_n_key_dll_same_bit_width,
+                )
             if result == SeedNKeyResult.ACK:
                 key = list(key)
+                self.logger.debug(f"Unlocking resource {resource_value} with key {key}.")
                 total_length = len(key)
                 offset = 0
                 while offset < total_length:

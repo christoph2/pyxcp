@@ -41,10 +41,10 @@ PYBIND11_MODULE(stim, m) {
         ;
 
     py::class_<Mutex>(m, "Mutex")
-        .def("__enter__", [&](Mutex& self) { self.lock(); })
+        .def("__enter__", [&](Mutex& self) { /*std::cout << "__enter__ Mutex()\n";*/ /*self.lock();*/ })
         .def(
             "__exit__",
             [&](Mutex& self, const std::optional<pybind11::type>& exc_type, const std::optional<pybind11::object>& exc_value,
-                const std::optional<pybind11::object>& traceback) { self.unlock(); }
+                const std::optional<pybind11::object>& traceback) { /*std::cout << "__exit____ Mutex()\n";*/ /*self.unlock();*/ }
         );
 }

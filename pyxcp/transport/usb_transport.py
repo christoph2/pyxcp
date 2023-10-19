@@ -106,7 +106,7 @@ class Usb(BaseTransport):
         self.closeConnection()
 
     def _packet_listen(self):
-        close_event_set = self.closeEvent.isSet
+        close_event_set = self.closeEvent.is_set
 
         _packets = self._packets
         read = self.reply_endpoint.read
@@ -142,7 +142,7 @@ class Usb(BaseTransport):
         popleft = self._packets.popleft
 
         processResponse = self.processResponse
-        close_event_set = self.closeEvent.isSet
+        close_event_set = self.closeEvent.is_set
 
         _packets = self._packets
         length, counter = None, None

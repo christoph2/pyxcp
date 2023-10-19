@@ -3,13 +3,15 @@
 """Implements error-handling according to XCP spec.
 """
 import functools
-import logging
 import os
 import threading
 import time
 import types
 from collections import namedtuple
 
+import can
+
+from pyxcp.config import application
 from pyxcp.errormatrix import Action
 from pyxcp.errormatrix import ERROR_MATRIX
 from pyxcp.errormatrix import PreAction
@@ -18,10 +20,7 @@ from pyxcp.types import XcpError
 from pyxcp.types import XcpResponseError
 from pyxcp.types import XcpTimeoutError
 
-
 handle_errors = True  # enable/disable XCP error-handling.
-
-logger = logging.getLogger("pyxcp.errorhandler")
 
 
 class SingletonBase(object):
@@ -176,7 +175,7 @@ def display_error():
 class Handler:
     """"""
 
-    logger = logger
+    logger = application.log
 
     def __init__(self, instance, func, arguments, error_code=None):
         self.instance = instance
@@ -209,7 +208,7 @@ class Handler:
         self._repeater = value
 
     def execute(self):
-        self.logger.debug(f"EXECUTE func = {func_name(self.func)} arguments = {self.arguments})")
+        self.logger.debug(f"Execute({func_name(self.func)} arguments = {self.arguments})")
         if isinstance(self.func, types.MethodType):
             return self.func(*self.arguments.args, **self.arguments.kwargs)
         else:
@@ -323,14 +322,13 @@ class Executor(SingletonBase):
 
     handlerStack = HandlerStack()
     repeater = None
-    logger = logger
+    logger = application.log
     previous_error_code = None
     error_code = None
     func = None
     arguments = None
 
     def __call__(self, inst, func, arguments):
-        self.logger.debug(f"__call__({func.__qualname__})")
         self.inst = inst
         self.func = func
         self.arguments = arguments
@@ -341,15 +339,20 @@ class Executor(SingletonBase):
             while True:
                 try:
                     handler = self.handlerStack.tos()
-                    # print("\t\tEXEC", hex(id(handler)))
                     res = handler.execute()
                 except XcpResponseError as e:
-                    self.logger.error(f"XcpResponseError [{str(e)}]")
+                    # self.logger.critical(f"XcpResponseError [{str(e)}]")
                     self.error_code = e.get_error_code()
-                except XcpTimeoutError as e:
-                    self.logger.error(f"XcpTimeoutError [{str(e)}]")
+                except XcpTimeoutError:
+                    # self.logger.error(f"XcpTimeoutError [{str(e)}]")
                     self.error_code = XcpError.ERR_TIMEOUT
+                except TimeoutError:
+                    raise
+                except can.CanError:
+                    # self.logger.critical(f"Exception raised by Python CAN [{str(e)}]")
+                    raise
                 except Exception:
+                    # self.logger.critical(f"Exception [{str(e)}]")
                     raise
                 else:
                     self.error_code = None

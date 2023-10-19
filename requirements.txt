@@ -5,6 +5,7 @@ construct>=2.9
 mako
 traitlets
 chardet
+rich
 pyserial
 numpydoc
 sphinxcontrib-napoleon

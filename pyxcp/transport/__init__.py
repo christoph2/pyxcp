@@ -3,6 +3,7 @@
 from .base import FrameAcquisitionPolicy
 from .base import FrameRecorderPolicy
 from .base import LegacyFrameAcquisitionPolicy
+from .base import NoOpPolicy
 from .base import StdoutPolicy
 from .can import Can
 from .eth import Eth

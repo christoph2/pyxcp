@@ -748,7 +748,7 @@ class TestMaster:
             "CAN_USE_DEFAULT_LISTENER": False,
         }
         with Master("can", config=conf) as xm:
-            mock_caninterface = xm.transport.canInterface
+            mock_caninterface = xm.transport.can_interface
             mock_caninterface.push_packet(self.DefaultConnectResponse)
             xm.connect()
 
@@ -817,7 +817,7 @@ class TestMaster:
             "CAN_USE_DEFAULT_LISTENER": False,
         }
         with Master("can", config=conf) as xm:
-            mock_caninterface = xm.transport.canInterface
+            mock_caninterface = xm.transport.can_interface
             mock_caninterface.push_packet(self.DefaultConnectResponse)
             xm.connect()
 

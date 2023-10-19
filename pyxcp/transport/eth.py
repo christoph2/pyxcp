@@ -19,17 +19,6 @@ RECV_SIZE = 8196
 class Eth(BaseTransport):
     """"""
 
-    PARAMETER_MAP = {
-        #                  Type    Req'd   Default
-        "HOST": (str, False, "localhost"),
-        "PORT": (int, False, 5555),
-        "BIND_TO_ADDRESS": (str, False, ""),
-        "BIND_TO_PORT": (int, False, 5555),
-        "PROTOCOL": (str, False, "TCP"),
-        "IPV6": (bool, False, False),
-        "TCP_NODELAY": (bool, False, False),
-    }
-
     MAX_DATAGRAM_SIZE = 512
     HEADER = struct.Struct("<HH")
     HEADER_SIZE = HEADER.size
@@ -46,20 +35,28 @@ class Eth(BaseTransport):
         bind_to_port = self.config.bind_to_port
         self._local_address = (address_to_bind, bind_to_port) if address_to_bind else None
         if self.ipv6 and not socket.has_ipv6:
-            raise RuntimeError("IPv6 not supported by your platform.")
+            msg = "IPv6 not supported by your platform."
+            self.logger.critical(msg)
+            raise RuntimeError(msg)
         else:
             address_family = socket.AF_INET6 if self.ipv6 else socket.AF_INET
         proto = socket.SOCK_STREAM if self.protocol == "TCP" else socket.SOCK_DGRAM
         if self.host.lower() == "localhost":
             self.host = "::1" if self.ipv6 else "localhost"
-        addrinfo = socket.getaddrinfo(self.host, self.port, address_family, proto)
-        (
-            self.address_family,
-            self.socktype,
-            self.proto,
-            self.canonname,
-            self.sockaddr,
-        ) = addrinfo[0]
+
+        try:
+            addrinfo = socket.getaddrinfo(self.host, self.port, address_family, proto)
+            (
+                self.address_family,
+                self.socktype,
+                self.proto,
+                self.canonname,
+                self.sockaddr,
+            ) = addrinfo[0]
+        except BaseException as ex:
+            msg = f"Failed to resolve address {self.host}:{self.port}"
+            self.logger.critical(msg)
+            raise Exception(msg) from ex
         self.status = 0
         self.sock = socket.socket(self.address_family, self.socktype, self.proto)
         self.selector = selectors.DefaultSelector()
@@ -75,7 +72,9 @@ class Eth(BaseTransport):
             try:
                 self.sock.bind(self._local_address)
             except BaseException as ex:
-                raise Exception(f"Failed to bind socket to given address {self._local_address}") from ex
+                msg = f"Failed to bind socket to given address {self._local_address}"
+                self.logger.critical(msg)
+                raise Exception(msg) from ex
         self._packet_listener = threading.Thread(
             target=self._packet_listen,
             args=(),

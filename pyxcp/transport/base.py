@@ -42,10 +42,11 @@ class FrameAcquisitionPolicy:
     def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: float, payload: bytes) -> None:
         ...
 
-    def finalize(self) -> None:
+    def finalize(self, *args) -> None:
         """
         Finalize the frame acquisition policy (if required).
         """
+        ...
 
 
 class NoOpPolicy(FrameAcquisitionPolicy):
@@ -149,14 +150,6 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     """
 
-    PARAMETER_MAP = {
-        #                         Type    Req'd   Default
-        "CREATE_DAQ_TIMESTAMPS": (bool, False, False),
-        "LOGLEVEL": (str, False, "WARN"),
-        "TIMEOUT": (float, False, 2.0),
-        "ALIGNMENT": (int, False, 1),
-    }
-
     def __init__(self, config, policy: FrameAcquisitionPolicy = None):
         self.parent = None
         self.policy = policy or LegacyFrameAcquisitionPolicy()
@@ -164,14 +157,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
         self.command_lock = threading.Lock()
 
-        # loglevel = self.config.get("LOGLEVEL")
-
-        # self._debug = True
-        self._debug = False
         self.logger = config.log
-        # self._debug = loglevel == "DEBUG"
-        # self.logger = Logger("transport.Base")
-        # self.logger.setLevel(loglevel)
+        self._debug = self.logger.level == 10
 
         self.counterSend = 0
         self.counterReceived = -1
