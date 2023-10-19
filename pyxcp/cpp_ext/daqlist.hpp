@@ -1,5 +1,4 @@
 
-
 #if !defined(__DAQ_LIST_HPP)
     #define __DAQ_LIST_HPP
 
@@ -9,21 +8,27 @@
 class DaqList {
    public:
 
-    using daq_list_initialzer_t = std::tuple<std::string, std::uint32_t, std::uint16_t, std::uint16_t, std::string>;
+    using daq_list_initialzer_t = std::tuple<std::string, std::uint32_t, std::uint16_t, std::string>;
     using flatten_odts_t =
         std::vector<std::vector<std::tuple<std::string, std::uint32_t, std::uint8_t, std::uint16_t, std::int16_t>>>;
 
-    DaqList(std::uint16_t event_num, bool enable_timestamps, const std::vector<daq_list_initialzer_t>& measurements) :
-        m_event_num(event_num), m_enable_timestamps(enable_timestamps) {
+    DaqList(
+        std::string_view meas_name, std::uint16_t event_num, bool enable_timestamps,
+        const std::vector<daq_list_initialzer_t>& measurements
+    ) :
+        m_name(meas_name), m_event_num(event_num), m_enable_timestamps(enable_timestamps) {
         for (const auto& measurement : measurements) {
-            auto const& [name, address, ext, length, dt_name] = measurement;
-            // std::cout << "DL-obj: " << name << ", " << address << ", " << ext << ", " << length << ", " << dt_name << std::endl;
-            m_measurements.emplace_back(McObject(name, address, ext, length, dt_name));
+            auto const& [name, address, ext, dt_name] = measurement;
+            m_measurements.emplace_back(McObject(name, address, ext, 0, dt_name));
         }
     }
 
     bool get_enable_timestamps() const {
         return m_enable_timestamps;
+    }
+
+    const std::string& get_name() const {
+        return m_name;
     }
 
     bool get_event_num() const {
@@ -87,6 +92,7 @@ class DaqList {
 
    private:
 
+    std::string              m_name;
     std::uint16_t            m_event_num;
     bool                     m_enable_timestamps;
     std::vector<McObject>    m_measurements;

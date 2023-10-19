@@ -100,6 +100,9 @@ class Master:
         self.transport.parent = self
         self.service = None
 
+        # Policies may issue XCP commands on there own.
+        self.transport.policy.xcp_master = self
+
         # (D)Word (un-)packers are byte-order dependent
         # -- byte-order is returned by CONNECT_Resp (COMM_MODE_BASIC)
         self.BYTE_pack = None

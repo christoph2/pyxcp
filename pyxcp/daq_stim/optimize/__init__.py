@@ -38,6 +38,9 @@ def make_continuous_blocks(chunks: List[McObject], upper_bound=None, upper_bound
     result_sections = []
     last_section = None
     last_ext = None
+    first_section = True
+    if upper_bound_initial is None:
+        upper_bound_initial = upper_bound
     while values:
         section = values.pop(0)
         if (last_section and section.address <= last_section.address + last_section.length) and not (section.ext != last_ext):
@@ -48,6 +51,9 @@ def make_continuous_blocks(chunks: List[McObject], upper_bound=None, upper_bound
             else:
                 offset = current_end - last_end
                 if upper_bound:
+                    if first_section:
+                        upper_bound = upper_bound_initial
+                        first_section = False
                     if last_section.length + offset <= upper_bound:
                         last_section.length += offset
                         last_section.add_component(section)

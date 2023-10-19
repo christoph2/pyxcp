@@ -42,15 +42,23 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 
-EXT_NAMES = ["rekorder"]
+EXT_NAMES = ["pyxcp.recorder.rekorder", "pyxcp.cpp_ext.cpp_ext"]
 
 if has_pybind11:
     ext_modules = [
         Pybind11Extension(
             EXT_NAMES[0],
-            include_dirs=[PYB11_INCLUDE_DIRS, "pyxcp/recorder"],
+            include_dirs=[PYB11_INCLUDE_DIRS, "pyxcp/recorder", "pyxcp/cpp_ext"],
             sources=["pyxcp/recorder/lz4.c", "pyxcp/recorder/wrap.cpp"],
             define_macros=[("EXTENSION_NAME", EXT_NAMES[0]), ("NDEBUG", 1)],
+            optional=False,
+            cxx_std=20,
+        ),
+        Pybind11Extension(
+            EXT_NAMES[1],
+            include_dirs=[PYB11_INCLUDE_DIRS, "pyxcp/cpp_ext"],
+            sources=["pyxcp/cpp_ext/extension_wrapper.cpp"],
+            define_macros=[("EXTENSION_NAME", EXT_NAMES[1]), ("NDEBUG", 1)],
             optional=False,
             cxx_std=20,
         ),
@@ -71,6 +79,7 @@ install_reqs = [
     "traitlets",
     "rich",
 ]
+
 
 class AsamKeyDllAutogen(setuptools.Command):
     """Custom command to compile `asamkeydll.exe`."""

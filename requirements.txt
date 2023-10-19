@@ -1,5 +1,5 @@
-pybind11
-pytest
+pybind11~=2.10.4
+pytest~=7.4.2
 pytest-runner
 construct>=2.9
 mako
@@ -9,6 +9,15 @@ rich
 pyserial
 numpydoc
 sphinxcontrib-napoleon
-toml
+toml~=0.10.2
 pyusb
 win-precise-time; sys_platform == 'win32'
+
+numpy~=1.25.0
+setuptools~=65.5.0
+packaging~=23.1
+Babel~=2.12.1
+Pygments~=2.16.1
+MarkupSafe~=2.1.3
+Jinja2~=3.1.2
+docutils~=0.20.1

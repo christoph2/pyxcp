@@ -17,9 +17,8 @@ else:
 
 import pyxcp.recorder.rekorder as rec
 
-
-UnfoldingParameters = rec._UnfoldingParameters
-XcpLogFileUnfolder = rec._XcpLogFileUnfolder
+MeasurementParameters = rec._MeasurementParameters
+DAQParser = rec.DAQParser
 
 
 @dataclass

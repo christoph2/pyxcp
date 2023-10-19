@@ -228,27 +228,27 @@ class Handler:
                 fn = Function(self.instance.synch, Arguments())
                 result_pre_actions.append(fn)
             elif item == PreAction.GET_SEED_UNLOCK:
-                raise NotImplementedError("GET_SEED_UNLOCK")
+                raise NotImplementedError("Pre-action GET_SEED_UNLOCK")
             elif item == PreAction.SET_MTA:
                 fn = Function(self.instance.setMta, Arguments(self.instance.mta))
                 result_pre_actions.append(fn)
             elif item == PreAction.SET_DAQ_PTR:
                 fn = Function(self.instance.setDaqPtr, Arguments(self.instance.currentDaqPtr))
             elif item == PreAction.START_STOP_X:
-                raise NotImplementedError("START_STOP_X")
+                raise NotImplementedError("Pre-action START_STOP_X")
             elif item == PreAction.REINIT_DAQ:
-                raise NotImplementedError("REINIT_DAQ")
+                raise NotImplementedError("Pre-action REINIT_DAQ")
             elif item == PreAction.DISPLAY_ERROR:
                 pass
             elif item == PreAction.DOWNLOAD:
-                raise NotImplementedError("DOWNLOAD")
+                raise NotImplementedError("Pre-action DOWNLOAD")
             elif item == PreAction.PROGRAM:
-                raise NotImplementedError("PROGRAM")
+                raise NotImplementedError("Pre-action PROGRAM")
             elif item == PreAction.UPLOAD:
-                raise NotImplementedError("UPLOAD")
+                raise NotImplementedError("Pre-action UPLOAD")
             elif item == PreAction.UNLOCK_SLAVE:
                 resource = COMMAND_CATEGORIES.get(self.instance.service)  # noqa: F841
-                raise NotImplementedError("UNLOCK_SLAVE")
+                raise NotImplementedError("Pre-action UNLOCK_SLAVE")
         for item in actionIter(actions):
             if item == Action.NONE:
                 pass
