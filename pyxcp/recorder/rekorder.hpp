@@ -91,7 +91,8 @@ struct ContainerHeaderType {
     uint32_t size_uncompressed;
 };
 
-using blob_t = unsigned char;
+using blob_t      = unsigned char;
+using blob_string = std::basic_string<blob_t>;
 
     #if STANDALONE_REKORDER == 1
 using payload_t = std::shared_ptr<blob_t[]>;

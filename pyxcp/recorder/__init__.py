@@ -19,6 +19,8 @@ import pyxcp.recorder.rekorder as rec
 
 MeasurementParameters = rec._MeasurementParameters
 
+DAQParser = rec.DAQParser
+
 
 @dataclass
 class XcpLogFileHeader:
@@ -63,23 +65,6 @@ class XcpLogFileReader:
             return df
         else:
             raise NotImplementedError("method as_dataframe() requires 'pandas' package")
-
-
-class XcpLogFileUnfolder:
-    def __init__(self, file_name: str, params: MeasurementParameters):
-        self._unfolder = rec._XcpLogFileUnfolder(file_name, params)
-
-    def start(self, first_pids: list):
-        self._unfolder.start(first_pids)
-
-    def __iter__(self):
-        while True:
-            block = self._unfolder.next_block()
-            if block is None:
-                break
-            for frame in block:
-                daq_list, ts0, ts1, payload = frame
-                yield (daq_list, ts0, ts1, payload)
 
 
 class XcpLogFileWriter:

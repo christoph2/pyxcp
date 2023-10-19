@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import struct
-import time
 from collections import defaultdict
 from dataclasses import dataclass
 from dataclasses import field
@@ -18,9 +17,9 @@ from pyxcp.cpp_ext import DaqList
 from pyxcp.daq_stim.optimize import make_continuous_blocks
 from pyxcp.daq_stim.optimize import McObject
 from pyxcp.daq_stim.optimize.binpacking import first_fit_decreasing
+from pyxcp.recorder import DAQParser as _DAQParser
 from pyxcp.recorder import MeasurementParameters
 from pyxcp.recorder import XcpLogFileReader
-from pyxcp.recorder import XcpLogFileUnfolder
 from pyxcp.types import FrameCategory
 
 
@@ -38,15 +37,11 @@ DAQ_TIMESTAMP_SIZE = {
 }
 
 
-class Daq:
-    def __init__(self, file_name: str, callback: Optional[Callable[[int, Tuple], None]] = None):
+class DAQParser(_DAQParser):
+    def __init__(self, file_name: str, daq_lists: List[DaqList], callback: Optional[Callable[[int, Tuple], None]] = None):
+        super().__init__()
         self.callback = callback
         self.file_name = file_name
-
-    def set_master(self, xcp_master):
-        self.xcp_master = xcp_master
-
-    def add_daq_lists(self, daq_lists: List[DaqList]):
         self.daq_lists = daq_lists
 
     def setup(self, write_multiple: bool = True):
@@ -81,13 +76,13 @@ class Daq:
             self.selectable_timestamps = False
             if not self.supports_timestampes:
                 max_payload_size_first = max_payload_size
-                print("NO TIMESTAMP SUPPORT")
+                # print("NO TIMESTAMP SUPPORT")
             else:
                 if self.ts_fixed:
-                    print("Fixed timestamp")
+                    # print("Fixed timestamp")
                     max_payload_size_first = max_payload_size - self.ts_size
                 else:
-                    print("timestamp variable.")
+                    # print("timestamp variable.")
                     self.selectable_timestamps = True
 
         except Exception as e:
@@ -115,6 +110,8 @@ class Daq:
             self.min_daq,
             self.daq_lists,
         )
+
+        self.set_parameters(self.uf)
 
         self.first_pids = []
         daq_count = len(self.daq_lists)
@@ -154,9 +151,7 @@ class Daq:
     import time
 
     def reader(self):
-        unfolder = XcpLogFileUnfolder(self.file_name, self.uf)
-        unfolder.start(self.first_pids)
-
+        """
         print("HEADERS")
         philez = []
         for idx, d in enumerate(self.daq_lists):
@@ -171,3 +166,4 @@ class Daq:
         for ph in philez:
             ph.close()
         print("ETA: ", time.perf_counter() - start_time, "seconds")
+        """

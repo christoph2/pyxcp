@@ -96,11 +96,11 @@ auto get_value_swapped<std::int64_t>(blob_t const * buf, std::uint32_t offset) -
 struct Getter {
     Getter() = default;
 
-    explicit Getter(bool swap, std::uint8_t id_size, std::uint8_t ts_size) : m_id_size(id_size), m_ts_size(ts_size) {
+    explicit Getter(bool requires_swap, std::uint8_t id_size, std::uint8_t ts_size) : m_id_size(id_size), m_ts_size(ts_size) {
         int8  = get_value<std::int8_t>;
         uint8 = get_value<std::uint8_t>;
 
-        if (swap) {
+        if (requires_swap) {
             int16   = get_value_swapped<std::int16_t>;
             int32   = get_value_swapped<std::int32_t>;
             int64   = get_value_swapped<std::int64_t>;
@@ -234,7 +234,7 @@ struct MeasurementParameters {
         m_daq_lists(daq_lists) {
     }
 
-    std::uint8_t         m_byte_order;  // INTEL(LITTLE)=0, MOTOROLA(BIG)=1
+    std::uint8_t         m_byte_order;
     std::uint8_t         m_id_field_size;
     bool                 m_timestamps_supported;
     bool                 m_ts_fixed;
@@ -271,6 +271,8 @@ class DaqListState {
         m_getter(getter),
         m_params(params),
         m_state(state_t::IDLE) {
+        // std::cout << "DaqListState: " << daq_list_num << " : " << num_odts << " : " << total_entries << " : " <<
+        // enable_timestamps << std::endl;
         m_buffer.resize(m_total_entries);
     }
 
@@ -300,7 +302,7 @@ class DaqListState {
         return m_state;
     }
 
-    bool feed(uint16_t odt_num, double timestamp, const payload_t& payload) {
+    bool feed(uint16_t odt_num, double timestamp, const std::string& payload) {
         auto state    = check_state(odt_num);
         auto finished = false;
         if (state == state_t::COLLECTING) {
@@ -318,6 +320,10 @@ class DaqListState {
         result_buffer.emplace_back(m_daq_list_num, m_timestamp0, m_timestamp1, m_buffer);
     }
 
+    void add_result(measurement_tuple_t& result_buffer) {
+        result_buffer = { m_daq_list_num, m_timestamp0, m_timestamp1, m_buffer };
+    }
+
    protected:
 
     void resetSM() {
@@ -326,10 +332,10 @@ class DaqListState {
         m_timestamp0 = 0.0;
     }
 
-    void parse_Odt(uint16_t odt_num, const payload_t& payload) {
+    void parse_Odt(uint16_t odt_num, const std::string& payload) {
         auto offset       = m_initial_offset;  // consider ID field size.
-        auto payload_data = payload.data();
-        auto payload_size = payload.size();
+        auto payload_data = reinterpret_cast<const blob_t*>(payload.data());
+        auto payload_size = std::size(payload);
 
         if (odt_num == 0) {
             m_current_idx = 0;
@@ -350,17 +356,8 @@ class DaqListState {
                     "Offset is out of range! " + std::to_string(offset) + " >= " + std::to_string(payload_size)
                 );
             }
-            auto data = m_getter.reader(type_index, payload_data, offset);
-#if 0
-            if (std::holds_alternative<std::uint64_t>(data)) {
-                std::cout << std::get<std::uint64_t>(data) << " " << std::endl;
-            } else if (std::holds_alternative<std::int64_t>(data)) {
-                std::cout << std::get<std::int64_t>(data) << "(+/-) " << std::endl;
-            } else if (std::holds_alternative<long double>(data)) {
-                std::cout << std::get<long double>(data) << " (double) " << std::endl;
-            }
-#endif
-            m_buffer[m_current_idx++] = std::move(data);
+
+            m_buffer[m_current_idx++] = std::move(m_getter.reader(type_index, payload_data, offset));
             offset += size;
         }
     }
@@ -383,33 +380,102 @@ class DaqListState {
     MeasurementParameters            m_params;
 };
 
+auto requires_swap(std::uint8_t byte_order) {
+    // INTEL(LITTLE)=0, MOTOROLA(BIG)=1
+    std::endian target_byte_order = (byte_order == 1) ? std::endian::big : std::endian::little;
+    return (target_byte_order != std::endian::native) ? true : false;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class UnfolderBase {
+   public:
+
+    explicit UnfolderBase(const MeasurementParameters& params) : m_params(params) noexcept {
+        create_state_vars(params);
+    }
+
+    UnfolderBase()          = delete;
+    virtual ~UnfolderBase() = default;
+
+    void start(const std::vector<std::uint16_t>& first_pids) noexcept {
+        m_getter.set_first_pids(m_params.m_daq_lists, first_pids);
+    }
+
+#if 0
+    std::optional<std::vector<measurement_tuple_t>> next_block() {
+        std::vector<measurement_tuple_t> result{};
+
+        const auto& block = m_reader.next_block();
+
+        if (!block) {
+            return std::nullopt;
+        }
+
+        for (const auto& frame : block.value()) {
+            if (std::get<0>(frame) != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
+                continue;
+            }
+            const auto& [category, counter, frame_timestamp, frame_length, payload] = frame;
+            auto [daq_num, odt_num]                                                 = m_getter.get_id(payload.data());
+
+            if (m_state[daq_num].feed(odt_num, frame_timestamp, payload)) {
+                m_state[daq_num].add_result(result);
+            }
+        }
+        return result;
+    }
+
+#endif
+
+    void feed(double timestamp, const std::string& payload) noexcept {
+        const auto data         = reinterpret_cast<blob_t const *>(payload.data());
+        auto [daq_num, odt_num] = m_getter.get_id(data);
+        measurement_tuple_t result;
+
+        if (m_state[daq_num].feed(odt_num, timestamp, payload)) {
+            m_state[daq_num].add_result(result);
+            auto [dl, d0, d1, pl] = result;
+
+            // std::cout << "DL: " << dl << " : " << d0 << " : " << d1 << std::endl;
+        }
+    }
+
+   private:
+
+    void create_state_vars(const MeasurementParameters& params) noexcept {
+        m_getter = Getter(requires_swap(params.m_byte_order), params.m_id_field_size, params.m_ts_size);
+        for (auto idx = 0; idx < params.m_daq_lists.size(); ++idx) {
+            m_state.emplace_back(DaqListState(
+                idx, params.m_daq_lists[idx].get_odt_count(), params.m_daq_lists[idx].get_total_entries(),
+                params.m_daq_lists[idx].get_enable_timestamps(), params.m_id_field_size, params.m_daq_lists[idx].get_flatten_odts(),
+                m_getter, params
+            ));
+        }
+    }
+
+    MeasurementParameters                  m_params;
+    Getter                                 m_getter;
+    std::map<std::uint16_t, std::uint16_t> m_first_pids;
+    std::vector<DaqListState>              m_state;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#if 0
 class XcpLogFileUnfolder {
    public:
 
     explicit XcpLogFileUnfolder(const std::string& file_name, const MeasurementParameters& params) :
-        m_reader(file_name), m_byte_order(std::endian::native), m_params(params) {
-        std::endian target_byte_order;
-        bool        requires_swap;
-
-        if (m_params.m_byte_order == 0) {
-            target_byte_order = std::endian::little;
-        } else if (m_params.m_byte_order == 1) {
-            target_byte_order = std::endian::big;
-        }
-        if (target_byte_order != m_byte_order) {
-            requires_swap = true;
-        } else {
-            requires_swap = false;
-        }
-        m_getter = Getter(requires_swap, params.m_id_field_size, params.m_ts_size);
-        for (auto idx = 0; idx < params.m_daq_lists.size(); ++idx) {
-            m_state.emplace_back(DaqListState(
-                idx, params.m_daq_lists[idx].get_odt_count(), params.m_daq_lists[idx].get_total_entries(),
-                m_params.m_daq_lists[idx].get_enable_timestamps(), m_params.m_id_field_size,
-                m_params.m_daq_lists[idx].get_flatten_odts(), m_getter, m_params
-            ));
-        }
+        m_reader(file_name), m_params(params) {
+        create_state_vars(params);
     }
+
+    XcpLogFileUnfolder() = delete;
 
     void start(const std::vector<std::uint16_t>& first_pids) {
         m_getter.set_first_pids(m_params.m_daq_lists, first_pids);
@@ -419,8 +485,6 @@ class XcpLogFileUnfolder {
         std::vector<measurement_tuple_t> result{};
 
         const auto& block = m_reader.next_block();
-
-        std::cout << "Block number: " << xxx_blk_no++ << std::endl;
 
         if (!block) {
             return std::nullopt;
@@ -442,15 +506,61 @@ class XcpLogFileUnfolder {
 
    private:
 
+    void create_state_vars(const MeasurementParameters& params) {
+        m_getter = Getter(requires_swap(params.m_byte_order), params.m_id_field_size, params.m_ts_size);
+        for (auto idx = 0; idx < params.m_daq_lists.size(); ++idx) {
+            m_state.emplace_back(DaqListState(
+                idx, params.m_daq_lists[idx].get_odt_count(), params.m_daq_lists[idx].get_total_entries(),
+                params.m_daq_lists[idx].get_enable_timestamps(), params.m_id_field_size, params.m_daq_lists[idx].get_flatten_odts(),
+                m_getter, params
+            ));
+        }
+    }
+
     XcpLogFileReader                       m_reader;
-    std::endian                            m_byte_order;
     MeasurementParameters                  m_params;
     Getter                                 m_getter;
     std::map<std::uint16_t, std::uint16_t> m_first_pids;
-    // std::vector<std::vector<measurement_value_t>> m_buffers;
-    std::vector<DaqListState> m_state;
+    std::vector<DaqListState>              m_state;
+};
+#endif
 
-    std::uint16_t xxx_blk_no{ 0 };
+// startMeasurement
+// stopMeasurement
+
+class DAQParser {
+   public:
+
+    using callback_t = std::function<void(std::uint16_t, double, double, const std::vector<measurement_value_t>&)>;
+
+    virtual ~DAQParser() = default;
+    DAQParser()          = default;
+
+    void set_parameters(const MeasurementParameters& params) noexcept {
+        m_unfolder = std::make_unique<UnfolderBase>(params);
+        std::cout << "DAQParser::set_parameters: " << std::endl;
+    }
+
+    virtual void on_daq_list(
+        std::uint16_t daq_list_num, double timestamp0, double timestamp1, const std::vector<measurement_value_t>& measurement
+    ) = 0;
+
+    void feed(std::uint8_t frame_cat, std::uint16_t counter, double timestamp, const std::string& payload) {
+        if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
+            return;
+        }
+        m_unfolder->feed(timestamp, payload);
+    }
+
+    virtual void post_setup() noexcept {
+    }
+
+    void finalize() noexcept {
+    }
+
+   private:
+
+    std::unique_ptr<UnfolderBase> m_unfolder;
 };
 
 #endif  // RECORDER_UNFOLDER_HPP

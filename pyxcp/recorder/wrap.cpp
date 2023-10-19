@@ -10,6 +10,22 @@
 namespace py = pybind11;
 using namespace pybind11::literals;
 
+class PyDAQParser : public DAQParser {
+   public:
+
+    using DAQParser::DAQParser;
+
+    void on_daq_list(
+        std::uint16_t daq_list_num, double timestamp0, double timestamp1, const std::vector<measurement_value_t> &measurement
+    ) override {
+        PYBIND11_OVERRIDE_PURE(void, DAQParser, feed, daq_list_num, timestamp0, timestamp0, measurement);
+    }
+
+    void post_setup() override {
+        PYBIND11_OVERRIDE(void, DAQParser, post_setup);
+    }
+};
+
 PYBIND11_MODULE(rekorder, m) {
     m.doc() = "XCP raw frame recorder.";
     py::class_<XcpLogFileReader>(m, "_PyXcpLogFileReader")
@@ -23,11 +39,15 @@ PYBIND11_MODULE(rekorder, m) {
         .def("add_frame", &XcpLogFileWriter::add_frame);
 
     py::class_<MeasurementParameters>(m, "_MeasurementParameters")
-        .def(py::init<std::uint8_t, std::uint8_t, bool, bool, bool, bool, double, std::uint8_t, std::uint16_t, const std::vector<DaqList>&>());
+        .def(py::init<
+             std::uint8_t, std::uint8_t, bool, bool, bool, bool, double, std::uint8_t, std::uint16_t, const std::vector<DaqList> &>(
+        ));
 
-    py::class_<XcpLogFileUnfolder>(m, "_XcpLogFileUnfolder")
-        .def(py::init<const std::string &, const MeasurementParameters &>())
-        .def("next_block", &XcpLogFileUnfolder::next_block)
-        .def("start", &XcpLogFileUnfolder::start)
-        ;
+    py::class_<DAQParser, PyDAQParser>(m, "DAQParser", py::dynamic_attr())
+        .def(py::init<>())
+        .def("on_daq_list", &DAQParser::on_daq_list)
+        .def("feed", &DAQParser::feed)
+        .def("finalize", &DAQParser::finalize)
+        .def("set_parameters", &DAQParser::set_parameters)
+        .def("post_setup", &DAQParser::post_setup);
 }
