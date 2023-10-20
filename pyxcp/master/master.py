@@ -24,11 +24,10 @@ from pyxcp.constants import (
     makeWordPacker,
     makeWordUnpacker,
 )
+from pyxcp.daq_stim.stim import DaqEventInfo, Stim, get_policy_lock, get_writer_lock
 from pyxcp.master.errorhandler import disable_error_handling, wrapped
 from pyxcp.transport.base import createTransport
 from pyxcp.utils import SHORT_SLEEP, decode_bytes, delay
-
-from .stim import DaqEventInfo, Stim, get_policy_lock, get_writer_lock
 
 
 def broadcasted(func: Callable):

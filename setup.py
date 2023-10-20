@@ -41,24 +41,7 @@ with open(os.path.join("pyxcp", "__init__.py")) as f:
 with open("README.md") as fh:
     long_description = fh.read()
 
-"""
-PKG_NAME = "stim"
-EXT_NAMES = ["stim"]
-__version__ = "0.0.1"
-
-ext_modules = [
-    Pybind11Extension(
-        EXT_NAMES[0],
-        include_dirs=[INCLUDE_DIRS],
-        sources=["stim.cpp", "stim_wrapper.cpp", "scheduler.cpp"],
-        define_macros=[("EXTENSION_NAME", EXT_NAMES[0])],
-        cxx_std=20,  # Extension will use C++20 generators/coroutines.
-    ),
-]
-
-"""
-
-EXT_NAMES = ["pyxcp.recorder.rekorder", "pyxcp.cpp_ext.cpp_ext", "pyxcp.stim.stim"]
+EXT_NAMES = ["pyxcp.recorder.rekorder", "pyxcp.cpp_ext.cpp_ext", "pyxcp.daq_stim.stim"]
 
 if has_pybind11:
     ext_modules = [
@@ -80,8 +63,8 @@ if has_pybind11:
         ),
         Pybind11Extension(
             EXT_NAMES[2],
-            include_dirs=[PYB11_INCLUDE_DIRS, "pyxcp/stim"],
-            sources=["pyxcp/stim/stim.cpp", "pyxcp/stim/stim_wrapper.cpp", "pyxcp/stim/scheduler.cpp"],
+            include_dirs=[PYB11_INCLUDE_DIRS, "pyxcp/daq_stim"],
+            sources=["pyxcp/daq_stim/stim.cpp", "pyxcp/daq_stim/stim_wrapper.cpp", "pyxcp/daq_stim/scheduler.cpp"],
             define_macros=[("EXTENSION_NAME", EXT_NAMES[2]), ("NDEBUG", 1)],
             optional=False,
             cxx_std=20,  # Extension will use C++20 generators/coroutines.
