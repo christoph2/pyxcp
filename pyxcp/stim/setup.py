@@ -1,12 +1,13 @@
-import os
-import subprocess
-
-from distutils.core import Extension
+import subprocess  # nosec
 from distutils.core import setup
-from pybind11.setup_helpers import build_ext
-from pybind11.setup_helpers import naive_recompile
-from pybind11.setup_helpers import ParallelCompile
-from pybind11.setup_helpers import Pybind11Extension
+
+from pybind11.setup_helpers import (
+    ParallelCompile,
+    Pybind11Extension,
+    build_ext,
+    naive_recompile,
+)
+
 
 # ParallelCompile("NPY_NUM_BUILD_JOBS").install()
 ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()

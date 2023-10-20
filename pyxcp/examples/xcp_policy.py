@@ -1,12 +1,11 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Demostrates how to use frame recording policies including recorder extension.
 """
 from pprint import pprint
 
 from pyxcp.cmdline import ArgumentParser
-from pyxcp.transport.base import FrameRecorderPolicy
-from pyxcp.transport.base import StdoutPolicy
+from pyxcp.transport.base import FrameRecorderPolicy, StdoutPolicy  # noqa: F401
+
 
 ap = ArgumentParser(description="pyXCP frame recording policy example.")
 
@@ -34,7 +33,7 @@ if use_recorder:
     from pyxcp.utils import hexDump
 
     try:
-        import pandas
+        import pandas  # noqa: F401
     except ImportError:
         has_pandas = False
     else:

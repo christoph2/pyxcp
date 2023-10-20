@@ -1,12 +1,11 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Types and structures to support error-handling as specified by XCP.
 """
 import enum
 from collections import namedtuple
 
-from pyxcp.types import Command
-from pyxcp.types import XcpError
+from pyxcp.types import Command, XcpError
+
 
 Handler = namedtuple("Handler", "preAction  action")
 

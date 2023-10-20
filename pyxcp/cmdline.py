@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 Parse (transport-layer specific) command line parameters
 and create a XCP master instance.
@@ -8,6 +7,7 @@ import warnings
 
 from pyxcp.config import application
 from pyxcp.master import Master
+
 
 warnings.simplefilter("always")
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 python-can driver for ETAS BOA interfaces.
 """
@@ -22,4 +21,4 @@ class Etas(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(Etas, self).__init__(bustype="etas")
+        super().__init__(bustype="etas")

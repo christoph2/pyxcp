@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 python-can driver serial port connected interfaces.
 """
@@ -24,4 +23,4 @@ class Serial(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(Serial, self).__init__(bustype="serial")
+        super().__init__(bustype="serial")

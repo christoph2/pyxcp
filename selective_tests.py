@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import sys
 from pathlib import Path
 
@@ -16,7 +15,7 @@ def main(args):
     print("SELECTIVE_TESTS called with:", args)
     dirs = set()
     args = args[1:]
-    with open("st.txt", "wt") as of:
+    with open("st.txt", "w") as of:
         for arg in args:
             parent = str(Path(arg).parent)
             dirs.add(parent)

@@ -1,26 +1,15 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-import struct
-from collections import defaultdict
-from dataclasses import dataclass
-from dataclasses import field
+
+
 from pprint import pprint
-from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
+from typing import Callable, List, Optional, Tuple
 
 from pyxcp import types
 from pyxcp.cpp_ext import DaqList
 from pyxcp.daq_stim.optimize import make_continuous_blocks
-from pyxcp.daq_stim.optimize import McObject
 from pyxcp.daq_stim.optimize.binpacking import first_fit_decreasing
 from pyxcp.recorder import DAQParser as _DAQParser
 from pyxcp.recorder import MeasurementParameters
-from pyxcp.recorder import XcpLogFileReader
-from pyxcp.types import FrameCategory
 
 
 DAQ_ID_FIELD_SIZE = {

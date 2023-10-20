@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 python-can driver for USB-CAN Analyzer by Seeed Studio interfaces.
 """
@@ -22,7 +21,7 @@ class Seeed(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(Seeed, self).__init__(bustype="seeedstudio")
+        super().__init__(bustype="seeedstudio")
 
 
 # from can.interfaces.seeedstudio import SeeedBus

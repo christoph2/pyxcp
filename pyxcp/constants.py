@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import struct
-from typing import Callable
-from typing import NewType
+from typing import Callable, NewType
+
 
 PackerType = NewType("PackerType", Callable[[int], bytes])
 UnpackerType = NewType("UnpackerType", Callable[[bytes], int])
@@ -10,39 +9,39 @@ UnpackerType = NewType("UnpackerType", Callable[[bytes], int])
 
 def makeBytePacker(byteorder: str = "@") -> PackerType:
     """"""
-    return struct.Struct("{}B".format(byteorder)).pack
+    return struct.Struct(f"{byteorder}B").pack
 
 
 def makeByteUnpacker(byteorder: str = "@") -> UnpackerType:
     """"""
-    return struct.Struct("{}B".format(byteorder)).unpack
+    return struct.Struct(f"{byteorder}B").unpack
 
 
 def makeWordPacker(byteorder: str = "@") -> PackerType:
     """"""
-    return struct.Struct("{}H".format(byteorder)).pack
+    return struct.Struct(f"{byteorder}H").pack
 
 
 def makeWordUnpacker(byteorder: str = "@") -> UnpackerType:
     """"""
-    return struct.Struct("{}H".format(byteorder)).unpack
+    return struct.Struct(f"{byteorder}H").unpack
 
 
 def makeDWordPacker(byteorder: str = "@") -> PackerType:
     """"""
-    return struct.Struct("{}I".format(byteorder)).pack
+    return struct.Struct(f"{byteorder}I").pack
 
 
 def makeDWordUnpacker(byteorder: str = "@") -> UnpackerType:
     """"""
-    return struct.Struct("{}I".format(byteorder)).unpack
+    return struct.Struct(f"{byteorder}I").unpack
 
 
 def makeDLongPacker(byteorder: str = "@") -> PackerType:
     """"""
-    return struct.Struct("{}Q".format(byteorder)).pack
+    return struct.Struct(f"{byteorder}Q").pack
 
 
 def makeDLongUnpacker(byteorder: str = "@") -> UnpackerType:
     """"""
-    return struct.Struct("{}Q".format(byteorder)).unpack
+    return struct.Struct(f"{byteorder}Q").unpack

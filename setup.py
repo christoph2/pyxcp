@@ -1,11 +1,12 @@
 #!/bin/env python
 import os
 import platform
-import subprocess
+import subprocess  # nosec
 import sys
 
 import setuptools.command.build_py
 import setuptools.command.develop
+
 
 if sys.platform == "darwin":
     os.environ["CC"] = "clang++"
@@ -13,9 +14,8 @@ if sys.platform == "darwin":
 
 try:
     from pybind11.setup_helpers import (
-        Pybind11Extension,
-        build_ext,
         ParallelCompile,
+        Pybind11Extension,
         naive_recompile,
     )
 except ImportError:
@@ -26,23 +26,39 @@ else:
     ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
 
 try:
-    PYB11_INCLUDE_DIRS = subprocess.check_output(["pybind11-config", "--includes"])
+    PYB11_INCLUDE_DIRS = subprocess.check_output(["pybind11-config", "--includes"])  # nosec
 except Exception as e:
     print(str(e), end=" -- ")
     has_pybind11 = False
     print("'pybind11-config' not properly working, could not build recorder extension module.")
 
-with open(os.path.join("pyxcp", "__init__.py"), "r") as f:
+with open(os.path.join("pyxcp", "__init__.py")) as f:
     for line in f:
         if line.startswith("__version__"):
             version = line.split("=")[-1].strip().strip('"')
             break
 
-with open("README.md", "r") as fh:
+with open("README.md") as fh:
     long_description = fh.read()
 
+"""
+PKG_NAME = "stim"
+EXT_NAMES = ["stim"]
+__version__ = "0.0.1"
 
-EXT_NAMES = ["pyxcp.recorder.rekorder", "pyxcp.cpp_ext.cpp_ext"]
+ext_modules = [
+    Pybind11Extension(
+        EXT_NAMES[0],
+        include_dirs=[INCLUDE_DIRS],
+        sources=["stim.cpp", "stim_wrapper.cpp", "scheduler.cpp"],
+        define_macros=[("EXTENSION_NAME", EXT_NAMES[0])],
+        cxx_std=20,  # Extension will use C++20 generators/coroutines.
+    ),
+]
+
+"""
+
+EXT_NAMES = ["pyxcp.recorder.rekorder", "pyxcp.cpp_ext.cpp_ext", "pyxcp.stim.stim"]
 
 if has_pybind11:
     ext_modules = [
@@ -61,6 +77,14 @@ if has_pybind11:
             define_macros=[("EXTENSION_NAME", EXT_NAMES[1]), ("NDEBUG", 1)],
             optional=False,
             cxx_std=20,
+        ),
+        Pybind11Extension(
+            EXT_NAMES[2],
+            include_dirs=[PYB11_INCLUDE_DIRS, "pyxcp/stim"],
+            sources=["pyxcp/stim/stim.cpp", "pyxcp/stim/stim_wrapper.cpp", "pyxcp/stim/scheduler.cpp"],
+            define_macros=[("EXTENSION_NAME", EXT_NAMES[2]), ("NDEBUG", 1)],
+            optional=False,
+            cxx_std=20,  # Extension will use C++20 generators/coroutines.
         ),
     ]
 else:
@@ -93,7 +117,7 @@ class AsamKeyDllAutogen(setuptools.Command):
         """Post-process options."""
         asamkeydll = os.path.join("pyxcp", "asamkeydll.c")
         target = os.path.join("pyxcp", "asamkeydll.exe")
-        self.arguments = [asamkeydll, "-o{}".format(target)]
+        self.arguments = [asamkeydll, f"-o{target}"]
 
     def run(self):
         """Run gcc"""
@@ -102,9 +126,9 @@ class AsamKeyDllAutogen(setuptools.Command):
             gccCmd = ["gcc", "-m32", "-O3", "-Wall"]
             self.announce(" ".join(gccCmd + self.arguments))
             try:
-                subprocess.check_call(gccCmd + self.arguments)
+                subprocess.check_call(gccCmd + self.arguments)  # nosec
             except Exception as e:
-                print("Building pyxcp/asamkeydll.exe failed: '{}'".format(str(e)))
+                print(f"Building pyxcp/asamkeydll.exe failed: '{str(e)}'")
             else:
                 print("Successfully  build pyxcp/asamkeydll.exe")
 

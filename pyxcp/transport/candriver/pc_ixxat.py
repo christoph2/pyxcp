@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 python-can driver for Ixxat interfaces.
 """
@@ -24,4 +23,4 @@ class Ixxat(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(Ixxat, self).__init__(bustype="ixxat")
+        super().__init__(bustype="ixxat")

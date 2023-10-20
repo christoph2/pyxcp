@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Very basic hello-world example.
 """
 from pprint import pprint
 
 from pyxcp.cmdline import ArgumentParser
 from pyxcp.utils import decode_bytes
+
 
 daq_info = False
 

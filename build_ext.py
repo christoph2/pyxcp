@@ -1,21 +1,12 @@
-import subprocess
-from pathlib import Path
-from typing import Any
-from typing import Dict
+import subprocess  # nosec
+from typing import Any, Dict
 
-from pybind11.setup_helpers import build_ext
-from pybind11.setup_helpers import naive_recompile
-from pybind11.setup_helpers import ParallelCompile
-from pybind11.setup_helpers import Pybind11Extension
+from pybind11.setup_helpers import ParallelCompile, Pybind11Extension, naive_recompile
 
-# from setuptools_cpp import CMakeExtension, ExtensionBuilder, Pybind11Extension
-# ext_modules = [
-#    CMakeExtension("pyxcp.recorder", sourcedir="pyxcp/recorder")
-# ]
 
 print("Running 'build.py'...")
 
-PYB11_INCLUDE_DIRS = subprocess.check_output(["pybind11-config", "--includes"])
+PYB11_INCLUDE_DIRS = subprocess.check_output(["pybind11-config", "--includes"])  # nosec
 EXT_NAMES = ["rekorder"]
 
 ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()

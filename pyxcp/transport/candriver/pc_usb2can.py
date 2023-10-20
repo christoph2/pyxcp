@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 python-can driver for 8devices USB2CAN interfaces.
 """
@@ -27,4 +26,4 @@ class Usb2Can(python_can.PythonCAN, can.CanInterfaceBase):
     """
 
     def __init__(self):
-        super(Usb2Can, self).__init__(bustype="usb2can")
+        super().__init__(bustype="usb2can")

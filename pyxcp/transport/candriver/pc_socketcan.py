@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 python-can driver for Linux SocketCAN interfaces.
 """
@@ -20,4 +19,4 @@ class SocketCAN(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(SocketCAN, self).__init__(bustype="socketcan")
+        super().__init__(bustype="socketcan")

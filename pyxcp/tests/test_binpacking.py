@@ -1,9 +1,7 @@
 import pytest
 
-from pyxcp.daq_stim.optimize import make_continuous_blocks
-from pyxcp.daq_stim.optimize import McObject
-from pyxcp.daq_stim.optimize.binpacking import Bin
-from pyxcp.daq_stim.optimize.binpacking import first_fit_decreasing
+from pyxcp.daq_stim.optimize import McObject, make_continuous_blocks
+from pyxcp.daq_stim.optimize.binpacking import Bin, first_fit_decreasing
 
 
 @pytest.fixture

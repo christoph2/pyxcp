@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 python-can driver for ICS NeoVi interfaces.
 """
@@ -28,4 +27,4 @@ class Neovi(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(Neovi, self).__init__(bustype="neovi")
+        super().__init__(bustype="neovi")

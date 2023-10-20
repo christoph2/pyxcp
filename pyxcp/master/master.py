@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Lowlevel API reflecting available XCP services.
 
 .. note:: For technical reasons the API is split into two parts;
@@ -8,40 +7,28 @@
 .. [1] XCP Specification, Part 2 - Protocol Layer Specification
 """
 import functools
-import logging
 import struct
 import traceback
 import warnings
 from time import sleep
-from typing import Callable
-from typing import Collection
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import Callable, Collection, Dict, List, Optional
 
-from .stim import DaqEventInfo
-from .stim import get_policy_lock
-from .stim import get_writer_lock
-from .stim import Stim
-from pyxcp import checksum
-from pyxcp import types
-from pyxcp.constants import makeBytePacker
-from pyxcp.constants import makeByteUnpacker
-from pyxcp.constants import makeDLongPacker
-from pyxcp.constants import makeDLongUnpacker
-from pyxcp.constants import makeDWordPacker
-from pyxcp.constants import makeDWordUnpacker
-from pyxcp.constants import makeWordPacker
-from pyxcp.constants import makeWordUnpacker
-from pyxcp.constants import PackerType
-from pyxcp.constants import UnpackerType
-from pyxcp.master.errorhandler import disable_error_handling
-from pyxcp.master.errorhandler import wrapped
+from pyxcp import checksum, types
+from pyxcp.constants import (
+    makeBytePacker,
+    makeByteUnpacker,
+    makeDLongPacker,
+    makeDLongUnpacker,
+    makeDWordPacker,
+    makeDWordUnpacker,
+    makeWordPacker,
+    makeWordUnpacker,
+)
+from pyxcp.master.errorhandler import disable_error_handling, wrapped
 from pyxcp.transport.base import createTransport
-from pyxcp.utils import decode_bytes
-from pyxcp.utils import delay
-from pyxcp.utils import SHORT_SLEEP
+from pyxcp.utils import SHORT_SLEEP, decode_bytes, delay
+
+from .stim import DaqEventInfo, Stim, get_policy_lock, get_writer_lock
 
 
 def broadcasted(func: Callable):
@@ -53,7 +40,7 @@ class SlaveProperties(dict):
     """Container class for fixed parameters, like byte-order, maxCTO, ..."""
 
     def __init__(self, *args, **kws):
-        super(SlaveProperties, self).__init__(*args, **kws)
+        super().__init__(*args, **kws)
 
     def __getattr__(self, name):
         return self[name]
@@ -571,7 +558,7 @@ class Master:
         address is not included because of services implicitly setting address information like :meth:`getID` .
         """
         if limitPayload and limitPayload < 8:
-            raise ValueError("Payload must be at least 8 bytes - given: {}".format(limitPayload))
+            raise ValueError(f"Payload must be at least 8 bytes - given: {limitPayload}")
 
         slaveBlockMode = self.slaveProperties.slaveBlockMode
         if slaveBlockMode:
@@ -1072,7 +1059,7 @@ class Master:
         daqElements : list of `dict` containing the following keys: *bitOffset*, *size*, *address*, *addressExt*.
         """
         if len(daqElements) > self.slaveProperties.maxWriteDaqMultipleElements:
-            raise ValueError("At most {} daqElements are permitted.".format(self.slaveProperties.maxWriteDaqMultipleElements))
+            raise ValueError(f"At most {self.slaveProperties.maxWriteDaqMultipleElements} daqElements are permitted.")
         data = bytearray()
         data.append(len(daqElements))
 
@@ -1660,11 +1647,11 @@ class Master:
         """
         self.setMta(addr)
         cs = self.buildChecksum(length)
-        self.logger.debug("BuildChecksum return'd: 0x{:08X} [{}]".format(cs.checksum, cs.checksumType))
+        self.logger.debug(f"BuildChecksum return'd: 0x{cs.checksum:08X} [{cs.checksumType}]")
         self.setMta(addr)
         data = self.fetch(length)
         cc = checksum.check(data, cs.checksumType)
-        self.logger.debug("Our checksum          : 0x{:08X}".format(cc))
+        self.logger.debug(f"Our checksum          : 0x{cc:08X}")
         return cs.checksum == cc
 
     def getDaqInfo(self):
@@ -1791,7 +1778,8 @@ class Master:
             In case of DLL related issues.
         """
         import re
-        from pyxcp.dllif import getKey, SeedNKeyResult, SeedNKeyError
+
+        from pyxcp.dllif import SeedNKeyError, SeedNKeyResult, getKey
 
         MAX_PAYLOAD = self.slaveProperties["maxCto"] - 2
 
@@ -1812,7 +1800,7 @@ class Master:
         resource_names = [r.lower() for r in re.split(r"[ ,]", resources) if r]
         for name in resource_names:
             if name not in types.RESOURCE_VALUES:
-                raise ValueError("Invalid resource name '{}'.".format(name))
+                raise ValueError(f"Invalid resource name '{name}'.")
             if not protection_status[name]:
                 continue
             resource_value = types.RESOURCE_VALUES[name]
@@ -1852,7 +1840,7 @@ class Master:
                     offset += key_length
                     self.unlock(key_length, data)
             else:
-                raise SeedNKeyError("SeedAndKey DLL returned: {}".format(SeedNKeyResult(result).name))
+                raise SeedNKeyError(f"SeedAndKey DLL returned: {SeedNKeyResult(result).name}")
 
     def identifier(self, id_value: int) -> str:
         """Return the identifier for the given value.

@@ -1,9 +1,7 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Implements error-handling according to XCP spec.
 """
 import functools
-import os
 import threading
 import time
 import types
@@ -12,18 +10,14 @@ from collections import namedtuple
 import can
 
 from pyxcp.config import application
-from pyxcp.errormatrix import Action
-from pyxcp.errormatrix import ERROR_MATRIX
-from pyxcp.errormatrix import PreAction
-from pyxcp.types import COMMAND_CATEGORIES
-from pyxcp.types import XcpError
-from pyxcp.types import XcpResponseError
-from pyxcp.types import XcpTimeoutError
+from pyxcp.errormatrix import ERROR_MATRIX, Action, PreAction
+from pyxcp.types import COMMAND_CATEGORIES, XcpError, XcpResponseError, XcpTimeoutError
+
 
 handle_errors = True  # enable/disable XCP error-handling.
 
 
-class SingletonBase(object):
+class SingletonBase:
     _lock = threading.Lock()
 
     def __new__(cls, *args, **kws):
@@ -32,7 +26,7 @@ class SingletonBase(object):
             try:
                 cls._lock.acquire()
                 if not hasattr(cls, "_instance"):
-                    cls._instance = super(SingletonBase, cls).__new__(cls)
+                    cls._instance = super().__new__(cls)
             finally:
                 cls._lock.release()
         return cls._instance
@@ -90,8 +84,7 @@ def getActions(service, error_code):
 def actionIter(actions):
     """Iterate over action from :file:`errormatrix.py`"""
     if isinstance(actions, (tuple, list)):
-        for item in actions:
-            yield item
+        yield from actions
     else:
         yield actions
 

@@ -1,14 +1,16 @@
 import pytest
 
-from pyxcp.transport.can import calculateFilter
-from pyxcp.transport.can import CAN_EXTENDED_ID
-from pyxcp.transport.can import Identifier
-from pyxcp.transport.can import IdentifierOutOfRangeError
-from pyxcp.transport.can import isExtendedIdentifier
-from pyxcp.transport.can import MAX_11_BIT_IDENTIFIER
-from pyxcp.transport.can import MAX_29_BIT_IDENTIFIER
-from pyxcp.transport.can import setDLC
-from pyxcp.transport.can import stripIdentifier
+from pyxcp.transport.can import (
+    CAN_EXTENDED_ID,
+    MAX_11_BIT_IDENTIFIER,
+    MAX_29_BIT_IDENTIFIER,
+    Identifier,
+    IdentifierOutOfRangeError,
+    calculateFilter,
+    isExtendedIdentifier,
+    setDLC,
+    stripIdentifier,
+)
 
 
 def testSet0():
@@ -223,9 +225,9 @@ def test_identifier_repr_works2(capsys):
 
 def test_identifier_repr_does_the_trick1(capsys):
     i = Identifier(101)
-    assert eval(repr(i)) == Identifier(101)
+    assert eval(repr(i)) == Identifier(101)  # nosec
 
 
 def test_identifier_repr_does_the_trick2(capsys):
     i = Identifier(101 | CAN_EXTENDED_ID)
-    assert eval(repr(i)) == Identifier(101 | CAN_EXTENDED_ID)
+    assert eval(repr(i)) == Identifier(101 | CAN_EXTENDED_ID)  # nosec

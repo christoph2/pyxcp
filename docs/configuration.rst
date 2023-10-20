@@ -155,4 +155,3 @@ vector
 * `RX_QUEUE_SIZE`:           int,                16384
 * `FD`:                      bool,               False
 * `DATA_BITRATE`:            int,                None
-

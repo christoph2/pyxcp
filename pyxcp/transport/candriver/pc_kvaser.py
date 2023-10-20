@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 python-can driver for Kvaser interfaces.
 """
@@ -36,4 +35,4 @@ class Kvaser(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(Kvaser, self).__init__(bustype="kvaser")
+        super().__init__(bustype="kvaser")

@@ -1,9 +1,7 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Bin-packing algorithms.
 """
-from typing import List
-from typing import Optional
+from typing import List, Optional
 
 from pyxcp.cpp_ext import Bin
 

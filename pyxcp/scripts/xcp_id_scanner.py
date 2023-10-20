@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Scan for available IDs.
 """
 from pprint import pprint

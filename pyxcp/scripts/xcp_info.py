@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Very basic hello-world example.
 """
 from pprint import pprint
 
 from pyxcp.cmdline import ArgumentParser
+
 
 daq_info = False
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 python-can driver for isCAN from Thorsis Technologies GmbH.
 """
@@ -20,4 +19,4 @@ class IsCAN(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(IsCAN, self).__init__(bustype="iscan")
+        super().__init__(bustype="iscan")

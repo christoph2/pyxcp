@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 python-can driver for National Instruments xnet interfaces.
 """
@@ -20,4 +19,4 @@ class NiXnet(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(NiXnet, self).__init__(bustype="nixnet")
+        super().__init__(bustype="nixnet")

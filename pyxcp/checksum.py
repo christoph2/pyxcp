@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Checksum calculation for memory ranges
 
 .. [1] XCP Specification, BUILD_CHECKSUM service.

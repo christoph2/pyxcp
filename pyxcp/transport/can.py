@@ -1,22 +1,14 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 """
-import abc
+
 import functools
 import operator
 from bisect import bisect_left
 from time import time
-from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Any, Dict, Optional
 
-from can import CanError
-from can import Message
+from can import CanError, Message
 from can.interface import _get_class_for_interface
 
 from pyxcp.config import CAN_INTERFACE_MAP
@@ -124,10 +116,10 @@ class Identifier:
         self._is_extended = isExtendedIdentifier(raw_id)
         if self._is_extended:
             if self._id > MAX_29_BIT_IDENTIFIER:
-                raise IdentifierOutOfRangeError("29-bit identifier '{}' is out of range".format(self._id))
+                raise IdentifierOutOfRangeError(f"29-bit identifier '{self._id}' is out of range")
         else:
             if self._id > MAX_11_BIT_IDENTIFIER:
-                raise IdentifierOutOfRangeError("11-bit identifier '{}' is out of range".format(self._id))
+                raise IdentifierOutOfRangeError(f"11-bit identifier '{self._id}' is out of range")
 
     @property
     def id(self) -> int:
@@ -187,10 +179,10 @@ class Identifier:
         return (self.id == other.id) and (self.is_extended == other.is_extended)
 
     def __str__(self):
-        return "Identifier(id = 0x{:08x}, is_extended = {})".format(self.id, self.is_extended)
+        return f"Identifier(id = 0x{self.id:08x}, is_extended = {self.is_extended})"
 
     def __repr__(self):
-        return "Identifier(0x{:08x})".format(self.raw_id)
+        return f"Identifier(0x{self.raw_id:08x})"
 
 
 class Frame:
@@ -229,7 +221,7 @@ class PythonCanWrapper:
         }
         self.can_interface = self.can_interface_class(interface=self.interface_name, **self.parameters)
         self.can_interface.set_filters([can_filter])
-        self.parent.logger.debug("Python-CAN driver: {} - {}]".format(self.interface_name, self.can_interface))
+        self.parent.logger.debug(f"Python-CAN driver: {self.interface_name} - {self.can_interface}]")
         self.connected = True
 
     def close(self):

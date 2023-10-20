@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import io
 import json
 import sys
@@ -9,26 +8,23 @@ from pathlib import Path
 
 import can
 import toml
-from traitlets import Any
-from traitlets import Bool
-from traitlets import Callable
-from traitlets import Dict
-from traitlets import Enum
-from traitlets import Float
-from traitlets import Int
-from traitlets import Integer
-from traitlets import List
-from traitlets import TraitError
-from traitlets import Unicode
-from traitlets import Union
-from traitlets.config import Application
-from traitlets.config import Configurable
-from traitlets.config import Instance
-from traitlets.config import SingletonConfigurable
-from traitlets.config.loader import Config
-from traitlets.config.loader import load_pyconfig_files
+from traitlets import (
+    Any,
+    Bool,
+    Callable,
+    Dict,
+    Enum,
+    Float,
+    Integer,
+    List,
+    TraitError,
+    Unicode,
+    Union,
+)
+from traitlets.config import Application, Instance, SingletonConfigurable
 
 from pyxcp.config import legacy
+
 
 warnings.simplefilter("always")
 
@@ -520,9 +516,7 @@ with a lower frequency than they arrive on the bus. """,
 will keep the timestamp set in the
 :class:`~can.Message` instance. Otherwise, the timestamp value
 will be replaced with the current system time.""",
-    ).tag(
-        config=True
-    )  #     protocol = Type(default_value=None, allow_none=True, help = """ """).tag(config=True)
+    ).tag(config=True)
 
 
 CAN_INTERFACE_MAP = {
@@ -592,7 +586,7 @@ class Can(SingletonConfigurable):
     tseg1_dbr = Integer(default_value=None, allow_none=True, help="Bus timing value tseg1 (data).").tag(config=True)
     tseg2_dbr = Integer(default_value=None, allow_none=True, help="Bus timing value tseg2 (data).").tag(config=True)
     timing = Union(
-        [Instance(can.BitTiming), Instance(can.BitTimingFd)],
+        [Instance(can.BitTiming)],  # , Instance(can.BitTimingFd)
         default_value=None,
         allow_none=True,
         help="""Custom bit timing settings.
@@ -633,12 +627,11 @@ timing-related parameters.
     def __init__(self, **kws):
         super().__init__(**kws)
 
-        tos = self.class_own_traits()
-
         if self.parent.layer == "CAN":
             if self.interface is None or self.interface not in self.VALID_INTERFACES:
                 raise TraitError(
-                    f"CAN interface must be one of {sorted(list(self.VALID_INTERFACES))} not the {type(self.interface).__name__} {self.interface}."
+                    f"CAN interface must be one of {sorted(list(self.VALID_INTERFACES))} not the"
+                    " {type(self.interface).__name__} {self.interface}."
                 )
         self.canalystii = CanAlystii.instance(config=self.config, parent=self)
         self.cantact = CanTact.instance(config=self.config, parent=self)
@@ -676,9 +669,6 @@ class Eth(SingletonConfigurable):
     bind_to_address = Unicode(default_value=None, allow_none=True, help="Specific local address.").tag(config=True)
     bind_to_port = Integer(default_value=None, allow_none=True, help="Specific local port.").tag(config=True)
 
-    def __str__(self):
-        return f"Eth(host='{self.host}', port={self.port}, protocol='{self.protocol}', ipv6={self.ipv6}, tcp_nodelay={self.tcp_nodelay})"
-
 
 class SxI(SingletonConfigurable):
     """SPI and SCI connections."""
@@ -694,9 +684,6 @@ class SxI(SingletonConfigurable):
     -cs<x>       Set the SxI checksum type LEN+CTR+PACKETS = 1, ONLY PACKETS = 2 (Default 0 no checksum)
     """
 
-    def __str__(self):
-        return f"SxI(port='{self.port}', bitrate={self.bitrate}, bytesize={self.bytesize}, parity='{self.parity}', stopbits={self.stopbits})"
-
 
 class USB(SingletonConfigurable):
     """ """
@@ -708,9 +695,6 @@ class USB(SingletonConfigurable):
     reply_endpoint_number = Integer(1).tag(config=True)
     vendor_id = Integer(0).tag(config=True)
     product_id = Integer(0).tag(config=True)
-
-    def __str__(self):
-        return f"USB(serial_number='{self.serial_number}', configuration_number={self.configuration_number}, interface_number={self.interface_number}, command_endpoint_number={self.command_endpoint_number}, reply_endpoint_number={self.reply_endpoint_number})"
 
 
 class Transport(SingletonConfigurable):
@@ -743,11 +727,6 @@ if there is no response to a command.""",
         self.sxi = SxI.instance(config=self.config, parent=self)
         self.usb = USB.instance(config=self.config, parent=self)
 
-    def __str__(self):
-        return str(
-            f"Transport(layer='{self.layer}', create_daq_timestamps={self.create_daq_timestamps}, timeout={self.timeout}, alignment={self.alignment}), Can={self.can}, Eth={self.eth}, SxI={self.sxi}, USB={self.usb}"
-        )
-
 
 class General(SingletonConfigurable):
     """ """
@@ -758,11 +737,6 @@ class General(SingletonConfigurable):
     seed_n_key_dll = Unicode("", allow_none=False).tag(config=True)
     seed_n_key_dll_same_bit_width = Bool(False).tag(config=True)
     seed_n_key_function = Callable(default_value=None, allow_none=True).tag(config=True)
-
-    def __str__(self):
-        return str(
-            f"General(loglevel: '{self.loglevel}', disable_error_handling: {self.disable_error_handling}, seed_n_key_dll: '{self.seed_n_key_dll}', seed_n_key_dll_same_bit_width: {self.seed_n_key_dll_same_bit_width})"
-        )
 
 
 class PyXCP(Application):
@@ -856,9 +830,6 @@ class PyXCP(Application):
         for klass in self._classes_with_config_traits():
             self._iterate_config_class(klass, [klass.__name__])
 
-    def __str__(self):
-        return f"PyXCP: {self.config.general}"
-
 
 class Configuration:
     pass
@@ -872,6 +843,4 @@ application.start()
 # print(application.generate_config_file())
 # print("*" * 80)
 
-import sys
-
-application.generate_config_file(sys.stdout)
+# application.generate_config_file(sys.stdout)

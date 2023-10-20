@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 python-can driver for National Instruments interfaces.
 """
@@ -20,4 +19,4 @@ class NiCan(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(NiCan, self).__init__(bustype="nican")
+        super().__init__(bustype="nican")

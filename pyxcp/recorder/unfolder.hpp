@@ -393,7 +393,7 @@ auto requires_swap(std::uint8_t byte_order) {
 class UnfolderBase {
    public:
 
-    explicit UnfolderBase(const MeasurementParameters& params) : m_params(params) noexcept {
+    explicit UnfolderBase(const MeasurementParameters& params) : m_params(params) {
         create_state_vars(params);
     }
 
@@ -552,7 +552,7 @@ class DAQParser {
         m_unfolder->feed(timestamp, payload);
     }
 
-    virtual void post_setup() noexcept {
+    virtual void post_setup() {
     }
 
     void finalize() noexcept {

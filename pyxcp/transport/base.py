@@ -1,21 +1,16 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import abc
 import threading
 import typing
 from collections import deque
 from datetime import datetime
-from enum import IntEnum
-from time import perf_counter
-from time import sleep
-from time import time
+from time import perf_counter, sleep, time
 
 import pyxcp.types as types
+
 from ..recorder import XcpLogFileWriter
 from ..timing import Timing
-from ..utils import flatten
-from ..utils import hexDump
-from ..utils import SHORT_SLEEP
+from ..utils import SHORT_SLEEP, flatten, hexDump
 
 
 class FrameAcquisitionPolicy:

@@ -1,16 +1,14 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import selectors
 import socket
 import struct
 import threading
 from collections import deque
-from time import perf_counter
-from time import sleep
-from time import time
+from time import sleep, time
 
 from pyxcp.transport.base import BaseTransport
 from pyxcp.utils import SHORT_SLEEP
+
 
 DEFAULT_XCP_PORT = 5555
 RECV_SIZE = 8196
@@ -24,7 +22,7 @@ class Eth(BaseTransport):
     HEADER_SIZE = HEADER.size
 
     def __init__(self, config=None, policy=None):
-        super(Eth, self).__init__(config, policy)
+        super().__init__(config, policy)
         self.load_config(config)
         self.host = self.config.host
         self.port = self.config.port

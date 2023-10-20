@@ -1,12 +1,11 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """XCP Frame Recording Facility.
 """
 from dataclasses import dataclass
-from enum import IntEnum
 from typing import Union
 
 from pyxcp.types import FrameCategory
+
 
 try:
     import pandas as pd
@@ -16,6 +15,7 @@ else:
     HAS_PANDAS = True
 
 import pyxcp.recorder.rekorder as rec
+
 
 MeasurementParameters = rec._MeasurementParameters
 DAQParser = rec.DAQParser

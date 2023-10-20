@@ -1,10 +1,7 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import sys
 from binascii import hexlify
-from time import get_clock_info
 from time import perf_counter
-from time import time
 
 import chardet
 
@@ -26,14 +23,14 @@ def hexDump(arr):
             arr = hexlify(arr).decode("ascii")
         return "[{}]".format(" ".join([arr[i * 2 : (i + 1) * 2] for i in range(size)]))
     else:
-        return "[{}]".format(" ".join(["{:02x}".format(x) for x in arr]))
+        return "[{}]".format(" ".join([f"{x:02x}" for x in arr]))
 
 
 def slicer(iterable, sliceLength, converter=None):
     if converter is None:
         converter = type(iterable)
     length = len(iterable)
-    return [converter((iterable[item : item + sliceLength])) for item in range(0, length, sliceLength)]
+    return [converter(iterable[item : item + sliceLength]) for item in range(0, length, sliceLength)]
 
 
 def flatten(*args):
@@ -57,6 +54,7 @@ def decode_bytes(byte_str: bytes) -> str:
         return byte_str.decode("ascii", "ignore")
     else:
         return byte_str.decode(encoding)
+
 
 PYTHON_VERSION = getPythonVersion()
 SHORT_SLEEP = 0.0005

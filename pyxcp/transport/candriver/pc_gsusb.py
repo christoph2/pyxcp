@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 python-can driver for CAN driver for Geschwister Schneider USB/CAN devices and bytewerk.org candleLight USB CAN interfaces.
 """
@@ -20,4 +19,4 @@ class GsUsb(python_can.PythonCAN, can.CanInterfaceBase):
     """
 
     def __init__(self):
-        super(GsUsb, self).__init__(bustype="gs_usb")
+        super().__init__(bustype="gs_usb")

@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Very basic hello-world example.
 """
 import time
-from pyxcp.cmdline import ArgumentParser
 
 import matplotlib.pyplot as plt
-import numpy as np
 import seaborn as sns
+
+from pyxcp.cmdline import ArgumentParser
+
 
 sns.set()
 
@@ -22,7 +22,7 @@ with ap.run() as x:
     ys = []
     x.connect()
     for ctoSize in range(8, 64 + 4, 4):
-        print("CTO-Size: {}".format(ctoSize))
+        print(f"CTO-Size: {ctoSize}")
         xs.append(ctoSize)
         start = time.perf_counter()
         for _ in range(ITERATIONS):
@@ -30,7 +30,7 @@ with ap.run() as x:
             data = x.fetch(LENGTH, ctoSize)
         et = time.perf_counter() - start
         ys.append(et)
-        print("CTO size: {:-3} -- elapsed time {:-3.04}".format(ctoSize, et))
+        print(f"CTO size: {ctoSize:-3} -- elapsed time {et:-3.04}")
     x.disconnect()
     plt.plot(xs, ys)
     plt.show()

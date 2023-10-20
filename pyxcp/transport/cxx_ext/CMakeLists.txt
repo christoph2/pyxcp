@@ -48,4 +48,3 @@ target_include_directories(
 #    ${eth_booster_SOURCE_DIR}/${_PS}
 )
 target_link_libraries(blocking_client eth ${ADD_LIBS})
-

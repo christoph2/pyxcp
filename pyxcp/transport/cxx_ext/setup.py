@@ -1,16 +1,15 @@
 import os
-import subprocess
+import subprocess  # nosec
 import sys
-
-from distutils.core import Extension
 from distutils.core import setup
-from pybind11.setup_helpers import build_ext
-from pybind11.setup_helpers import Pybind11Extension
+
+from pybind11.setup_helpers import Pybind11Extension, build_ext
+
 
 try:
-    INCLUDE_DIRS = subprocess.getoutput("pybind11-config --include")
+    INCLUDE_DIRS = subprocess.getoutput("pybind11-config --include")  # nosec
 except Exception as e:
-    print("Error while executing pybind11-config ('{}').\npybind11 probably not installed?".format(str(e)))
+    print(f"Error while executing pybind11-config ('{str(e)}').\npybind11 probably not installed?")
     sys.exit(1)
 
 pf = sys.platform
@@ -19,7 +18,7 @@ if pf.startswith("win32"):
 elif pf.startswith("linux"):
     LIBS = ["pthread", "rt"]
 else:
-    raise RuntimeError("Platform '{}' currently not supported.".format(pf))
+    raise RuntimeError(f"Platform '{pf}' currently not supported.")
 
 
 os.environ["CFLAGS"] = ""

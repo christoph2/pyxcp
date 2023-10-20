@@ -3,6 +3,7 @@ from collections import defaultdict
 
 from traitlets.config.loader import Config
 
+
 LEGACY_KEYWORDS = {
     # General
     "LOGLEVEL": "General.loglevel",

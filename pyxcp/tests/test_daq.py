@@ -1,12 +1,6 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-from unittest.mock import Mock
-from unittest.mock import patch
 
-from pyxcp.daq_stim import Daq
-from pyxcp.daq_stim import DaqList
-
-# import pytest
+from pyxcp.daq_stim import Daq, DaqList
 
 
 DAQ_INFO = {

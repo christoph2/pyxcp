@@ -3,6 +3,7 @@ from io import StringIO
 
 from pyxcp.config import readConfiguration
 
+
 JSON = """{
     "PORT": "COM10",
     "BITRATE": 38400,

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 python-can driver for CANalyst-II(+) by ZLG ZHIYUAN Electronics interfaces.
 """
@@ -24,4 +23,4 @@ class Canalystii(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(Canalystii, self).__init__(bustype="canalystii")
+        super().__init__(bustype="canalystii")

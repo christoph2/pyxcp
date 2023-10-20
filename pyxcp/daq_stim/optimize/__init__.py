@@ -1,16 +1,9 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Optimize data-structures like memory sections."""
-from collections import defaultdict
-from dataclasses import dataclass
-from dataclasses import field
+
 from itertools import groupby
 from operator import attrgetter
-from typing import Any
-from typing import Dict
 from typing import List
-from typing import Tuple
-from typing import Union
 
 from pyxcp.cpp_ext import McObject
 

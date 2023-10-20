@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-from .base import FrameAcquisitionPolicy
-from .base import FrameRecorderPolicy
-from .base import LegacyFrameAcquisitionPolicy
-from .base import NoOpPolicy
-from .base import StdoutPolicy
-from .can import Can
-from .eth import Eth
-from .sxi import SxI
-from .usb_transport import Usb
+from .base import FrameAcquisitionPolicy  # noqa: F401
+from .base import FrameRecorderPolicy  # noqa: F401
+from .base import LegacyFrameAcquisitionPolicy  # noqa: F401
+from .base import NoOpPolicy  # noqa: F401
+from .base import StdoutPolicy  # noqa: F401
+from .can import Can  # noqa: F401
+from .eth import Eth  # noqa: F401
+from .sxi import SxI  # noqa: F401
+from .usb_transport import Usb  # noqa: F401

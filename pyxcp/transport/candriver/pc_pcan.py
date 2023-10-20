@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 python-can driver for Peak System interfaces.
 """
@@ -22,4 +21,4 @@ class PCan(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(PCan, self).__init__(bustype="pcan")
+        super().__init__(bustype="pcan")

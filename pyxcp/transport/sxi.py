@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import struct
-from time import perf_counter
 from time import time
 
 import serial
@@ -18,7 +16,7 @@ class SxI(BaseTransport):
     HEADER_SIZE = HEADER.size
 
     def __init__(self, config=None, policy=None):
-        super(SxI, self).__init__(config, policy)
+        super().__init__(config, policy)
         self.load_config(config)
         self.port_name = self.config.port
         self.baudrate = self.config.bitrate
@@ -30,7 +28,7 @@ class SxI(BaseTransport):
         self.closeConnection()
 
     def connect(self):
-        self.logger.debug("Trying to open serial comm_port {}.".format(self.port_name))
+        self.logger.debug(f"Trying to open serial comm_port {self.port_name}.")
         try:
             self.comm_port = serial.Serial()
             self.comm_port.port = self.port_name
@@ -43,7 +41,7 @@ class SxI(BaseTransport):
         except serial.SerialException as e:
             self.logger.critical(f"{e}")
             raise
-        self.logger.info("Serial comm_port openend as '{}' @ {} Bits/Sec.".format(self.comm_port.portstr, self.baudrate))
+        self.logger.info(f"Serial comm_port openend as '{self.comm_port.portstr}' @ {self.baudrate} Bits/Sec.")
         self.startListener()
 
     def output(self, enable):

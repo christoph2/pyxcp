@@ -10,7 +10,6 @@
 namespace py = pybind11;
 using namespace pybind11::literals;
 
-
 class PyDAQParser : public DAQParser {
    public:
 

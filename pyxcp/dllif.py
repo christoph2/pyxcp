@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import binascii
 import ctypes
 import enum
 import platform
 import re
-import subprocess
+import subprocess  # nosec
 import sys
 from pathlib import Path
 
@@ -34,7 +33,7 @@ if sys.platform in ("win32", "linux"):
     elif bwidth == "32bit":
         use_ctypes = True
 else:
-    raise RuntimeError("Platform '{}' currently not supported.".format(sys.platform))
+    raise RuntimeError(f"Platform '{sys.platform}' currently not supported.")
 
 
 def getKey(logger, dllName: str, privilege: int, seed: str, assume_same_bit_width: bool):
@@ -74,7 +73,7 @@ def getKey(logger, dllName: str, privilege: int, seed: str, assume_same_bit_widt
                 [LOADER, dllName, str(privilege), binascii.hexlify(seed).decode("ascii")],
                 stdout=subprocess.PIPE,
                 shell=False,
-            )
+            )  # nosec
         except FileNotFoundError as exc:
             logger.error(f"Could not find executable '{LOADER}' -- {exc}")
             return (SeedNKeyResult.ERR_COULD_NOT_LOAD_DLL, None)

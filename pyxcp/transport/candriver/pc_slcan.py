@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 python-can driver for CAN over Serial (like Lawicel)  interfaces.
 """
@@ -26,4 +25,4 @@ class SlCan(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(SlCan, self).__init__(bustype="slcan")
+        super().__init__(bustype="slcan")

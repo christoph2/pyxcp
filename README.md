@@ -1,6 +1,4 @@
-
-pyXCP
-=====
+# pyXCP
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/85f774708b2542d98d02df55c743d24a)](https://app.codacy.com/app/christoph2/pyxcp?utm_source=github.com&utm_medium=referral&utm_content=christoph2/pyxcp&utm_campaign=Badge_Grade_Settings)
 [![Maintainability](https://api.codeclimate.com/v1/badges/4c639f3695f2725e392a/maintainability)](https://codeclimate.com/github/christoph2/pyxcp/maintainability)
@@ -24,17 +22,20 @@ XCP also replaces the older CCP (CAN Calibration Protocol).
 pyXCP is hosted on Github, get the latest release: [https://github.com/christoph2/pyxcp](https://github.com/christoph2/pyxcp)
 
 You can install pyxcp from source:
+
 ```
 pip install -r requirements.txt
 python setup.py install
 ```
 
 Alternatively, you can install pyxcp from source with pip:
+
 ```
 pip install git+https://github.com/christoph2/pyxcp.git
 ```
 
 Alternatively, get pyxcp from [PyPI](https://pypi.org/project/pyxcp/):
+
 ```
 pip install pyxcp
 ```

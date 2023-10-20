@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Fetch A2L file from XCP slave (if supported).
 """
 import sys

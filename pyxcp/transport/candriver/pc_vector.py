@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 python-can driver for Vector Informatik interfaces.
 """
@@ -31,4 +30,4 @@ class Vector(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(Vector, self).__init__(bustype="vector")
+        super().__init__(bustype="vector")

@@ -1,3 +1,1 @@
-from .cpp_ext import Bin
-from .cpp_ext import DaqList
-from .cpp_ext import McObject
+from .cpp_ext import Bin, DaqList, McObject  # noqa: F401

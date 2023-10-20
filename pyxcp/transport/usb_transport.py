@@ -1,18 +1,16 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import struct
 import threading
 from array import array
 from collections import deque
-from time import perf_counter
-from time import sleep
-from time import time
+from time import perf_counter, sleep, time
 
 import usb.core
 import usb.util
 
 from pyxcp.transport.base import BaseTransport
 from pyxcp.utils import SHORT_SLEEP
+
 
 RECV_SIZE = 16384
 
@@ -34,7 +32,7 @@ class Usb(BaseTransport):
     HEADER_SIZE = HEADER.size
 
     def __init__(self, config=None, policy=None):
-        super(Usb, self).__init__(config, policy)
+        super().__init__(config, policy)
         self.load_config(config)
         self.serial_number = self.config.serial_number
         self.vendor_id = self.config.vendor_id
@@ -74,7 +72,7 @@ class Usb(BaseTransport):
             except BaseException:
                 continue
         else:
-            raise Exception("Device with serial {} not found".format(self.serial_number))
+            raise Exception(f"Device with serial {self.serial_number} not found")
 
         current_configuration = self.device.get_active_configuration()
         if current_configuration.bConfigurationValue != self.configuration_number:
