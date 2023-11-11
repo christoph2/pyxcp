@@ -3,12 +3,21 @@
 #define RECORDER_UNFOLDER_HPP
 
 #include <bit>
+#include <charconv>
 #include <iostream>
 #include <map>
 #include <variant>
 
+#include <cstring>
+
 #include "daqlist.hpp"
 #include "mcobject.hpp"
+
+
+using measurement_value_t = std::variant<std::int64_t, std::uint64_t, long double, std::string>;
+using measurement_tuple_t = std::tuple<std::uint16_t, double, double, std::vector<measurement_value_t>>;
+using measurement_callback_t = std::function<void(std::uint16_t, double, double, std::vector<measurement_value_t>)>;
+
 
 // NOTE: C++23 has std::byteswap()
 constexpr auto _bswap(std::uint64_t v) noexcept {
@@ -27,8 +36,6 @@ constexpr auto _bswap(std::uint16_t v) noexcept {
     return ((v & UINT16_C(0x00FF)) << 8) | ((v & UINT16_C(0xFF00)) >> 8);
 }
 
-using measurement_value_t = std::variant<std::int64_t, std::uint64_t, long double, std::string>;
-using measurement_tuple_t = std::tuple<std::uint16_t, double, double, std::vector<measurement_value_t>>;
 
 template<typename Ty>
 auto get_value(blob_t const * buf, std::uint32_t offset) -> Ty {
@@ -89,6 +96,80 @@ template<>
 auto get_value_swapped<std::int64_t>(blob_t const * buf, std::uint32_t offset) -> std::int64_t {
     return static_cast<std::int64_t>(get_value_swapped<uint64_t>(buf, offset));
 }
+
+
+/////////////////////////////////////////////////////
+/////////////////////////////////////////////////////
+template<typename Ty>
+void set_value(blob_t * buf, std::uint32_t offset, Ty value) {
+    ::memcpy(&buf[offset], &value, sizeof(Ty));
+}
+
+template<typename Ty>
+void set_value_swapped(blob_t * buf, std::uint32_t offset, Ty value) {
+    set_value<Ty>(buf, offset, _bswap(value));
+}
+
+template<>
+void set_value<std::int8_t>(blob_t * buf, std::uint32_t offset, std::int8_t value) {
+    buf[offset] = static_cast<blob_t>(value);
+}
+
+template<>
+void set_value<std::uint8_t>(blob_t * buf, std::uint32_t offset, std::uint8_t value) {
+    buf[offset] = static_cast<blob_t>(value);
+}
+
+template<>
+void set_value<std::int16_t>(blob_t * buf, std::uint32_t offset, std::int16_t value) {
+    set_value<std::uint16_t>(buf, offset, static_cast<std::uint16_t>(value));
+}
+
+template<>
+void set_value_swapped<std::int16_t>(blob_t * buf, std::uint32_t offset, std::int16_t value) {
+    set_value_swapped<std::uint16_t>(buf, offset, static_cast<std::uint16_t>(value));
+}
+
+template<>
+void set_value<std::int32_t>(blob_t * buf, std::uint32_t offset, std::int32_t value) {
+    set_value<std::uint32_t>(buf, offset, static_cast<std::uint32_t>(value));
+}
+
+template<>
+void set_value_swapped<std::int32_t>(blob_t * buf, std::uint32_t offset, std::int32_t value) {
+    set_value_swapped<std::uint32_t>(buf, offset, static_cast<std::uint32_t>(value));
+}
+
+template<>
+void set_value<std::int64_t>(blob_t * buf, std::uint32_t offset, std::int64_t value) {
+    set_value<std::uint64_t>(buf, offset, static_cast<std::uint64_t>(value));
+}
+
+template<>
+void set_value_swapped<std::int64_t>(blob_t * buf, std::uint32_t offset, std::int64_t value) {
+    set_value_swapped<std::uint64_t>(buf, offset, static_cast<std::uint64_t>(value));
+}
+
+template<>
+void set_value<float>(blob_t * buf, std::uint32_t offset, float value) {
+    set_value<std::uint32_t>(buf, offset, static_cast<std::uint32_t>(value));
+}
+
+template<>
+void set_value_swapped<float>(blob_t * buf, std::uint32_t offset, float value) {
+    set_value_swapped<std::uint32_t>(buf, offset, static_cast<std::uint32_t>(value));
+}
+
+template<>
+void set_value<double>(blob_t * buf, std::uint32_t offset, double value) {
+    set_value<std::uint64_t>(buf, offset, static_cast<std::uint64_t>(value));
+}
+
+template<>
+void set_value_swapped<double>(blob_t * buf, std::uint32_t offset, double value) {
+    set_value_swapped<std::uint64_t>(buf, offset, static_cast<std::uint64_t>(value));
+}
+
 
 /*
 ** Get primitive datatypes, consider byte-order.
@@ -214,6 +295,145 @@ struct Getter {
     std::map<std::uint16_t, std::tuple<std::uint16_t, std::uint16_t>>      m_odt_to_daq_map;
 };
 
+//////////////////////////////////////////////////////////////////////////////////////////////
+struct Setter {
+    Setter() = default;
+
+    explicit Setter(bool requires_swap, std::uint8_t id_size, std::uint8_t ts_size) : m_id_size(id_size), m_ts_size(ts_size) {
+        int8  = set_value<std::int8_t>;
+        uint8 = set_value<std::uint8_t>;
+
+        if (requires_swap) {
+            int16   = set_value_swapped<std::int16_t>;
+            int32   = set_value_swapped<std::int32_t>;
+            int64   = set_value_swapped<std::int64_t>;
+            uint16  = set_value_swapped<std::uint16_t>;
+            uint32  = set_value_swapped<std::uint32_t>;
+            uint64  = set_value_swapped<std::uint64_t>;
+            float_  = set_value_swapped<float>;
+            double_ = set_value_swapped<double>;
+        } else {
+            int16   = set_value<std::int16_t>;
+            int32   = set_value<std::int32_t>;
+            int64   = set_value<std::int64_t>;
+            uint16  = set_value<std::uint16_t>;
+            uint32  = set_value<std::uint32_t>;
+            uint64  = set_value<std::uint64_t>;
+            float_  = set_value<float>;
+            double_ = set_value<double>;
+        }
+    }
+
+    std::uint32_t set_timestamp(blob_t * buf, std::uint32_t timestamp) {
+        switch (m_ts_size) {
+            case 0:
+                break;
+            case 1:
+                uint8(buf, m_id_size, timestamp);
+                break;
+            case 2:
+                uint16(buf, m_id_size, timestamp);
+                break;
+            case 4:
+                uint32(buf, m_id_size, timestamp);
+                break;
+            default:
+                throw std::runtime_error("Unsupported timestamp size: " + std::to_string(m_ts_size));
+        }
+    }
+
+    void writer(std::uint16_t tp, blob_t * buf, std::uint16_t offset, const measurement_value_t& value) {
+        switch (tp) {
+            case 0:
+                uint8(buf, offset, static_cast<std::uint8_t>(std::get<std::uint64_t>(value)));
+                break;
+            case 1:
+                int8(buf, offset, static_cast<std::int8_t>(std::get<std::int64_t>(value)));
+                break;
+            case 2:
+                uint16(buf, offset, static_cast<std::uint16_t>(std::get<std::uint64_t>(value)));
+                break;
+            case 3:
+                int16(buf, offset, static_cast<std::int16_t>(std::get<std::int64_t>(value)));
+                break;
+            case 4:
+                uint32(buf, offset, static_cast<std::uint32_t>(std::get<std::uint64_t>(value)));
+                break;
+            case 5:
+                int32(buf, offset, static_cast<std::int32_t>(std::get<std::int64_t>(value)));
+                break;
+            case 6:
+                uint64(buf, offset, std::get<std::uint64_t>(value));
+                break;
+            case 7:
+                int64(buf, offset, std::get<std::int64_t>(value));
+                break;
+            case 8:
+                float_(buf, offset, static_cast<float>(std::get<long double>(value)));
+                break;
+            case 9:
+                double_(buf, offset, static_cast<double>(std::get<long double>(value)));
+                break;
+            default:
+                throw std::runtime_error("Unsupported data type: " + std::to_string(tp));
+        }
+    }
+
+#if 0
+    void set_first_pids(const std::vector<DaqList>& daq_lists, const std::vector<std::uint16_t>& first_pids) {
+        m_first_pids = first_pids;
+
+        if (m_id_size == 1) {
+            // In case of 1-byte ID field (absolute ODT number) we need a mapping.
+            std::uint16_t daq_list_num = 0;
+            for (const auto& daq_list : daq_lists) {
+                auto first_pid = m_first_pids[daq_list_num];
+
+                for (std::uint16_t idx = first_pid; idx < daq_list.set_odt_count() + first_pid; ++idx) {
+                    m_odt_to_daq_map[idx] = { daq_list_num, (idx - first_pid) };
+                }
+                daq_list_num++;
+            }
+        }
+    }
+#endif
+
+#if 0
+    std::tuple<std::uint16_t, std::uint16_t> set_id(blob_t const * buf) {
+        std::uint16_t odt_num = 0;
+
+        switch (m_id_size) {
+            case 1:
+                odt_num = uint8(buf, 0);           // Get 1-byte ODT number...
+                return m_odt_to_daq_map[odt_num];  // ...and return mapped values.
+            case 2:
+                return { uint8(buf, 1), uint8(buf, 0) };
+            case 3:
+                return { uint16(buf, 1), uint8(buf, 0) };
+            case 4:
+                return { uint16(buf, 2), uint8(buf, 0) };
+            default:
+                throw std::runtime_error("Unsupported ID size: " + std::to_string(m_id_size));
+        }
+    }
+#endif
+    std::uint8_t                                                           m_id_size;
+    std::uint8_t                                                           m_ts_size;
+    std::function<void(blob_t * buf, std::uint32_t offset, std::int8_t)>   int8;
+    std::function<void(blob_t * buf, std::uint32_t offset, std::uint8_t)>  uint8;
+    std::function<void(blob_t * buf, std::uint32_t offset, std::int16_t)>  int16;
+    std::function<void(blob_t * buf, std::uint32_t offset, std::int32_t)>  int32;
+    std::function<void(blob_t * buf, std::uint32_t offset, std::int64_t)>  int64;
+    std::function<void(blob_t * buf, std::uint32_t offset, std::uint16_t)> uint16;
+    std::function<void(blob_t * buf, std::uint32_t offset, std::uint32_t)> uint32;
+    std::function<void(blob_t * buf, std::uint32_t offset, std::uint64_t)> uint64;
+    std::function<void(blob_t * buf, std::uint32_t offset, float)>         float_;
+    std::function<void(blob_t * buf, std::uint32_t offset, double)>        double_;
+    std::vector<std::uint16_t>                                             m_first_pids;
+    std::map<std::uint16_t, std::tuple<std::uint16_t, std::uint16_t>>      m_odt_to_daq_map;
+};
+//////////////////////////////////////////////////////////////////////////////////////////////
+
 struct MeasurementParameters {
     MeasurementParameters() = delete;
 
@@ -305,6 +525,7 @@ class DaqListState {
     bool feed(uint16_t odt_num, double timestamp, const std::string& payload) {
         auto state    = check_state(odt_num);
         auto finished = false;
+
         if (state == state_t::COLLECTING) {
             m_timestamp0 = timestamp;
             parse_Odt(odt_num, payload);
@@ -321,6 +542,7 @@ class DaqListState {
     }
 
     void add_result(measurement_tuple_t& result_buffer) {
+        //std::cout << "add_result: " << m_daq_list_num << " " << m_timestamp0 << " " << m_timestamp1 << std::endl;
         result_buffer = { m_daq_list_num, m_timestamp0, m_timestamp1, m_buffer };
     }
 
@@ -390,6 +612,7 @@ auto requires_swap(std::uint8_t byte_order) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
 class UnfolderBase {
    public:
 
@@ -430,17 +653,18 @@ class UnfolderBase {
 
 #endif
 
-    void feed(double timestamp, const std::string& payload) noexcept {
+    std::optional<measurement_tuple_t> feed(double timestamp, const std::string& payload) noexcept {
         const auto data         = reinterpret_cast<blob_t const *>(payload.data());
         auto [daq_num, odt_num] = m_getter.get_id(data);
-        measurement_tuple_t result;
 
         if (m_state[daq_num].feed(odt_num, timestamp, payload)) {
-            m_state[daq_num].add_result(result);
-            auto [dl, d0, d1, pl] = result;
+            // DAQ list completed.
+            measurement_tuple_t result;
 
-            // std::cout << "DL: " << dl << " : " << d0 << " : " << d1 << std::endl;
+            m_state[daq_num].add_result(result);    // get_result()???
+            return result;
         }
+        return std::nullopt;
     }
 
    private:
@@ -531,14 +755,14 @@ class XcpLogFileUnfolder {
 class DAQParser {
    public:
 
-    using callback_t = std::function<void(std::uint16_t, double, double, const std::vector<measurement_value_t>&)>;
+    virtual ~DAQParser() {
+    }
 
-    virtual ~DAQParser() = default;
     DAQParser()          = default;
 
     void set_parameters(const MeasurementParameters& params) noexcept {
         m_unfolder = std::make_unique<UnfolderBase>(params);
-        std::cout << "DAQParser::set_parameters: " << std::endl;
+        post_setup();
     }
 
     virtual void on_daq_list(
@@ -549,13 +773,17 @@ class DAQParser {
         if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
             return;
         }
-        m_unfolder->feed(timestamp, payload);
+        auto result = m_unfolder->feed(timestamp, payload);
+        if (result) {
+             const auto& [daq_list, ts0, ts1, meas] = *result;
+             on_daq_list(daq_list, ts0, ts1, meas);
+        }
     }
 
     virtual void post_setup() {
     }
 
-    void finalize() noexcept {
+    virtual void finalize() {
     }
 
    private:

@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 
-
 from pprint import pprint
-from typing import Callable, List, Optional, Tuple
+from typing import List
 
 from pyxcp import types
-from pyxcp.cpp_ext import DaqList
+from pyxcp.cpp_ext import DaqList  # , StimList
 from pyxcp.daq_stim.optimize import make_continuous_blocks
 from pyxcp.daq_stim.optimize.binpacking import first_fit_decreasing
 from pyxcp.recorder import DAQParser as _DAQParser
@@ -27,11 +26,11 @@ DAQ_TIMESTAMP_SIZE = {
 
 
 class DAQParser(_DAQParser):
-    def __init__(self, file_name: str, daq_lists: List[DaqList], callback: Optional[Callable[[int, Tuple], None]] = None):
+    def __init__(self, file_name: str, daq_lists: List[DaqList]):
         super().__init__()
-        self.callback = callback
         self.file_name = file_name
         self.daq_lists = daq_lists
+        self.setup_called = False
 
     def setup(self, write_multiple: bool = True):
         self.daq_info = self.xcp_master.getDaqInfo()
@@ -68,10 +67,10 @@ class DAQParser(_DAQParser):
                 # print("NO TIMESTAMP SUPPORT")
             else:
                 if self.ts_fixed:
-                    # print("Fixed timestamp")
+                    print("Fixed timestamp")
                     max_payload_size_first = max_payload_size - self.ts_size
                 else:
-                    # print("timestamp variable.")
+                    print("timestamp variable.")
                     self.selectable_timestamps = True
 
         except Exception as e:
@@ -121,12 +120,18 @@ class DAQParser(_DAQParser):
                 self.xcp_master.setDaqPtr(i, j, 0)
                 for entry in measurement.entries:
                     self.xcp_master.writeDaq(0xFF, entry.length, entry.ext, entry.address)
+        self.setup_called = True
 
     def start(self):
+        if not self.setup_called:
+            raise RuntimeError("please run setup() before start()")
         for i, daq_list in enumerate(self.daq_lists, self.min_daq):
+            print(daq_list.name, daq_list.event_num, daq_list.stim)
             mode = 0x00
             if self.supports_timestampes and (self.ts_fixed or (self.selectable_timestamps and daq_list.enable_timestamps)):
                 mode = 0x10
+            if daq_list.stim:
+                mode |= 0x02
             self.xcp_master.setDaqListMode(
                 daqListNumber=i, mode=mode, eventChannelNumber=daq_list.event_num, prescaler=1, priority=0xFF  # TODO: + MIN_DAQ
             )

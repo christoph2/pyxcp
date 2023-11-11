@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import functools
+import operator
 import sys
 from binascii import hexlify
 from time import perf_counter
@@ -33,14 +35,16 @@ def slicer(iterable, sliceLength, converter=None):
     return [converter(iterable[item : item + sliceLength]) for item in range(0, length, sliceLength)]
 
 
+def functools_reduce_iconcat(a):
+    return functools.reduce(operator.iconcat, a, [])
+
+
 def flatten(*args):
-    result = []
-    for arg in list(args):
-        if hasattr(arg, "__iter__"):
-            result.extend(flatten(*arg))
-        else:
-            result.append(arg)
-    return result
+    """Flatten a list of lists into a single list.
+
+    s. https://stackoverflow.com/questions/952914/how-do-i-make-a-flat-list-out-of-a-list-of-lists
+    """
+    return functools.reduce(operator.iconcat, args, [])
 
 
 def getPythonVersion():

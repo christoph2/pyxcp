@@ -739,16 +739,22 @@ class General(SingletonConfigurable):
     seed_n_key_function = Callable(default_value=None, allow_none=True).tag(config=True)
 
 
+class ProfileApp(Application):
+    def start(self):
+        print("Starting ProfileApp")
+
+
 class PyXCP(Application):
     config_file = Unicode(default_value="pyxcp_conf.py", help="base name of config file").tag(config=True)
 
-    classes = List([General, Transport])
+    classes = List([General, Transport, ProfileApp])
 
     def initialize(self, argv=None):
         self.parse_command_line(argv)
         self.read_configuration_file()
         self.general = General.instance(config=self.config, parent=self)
         self.transport = Transport.instance(parent=self)
+        self.profile_app = ProfileApp.instance(config=self.config, parent=self)
 
     def read_configuration_file(self):
         pth = Path(self.config_file)
@@ -784,7 +790,7 @@ class PyXCP(Application):
         )
     )
 
-    def _iterate_config_class(self, klass, class_names: typing.List[str]) -> None:
+    def _iterate_config_class(self, klass, class_names: typing.List[str], config) -> None:
         sub_classes = []
         class_path = ".".join(class_names)
         print(
@@ -814,12 +820,17 @@ class PyXCP(Application):
                 else:
                     print(f"#  Type: {tr.info()}")
                 print(f"#  Default: {value}")
-
-                print(f"#  c.{class_path}.{name} = {value}", end="\n\n")
+                if name in config:
+                    cfg_value = config[name]
+                    if isinstance(cfg_value, str):
+                        cfg_value = f"'{cfg_value}'"
+                    print(f"c.{class_path}.{name} = {cfg_value}", end="\n\n")
+                else:
+                    print(f"#  c.{class_path}.{name} = {value}", end="\n\n")
         if class_names is None:
             class_names = []
         for sub_klass in sub_classes:
-            self._iterate_config_class(sub_klass, class_names + [sub_klass.__name__])
+            self._iterate_config_class(sub_klass, class_names + [sub_klass.__name__], config=config.get(sub_klass.__name__, {}))
 
     def generate_config_file(self, file_like: io.IOBase, config=None) -> None:
         print("#")
@@ -828,19 +839,18 @@ class PyXCP(Application):
         print("c = get_config()  # noqa", end="\n\n")
 
         for klass in self._classes_with_config_traits():
-            self._iterate_config_class(klass, [klass.__name__])
+            self._iterate_config_class(klass, [klass.__name__], config=self.config.get(klass.__name__, {}))
+        print(self.config)
 
 
 class Configuration:
     pass
 
 
-application = PyXCP()
+def create_application():
+    application = PyXCP()
+    application.initialize(sys.argv)
+    application.start()
+    # application.generate_config_file(sys.stdout)
 
-application.initialize(sys.argv)
-application.start()
-
-# print(application.generate_config_file())
-# print("*" * 80)
-
-# application.generate_config_file(sys.stdout)
+    return application

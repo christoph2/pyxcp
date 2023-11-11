@@ -13,10 +13,11 @@ class DaqList {
         std::vector<std::vector<std::tuple<std::string, std::uint32_t, std::uint8_t, std::uint16_t, std::int16_t>>>;
 
     DaqList(
-        std::string_view meas_name, std::uint16_t event_num, bool enable_timestamps,
+        std::string_view meas_name, std::uint16_t event_num, bool stim, bool enable_timestamps,
         const std::vector<daq_list_initialzer_t>& measurements
     ) :
-        m_name(meas_name), m_event_num(event_num), m_enable_timestamps(enable_timestamps) {
+        m_name(meas_name), m_event_num(event_num), m_stim(stim), m_enable_timestamps(enable_timestamps) {
+        std::cout << "DAQ-List: " << meas_name << " " << event_num << " " << stim << " " << enable_timestamps << std::endl;
         for (const auto& measurement : measurements) {
             auto const& [name, address, ext, dt_name] = measurement;
             m_measurements.emplace_back(McObject(name, address, ext, 0, dt_name));
@@ -31,8 +32,12 @@ class DaqList {
         return m_name;
     }
 
-    bool get_event_num() const {
+    std::uint16_t get_event_num() const {
         return m_event_num;
+    }
+
+    bool get_stim() const {
+        return m_stim;
     }
 
     const std::vector<McObject>& get_measurements() const {
@@ -94,6 +99,7 @@ class DaqList {
 
     std::string              m_name;
     std::uint16_t            m_event_num;
+    bool                     m_stim;
     bool                     m_enable_timestamps;
     std::vector<McObject>    m_measurements;
     std::vector<Bin>         m_measurements_opt;

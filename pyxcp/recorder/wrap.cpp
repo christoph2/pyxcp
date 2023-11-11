@@ -2,6 +2,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/functional.h>
 
 #include <cstdint>
 
@@ -18,11 +19,15 @@ class PyDAQParser : public DAQParser {
     void on_daq_list(
         std::uint16_t daq_list_num, double timestamp0, double timestamp1, const std::vector<measurement_value_t> &measurement
     ) override {
-        PYBIND11_OVERRIDE_PURE(void, DAQParser, feed, daq_list_num, timestamp0, timestamp0, measurement);
+        PYBIND11_OVERRIDE_PURE(void, DAQParser, on_daq_list, daq_list_num, timestamp0, timestamp1, measurement);
     }
 
     void post_setup() override {
         PYBIND11_OVERRIDE(void, DAQParser, post_setup);
+    }
+
+    void finalize() override {
+        PYBIND11_OVERRIDE(void, DAQParser, finalize);
     }
 };
 

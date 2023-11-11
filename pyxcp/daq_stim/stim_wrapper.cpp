@@ -12,9 +12,6 @@ using namespace py::literals;
 #include "stim.hpp"
 
 PYBIND11_MODULE(stim, m) {
-    m.def("get_writer_lock", &get_writer_lock, py::return_value_policy::reference);
-    m.def("get_policy_lock", &get_policy_lock, py::return_value_policy::reference);
-
     py::class_<DaqEventInfo>(m, "DaqEventInfo")
         .def(py::init<const std::string&, std::int8_t, std::size_t, std::size_t, std::size_t, std::string_view, bool, bool, bool>()
         );
@@ -32,19 +29,18 @@ PYBIND11_MODULE(stim, m) {
         .def("writeDaq", &Stim::writeDaq)
         .def("setDaqListMode", &Stim::setDaqListMode)
         .def("startStopDaqList", &Stim::startStopDaqList)
-		.def("startStopSynch", &Stim::startStopSynch)
+        .def("startStopSynch", &Stim::startStopSynch)
 
-		.def("set_first_pid", &Stim::set_first_pid)
+        .def("set_first_pid", &Stim::set_first_pid)
         .def("set_policy_feeder", [](Stim& self, const py::function& callback) { self.set_policy_feeder(callback); })
-        .def("set_frame_sender", [](Stim& self, const py::function& callback) { self.set_frame_sender(callback); })
+        .def("set_frame_sender", [](Stim& self, const py::function& callback) { self.set_frame_sender(callback); });
 
-        ;
-
-    py::class_<Mutex>(m, "Mutex")
-        .def("__enter__", [&](Mutex& self) { /*std::cout << "__enter__ Mutex()\n";*/ /*self.lock();*/ })
-        .def(
-            "__exit__",
-            [&](Mutex& self, const std::optional<pybind11::type>& exc_type, const std::optional<pybind11::object>& exc_value,
-                const std::optional<pybind11::object>& traceback) { /*std::cout << "__exit____ Mutex()\n";*/ /*self.unlock();*/ }
-        );
+    py::class_<FakeEnum>(m, "FakeEnum")
+        .def(py::init<std::uint8_t>())
+        .def_property_readonly("name", &FakeEnum::get_name)
+        .def_property_readonly("value", &FakeEnum::get_value)
+        .def("bit_length", &FakeEnum::bit_length)
+        .def("to_bytes", &FakeEnum::to_bytes)
+        .def("__int__", [](const FakeEnum& self) { return self.get_value(); });
+    ;
 }

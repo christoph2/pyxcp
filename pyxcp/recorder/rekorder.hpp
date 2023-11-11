@@ -1,5 +1,4 @@
 
-
 #if !defined(__REKORDER_HPP)
     #define __REKORDER_HPP
 
@@ -12,7 +11,6 @@
     #include <bit>
     #include <bitset>
     #include <cerrno>
-    #include <condition_variable>
     #include <cstdint>
     #include <cstdio>
     #include <cstdlib>
@@ -20,15 +18,17 @@
     #include <ctime>
     #include <exception>
     #include <functional>
-    #include <mutex>
     #include <optional>
-    #include <queue>
     #include <stdexcept>
     #include <string>
     #include <thread>
     #include <utility>
     #include <variant>
     #include <vector>
+
+    #include "blockmem.hpp"
+    #include "event.hpp"
+    #include "tsqueue.hpp"
 
     #if defined(_WIN32)
         #include <Windows.h>
@@ -54,6 +54,7 @@ using namespace pybind11::literals;
 
     #define __ALIGNMENT_REQUIREMENT __BIGGEST_ALIGNMENT__
     #define __ALIGN                 alignas(__ALIGNMENT_REQUIREMENT)
+
 
 constexpr auto kilobytes(std::uint32_t value) -> std::uint32_t {
     return value * 1024;
@@ -181,127 +182,6 @@ inline void hexdump(blob_t const * buf, std::uint16_t sz) {
     }
     printf("\n\r");
 }
-
-template<typename T>
-class TsQueue {
-   public:
-
-    TsQueue() = default;
-
-    TsQueue(const TsQueue& other) noexcept {
-        std::scoped_lock lock(other.m_mtx);
-        m_queue = other.m_queue;
-    }
-
-    void put(T value) noexcept {
-        std::scoped_lock lock(m_mtx);
-        m_queue.push(value);
-        m_cond.notify_one();
-    }
-
-    std::shared_ptr<T> get() noexcept {
-        std::unique_lock lock(m_mtx);
-        m_cond.wait(lock, [this] { return !m_queue.empty(); });
-        std::shared_ptr<T> result(std::make_shared<T>(m_queue.front()));
-        m_queue.pop();
-        return result;
-    }
-
-    bool empty() const noexcept {
-        std::scoped_lock lock(m_mtx);
-        return m_queue.empty();
-    }
-
-   private:
-
-    mutable std::mutex      m_mtx;
-    std::queue<T>           m_queue;
-    std::condition_variable m_cond;
-};
-
-class Event {
-   public:
-
-    Event(const Event& other) noexcept {
-        std::scoped_lock lock(other.m_mtx);
-        m_flag = other.m_flag;
-    }
-
-    ~Event() = default;
-    Event()  = default;
-
-    void signal() noexcept {
-        std::scoped_lock lock(m_mtx);
-        m_flag = true;
-        m_cond.notify_one();
-    }
-
-    void wait() noexcept {
-        std::unique_lock lock(m_mtx);
-        m_cond.wait(lock, [this] { return m_flag; });
-        m_flag = false;
-    }
-
-    bool state() const noexcept {
-        std::scoped_lock lock(m_mtx);
-        return m_flag;
-    }
-
-   private:
-
-    mutable std::mutex      m_mtx{};
-    bool                    m_flag{ false };
-    std::condition_variable m_cond{};
-};
-
-/*
- *
- * Super simplicistic block memory manager.
- *
- */
-template<typename T, int _IS, int _NB>
-class BlockMemory {
-   public:
-
-    using mem_block_t = std::array<T, _IS>;
-
-    explicit BlockMemory() noexcept : m_memory{ nullptr }, m_allocation_count{ 0 } {
-        m_memory = new T[_IS * _NB];
-    }
-
-    ~BlockMemory() noexcept {
-        if (m_memory) {
-            delete[] m_memory;
-        }
-    }
-
-    BlockMemory(const BlockMemory&) = delete;
-
-    T* acquire() noexcept {
-        const std::scoped_lock lock(m_mtx);
-
-        if (m_allocation_count >= _NB) {
-            return nullptr;
-        }
-        T* ptr = reinterpret_cast<T*>(m_memory + (m_allocation_count * _IS));
-        m_allocation_count++;
-        return ptr;
-    }
-
-    void release() noexcept {
-        const std::scoped_lock lock(m_mtx);
-        if (m_allocation_count == 0) {
-            return;
-        }
-        m_allocation_count--;
-    }
-
-   private:
-
-    T*            m_memory;
-    std::uint32_t m_allocation_count;
-    std::mutex    m_mtx;
-};
 
     #include "reader.hpp"
     #include "unfolder.hpp"

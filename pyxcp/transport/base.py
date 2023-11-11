@@ -151,6 +151,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.closeEvent = threading.Event()
 
         self.command_lock = threading.Lock()
+        self.policy_lock = threading.Lock()
 
         self.logger = config.log
         self._debug = self.logger.level == 10
@@ -187,12 +188,6 @@ class BaseTransport(metaclass=abc.ABCMeta):
         class_name = self.__class__.__name__.lower()
         self.config = getattr(config, class_name)
 
-    def set_writer_lock(self, lock):
-        self.writer_lock = lock
-
-    def set_policy_lock(self, lock):
-        self.policy_lock = lock
-
     def close(self):
         """Close the transport-layer connection and event-loop."""
         self.finishListener()
@@ -222,8 +217,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             self.timing.start()
             with self.policy_lock:
                 self.policy.feed(types.FrameCategory.CMD, self.counterSend, perf_counter(), frame)
-            with self.writer_lock:
-                self.send(frame)
+            self.send(frame)
             try:
                 xcpPDU = get(
                     self.resQueue,
@@ -270,9 +264,17 @@ class BaseTransport(metaclass=abc.ABCMeta):
             if pid == "ERR" and cmd.name != "SYNCH":
                 err = types.XcpError.parse(xcpPDU[1:])
                 raise types.XcpResponseError(err)
-
-        frame = self._prepare_request(cmd, *data)
-        with self.writer_lock:
+        with self.command_lock:
+            if isinstance(*data, list):
+                data = data[0]  # C++ interfacing.
+            frame = self._prepare_request(cmd, *data)
+            with self.policy_lock:
+                self.policy.feed(
+                    types.FrameCategory.CMD if int(cmd) >= 0xC0 else types.FrameCategory.STIM,
+                    self.counterSend,
+                    perf_counter(),
+                    frame,
+                )
             self.send(frame)
 
     def _prepare_request(self, cmd, *data):

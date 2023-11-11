@@ -6,6 +6,7 @@
     #include <map>
     #include <optional>
     #include <string>
+	#include <ranges>
     #include <vector>
 
 const std::map<const std::string, std::tuple<std::uint16_t, std::uint16_t>> TYPE_MAP = {
@@ -36,7 +37,9 @@ class McObject {
         m_components(components),
         m_type_index(-1) {
         if (data_type != "") {
-            const auto [ti, len] = TYPE_MAP.at(data_type);
+			std::string dt_toupper;
+			std::transform(data_type.begin(), data_type.end(), dt_toupper.begin(), [](unsigned char c) -> unsigned char { return std::toupper(c); });
+            const auto [ti, len] = TYPE_MAP.at(dt_toupper);
             m_type_index         = ti;
             m_length             = len;
         }

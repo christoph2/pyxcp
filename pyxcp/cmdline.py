@@ -5,7 +5,7 @@ and create a XCP master instance.
 """
 import warnings
 
-from pyxcp.config import application
+from pyxcp.config import create_application
 from pyxcp.master import Master
 
 
@@ -26,6 +26,7 @@ class ArgumentParser:
             warnings.warn("callout  argument is not supported anymore", DeprecationWarning)
 
     def run(self, policy=None):
+        application = create_application()
         transport = application.transport.layer
         master = Master(transport, config=application, policy=policy)
         return master

@@ -47,11 +47,12 @@ PYBIND11_MODULE(cpp_ext, m) {
 
     py::class_<DaqList>(m, "DaqList")
         .def(
-            py::init<std::string_view, std::uint16_t, bool, const std::vector<DaqList::daq_list_initialzer_t>&>(), "name"_a,
-            "event_num"_a, "enable_timestamps"_a, "measurements"_a
+            py::init<std::string_view, std::uint16_t, bool, bool, const std::vector<DaqList::daq_list_initialzer_t>&>(), "name"_a,
+            "event_num"_a, "stim"_a, "enable_timestamps"_a, "measurements"_a
         )
         .def_property("name", &DaqList::get_name, nullptr)
         .def_property("event_num", &DaqList::get_event_num, nullptr)
+        .def_property("stim", &DaqList::get_stim, nullptr)
         .def_property("enable_timestamps", &DaqList::get_enable_timestamps, nullptr)
         .def_property("measurements", &DaqList::get_measurements, nullptr)
         .def_property("measurements_opt", &DaqList::get_measurements_opt, &DaqList::set_measurements_opt)

@@ -24,7 +24,7 @@ from pyxcp.constants import (
     makeWordPacker,
     makeWordUnpacker,
 )
-from pyxcp.daq_stim.stim import DaqEventInfo, Stim, get_policy_lock, get_writer_lock
+from pyxcp.daq_stim.stim import DaqEventInfo, Stim
 from pyxcp.master.errorhandler import disable_error_handling, wrapped
 from pyxcp.transport.base import createTransport
 from pyxcp.utils import SHORT_SLEEP, decode_bytes, delay
@@ -75,12 +75,10 @@ class Master:
         transport_config = config.transport
         self.transport = createTransport(transport_name, transport_config, policy)
 
-        self.transport.set_writer_lock(get_writer_lock())
-        self.transport.set_policy_lock(get_policy_lock())
         self.stim = Stim()
         self.stim.clear()
         self.stim.set_policy_feeder(self.transport.policy.feed)
-        self.stim.set_frame_sender(self.transport.send)
+        self.stim.set_frame_sender(self.transport.block_request)
 
         # In some cases the transport-layer needs to communicate with us.
         self.transport.parent = self

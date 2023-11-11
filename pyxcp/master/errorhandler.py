@@ -2,6 +2,7 @@
 """Implements error-handling according to XCP spec.
 """
 import functools
+import logging
 import threading
 import time
 import types
@@ -9,7 +10,6 @@ from collections import namedtuple
 
 import can
 
-from pyxcp.config import application
 from pyxcp.errormatrix import ERROR_MATRIX, Action, PreAction
 from pyxcp.types import COMMAND_CATEGORIES, XcpError, XcpResponseError, XcpTimeoutError
 
@@ -39,7 +39,7 @@ class InternalError(Exception):
     """Indicates an internal error, like invalid service."""
 
 
-class UnhandledError(Exception):
+class SystemExit(Exception):
     """"""
 
 
@@ -76,7 +76,7 @@ def getActions(service, error_code):
         print(f"Try to handle error -- Service: {service.name} Error-Code: {error_code}")
         handler = eh.get(error_str)
         if handler is None:
-            raise UnhandledError(f"Service '{service.name}' has no handler for '{error_code}'.")
+            raise SystemExit(f"Service '{service.name}' has no handler for '{error_code}'.")
         preActions, actions = handler
     return preActions, actions
 
@@ -168,8 +168,6 @@ def display_error():
 class Handler:
     """"""
 
-    logger = application.log
-
     def __init__(self, instance, func, arguments, error_code=None):
         self.instance = instance
         if hasattr(func, "__closure__") and func.__closure__:
@@ -181,6 +179,7 @@ class Handler:
         self.service = self.instance.service
         self.error_code = error_code
         self._repeater = None
+        self.logger = logging.getLogger("PyXCP")
 
     def __str__(self):
         return f"Handler(func = {func_name(self.func)} arguments = {self.arguments} service = {self.service} error_code = {self.error_code})"
@@ -246,15 +245,15 @@ class Handler:
             if item == Action.NONE:
                 pass
             elif item == Action.DISPLAY_ERROR:
-                raise UnhandledError("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error.")
             elif item == Action.RETRY_SYNTAX:
-                raise UnhandledError("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error.")
             elif item == Action.RETRY_PARAM:
-                raise UnhandledError("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error.")
             elif item == Action.USE_A2L:
-                raise UnhandledError("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error.")
             elif item == Action.USE_ALTERATIVE:
-                raise UnhandledError("Could not proceed due to unhandled error.")  # TODO: check alternatives.
+                raise SystemExit("Could not proceed due to unhandled error.")  # TODO: check alternatives.
             elif item == Action.REPEAT:
                 repetitionCount = Repeater.REPEAT
             elif item == Action.REPEAT_2_TIMES:
@@ -262,13 +261,13 @@ class Handler:
             elif item == Action.REPEAT_INF_TIMES:
                 repetitionCount = Repeater.INFINITE
             elif item == Action.RESTART_SESSION:
-                raise UnhandledError("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error.")
             elif item == Action.TERMINATE_SESSION:
-                raise UnhandledError("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error.")
             elif item == Action.SKIP:
                 pass
             elif item == Action.NEW_FLASH_WARE:
-                raise UnhandledError("Could not proceed due to unhandled error")
+                raise SystemExit("Could not proceed due to unhandled error")
         return result_pre_actions, result_actions, Repeater(repetitionCount)
 
 
@@ -313,13 +312,14 @@ class HandlerStack:
 class Executor(SingletonBase):
     """"""
 
-    handlerStack = HandlerStack()
-    repeater = None
-    logger = application.log
-    previous_error_code = None
-    error_code = None
-    func = None
-    arguments = None
+    def __init__(self):
+        self.handlerStack = HandlerStack()
+        self.repeater = None
+        self.logger = logging.getLogger("PyXCP")
+        self.previous_error_code = None
+        self.error_code = None
+        self.func = None
+        self.arguments = None
 
     def __call__(self, inst, func, arguments):
         self.inst = inst

@@ -1,4 +1,3 @@
-#!/bin/env python
 import os
 import platform
 import subprocess  # nosec
@@ -63,7 +62,7 @@ if has_pybind11:
         ),
         Pybind11Extension(
             EXT_NAMES[2],
-            include_dirs=[PYB11_INCLUDE_DIRS, "pyxcp/daq_stim"],
+            include_dirs=[PYB11_INCLUDE_DIRS, "pyxcp/daq_stim", "pyxcp/cpp_ext"],
             sources=["pyxcp/daq_stim/stim.cpp", "pyxcp/daq_stim/stim_wrapper.cpp", "pyxcp/daq_stim/scheduler.cpp"],
             define_macros=[("EXTENSION_NAME", EXT_NAMES[2]), ("NDEBUG", 1)],
             optional=False,
