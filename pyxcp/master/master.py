@@ -218,17 +218,20 @@ class Master:
         self.DWORD_unpack = makeDWordUnpacker(byteOrderPrefix)
         self.DLONG_pack = makeDLongPacker(byteOrderPrefix)
         self.DLONG_unpack = makeDLongUnpacker(byteOrderPrefix)
-
+        self.slaveProperties.bytesPerElement = None  # Download/Upload commands are using element- not byte-count.
         if self.slaveProperties.addressGranularity == types.AddressGranularity.BYTE:
             self.AG_pack = struct.Struct("<B").pack
             self.AG_unpack = struct.Struct("<B").unpack
+            self.slaveProperties.bytesPerElement = 1
         elif self.slaveProperties.addressGranularity == types.AddressGranularity.WORD:
             self.AG_pack = self.WORD_pack
             self.AG_unpack = self.WORD_unpack
+            self.slaveProperties.bytesPerElement = 2
         elif self.slaveProperties.addressGranularity == types.AddressGranularity.DWORD:
             self.AG_pack = self.DWORD_pack
             self.AG_unpack = self.DWORD_unpack
-        # self.connected = True
+            self.slaveProperties.bytesPerElement = 4
+            # self.connected = True
         return result
 
     @wrapped
@@ -431,6 +434,7 @@ class Master:
         Parameters
         ----------
         length : int
+            Number of elements (address granularity).
 
         Note
         ----
@@ -440,24 +444,23 @@ class Master:
         -------
         bytes
         """
-
+        byte_count = length * self.slaveProperties.bytesPerElement
         response = self.transport.request(types.Command.UPLOAD, length)
-        if length > (self.slaveProperties.maxCto - 1):
-            block_response = self.transport.block_receive(length_required=(length - len(response)))
+        if byte_count > (self.slaveProperties.maxCto - 1):
+            block_response = self.transport.block_receive(length_required=(byte_count - len(response)))
             response += block_response
         elif self.transport_name == "can":
             # larger sizes will send in multiple CAN messages
             # each valid message will start with 0xFF followed by the upload bytes
             # the last message might be padded to the required DLC
-            rem = length - len(response)
+            rem = byte_count - len(response)
             while rem:
                 if len(self.transport.resQueue):
                     data = self.transport.resQueue.popleft()
                     response += data[1 : rem + 1]
-                    rem = length - len(response)
+                    rem = byte_count - len(response)
                 else:
                     sleep(SHORT_SLEEP)
-
         return response
 
     @wrapped
@@ -467,6 +470,8 @@ class Master:
 
         Parameters
         ----------
+        length : int
+            Number of elements (address granularity).
         address : int
         addressExt : int
 
@@ -475,7 +480,12 @@ class Master:
         bytes
         """
         addr = self.DWORD_pack(address)
-        return self.transport.request(types.Command.SHORT_UPLOAD, length, 0, addressExt, *addr)
+        byte_count = length * self.slaveProperties.bytesPerElement
+        max_byte_count = self.slaveProperties.maxCto - 1
+        if byte_count > max_byte_count:
+            self.logger.warn(f"SHORT_UPLOAD: {byte_count} bytes exceeds the maximum value of {max_byte_count}.")
+        response = self.transport.request(types.Command.SHORT_UPLOAD, length, 0, addressExt, *addr)
+        return response[:byte_count]
 
     @wrapped
     def buildChecksum(self, blocksize: int):
