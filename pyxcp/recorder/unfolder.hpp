@@ -602,7 +602,7 @@ class DaqListState {
     MeasurementParameters            m_params;
 };
 
-auto requires_swap(std::uint8_t byte_order) {
+auto requires_swap(std::uint8_t byte_order) -> bool {
     // INTEL(LITTLE)=0, MOTOROLA(BIG)=1
     std::endian target_byte_order = (byte_order == 1) ? std::endian::big : std::endian::little;
     return (target_byte_order != std::endian::native) ? true : false;

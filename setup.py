@@ -8,6 +8,7 @@ import setuptools.command.develop
 
 
 if sys.platform == "darwin":
+    os.environ["MACOSX_DEPLOYMENT_TARGET"] = "11.0"
     os.environ["CC"] = "clang++"
     os.environ["CXX"] = "clang++"
 
