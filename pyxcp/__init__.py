@@ -24,5 +24,5 @@ from .transport import Eth
 from .transport import SxI
 from .transport import Usb
 
-# if you update this manually, do not forget to update .bumpversion.cfg
+# if you update this manually, do not forget to update .bumpversion.cfg and pyproject.toml
 __version__ = "0.21.9"
