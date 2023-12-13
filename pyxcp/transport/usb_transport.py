@@ -8,6 +8,9 @@ from time import perf_counter
 from time import sleep
 from time import time
 
+import usb.backend.libusb1 as libusb1
+import usb.backend.libusb0 as libusb0
+import usb.backend.openusb as openusb
 import usb.core
 import usb.util
 
@@ -29,6 +32,7 @@ class Usb(BaseTransport):
         "reply_endpoint_number": (int, True, 1),
         "vendor_id": (int, False, 0),
         "product_id": (int, False, 0),
+        "library": (str, False, "")  # absolute path to USB shared library
     }
     HEADER = struct.Struct("<2H")
     HEADER_SIZE = HEADER.size
@@ -43,6 +47,7 @@ class Usb(BaseTransport):
         self.interface_number = self.config.get("interface_number")
         self.command_endpoint_number = self.config.get("command_endpoint_number")
         self.reply_endpoint_number = self.config.get("reply_endpoint_number")
+        self.library = self.config.get("library")
         self.device = None
 
         self.status = 0
@@ -55,15 +60,25 @@ class Usb(BaseTransport):
         self._packets = deque()
 
     def connect(self):
+        if self.library:
+            for backend_provider in (libusb1, libusb0, openusb):
+                backend = backend_provider.get_backend(find_library=lambda x: self.library)
+                if backend:
+                    break
+        else:
+            backend = None
+
         if self.vendor_id and self.product_id:
             kwargs = {
                 "find_all": True,
                 "idVendor": self.vendor_id,
                 "idProduct": self.product_id,
+                "backend": backend,
             }
         else:
             kwargs = {
                 "find_all": True,
+                "backend": backend,
             }
 
         for device in usb.core.find(**kwargs):
