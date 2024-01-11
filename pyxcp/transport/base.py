@@ -356,7 +356,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     def processResponse(self, response, length, counter, recv_timestamp=None):
         if counter == self.counterReceived:
-            self.logger.warn(f"Duplicate message counter {counter} received from the XCP slave")
+            self.logger.warning(f"Duplicate message counter {counter} received from the XCP slave")
             if self._debug:
                 self.logger.debug(f"<- L{length} C{counter} {hexDump(response[:512])}")
             return
@@ -402,7 +402,7 @@ def createTransport(name, *args, **kws):
     if name in transports:
         transportClass = transports[name]
     else:
-        raise ValueError(f"'{name}' is an invalid transport -- please choose one of [{' | '.join(transports.keys())}].")
+        raise ValueError(f"{name!r} is an invalid transport -- please choose one of [{' | '.join(transports.keys())}].")
     return transportClass(*args, **kws)
 
 

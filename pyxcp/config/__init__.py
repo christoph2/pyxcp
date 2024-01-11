@@ -3,11 +3,12 @@ import io
 import json
 import sys
 import typing
-import warnings
 from pathlib import Path
 
 import can
 import toml
+from rich.logging import RichHandler
+from rich.prompt import Confirm
 from traitlets import (
     Any,
     Bool,
@@ -26,7 +27,7 @@ from traitlets.config import Application, Instance, SingletonConfigurable
 from pyxcp.config import legacy
 
 
-warnings.simplefilter("always")
+# warnings.simplefilter("always")
 
 
 class CanBase:
@@ -556,7 +557,7 @@ class Can(SingletonConfigurable):
         default_value=None, allow_none=True, help="Channel identification. Expected type and value is backend dependent."
     ).tag(config=True)
     max_dlc_required = Bool(False, help="Master to slave frames always to have DLC = MAX_DLC = 8").tag(config=True)
-    max_can_fd_dlc = Integer(64, help="").tag(config=True)
+    # max_can_fd_dlc = Integer(64, help="").tag(config=True)
     padding_value = Integer(0, help="Fill value, if max_dlc_required == True and DLC < MAX_DLC").tag(config=True)
     use_default_listener = Bool(True, help="").tag(config=True)
     can_id_master = Integer(allow_none=False, help="CAN-ID master -> slave (Bit31= 1: extended identifier)").tag(config=True)
@@ -564,6 +565,9 @@ class Can(SingletonConfigurable):
     can_id_broadcast = Integer(
         default_value=None, allow_none=True, help="Auto detection CAN-ID (Bit31= 1: extended identifier)"
     ).tag(config=True)
+    daq_identifier = List(trait=Integer(), default_value=[], allow_none=True, help="One CAN identifier per DAQ-list.").tag(
+        config=True
+    )
     bitrate = Integer(250000, help="CAN bitrate in bits/s (arbitration phase, if CAN FD).").tag(config=True)
     receive_own_messages = Bool(False, help="Enable self-reception of sent messages.").tag(config=True)
     poll_interval = Float(default_value=None, allow_none=True, help="Poll interval in seconds when reading messages.").tag(
@@ -659,25 +663,25 @@ timing-related parameters.
 
 
 class Eth(SingletonConfigurable):
-    """ """
+    """Ethernet."""
 
-    host = Unicode("localhost").tag(config=True)
-    port = Integer(5555).tag(config=True)
-    protocol = Enum(["TCP", "UDP"], default_value="UDP").tag(config=True)
-    ipv6 = Bool(False).tag(config=True)
-    tcp_nodelay = Bool(False).tag(config=True)
-    bind_to_address = Unicode(default_value=None, allow_none=True, help="Specific local address.").tag(config=True)
-    bind_to_port = Integer(default_value=None, allow_none=True, help="Specific local port.").tag(config=True)
+    host = Unicode("localhost", help="Hostname or IP address of XCP slave.").tag(config=True)
+    port = Integer(5555, help="TCP/UDP port to connect.").tag(config=True)
+    protocol = Enum(["TCP", "UDP"], default_value="UDP", help="").tag(config=True)
+    ipv6 = Bool(False, help="Use IPv6 if `True` else IPv4.").tag(config=True)
+    tcp_nodelay = Bool(False, help="*** Expert option *** -- Disable Nagle's algorithm if `True`.").tag(config=True)
+    bind_to_address = Unicode(default_value=None, allow_none=True, help="Bind to specific local address.").tag(config=True)
+    bind_to_port = Integer(default_value=None, allow_none=True, help="Bind to specific local port.").tag(config=True)
 
 
 class SxI(SingletonConfigurable):
     """SPI and SCI connections."""
 
-    port = Unicode("COM1", help="").tag(config=True)
-    bitrate = Integer(38400, help="").tag(config=True)
-    bytesize = Enum([5, 6, 7, 8], default_value=8, help="").tag(config=True)
-    parity = Enum(["N", "E", "O", "M", "S"], default_value="N", help="").tag(config=True)
-    stopbits = Enum([1, 1.5, 2], default_value=1, help="").tag(config=True)
+    port = Unicode("COM1", help="Name of communication interface.").tag(config=True)
+    bitrate = Integer(38400, help="Connection bitrate").tag(config=True)
+    bytesize = Enum([5, 6, 7, 8], default_value=8, help="Size of byte.").tag(config=True)
+    parity = Enum(["N", "E", "O", "M", "S"], default_value="N", help="Paritybit calculation.").tag(config=True)
+    stopbits = Enum([1, 1.5, 2], default_value=1, help="Number of stopbits.").tag(config=True)
 
     """
     -prot<x>     Set the SxI protocol type SYNC = 1,CTR = 2,SYNC+CTR = 3 (Default 0)
@@ -685,22 +689,23 @@ class SxI(SingletonConfigurable):
     """
 
 
-class USB(SingletonConfigurable):
-    """ """
+class Usb(SingletonConfigurable):
+    """Universal Serial Bus connections."""
 
-    serial_number = Unicode("").tag(config=True)
-    configuration_number = Integer(1).tag(config=True)
-    interface_number = Integer(2).tag(config=True)
-    command_endpoint_number = Integer(0).tag(config=True)
-    reply_endpoint_number = Integer(1).tag(config=True)
-    vendor_id = Integer(0).tag(config=True)
-    product_id = Integer(0).tag(config=True)
+    serial_number = Unicode("", help="Device serial number.").tag(config=True)
+    configuration_number = Integer(1, help="USB configuration number.").tag(config=True)
+    interface_number = Integer(2, help="USB interface number.").tag(config=True)
+    command_endpoint_number = Integer(0, help="USB command endpoint number.").tag(config=True)
+    reply_endpoint_number = Integer(1, help="USB reply endpoint number.").tag(config=True)
+    vendor_id = Integer(0, help="USB vendor ID.").tag(config=True)
+    product_id = Integer(0, help="USB product ID.").tag(config=True)
+    library = Unicode("", help="Absolute path to USB shared library.").tag(config=True)
 
 
 class Transport(SingletonConfigurable):
     """ """
 
-    classes = List([Can, Eth, SxI, USB])
+    classes = List([Can, Eth, SxI, Usb])
 
     layer = Enum(
         ["CAN", "ETH", "SXI", "USB"], default_value=None, allow_none=False, help="Choose one of the supported XCP transport layers."
@@ -718,50 +723,156 @@ if there is no response to a command.""",
     can = Instance(Can).tag(config=True)
     eth = Instance(Eth).tag(config=True)
     sxi = Instance(SxI).tag(config=True)
-    usb = Instance(USB).tag(config=True)
+    usb = Instance(Usb).tag(config=True)
 
     def __init__(self, **kws):
         super().__init__(**kws)
         self.can = Can.instance(config=self.config, parent=self)
         self.eth = Eth.instance(config=self.config, parent=self)
         self.sxi = SxI.instance(config=self.config, parent=self)
-        self.usb = USB.instance(config=self.config, parent=self)
+        self.usb = Usb.instance(config=self.config, parent=self)
 
 
 class General(SingletonConfigurable):
     """ """
 
-    loglevel = Unicode("WARN").tag(config=True)
+    loglevel = Unicode("WARN", help="Set the log level by value or name.").tag(config=True)
     disable_error_handling = Bool(False).tag(config=True)
     disconnect_response_optional = Bool(False).tag(config=True)
     seed_n_key_dll = Unicode("", allow_none=False).tag(config=True)
     seed_n_key_dll_same_bit_width = Bool(False).tag(config=True)
     seed_n_key_function = Callable(default_value=None, allow_none=True).tag(config=True)
+    stim_support = Bool(False, help="").tag(config=True)
+
+
+class ProfileCreate(Application):
+    description = "\nCreate a new profile"
+
+    dest_file = Unicode(default_value=None, allow_none=True, help="destination file name").tag(config=True)
+    aliases = Dict(  # type:ignore[assignment]
+        dict(
+            d="ProfileCreate.dest_file",
+        )
+    )
+
+    def start(self):
+        self.parent.parent.generate_config_file(sys.stdout, {})
+        print("DEST", self.dest_file)
+
+
+class ProfileConvert(Application):
+    description = "\nConvert legacy configuration file (.json/.toml) to new python based format."
+
+    config_file = Unicode(help="Name of legacy config file (.json/.toml).", default_value=None, allow_none=False).tag(
+        config=True
+    )  # default_value="pyxcp_conf.py",
+
+    dest_file = Unicode(default_value=None, allow_none=True, help="destination file name").tag(config=True)
+
+    aliases = Dict(  # type:ignore[assignment]
+        dict(
+            c="ProfileConvert.config_file",
+            d="ProfileConvert.dest_file",
+        )
+    )
+
+    def start(self):
+        pyxcp = self.parent.parent
+        pyxcp._read_configuration(self.config_file, emit_warning=False)
+        if self.dest_file:
+            dest = Path(self.dest_file)
+            if dest.exists():
+                if not Confirm.ask(f"Destination file [green]{dest.name!r}[/green] already exists. do you want to overwrite it?"):
+                    print("Aborting...")
+                    self.exit(1)
+            with dest.open("w") as out_file:
+                pyxcp.generate_config_file(out_file)
+        else:
+            pyxcp.generate_config_file(sys.stdout)
 
 
 class ProfileApp(Application):
+    subcommands = Dict(
+        dict(
+            create=(ProfileCreate, ProfileCreate.description.splitlines()[0]),
+            convert=(ProfileConvert, ProfileConvert.description.splitlines()[0]),
+        )
+    )
+
     def start(self):
-        print("Starting ProfileApp")
+        if self.subapp is None:
+            print(f"No subcommand specified. Must specify one of: {self.subcommands.keys()}")
+            print()
+            self.print_description()
+            self.print_subcommands()
+            self.exit(1)
+        else:
+            self.subapp.start()
 
 
 class PyXCP(Application):
     config_file = Unicode(default_value="pyxcp_conf.py", help="base name of config file").tag(config=True)
 
-    classes = List([General, Transport, ProfileApp])
+    classes = List([General, Transport])
+
+    subcommands = dict(
+        profile=(
+            ProfileApp,
+            """
+            Profile stuff
+            """.strip(),
+        )
+    )
+
+    def start(self):
+        if self.subapp:
+            self.subapp.start()
+            exit(2)
+        else:
+            self._read_configuration(self.config_file)
+
+    def _setup_logger(self):
+        from pyxcp.types import Command
+
+        # Remove any handlers installed by `traitlets`.
+        for hdl in self.log.handlers:
+            self.log.removeHandler(hdl)
+
+        # formatter = logging.Formatter(fmt=self.log_format, datefmt=self.log_datefmt)
+
+        keywords = list(Command.__members__.keys()) + ["ARGS", "KWS"]  # Syntax highlight XCP commands and other stuff.
+        rich_handler = RichHandler(
+            rich_tracebacks=True,
+            tracebacks_show_locals=True,
+            log_time_format=self.log_datefmt,
+            level=self.log_level,
+            keywords=keywords,
+        )
+        # rich_handler.setFormatter(formatter)
+        self.log.addHandler(rich_handler)
 
     def initialize(self, argv=None):
-        self.parse_command_line(argv)
-        self.read_configuration_file()
+        PyXCP.name = Path(sys.argv[0]).name
+        self.parse_command_line(argv[1:])
+        self._setup_logger()
+
+    def _read_configuration(self, file_name: str, emit_warning: bool = True) -> None:
+        self.read_configuration_file(file_name, emit_warning)
         self.general = General.instance(config=self.config, parent=self)
         self.transport = Transport.instance(parent=self)
-        self.profile_app = ProfileApp.instance(config=self.config, parent=self)
 
-    def read_configuration_file(self):
-        pth = Path(self.config_file)
+    def read_configuration_file(self, file_name: str, emit_warning: bool = True):
+        self.legacy_config: bool = False
+
+        pth = Path(file_name)
+        if not pth.exists():
+            raise FileNotFoundError(f"Configuration file {file_name!r} does not exist.")
+
         suffix = pth.suffix.lower()
         if suffix == ".py":
             self.load_config_file(self.config_file)
         else:
+            self.legacy_config = True
             if suffix == ".json":
                 reader = json
             elif suffix == ".toml":
@@ -769,10 +880,11 @@ class PyXCP(Application):
             else:
                 raise ValueError(f"Unknown file type for config: {suffix}")
             with pth.open("r") as f:
-                warnings.warn("Old-style configuration file. Please user python based configuration.", DeprecationWarning)
+                if emit_warning:
+                    self.log.warning(f"Legacy configuration file format ({suffix}), please use python based configuration.")
                 cfg = reader.loads(f.read())
                 if cfg:
-                    cfg = legacy.convert_config(cfg)
+                    cfg = legacy.convert_config(cfg, self.log)
                     self.config = cfg
             return cfg
 
@@ -790,7 +902,7 @@ class PyXCP(Application):
         )
     )
 
-    def _iterate_config_class(self, klass, class_names: typing.List[str], config) -> None:
+    def _iterate_config_class(self, klass, class_names: typing.List[str], config, out_file: io.IOBase = sys.stdout) -> None:
         sub_classes = []
         class_path = ".".join(class_names)
         print(
@@ -798,6 +910,7 @@ class PyXCP(Application):
 # {class_path} configuration
 # ------------------------------------------------------------------------------""",
             end="\n\n",
+            file=out_file,
         )
         if hasattr(klass, "classes"):
             kkk = klass.classes
@@ -809,48 +922,54 @@ class PyXCP(Application):
             if md.get("config"):
                 help = md.get("help", "").lstrip()
                 commented_lines = "\n".join([f"# {line}" for line in help.split("\n")])
-                print(f"#{commented_lines}")
+                print(f"#{commented_lines}", file=out_file)
                 value = tr.default()
-                if isinstance(tr, Instance) and tr.__class__.__name__ not in ("Dict",):
+                if isinstance(tr, Instance) and tr.__class__.__name__ not in ("Dict", "List"):
                     continue
-                if isinstance(tr, Unicode) and value is not None:
-                    value = f"'{value}'"
                 if isinstance(tr, Enum):
-                    print(f"#  Choices: {tr.info()}")
+                    print(f"#  Choices: {tr.info()}", file=out_file)
                 else:
-                    print(f"#  Type: {tr.info()}")
-                print(f"#  Default: {value}")
+                    print(f"#  Type: {tr.info()}", file=out_file)
+                print(f"#  Default: {value!r}", file=out_file)
                 if name in config:
                     cfg_value = config[name]
-                    if isinstance(cfg_value, str):
-                        cfg_value = f"'{cfg_value}'"
-                    print(f"c.{class_path}.{name} = {cfg_value}", end="\n\n")
+                    print(f"c.{class_path!s}.{name!s} = {cfg_value!r}", end="\n\n", file=out_file)
                 else:
-                    print(f"#  c.{class_path}.{name} = {value}", end="\n\n")
+                    print(f"#  c.{class_path!s}.{name!s} = {value!r}", end="\n\n", file=out_file)
         if class_names is None:
             class_names = []
         for sub_klass in sub_classes:
-            self._iterate_config_class(sub_klass, class_names + [sub_klass.__name__], config=config.get(sub_klass.__name__, {}))
+            self._iterate_config_class(
+                sub_klass, class_names + [sub_klass.__name__], config=config.get(sub_klass.__name__, {}), out_file=out_file
+            )
 
     def generate_config_file(self, file_like: io.IOBase, config=None) -> None:
-        print("#")
-        print("# Configuration file for pyXCP.")
-        print("#")
-        print("c = get_config()  # noqa", end="\n\n")
+        print("#", file=file_like)
+        print("# Configuration file for pyXCP.", file=file_like)
+        print("#", file=file_like)
+        print("c = get_config()  # noqa", end="\n\n", file=file_like)
 
         for klass in self._classes_with_config_traits():
-            self._iterate_config_class(klass, [klass.__name__], config=self.config.get(klass.__name__, {}))
-        print(self.config)
+            self._iterate_config_class(
+                klass, [klass.__name__], config=self.config.get(klass.__name__, {}) if config is None else {}, out_file=file_like
+            )
 
 
-class Configuration:
-    pass
+application: typing.Optional[PyXCP] = None
 
 
-def create_application():
+def create_application() -> PyXCP:
+    global application
+    if application is not None:
+        return application
     application = PyXCP()
     application.initialize(sys.argv)
     application.start()
-    # application.generate_config_file(sys.stdout)
+    return application
 
+
+def get_application() -> PyXCP:
+    global application
+    if application is None:
+        application = create_application()
     return application

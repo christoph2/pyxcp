@@ -70,6 +70,7 @@ uptime = "^3.0.1"
 rich = "^13.6.0"
 chardet = "^5.2.0"
 traitlets = "<=5.11.2"
+line-profiler-pycharm = "^1.1.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.1.0"

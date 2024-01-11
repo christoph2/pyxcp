@@ -3,7 +3,9 @@
 #ifndef STIM_SCHEDULER_HPP
 #define STIM_SCHEDULER_HPP
 
-#define _CRT_SECURE_NO_WARNINGS (1)
+#if !defined(_CRT_SECURE_NO_WARNINGS)
+    #define _CRT_SECURE_NO_WARNINGS (1)
+#endif
 
 #include <stdio.h>
 #include <windows.h>

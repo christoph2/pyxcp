@@ -17,7 +17,7 @@ class DaqList {
         const std::vector<daq_list_initialzer_t>& measurements
     ) :
         m_name(meas_name), m_event_num(event_num), m_stim(stim), m_enable_timestamps(enable_timestamps) {
-        std::cout << "DAQ-List: " << meas_name << " " << event_num << " " << stim << " " << enable_timestamps << std::endl;
+        //std::cout << "DAQ-List: " << meas_name << " " << event_num << " " << stim << " " << enable_timestamps << std::endl;
         for (const auto& measurement : measurements) {
             auto const& [name, address, ext, dt_name] = measurement;
             m_measurements.emplace_back(McObject(name, address, ext, 0, dt_name));

@@ -11,7 +11,7 @@ import struct
 import traceback
 import warnings
 from time import sleep
-from typing import Callable, Collection, Dict, List, Optional
+from typing import Any, Callable, Collection, Dict, List, Optional, Tuple
 
 from pyxcp import checksum, types
 from pyxcp.constants import (
@@ -25,7 +25,7 @@ from pyxcp.constants import (
     makeWordUnpacker,
 )
 from pyxcp.daq_stim.stim import DaqEventInfo, Stim
-from pyxcp.master.errorhandler import disable_error_handling, wrapped
+from pyxcp.master.errorhandler import SystemExit, disable_error_handling, wrapped
 from pyxcp.transport.base import createTransport
 from pyxcp.utils import SHORT_SLEEP, decode_bytes, delay
 
@@ -75,7 +75,7 @@ class Master:
         transport_config = config.transport
         self.transport = createTransport(transport_name, transport_config, policy)
 
-        self.stim = Stim()
+        self.stim = Stim(self.config.stim_support)
         self.stim.clear()
         self.stim.set_policy_feeder(self.transport.policy.feed)
         self.stim.set_frame_sender(self.transport.block_request)
@@ -109,6 +109,7 @@ class Master:
         self.disconnect_response_optional = self.config.disconnect_response_optional
         self.slaveProperties = SlaveProperties()
         self.slaveProperties.pgmProcessor = SlaveProperties()
+        self.slaveProperties.transport_layer = self.transport_name.upper()
 
     def __enter__(self):
         """Context manager entry part."""
@@ -203,16 +204,19 @@ class Master:
         self.DWORD_unpack = makeDWordUnpacker(byteOrderPrefix)
         self.DLONG_pack = makeDLongPacker(byteOrderPrefix)
         self.DLONG_unpack = makeDLongUnpacker(byteOrderPrefix)
-
+        self.slaveProperties.bytesPerElement = None  # Download/Upload commands are using element- not byte-count.
         if self.slaveProperties.addressGranularity == types.AddressGranularity.BYTE:
             self.AG_pack = struct.Struct("<B").pack
             self.AG_unpack = struct.Struct("<B").unpack
+            self.slaveProperties.bytesPerElement = 1
         elif self.slaveProperties.addressGranularity == types.AddressGranularity.WORD:
             self.AG_pack = self.WORD_pack
             self.AG_unpack = self.WORD_unpack
+            self.slaveProperties.bytesPerElement = 2
         elif self.slaveProperties.addressGranularity == types.AddressGranularity.DWORD:
             self.AG_pack = self.DWORD_pack
             self.AG_unpack = self.DWORD_unpack
+            self.slaveProperties.bytesPerElement = 4
         # self.connected = True
         return result
 
@@ -416,6 +420,7 @@ class Master:
         Parameters
         ----------
         length : int
+            Number of elements (address granularity).
 
         Note
         ----
@@ -425,24 +430,23 @@ class Master:
         -------
         bytes
         """
-
+        byte_count = length * self.slaveProperties.bytesPerElement
         response = self.transport.request(types.Command.UPLOAD, length)
-        if length > (self.slaveProperties.maxCto - 1):
-            block_response = self.transport.block_receive(length_required=(length - len(response)))
+        if byte_count > (self.slaveProperties.maxCto - 1):
+            block_response = self.transport.block_receive(length_required=(byte_count - len(response)))
             response += block_response
         elif self.transport_name == "can":
             # larger sizes will send in multiple CAN messages
             # each valid message will start with 0xFF followed by the upload bytes
             # the last message might be padded to the required DLC
-            rem = length - len(response)
+            rem = byte_count - len(response)
             while rem:
                 if len(self.transport.resQueue):
                     data = self.transport.resQueue.popleft()
                     response += data[1 : rem + 1]
-                    rem = length - len(response)
+                    rem = byte_count - len(response)
                 else:
                     sleep(SHORT_SLEEP)
-
         return response
 
     @wrapped
@@ -452,6 +456,8 @@ class Master:
 
         Parameters
         ----------
+        length : int
+            Number of elements (address granularity).
         address : int
         addressExt : int
 
@@ -460,7 +466,12 @@ class Master:
         bytes
         """
         addr = self.DWORD_pack(address)
-        return self.transport.request(types.Command.SHORT_UPLOAD, length, 0, addressExt, *addr)
+        byte_count = length * self.slaveProperties.bytesPerElement
+        max_byte_count = self.slaveProperties.maxCto - 1
+        if byte_count > max_byte_count:
+            self.logger.warn(f"SHORT_UPLOAD: {byte_count} bytes exceeds the maximum value of {max_byte_count}.")
+        response = self.transport.request(types.Command.SHORT_UPLOAD, length, 0, addressExt, *addr)
+        return response[:byte_count]
 
     @wrapped
     def buildChecksum(self, blocksize: int):
@@ -1619,8 +1630,8 @@ class Master:
 
     def getDaqId(self, daqListNumber: int):
         response = self.transportLayerCmd(types.TransportLayerCommands.GET_DAQ_ID, *self.WORD_pack(daqListNumber))
-        if response:
-            return types.GetDaqIdResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+        # if response:
+        return types.GetDaqIdResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     def setDaqId(self, daqListNumber: int, identifier: int):
         response = self.transportLayerCmd(
@@ -1781,7 +1792,7 @@ class Master:
         MAX_PAYLOAD = self.slaveProperties["maxCto"] - 2
 
         if not (self.seed_n_key_dll or self.seed_n_key_function):
-            raise RuntimeError("Neither seed and key DLL  or function specified, cannot proceed.")
+            raise RuntimeError("Neither seed and key DLL nor function specified, cannot proceed.")  # TODO: ConfigurationError
         if resources is None:
             result = []
             if self.slaveProperties["supportsCalpag"]:
@@ -1797,7 +1808,7 @@ class Master:
         resource_names = [r.lower() for r in re.split(r"[ ,]", resources) if r]
         for name in resource_names:
             if name not in types.RESOURCE_VALUES:
-                raise ValueError(f"Invalid resource name '{name}'.")
+                raise ValueError(f"Invalid resource name {name!r}.")
             if not protection_status[name]:
                 continue
             resource_value = types.RESOURCE_VALUES[name]
@@ -1811,14 +1822,14 @@ class Master:
                 while remaining > 0:
                     result = self.getSeed(types.XcpGetSeedMode.REMAINING, resource_value)
                     seed.extend(list(result.seed))
-                    remaining = result.length
-            self.logger.debug(f"Got seed {seed} for resource {resource_value}.")
+                    remaining -= result.length
+            self.logger.debug(f"Got seed {seed!r} for resource {resource_value!r}.")
             if self.seed_n_key_function:
                 key = self.seed_n_key_function(resource_value, bytes(seed))
-                self.logger.debug(f"Using seed and key function '{self.seed_n_key_function.__name__}()'.")
+                self.logger.debug(f"Using seed and key function {self.seed_n_key_function.__name__!r}().")
                 result = SeedNKeyResult.ACK
             elif self.seed_n_key_dll:
-                self.logger.debug(f"Using seed and key DLL '{self.seed_n_key_dll}'.")
+                self.logger.debug(f"Using seed and key DLL {self.seed_n_key_dll!r}.")
                 result, key = getKey(
                     self.logger,
                     self.seed_n_key_dll,
@@ -1828,16 +1839,16 @@ class Master:
                 )
             if result == SeedNKeyResult.ACK:
                 key = list(key)
-                self.logger.debug(f"Unlocking resource {resource_value} with key {key}.")
-                total_length = len(key)
-                offset = 0
-                while offset < total_length:
-                    data = key[offset : offset + MAX_PAYLOAD]
-                    key_length = len(data)
-                    offset += key_length
-                    self.unlock(key_length, data)
+                self.logger.debug(f"Unlocking resource {resource_value!r} with key {key!r}.")
+                remaining = len(key)
+                while key:
+                    data = key[:MAX_PAYLOAD]
+                    key_len = len(data)
+                    self.unlock(remaining, data)
+                    key = key[MAX_PAYLOAD:]
+                    remaining -= key_len
             else:
-                raise SeedNKeyError(f"SeedAndKey DLL returned: {SeedNKeyResult(result).name}")
+                raise SeedNKeyError(f"SeedAndKey DLL returned: {SeedNKeyResult(result).name!r}")
 
     def identifier(self, id_value: int) -> str:
         """Return the identifier for the given value.
@@ -1915,17 +1926,55 @@ class Master:
 
         gen = make_generator(scan_ranges)
         for id_value, name in gen:
-            response = b""
-            try:
-                response = self.identifier(id_value)
-            except types.XcpResponseError:
-                # don't depend on confirming implementation, i.e.: ID not implemented ==> empty response.
-                pass
-            except Exception:
-                raise
-            if response:
+            status, response = self.try_command(self.identifier, id_value)
+            if status == types.TryCommandResult.OK and response:
                 result[name] = response
+            elif status == types.TryCommandResult.XCP_ERROR and response.error_code == types.XcpError.ERR_CMD_UNKNOWN:
+                break  # Nothing to do here.
+            elif status == types.TryCommandResult.OTHER_ERROR:
+                raise RuntimeError(f"Error while scanning for ID {id_value}: {response!r}")
         return result
+
+    def try_command(self, cmd: Callable, *args, **kws) -> Tuple[types.TryCommandResult, Any]:
+        """Call master functions and handle XCP errors more gracefuly.
+
+        Parameter
+        ---------
+        cmd: Callable
+        args: list
+            variable length arguments to `cmd`.
+        kws: dict
+            keyword arguments to `cmd`.
+
+            `extra_msg`: str
+                Additional info to log message (not passed to `cmd`).
+
+        Returns
+        -------
+
+        Note
+        ----
+        Mainly used for plug-and-play applications, e.g. `id_scanner` may confronted with `ERR_OUT_OF_RANGE` errors, which
+        is normal for this kind of applications -- or to test for optional commands.
+        Use carefuly not to hide serious error causes.
+        """
+        try:
+            extra_msg: Optional[str] = kws.get("extra_msg")
+            if extra_msg:
+                kws.pop("extra_msg")
+            res = cmd(*args, **kws)
+        except SystemExit as e:
+            if e.error_code == types.XcpError.ERR_CMD_UNKNOWN:
+                # This is a rather common use-case, so let the user know that there is some functionality missing.
+                if extra_msg:
+                    self.logger.warning(f"Optional command {cmd.__name__!r} not implemented -- {extra_msg!r}")
+                else:
+                    self.logger.warning(f"Optional command {cmd.__name__!r} not implemented.")
+            return (types.TryCommandResult.XCP_ERROR, e)
+        except Exception as e:
+            return (types.TryCommandResult.OTHER_ERROR, e)
+        else:
+            return (types.TryCommandResult.OK, res)
 
 
 def ticks_to_seconds(ticks, resolution):
@@ -1940,6 +1989,7 @@ def ticks_to_seconds(ticks, resolution):
     warnings.warn(
         "ticks_to_seconds() deprecated, use factory :func:`make_tick_converter` instead.",
         Warning,
+        stacklevel=1,
     )
     return (10 ** types.DAQ_TIMESTAMP_UNIT_TO_EXP[resolution.timestampMode.unit]) * resolution.timestampTicks * ticks
 

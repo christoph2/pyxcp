@@ -42,6 +42,16 @@ class InternalError(Exception):
 class SystemExit(Exception):
     """"""
 
+    def __init__(self, msg: str, error_code: int = None, *args, **kws):
+        super().__init__(*args, **kws)
+        self.error_code = error_code
+        self.msg = msg
+
+    def __str__(self):
+        return f"SystemExit(error_code={self.error_code}, message={self.msg!r})"
+
+    __repr__ = __str__
+
 
 class UnrecoverableError(Exception):
     """"""
@@ -73,10 +83,10 @@ def getActions(service, error_code):
         eh = getErrorHandler(service)
         if eh is None:
             raise InternalError(f"Invalid Service 0x{service:02x}")
-        print(f"Try to handle error -- Service: {service.name} Error-Code: {error_code}")
+        # print(f"Try to handle error -- Service: {service.name} Error-Code: {error_code}")
         handler = eh.get(error_str)
         if handler is None:
-            raise SystemExit(f"Service '{service.name}' has no handler for '{error_code}'.")
+            raise SystemExit(f"Service {service.name!r} has no handler for {error_code}.", error_code=error_code)
         preActions, actions = handler
     return preActions, actions
 
@@ -182,7 +192,7 @@ class Handler:
         self.logger = logging.getLogger("PyXCP")
 
     def __str__(self):
-        return f"Handler(func = {func_name(self.func)} arguments = {self.arguments} service = {self.service} error_code = {self.error_code})"
+        return f"Handler(func = {func_name(self.func)} -- {self.arguments} service = {self.service} error_code = {self.error_code})"
 
     def __eq__(self, other):
         if other is None:
@@ -200,7 +210,7 @@ class Handler:
         self._repeater = value
 
     def execute(self):
-        self.logger.debug(f"Execute({func_name(self.func)} arguments = {self.arguments})")
+        self.logger.debug(f"Execute({func_name(self.func)} -- {self.arguments})")
         if isinstance(self.func, types.MethodType):
             return self.func(*self.arguments.args, **self.arguments.kwargs)
         else:
@@ -245,15 +255,17 @@ class Handler:
             if item == Action.NONE:
                 pass
             elif item == Action.DISPLAY_ERROR:
-                raise SystemExit("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error (DISPLAY_ERROR).", self.error_code)
             elif item == Action.RETRY_SYNTAX:
-                raise SystemExit("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error (RETRY_SYNTAX).", self.error_code)
             elif item == Action.RETRY_PARAM:
-                raise SystemExit("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error (RETRY_PARAM).", self.error_code)
             elif item == Action.USE_A2L:
-                raise SystemExit("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error (USE_A2L).", self.error_code)
             elif item == Action.USE_ALTERATIVE:
-                raise SystemExit("Could not proceed due to unhandled error.")  # TODO: check alternatives.
+                raise SystemExit(
+                    "Could not proceed due to unhandled error (USE_ALTERATIVE).", self.error_code
+                )  # TODO: check alternatives.
             elif item == Action.REPEAT:
                 repetitionCount = Repeater.REPEAT
             elif item == Action.REPEAT_2_TIMES:
@@ -261,13 +273,13 @@ class Handler:
             elif item == Action.REPEAT_INF_TIMES:
                 repetitionCount = Repeater.INFINITE
             elif item == Action.RESTART_SESSION:
-                raise SystemExit("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error (RESTART_SESSION).", self.error_code)
             elif item == Action.TERMINATE_SESSION:
-                raise SystemExit("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error (TERMINATE_SESSION).", self.error_code)
             elif item == Action.SKIP:
                 pass
             elif item == Action.NEW_FLASH_WARE:
-                raise SystemExit("Could not proceed due to unhandled error")
+                raise SystemExit("Could not proceed due to unhandled error (NEW_FLASH_WARE)", self.error_code)
         return result_pre_actions, result_actions, Repeater(repetitionCount)
 
 
@@ -334,11 +346,13 @@ class Executor(SingletonBase):
                     handler = self.handlerStack.tos()
                     res = handler.execute()
                 except XcpResponseError as e:
-                    # self.logger.critical(f"XcpResponseError [{str(e)}]")
+                    # self.logger.critical(f"XcpResponseError [{e.get_error_code()}]")
                     self.error_code = e.get_error_code()
+                    handler.error_code = self.error_code
                 except XcpTimeoutError:
                     # self.logger.error(f"XcpTimeoutError [{str(e)}]")
                     self.error_code = XcpError.ERR_TIMEOUT
+                    handler.error_code = self.error_code
                 except TimeoutError:
                     raise
                 except can.CanError:
@@ -370,7 +384,7 @@ class Executor(SingletonBase):
                         continue
                     else:
                         raise UnrecoverableError(
-                            f"Max. repetition count reached while trying to execute service '{handler.func.__name__}'."
+                            f"Max. repetition count reached while trying to execute service {handler.func.__name__!r}."
                         )
         finally:
             # cleanup of class variables

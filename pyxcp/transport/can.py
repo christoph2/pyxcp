@@ -8,12 +8,15 @@ from bisect import bisect_left
 from time import time
 from typing import Any, Dict, Optional
 
-from can import CanError, Message
+from can import CanError, CanInitializationError, Message, detect_available_configs
 from can.interface import _get_class_for_interface
+from rich.console import Console
 
 from pyxcp.config import CAN_INTERFACE_MAP
 from pyxcp.transport.base import BaseTransport
 
+
+console = Console()
 
 CAN_EXTENDED_ID = 0x80000000
 MAX_11_BIT_IDENTIFIER = (1 << 11) - 1
@@ -76,8 +79,8 @@ def samplePointToTsegs(tqs: int, samplePoint: float) -> tuple:
     return (tseg1, tseg2)
 
 
-def padFrame(frame: bytes, padding_value: int, padding_len: int = 0) -> bytes:
-    """Pad frame to next discrete DLC value.
+def padFrame(frame: bytes, pad_frame: bool, padding_value: int) -> bytes:
+    """Pad frame to next discrete DLC value (CAN-FD) or on request (CAN-Classic).
 
     References:
     -----------
@@ -86,9 +89,9 @@ def padFrame(frame: bytes, padding_value: int, padding_len: int = 0) -> bytes:
     AUTOSAR CP Release 4.3.0, Specification of CAN Driver; [SWS_CAN_00502], [ECUC_Can_00485]
     AUTOSAR CP Release 4.3.0, Requirements on CAN; [SRS_Can_01073], [SRS_Can_01086], [SRS_Can_01160]
     """
-    frame_len = max(len(frame), padding_len)
+    frame_len = len(frame)
     if frame_len <= MAX_DLC_CLASSIC:
-        actual_len = MAX_DLC_CLASSIC
+        actual_len = MAX_DLC_CLASSIC if pad_frame else frame_len
     else:
         actual_len = CAN_FD_DLCS[bisect_left(CAN_FD_DLCS, frame_len)]
     # append fill bytes up to MAX_DLC resp. next discrete FD DLC.
@@ -116,10 +119,10 @@ class Identifier:
         self._is_extended = isExtendedIdentifier(raw_id)
         if self._is_extended:
             if self._id > MAX_29_BIT_IDENTIFIER:
-                raise IdentifierOutOfRangeError(f"29-bit identifier '{self._id}' is out of range")
+                raise IdentifierOutOfRangeError(f"29-bit identifier {self._id!r} is out of range")
         else:
             if self._id > MAX_11_BIT_IDENTIFIER:
-                raise IdentifierOutOfRangeError(f"11-bit identifier '{self._id}' is out of range")
+                raise IdentifierOutOfRangeError(f"11-bit identifier {self._id!r} is out of range")
 
     @property
     def id(self) -> int:
@@ -175,6 +178,16 @@ class Identifier:
         """
         return Identifier(identifier if not extended else (identifier | CAN_EXTENDED_ID))
 
+    def create_filter_from_id(self) -> Dict:
+        """Create a single CAN filter entry.
+        s. https://python-can.readthedocs.io/en/stable/bus.html#filtering
+        """
+        return {
+            "can_id": self.id,
+            "can_mask": MAX_29_BIT_IDENTIFIER if self.is_extended else MAX_11_BIT_IDENTIFIER,
+            "extended": self.is_extended,
+        }
+
     def __eq__(self, other):
         return (self.id == other.id) and (self.is_extended == other.is_extended)
 
@@ -213,15 +226,16 @@ class PythonCanWrapper:
     def connect(self):
         if self.connected:
             return
-        can_id = self.parent.can_id_master
-        can_filter = {
-            "can_id": can_id.id,
-            "can_mask": MAX_29_BIT_IDENTIFIER if can_id.is_extended else MAX_11_BIT_IDENTIFIER,
-            "extended": can_id.is_extended,
-        }
+        can_filters = []
+        can_filters.append(self.parent.can_id_master.create_filter_from_id())  # Primary CAN filter.
         self.can_interface = self.can_interface_class(interface=self.interface_name, **self.parameters)
-        self.can_interface.set_filters([can_filter])
-        self.parent.logger.debug(f"Python-CAN driver: {self.interface_name} - {self.can_interface}]")
+        if self.parent.daq_identifier:
+            # Add filters for DAQ identifiers.
+            for daq_id in self.parent.daq_identifier:
+                can_filters.append(daq_id.create_filter_from_id())
+        self.can_interface.set_filters(can_filters)
+        self.parent.logger.debug(f"Interface: {self.interface_name!r} -- {self.can_interface!s}")
+        self.parent.logger.debug(f"Filters used: {self.can_interface.filters}")
         self.connected = True
 
     def close(self):
@@ -286,13 +300,16 @@ class Can(BaseTransport):
         #   "... If a PDU does not exactly match these configurable sizes the unused bytes shall be padded."
         #
         self.fd = self.config.fd
-        self.max_dlc_required = self.config.max_dlc_required  # or self.fd
+        self.daq_identifier = []
+        if self.config.daq_identifier:
+            for did in self.config.daq_identifier:
+                self.daq_identifier.append(Identifier(did))
+        self.max_dlc_required = self.config.max_dlc_required
         self.padding_value = self.config.padding_value
-        self.padding_len = self.config.max_can_fd_dlc if self.fd else MAX_DLC_CLASSIC
         self.interface_name = self.config.interface
-
+        self.interface_configuration = detect_available_configs(interfaces=[self.interface_name])
         parameters = self.get_interface_parameters()
-        self.logger.debug(f"Opening '{self.interface_name}' CAN-interface -- {list(parameters.items())}")
+        self.logger.debug(f"Opening {self.interface_name!r} CAN-interface -- {list(parameters.items())}")
         self.can_interface = PythonCanWrapper(self, self.interface_name, **parameters)
 
     def get_interface_parameters(self) -> Dict[str, Any]:
@@ -309,7 +326,7 @@ class Can(BaseTransport):
                 if value is not None:
                     result[n] = value
             elif value is not None:
-                self.logger.warning(f"'{self.interface_name}' has no support for parameter '{n}'.")
+                self.logger.warning(f"{self.interface_name!r} has no support for parameter {n!r}.")
 
         # Parameter names that need to be mapped.
         for base_name, name in can_interface_config_class.CAN_PARAM_MAP.items():
@@ -344,16 +361,19 @@ class Can(BaseTransport):
     def connect(self):
         if self.useDefaultListener:
             self.startListener()
-        self.can_interface.connect()
+        try:
+            self.can_interface.connect()
+        except CanInitializationError:
+            console.print("[red]\nThere may be a problem with the configuration of your CAN-interface.\n")
+            console.print(f"[grey]Current configuration of interface {self.interface_name!r}:")
+            console.print(self.interface_configuration)
+            raise
         self.status = 1  # connected
 
     def send(self, frame: bytes) -> None:
-        # XCP on CAN trailer: if required, FILL bytes must be appended
-        if self.max_dlc_required:
-            frame = padFrame(frame, self.padding_value, self.padding_len)
         # send the request
         self.pre_send_timestamp = time()
-        self.can_interface.transmit(payload=frame)
+        self.can_interface.transmit(payload=padFrame(frame, self.max_dlc_required, self.padding_value))
         self.post_send_timestamp = time()
 
     def closeConnection(self):
