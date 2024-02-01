@@ -522,7 +522,7 @@ class DaqListState {
                     return state_t::FINISHED;
                 }
             } else {
-                std::cout << "\t\tODT num out of order: " << odt_num << " -- expected: " << m_next_odt << std::endl;
+                // std::cout << "\t\tODT num out of order: " << odt_num << " -- expected: " << m_next_odt << std::endl;
                 resetSM();
                 return state_t::_ERROR;
             }

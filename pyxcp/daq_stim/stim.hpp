@@ -295,7 +295,7 @@ class Stim {
     void setDaqEventInfo(const std::vector<DaqEventInfo>& daq_event_info) {
         std::uint16_t idx = 0;
 
-        DBG_PRINTN("SET_DAQ_EVENT_INFO\n");
+        // DBG_PRINTN("SET_DAQ_EVENT_INFO\n");
         if (!m_activate) {
             return;
         }

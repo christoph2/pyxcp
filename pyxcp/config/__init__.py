@@ -560,8 +560,12 @@ class Can(SingletonConfigurable):
     # max_can_fd_dlc = Integer(64, help="").tag(config=True)
     padding_value = Integer(0, help="Fill value, if max_dlc_required == True and DLC < MAX_DLC").tag(config=True)
     use_default_listener = Bool(True, help="").tag(config=True)
-    can_id_master = Integer(allow_none=False, help="CAN-ID master -> slave (Bit31= 1: extended identifier)").tag(config=True)
-    can_id_slave = Integer(allow_none=True, help="CAN-ID slave -> master (Bit31= 1: extended identifier)").tag(config=True)
+    can_id_master = Integer(allow_none=False, help="CAN-ID master -> slave (Bit31= 1: extended identifier)").tag(
+        config=True
+    )  # CMD and STIM packets
+    can_id_slave = Integer(allow_none=True, help="CAN-ID slave -> master (Bit31= 1: extended identifier)").tag(
+        config=True
+    )  # RES, ERR, EV, SERV and DAQ packets.
     can_id_broadcast = Integer(
         default_value=None, allow_none=True, help="Auto detection CAN-ID (Bit31= 1: extended identifier)"
     ).tag(config=True)
@@ -675,18 +679,44 @@ class Eth(SingletonConfigurable):
 
 
 class SxI(SingletonConfigurable):
-    """SPI and SCI connections."""
+    """SCI and SPI connections."""
 
     port = Unicode("COM1", help="Name of communication interface.").tag(config=True)
     bitrate = Integer(38400, help="Connection bitrate").tag(config=True)
     bytesize = Enum([5, 6, 7, 8], default_value=8, help="Size of byte.").tag(config=True)
     parity = Enum(["N", "E", "O", "M", "S"], default_value="N", help="Paritybit calculation.").tag(config=True)
     stopbits = Enum([1, 1.5, 2], default_value=1, help="Number of stopbits.").tag(config=True)
-
-    """
-    -prot<x>     Set the SxI protocol type SYNC = 1,CTR = 2,SYNC+CTR = 3 (Default 0)
-    -cs<x>       Set the SxI checksum type LEN+CTR+PACKETS = 1, ONLY PACKETS = 2 (Default 0 no checksum)
-    """
+    mode = Enum(
+        [
+            "ASYNCH_FULL_DUPLEX_MODE",
+            "SYNCH_FULL_DUPLEX_MODE_BYTE",
+            "SYNCH_FULL_DUPLEX_MODE_WORD",
+            "SYNCH_FULL_DUPLEX_MODE_DWORD",
+            "SYNCH_MASTER_SLAVE_MODE_BYTE",
+            "SYNCH_MASTER_SLAVE_MODE_WORD",
+            "SYNCH_MASTER_SLAVE_MODE_DWORD",
+        ],
+        default_value="ASYNCH_FULL_DUPLEX_MODE",
+        help="Asynchronous (SCI) or synchronous (SPI) communication mode.",
+    ).tag(config=True)
+    header_format = Enum(
+        [
+            "HEADER_LEN_BYTE",
+            "HEADER_LEN_CTR_BYTE",
+            "HEADER_LEN_FILL_BYTE",
+            "HEADER_LEN_WORD",
+            "HEADER_LEN_CTR_WORD",
+            "HEADER_LEN_FILL_WORD",
+        ],
+        default_value="HEADER_LEN_BYTE",
+        help="XCPonSxI header format.",
+    ).tag(config=True)
+    tail_format = Enum(
+        ["NO_CHECKSUM", "CHECKSUM_BYTE", "CHECKSUM_WORD"], default_value="NO_CHECKSUM", help="XCPonSxI tail format."
+    ).tag(config=True)
+    framing = Bool(False, help="Enable SCI framing mechanism (ESC chars).").tag(config=True)
+    esc_sync = Integer(0x01, min=0, max=255, help="SCI framing protocol character SYNC.").tag(config=True)
+    esc_esc = Integer(0x00, min=0, max=255, help="SCI framing protocol character ESC.").tag(config=True)
 
 
 class Usb(SingletonConfigurable):
@@ -695,11 +725,55 @@ class Usb(SingletonConfigurable):
     serial_number = Unicode("", help="Device serial number.").tag(config=True)
     configuration_number = Integer(1, help="USB configuration number.").tag(config=True)
     interface_number = Integer(2, help="USB interface number.").tag(config=True)
-    command_endpoint_number = Integer(0, help="USB command endpoint number.").tag(config=True)
-    reply_endpoint_number = Integer(1, help="USB reply endpoint number.").tag(config=True)
     vendor_id = Integer(0, help="USB vendor ID.").tag(config=True)
     product_id = Integer(0, help="USB product ID.").tag(config=True)
     library = Unicode("", help="Absolute path to USB shared library.").tag(config=True)
+    header_format = Enum(
+        [
+            "HEADER_LEN_BYTE",
+            "HEADER_LEN_CTR_BYTE",
+            "HEADER_LEN_FILL_BYTE",
+            "HEADER_LEN_WORD",
+            "HEADER_LEN_CTR_WORD",
+            "HEADER_LEN_FILL_WORD",
+        ],
+        default_value="HEADER_LEN_CTR_WORD",
+        help="",
+    ).tag(config=True)
+    in_ep_number = Integer(1, help="Ingoing USB reply endpoint number (IN-EP for RES/ERR, DAQ, and EV/SERV).").tag(config=True)
+    in_ep_transfer_type = Enum(
+        ["BULK_TRANSFER", "INTERRUPT_TRANSFER"], default_value="BULK_TRANSFER", help="Ingoing: Supported USB transfer types."
+    ).tag(config=True)
+    in_ep_max_packet_size = Integer(512, help="Ingoing: Maximum packet size of endpoint in bytes.").tag(config=True)
+    in_ep_polling_interval = Integer(0, help="Ingoing: Polling interval of endpoint.").tag(config=True)
+    in_ep_message_packing = Enum(
+        ["MESSAGE_PACKING_SINGLE", "MESSAGE_PACKING_MULTIPLE", "MESSAGE_PACKING_STREAMING"],
+        default_value="MESSAGE_PACKING_SINGLE",
+        help="Ingoing: Packing of XCP Messages.",
+    ).tag(config=True)
+    in_ep_alignment = Enum(
+        ["ALIGNMENT_8_BIT", "ALIGNMENT_16_BIT", "ALIGNMENT_32_BIT", "ALIGNMENT_64_BIT"],
+        default_value="ALIGNMENT_8_BIT",
+        help="Ingoing: Alignment border.",
+    ).tag(config=True)
+    in_ep_recommended_host_bufsize = Integer(0, help="Ingoing: Recommended host buffer size.").tag(config=True)
+    out_ep_number = Integer(0, help="Outgoing USB command endpoint number (OUT-EP for CMD and STIM).").tag(config=True)
+    out_ep_transfer_type = Enum(
+        ["BULK_TRANSFER", "INTERRUPT_TRANSFER"], default_value="BULK_TRANSFER", help="Outgoing: Supported USB transfer types."
+    ).tag(config=True)
+    out_ep_max_packet_size = Integer(512, help="Outgoing: Maximum packet size of endpoint in bytes.").tag(config=True)
+    out_ep_polling_interval = Integer(0, help="Outgoing: Polling interval of endpoint.").tag(config=True)
+    out_ep_message_packing = Enum(
+        ["MESSAGE_PACKING_SINGLE", "MESSAGE_PACKING_MULTIPLE", "MESSAGE_PACKING_STREAMING"],
+        default_value="MESSAGE_PACKING_SINGLE",
+        help="Outgoing: Packing of XCP Messages.",
+    ).tag(config=True)
+    out_ep_alignment = Enum(
+        ["ALIGNMENT_8_BIT", "ALIGNMENT_16_BIT", "ALIGNMENT_32_BIT", "ALIGNMENT_64_BIT"],
+        default_value="ALIGNMENT_8_BIT",
+        help="Outgoing: Alignment border.",
+    ).tag(config=True)
+    out_ep_recommended_host_bufsize = Integer(0, help="Outgoing: Recommended host buffer size.").tag(config=True)
 
 
 class Transport(SingletonConfigurable):
@@ -709,9 +783,7 @@ class Transport(SingletonConfigurable):
 
     layer = Enum(
         ["CAN", "ETH", "SXI", "USB"], default_value=None, allow_none=False, help="Choose one of the supported XCP transport layers."
-    ).tag(
-        config=True
-    )  # Enum
+    ).tag(config=True)
     create_daq_timestamps = Bool(False, help="Record time of frame reception or set timestamp to 0.").tag(config=True)
     timeout = Float(
         2.0,
@@ -737,11 +809,16 @@ class General(SingletonConfigurable):
     """ """
 
     loglevel = Unicode("WARN", help="Set the log level by value or name.").tag(config=True)
-    disable_error_handling = Bool(False).tag(config=True)
-    disconnect_response_optional = Bool(False).tag(config=True)
-    seed_n_key_dll = Unicode("", allow_none=False).tag(config=True)
-    seed_n_key_dll_same_bit_width = Bool(False).tag(config=True)
-    seed_n_key_function = Callable(default_value=None, allow_none=True).tag(config=True)
+    disable_error_handling = Bool(False, help="Disable XCP error-handler for performance reasons.").tag(config=True)
+    disconnect_response_optional = Bool(False, help="Ignore missing response on DISCONNECT request.").tag(config=True)
+    seed_n_key_dll = Unicode("", allow_none=False, help="Dynamic library used for slave resource unlocking.").tag(config=True)
+    seed_n_key_dll_same_bit_width = Bool(False, help="").tag(config=True)
+    seed_n_key_function = Callable(
+        default_value=None,
+        allow_none=True,
+        help="""Python function used for slave resource unlocking.
+Could be used if seed-and-key algorithm is known instead of `seed_n_key_dll`.""",
+    ).tag(config=True)
     stim_support = Bool(False, help="").tag(config=True)
 
 
@@ -757,7 +834,6 @@ class ProfileCreate(Application):
 
     def start(self):
         self.parent.parent.generate_config_file(sys.stdout, {})
-        print("DEST", self.dest_file)
 
 
 class ProfileConvert(Application):

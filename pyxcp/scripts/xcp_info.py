@@ -36,31 +36,35 @@ with ap.run() as x:
     pprint(daq_info)
 
     daq_pro = daq_info["processor"]
-    num_predefined = daq_pro["minDaq"]
-    print("\nPredefined DAQ-Lists")
-    print("====================")
-    if num_predefined > 0:
-        print(f"There are {num_predefined} predefined DAQ-lists")
-        for _daq_list in range(num_predefined):
-            pass
-    else:
-        print("*** NO Predefined DAQ-Lists")
     daq_properties = daq_pro["properties"]
     if x.slaveProperties.transport_layer == "CAN":
         if daq_properties["pidOffSupported"]:
             print("*** pidOffSupported -- i.e. one CAN-ID per DAQ-list.")
         else:
             print("*** NO support for PID_OFF")
-
+    num_predefined = daq_pro["minDaq"]
+    print("\nPredefined DAQ-Lists")
+    print("====================")
+    if num_predefined > 0:
+        print(f"There are {num_predefined} predefined DAQ-lists")
+        for idx in range(num_predefined):
+            print(f"DAQ-List #{idx}\n____________\n")
+            status, dm = x.try_command(x.getDaqListMode, idx)
+            if status == TryCommandResult.OK:
+                print(dm)
+            status, di = x.try_command(x.getDaqListInfo, idx)
+            if status == TryCommandResult.OK:
+                print(di)
+    else:
+        print("*** NO Predefined DAQ-Lists")
     print("\nPAG Info:")
     print("=========")
     if x.slaveProperties.supportsCalpag:
         status, pag = x.try_command(x.getPagProcessorInfo)
         if status == TryCommandResult.OK:
-            pprint(pag)
-            for _idx in range(pag.maxSegments):
-                # x.getCalPage(0x01, idx) # ECU Access
-                x.getSegmentInfo()
+            print(pag)
+            # for idx in range(pag.maxSegments):
+            #     x.getSegmentInfo(0x01, idx, 0, 0)
     else:
         print("*** PAGING IS NOT SUPPORTED.")
 
@@ -69,7 +73,7 @@ with ap.run() as x:
     if x.slaveProperties.supportsPgm:
         status, pgm = x.try_command(x.getPgmProcessorInfo)
         if status == TryCommandResult.OK:
-            pprint(pgm)
+            print(pgm)
     else:
         print("*** FLASH PROGRAMMING IS NOT SUPPORTED.")
 

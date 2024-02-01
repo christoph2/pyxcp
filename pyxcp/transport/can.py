@@ -155,6 +155,18 @@ class Identifier:
         """
         return self._is_extended
 
+    @property
+    def type_str(self) -> str:
+        """
+
+        Returns
+        -------
+        str
+            - "S" - 11-bit identifier.
+            - "E" - 29-bit identifier.
+        """
+        return "E" if self.is_extended else "S"
+
     @staticmethod
     def make_identifier(identifier: int, extended: bool) -> int:
         """Factory method.
@@ -227,7 +239,7 @@ class PythonCanWrapper:
         if self.connected:
             return
         can_filters = []
-        can_filters.append(self.parent.can_id_master.create_filter_from_id())  # Primary CAN filter.
+        can_filters.append(self.parent.can_id_slave.create_filter_from_id())  # Primary CAN filter.
         self.can_interface = self.can_interface_class(interface=self.interface_name, **self.parameters)
         if self.parent.daq_identifier:
             # Add filters for DAQ identifiers.
@@ -245,8 +257,8 @@ class PythonCanWrapper:
 
     def transmit(self, payload: bytes) -> None:
         frame = Message(
-            arbitration_id=self.parent.can_id_slave.id,
-            is_extended_id=True if self.parent.can_id_slave.is_extended else False,
+            arbitration_id=self.parent.can_id_master.id,
+            is_extended_id=True if self.parent.can_id_master.is_extended else False,
             is_fd=self.parent.fd,
             data=payload,
         )
@@ -256,11 +268,11 @@ class PythonCanWrapper:
         if not self.connected:
             return None
         try:
-            frame = self.can_interface.recv(5)
+            frame = self.can_interface.recv(self.timeout)
         except CanError:
             return None
         else:
-            if frame is None or frame.arbitration_id != self.parent.can_id_master.id or not len(frame.data):
+            if frame is None or not len(frame.data):
                 return None  # Timeout condition.
             extended = frame.is_extended_id
             identifier = Identifier.make_identifier(frame.arbitration_id, extended)
@@ -302,15 +314,20 @@ class Can(BaseTransport):
         self.fd = self.config.fd
         self.daq_identifier = []
         if self.config.daq_identifier:
-            for did in self.config.daq_identifier:
-                self.daq_identifier.append(Identifier(did))
+            for daq_id in self.config.daq_identifier:
+                self.daq_identifier.append(Identifier(daq_id))
         self.max_dlc_required = self.config.max_dlc_required
         self.padding_value = self.config.padding_value
         self.interface_name = self.config.interface
         self.interface_configuration = detect_available_configs(interfaces=[self.interface_name])
         parameters = self.get_interface_parameters()
         self.logger.debug(f"Opening {self.interface_name!r} CAN-interface -- {list(parameters.items())}")
+        self.logger.debug(
+            f"""Master-ID (Tx): 0x{self.can_id_master.id:08X}{self.can_id_master.type_str} --
+ Slave-ID (Rx): 0x{self.can_id_slave.id:08X}{self.can_id_slave.type_str}"""
+        )
         self.can_interface = PythonCanWrapper(self, self.interface_name, **parameters)
+        self.can_interface.timeout = config.timeout  # c.Transport.timeout
 
     def get_interface_parameters(self) -> Dict[str, Any]:
         result = dict(channel=self.config.channel)
