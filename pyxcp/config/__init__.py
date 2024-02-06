@@ -906,6 +906,7 @@ class PyXCP(Application):
             exit(2)
         else:
             self._read_configuration(self.config_file)
+            self._setup_logger()
 
     def _setup_logger(self):
         from pyxcp.types import Command
@@ -928,9 +929,12 @@ class PyXCP(Application):
         self.log.addHandler(rich_handler)
 
     def initialize(self, argv=None):
+        from pyxcp import __version__ as pyxcp_version
+
+        PyXCP.version = pyxcp_version
         PyXCP.name = Path(sys.argv[0]).name
         self.parse_command_line(argv[1:])
-        self._setup_logger()
+        self.log.debug(f"pyxcp version: {self.version}")
 
     def _read_configuration(self, file_name: str, emit_warning: bool = True) -> None:
         self.read_configuration_file(file_name, emit_warning)
@@ -943,10 +947,9 @@ class PyXCP(Application):
         pth = Path(file_name)
         if not pth.exists():
             raise FileNotFoundError(f"Configuration file {file_name!r} does not exist.")
-
         suffix = pth.suffix.lower()
         if suffix == ".py":
-            self.load_config_file(self.config_file)
+            self.load_config_file(pth)
         else:
             self.legacy_config = True
             if suffix == ".json":

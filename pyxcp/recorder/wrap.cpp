@@ -22,8 +22,8 @@ class PyDAQParser : public DAQParser {
         PYBIND11_OVERRIDE_PURE(void, DAQParser, on_daq_list, daq_list_num, timestamp0, timestamp1, measurement);
     }
 
-    void post_setup() override {
-        PYBIND11_OVERRIDE(void, DAQParser, post_setup);
+    void Initialize() override {
+        PYBIND11_OVERRIDE(void, DAQParser, Initialize);
     }
 
     void finalize() override {
@@ -54,5 +54,5 @@ PYBIND11_MODULE(rekorder, m) {
         .def("feed", &DAQParser::feed)
         .def("finalize", &DAQParser::finalize)
         .def("set_parameters", &DAQParser::set_parameters)
-        .def("post_setup", &DAQParser::post_setup);
+        .def("Initialize", &DAQParser::Initialize);
 }

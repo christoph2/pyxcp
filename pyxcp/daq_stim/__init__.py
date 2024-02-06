@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from pprint import pprint
+# from pprint import pprint
 from typing import List
 
 from pyxcp import types
@@ -36,7 +36,7 @@ class DAQParser(_DAQParser):
 
     def setup(self, write_multiple: bool = True):
         self.daq_info = self.xcp_master.getDaqInfo()
-        pprint(self.daq_info)
+        # pprint(self.daq_info)
         try:
             processor = self.daq_info.get("processor")
             properties = processor.get("properties")
@@ -70,10 +70,10 @@ class DAQParser(_DAQParser):
                 # print("NO TIMESTAMP SUPPORT")
             else:
                 if self.ts_fixed:
-                    print("Fixed timestamp")
+                    # print("Fixed timestamp")
                     max_payload_size_first = max_payload_size - self.ts_size
                 else:
-                    print("timestamp variable.")
+                    # print("timestamp variable.")
                     self.selectable_timestamps = True
 
         except Exception as e:
@@ -89,7 +89,7 @@ class DAQParser(_DAQParser):
             ttt = make_continuous_blocks(daq_list.measurements, max_payload_size, max_payload_size_first)
             daq_list.measurements_opt = first_fit_decreasing(ttt, max_payload_size, max_payload_size_first)
         byte_order = 0 if self.xcp_master.slaveProperties.byteOrder == "INTEL" else 1
-        self.uf = MeasurementParameters(
+        measurement_params = MeasurementParameters(
             byte_order,
             header_len,
             self.supports_timestampes,
@@ -101,8 +101,7 @@ class DAQParser(_DAQParser):
             self.min_daq,
             self.daq_lists,
         )
-
-        self.set_parameters(self.uf)
+        self.set_parameters(measurement_params)
 
         self.first_pids = []
         daq_count = len(self.daq_lists)
@@ -134,7 +133,7 @@ class DAQParser(_DAQParser):
         if not self.setup_called:
             raise RuntimeError("please run setup() before start()")
         for i, daq_list in enumerate(self.daq_lists, self.min_daq):
-            print(daq_list.name, daq_list.event_num, daq_list.stim)
+            # print(daq_list.name, daq_list.event_num, daq_list.stim)
             mode = 0x00
             if self.supports_timestampes and (self.ts_fixed or (self.selectable_timestamps and daq_list.enable_timestamps)):
                 mode = 0x10
@@ -144,7 +143,7 @@ class DAQParser(_DAQParser):
             ## mode |= 0x20
             ###
             self.xcp_master.setDaqListMode(
-                daqListNumber=i, mode=mode, eventChannelNumber=daq_list.event_num, prescaler=1, priority=0xFF  # TODO: + MIN_DAQ
+                daqListNumber=i, mode=mode, eventChannelNumber=daq_list.event_num, prescaler=1, priority=0xFF
             )
             res = self.xcp_master.startStopDaqList(0x02, i)
             self.first_pids.append(res.firstPid)
@@ -157,8 +156,8 @@ class DAQParser(_DAQParser):
 class DaqToCsv(DAQParser):
     """Save a measurement as CSV files (one per DAQ-list)."""
 
-    def post_setup(self):
-        self.log.debug("DaqCsv::post_setup()")
+    def Initialize(self):
+        self.log.debug("DaqCsv::Initialize()")
         self.files = {}
         for num, daq_list in enumerate(self.daq_lists):
             if daq_list.stim:
@@ -174,8 +173,8 @@ class DaqToCsv(DAQParser):
     def finalize(self):
         self.log.debug("DaqCsv::finalize()")
         ##
-        ## NOTE: `finalize` is guaranteed to be called, but `post_setup` may fail for reasons.
-        ##       So if you allocate resources in `post_setup` check if this really happened.
+        ## NOTE: `finalize` is guaranteed to be called, but `Initialize` may fail for reasons.
+        ##       So if you allocate resources in `Initialize` check if this really happened.
         ##
         if hasattr(self, "files"):
             for f in self.files.values():

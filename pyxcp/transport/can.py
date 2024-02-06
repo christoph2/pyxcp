@@ -321,10 +321,10 @@ class Can(BaseTransport):
         self.interface_name = self.config.interface
         self.interface_configuration = detect_available_configs(interfaces=[self.interface_name])
         parameters = self.get_interface_parameters()
-        self.logger.debug(f"Opening {self.interface_name!r} CAN-interface -- {list(parameters.items())}")
+        self.logger.debug(f"Opening {self.interface_name!r} CAN-interface {list(parameters.items())}")
         self.logger.debug(
-            f"""Master-ID (Tx): 0x{self.can_id_master.id:08X}{self.can_id_master.type_str} --
- Slave-ID (Rx): 0x{self.can_id_slave.id:08X}{self.can_id_slave.type_str}"""
+            f"Master-ID (Tx): 0x{self.can_id_master.id:08X}{self.can_id_master.type_str} -- "
+            f"Slave-ID (Rx): 0x{self.can_id_slave.id:08X}{self.can_id_slave.type_str}"
         )
         self.can_interface = PythonCanWrapper(self, self.interface_name, **parameters)
         self.can_interface.timeout = config.timeout  # c.Transport.timeout

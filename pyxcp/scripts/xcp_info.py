@@ -38,6 +38,7 @@ with ap.run() as x:
     daq_pro = daq_info["processor"]
     daq_properties = daq_pro["properties"]
     if x.slaveProperties.transport_layer == "CAN":
+        print("")
         if daq_properties["pidOffSupported"]:
             print("*** pidOffSupported -- i.e. one CAN-ID per DAQ-list.")
         else:
@@ -78,7 +79,7 @@ with ap.run() as x:
         print("*** FLASH PROGRAMMING IS NOT SUPPORTED.")
 
     if x.slaveProperties.transport_layer == "CAN":
-        print("OK, CAN!!!")
+        # print("OK, CAN!!!")
         status, res = x.try_command(x.getDaqId, 0)
         print(status, res)
     x.disconnect()

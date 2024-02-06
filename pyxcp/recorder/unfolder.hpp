@@ -770,7 +770,7 @@ class DAQParser {
 
     void set_parameters(const MeasurementParameters& params) noexcept {
         m_unfolder = std::make_unique<UnfolderBase>(params);
-        post_setup();
+        Initialize();
     }
 
     virtual void on_daq_list(
@@ -788,7 +788,7 @@ class DAQParser {
         }
     }
 
-    virtual void post_setup() {
+    virtual void Initialize() {
     }
 
     virtual void finalize() {
