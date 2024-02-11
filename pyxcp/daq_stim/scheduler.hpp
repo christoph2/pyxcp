@@ -6,6 +6,8 @@
 #define _CRT_SECURE_NO_WARNINGS (1)
 
 #include <stdio.h>
+
+#if defined(_WIN32)
 #include <windows.h>
 
 #include <thread>
@@ -59,5 +61,6 @@ struct Scheduler {
     HANDLE       m_timer{};
     HANDLE       m_TimerQueue;
 };
+#endif
 
 #endif  // STIM_SCHEDULER_HPP

@@ -1,6 +1,8 @@
 
 #include "scheduler.hpp"
 
+#if defined(_WIN32)
+
 VOID CALLBACK TimerRoutine(PVOID lpParam, BOOLEAN TimerOrWaitFired) {
     if (lpParam == NULL) {
         printf("TimerRoutine lpParam is NULL\n");
@@ -23,3 +25,5 @@ void mul4_vectorized(float* ptr) {
     f        = _mm_mul_ps(f, f);
     _mm_storeu_ps(ptr, f);
 }
+#endif
+
