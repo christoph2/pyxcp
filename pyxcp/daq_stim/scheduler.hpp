@@ -63,6 +63,14 @@ struct Scheduler {
     HANDLE       m_timer{};
     HANDLE       m_TimerQueue;
 };
+#else
+
+struct Scheduler {
+    Scheduler()  = default;
+    ~Scheduler() = default;
+
+};
+
 #endif
 
 #endif  // STIM_SCHEDULER_HPP

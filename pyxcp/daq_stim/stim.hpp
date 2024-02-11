@@ -21,8 +21,10 @@
     #include "scheduler.hpp"
     #include "helper.hpp"
 
+#if defined(_MSC_VER) && (defined(_WIN32) || defined(_WIN64) )
     #include <Windows.h>
-    #include <Avrt.h>
+    #include <Avrt.h
+#endif
 
 namespace py = pybind11;
 
@@ -273,6 +275,7 @@ class Stim {
     using send_function_t = std::function<void(FakeEnum, std::vector<std::uint8_t>)>;
 
     explicit Stim(bool activate = true) : m_activate(activate) {
+#if defined(_MSC_VER) && (defined(_WIN32) || defined(_WIN64) )
         if (timeBeginPeriod(100) == TIMERR_NOERROR) {
             // std::cout << "timeBeginPeriod() OK!!!" << std::endl;
         } else {
@@ -284,8 +287,9 @@ class Stim {
         auto xxx = AvSetMmThreadCharacteristics("Pro Audio", &task_index);
 
         auto start = timeGetTime();
-
+#endif
         // m_scheduler.start_thread();
+
     }
 
     void setParameters(const StimParameters& params) {
