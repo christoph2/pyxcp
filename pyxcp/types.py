@@ -959,3 +959,11 @@ class FrameCategory(enum.IntEnum):
     SERV = 5
     DAQ = 6
     STIM = 7
+
+
+class TryCommandResult(enum.IntEnum):
+    """ """
+
+    OK = 0
+    XCP_ERROR = 1
+    OTHER_ERROR = 2

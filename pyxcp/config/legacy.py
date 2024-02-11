@@ -1,6 +1,6 @@
-import warnings
 from collections import defaultdict
 
+from traitlets.config import LoggingConfigurable
 from traitlets.config.loader import Config
 
 
@@ -22,15 +22,25 @@ LEGACY_KEYWORDS = {
     "PROTOCOL": "Transport.Eth.protocol",
     "IPV6": "Transport.Eth.ipv6",
     "TCP_NODELAY": "Transport.Eth.tcp_nodelay",
+    # Usb
+    "SERIAL_NUMBER": "Transport.Usb.serial_number",
+    "CONFIGURATION_NUMBER": "Transport.Usb.configuration_number",
+    "INTERFACE_NUMBER": "Transport.Usb.interface_number",
+    "COMMAND_ENDPOINT_NUMBER": "Transport.Usb.out_ep_number",
+    "REPLY_ENDPOINT_NUMBER": "Transport.Usb.in_ep_number",
+    "VENDOR_ID": "Transport.Usb.vendor_id",
+    "PRODUCT_ID": "Transport.Usb.product_id",
+    "LIBRARY": "Transport.Usb.library",
     # Can
     "CAN_DRIVER": "Transport.Can.interface",
     "CHANNEL": "Transport.Can.channel",
     "MAX_DLC_REQUIRED": "Transport.Can.max_dlc_required",
-    "MAX_CAN_FD_DLC": "Transport.Can.max_can_fd_dlc",
+    #   "MAX_CAN_FD_DLC": "Transport.Can.max_can_fd_dlc",
     "PADDING_VALUE": "Transport.Can.padding_value",
     "CAN_USE_DEFAULT_LISTENER": "Transport.Can.use_default_listener",
-    "CAN_ID_MASTER": "Transport.Can.can_id_master",
-    "CAN_ID_SLAVE": "Transport.Can.can_id_slave",
+    # Swap master and slave IDs. (s. https://github.com/christoph2/pyxcp/issues/130)
+    "CAN_ID_SLAVE": "Transport.Can.can_id_master",
+    "CAN_ID_MASTER": "Transport.Can.can_id_slave",
     "CAN_ID_BROADCAST": "Transport.Can.can_id_broadcast",
     "BITRATE": "Transport.Can.bitrate",
     "RECEIVE_OWN_MESSAGES": "Transport.Can.receive_own_messages",
@@ -71,14 +81,15 @@ def nested_dict_update(d: dict, key: str, value) -> None:
     sub_dict[key] = value
 
 
-def convert_config(legacy_config: dict) -> Config:
+def convert_config(legacy_config: dict, logger: LoggingConfigurable) -> Config:
     interface_name = None
     resolv = []
     d = defaultdict(dict)
     for key, value in legacy_config.items():
+        key = key.upper()
         item = LEGACY_KEYWORDS.get(key)
         if item is None:
-            warnings.warn(f"Unknown keyword '{key}' in config file")  # TODO: logger
+            logger.warning(f"Unknown keyword {key!r} in config file")
             continue
         if key == "CAN_DRIVER":
             value = value.lower()

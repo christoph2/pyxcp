@@ -28,109 +28,12 @@ namespace py = pybind11;
 
 constexpr double TMR_RESOLUTION = 1.0 / 1000.0;  // Timer resolution is one millisecond.
 
-class Timer {
-   public:
-
-    Timer() {
-        QueryPerformanceFrequency(&m_ticks_per_sec);
-        QueryPerformanceCounter(&m_starting_time);
-    }
-
-    /*
-     * Returns the number of µ-seconds since the timer was started.
-     */
-    std::uint64_t elapsed() const {
-        LARGE_INTEGER now;
-        LARGE_INTEGER ela;
-
-        QueryPerformanceCounter(&now);
-        ela.QuadPart = now.QuadPart - m_starting_time.QuadPart;
-        ela.QuadPart /= (m_ticks_per_sec.QuadPart / 1000000UL);
-        return ela.QuadPart;
-    }
-
-   private:
-
-    LARGE_INTEGER m_ticks_per_sec;
-    LARGE_INTEGER m_starting_time;
-};
-
-template<typename T>
-class TsQueue {
-   public:
-
-    TsQueue() = default;
-
-    TsQueue(const TsQueue& other) noexcept {
-        std::scoped_lock lock(other.m_mtx);
-        m_queue = other.m_queue;
-    }
-
-    void put(T value) noexcept {
-        std::scoped_lock lock(m_mtx);
-        m_queue.push(value);
-        m_cond.notify_one();
-    }
-
-    std::shared_ptr<T> get() noexcept {
-        std::unique_lock lock(m_mtx);
-        m_cond.wait(lock, [this] { return !m_queue.empty(); });
-        std::shared_ptr<T> result(std::make_shared<T>(m_queue.front()));
-        m_queue.pop();
-        return result;
-    }
-
-    bool empty() const noexcept {
-        std::scoped_lock lock(m_mtx);
-        return m_queue.empty();
-    }
-
-   private:
-
-    mutable std::mutex      m_mtx;
-    std::queue<T>           m_queue;
-    std::condition_variable m_cond;
-};
-
-struct Mutex {
-    ~Mutex() {
-        //std::cout << "Mutex destructor called" << std::endl;
-    }
-
-    Mutex(std::string_view name) : m_name(name) {
-        // std::cout << "Mutex constructor called: " << name << std::endl;
-    }
-
-    void lock() {
-        // std::cout << "\tMutex lock: " << m_name << " : " << m_counter << std::endl;
-        m_mtx.lock();
-        m_counter++;
-    #if 0
-        if (!m_mtx.try_lock()) {
-            ///std::cout << "\t\tMutex LOCK FAILED!!!" << std::endl;
-        } else {
-            m_counter++;
-        }
-    #endif
-    }
-
-    void unlock() {
-        //std::cout << "\tMutex un-lock: " << m_name << " : " << m_counter << std::endl;
-        m_mtx.unlock();
-        m_counter--;
-    }
-
-    int                  m_counter{ 0 };
-    std::string          m_name{};
-    std::recursive_mutex m_mtx{};
-};
-
 constexpr std::uint8_t MIN_STIM_PID = 0x00;
 constexpr std::uint8_t MAX_STIM_PID = 0xBF;
 
 struct DAQListType {};
 
-///// From BlueParrot.
+///// From BlueParrot XCP.
 
 using XcpDaq_ODTEntryIntegerType = std::uint16_t;
 using XcpDaq_ODTIntegerType      = std::uint16_t;
@@ -261,7 +164,7 @@ class FakeEnum {
         return 8;
     }
 
-    /*std::string*/py::bytes to_bytes(std::uint8_t length, std::string_view encoding) const {
+    py::bytes to_bytes(std::uint8_t length, std::string_view encoding) const {
         std::stringstream ss;
 
         ss << m_value;
@@ -303,11 +206,9 @@ struct DaqEventInfo {
             }
             m_cycle_time = static_cast<std::size_t>(cycle_time * 1000.0);
         }
-        // DBG_PRINTN("Event:", m_name, " time:", m_cycle_time, "periodic?", m_periodic, std::endl);
     }
 
    public:
-
     std::string             m_name;
     std::int8_t             m_unit_exp;
     std::size_t             m_cycle;
@@ -371,17 +272,16 @@ class Stim {
     using feed_function_t = std::function<void(std::size_t, std::size_t, float, std::vector<std::uint8_t>)>;
     using send_function_t = std::function<void(FakeEnum, std::vector<std::uint8_t>)>;
 
-    explicit Stim() {
+    explicit Stim(bool activate = true) : m_activate(activate) {
         if (timeBeginPeriod(100) == TIMERR_NOERROR) {
-            std::cout << "timeBeginPeriod() OK!!!" << std::endl;
+            // std::cout << "timeBeginPeriod() OK!!!" << std::endl;
         } else {
-            std::cout << "timeBeginPeriod() failed!!!" << std::endl;
+            // std::cout << "timeBeginPeriod() failed!!!" << std::endl;
         }
 
         DWORD task_index = 0UL;
 
         auto xxx = AvSetMmThreadCharacteristics("Pro Audio", &task_index);
-        std::cout << "AvSetMmThreadCharacteristics() " << xxx << ":" << task_index << std::endl;
 
         auto start = timeGetTime();
 
@@ -395,20 +295,25 @@ class Stim {
     void setDaqEventInfo(const std::vector<DaqEventInfo>& daq_event_info) {
         std::uint16_t idx = 0;
 
-        DBG_PRINTN("SET_DAQ_EVENT_INFO\n");
+        // DBG_PRINTN("SET_DAQ_EVENT_INFO\n");
+        if (!m_activate) {
+            return;
+        }
 
         for (const auto& event : daq_event_info) {
-            // m_daq_event_info.try_emplace(std::make_pair(idx, event));
             m_daq_event_info.try_emplace(idx, event);
-            // m_daq_event_info[idx] = event;
             if (event.m_stim) {
-                std::cout << "\tSTIM: " << event.m_name << ":" << idx << std::endl;
+                // std::cout << "\tSTIM: " << event.m_name << ":" << idx << std::endl;
             }
             idx++;
         }
     }
 
     void setDaqPtr(std::uint16_t daqListNumber, std::uint16_t odtNumber, std::uint16_t odtEntryNumber) {
+        if (!m_activate) {
+            return;
+        }
+
         if (!validateEntryNumber(daqListNumber, odtNumber, odtEntryNumber)) {
             return;
         }
@@ -417,6 +322,10 @@ class Stim {
     }
 
     void clearDaqList(std::uint16_t daqListNumber) {
+        if (!m_activate) {
+            return;
+        }
+
         if (!validateEntryNumber(daqListNumber)) {
             return;
         }
@@ -426,6 +335,10 @@ class Stim {
     }
 
     void writeDaq(std::uint16_t bitOffset, std::uint16_t entrySize, std::uint16_t addressExt, std::uint32_t address) {
+        if (!m_activate) {
+            return;
+        }
+
         auto [d, o, e] = m_daq_ptr;
         auto& entry    = m_daq_lists[d].m_odts[o].m_entries[e];
 
@@ -447,15 +360,17 @@ class Stim {
         std::uint16_t mode, std::uint16_t daqListNumber, std::uint16_t eventChannelNumber, std::uint16_t prescaler,
         std::uint16_t priority
     ) {
-        //std::cout << "<<< Enter setDaqListMode() !!!\n";
-        if (!validateEntryNumber(daqListNumber)) {
-            //std::cout << "Invalid DAQ list number!!!\b\n";
+        if (!m_activate) {
             return;
+        }
+        if (!validateEntryNumber(daqListNumber)) {
+            throw std::runtime_error("Invalid DAQ list number: " + std::to_string(eventChannelNumber) + "\n");
         }
         //std::cout << "SET_DAQ_LIST_MODE: " << mode << ":" << daqListNumber << ":" << eventChannelNumber << ":" << prescaler << ":"
         //          << priority << std::endl;
 
         auto& entry     = m_daq_lists.at(daqListNumber);
+
         entry.mode      = mode;
         entry.prescaler = prescaler;
         // The use of a prescaler is only used for DAQ lists with DIRECTION = DAQ.
@@ -463,21 +378,27 @@ class Stim {
         entry.priority             = priority;
         entry.event_channel_number = eventChannelNumber;
 
+        if (!m_daq_event_info.contains(eventChannelNumber)) {
+            throw std::runtime_error("Invalid Event channel number: " + std::to_string(eventChannelNumber) + "\n");
+        }
         auto& event = m_daq_event_info.at(eventChannelNumber);
+
         event.m_daq_lists.emplace(daqListNumber);
 
         if ((mode & DIRECTION_STIM) == DIRECTION_STIM) {
-            std::cout << "\tSTIM-MODE!!!\n";
+            //std::cout << "\tSTIM-MODE!!!\n";
 
             m_stim_lists.emplace(daqListNumber);
 
-            std::cout << "\t\tEvent: " << event.m_name << " ==> " << event.m_cycle_time << " - " << event.m_periodic << std::endl;
+            //std::cout << "\t\tEvent: " << event.m_name << " ==> " << event.m_cycle_time << " - " << event.m_periodic << std::endl;
             calculate_scheduler_period(event.m_cycle_time);
         }
-        //std::cout << ">>> Exit setDaqListMode() !!!\n";
     }
 
     void startStopDaqList(std::uint16_t mode, std::uint16_t daqListNumber) {
+        if (!m_activate) {
+            return;
+        }
         if (!validateEntryNumber(daqListNumber)) {
             return;
         }
@@ -499,9 +420,12 @@ class Stim {
     }
 
     void startStopSynch(std::uint16_t mode) {
+        if (!m_activate) {
+            return;
+        }
         //std::cout << "START_STOP_SYNCH " << mode << ":" << std::endl;
 
-        send(0x00, { 0x04, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xa0, 0xb0 });
+//         send(0x00, { 0x04, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xa0, 0xb0 });
 
         for (auto dl : m_stim_lists) {
             //std::cout << "\tRunning list: " << dl << std::endl;
@@ -514,17 +438,26 @@ class Stim {
     }
 
     void writeDaqMultiple(/* const std::vector<DaqElement>&*/ std::uint16_t daqElements) {
+        if (!m_activate) {
+            return;
+        }
     }
 
     void dtoCtrProperties(
         std::uint16_t modifier, std::uint16_t eventChannel, std::uint16_t relatedEventChannel, std::uint16_t mode
     ) {
+        if (!m_activate) {
+            return;
+        }
     }
 
     void setDaqPackedMode(
         std::uint16_t, std::uint16_t daqListNumber, std::uint16_t daqPackedMode, std::uint16_t dpmTimestampMode = 0,
         std::uint16_t dpmSampleCount = 0
     ) {
+        if (!m_activate) {
+            return;
+        }
         if (!validateEntryNumber(daqListNumber)) {
             return;
         }
@@ -532,41 +465,53 @@ class Stim {
     }
 
     void clear() {
+        if (!m_activate) {
+            return;
+        }
         m_daq_lists.clear();
-        // m_daq_event_info.clear();
         m_stim_lists.clear();
         m_first_pids.clear();
     }
 
     void freeDaq() {
-        //std::cout << "FREE_DAQ\n";
+        if (!m_activate) {
+            return;
+        }
         clear();
     }
 
     void allocDaq(std::uint16_t daqCount) {
+        if (!m_activate) {
+            return;
+        }
         m_daq_lists.resize(daqCount);
-        //std::cout << "ALLOC_DAQ " << daqCount << std::endl;
         std::for_each(m_daq_lists.cbegin(), m_daq_lists.cend(), [](auto elem) { elem.clear(); });
     }
 
     void allocOdt(std::uint16_t daqListNumber, std::uint16_t odtCount) {
+        if (!m_activate) {
+            return;
+        }
         if (!validateEntryNumber(daqListNumber)) {
             return;
         }
-        //std::cout << "ALLOC_ODT " << daqListNumber << ":" << odtCount << std::endl;
         m_daq_lists[daqListNumber].resize(odtCount);
     }
 
     void allocOdtEntry(std::uint16_t daqListNumber, std::uint16_t odtNumber, std::uint16_t odtEntriesCount) {
+        if (!m_activate) {
+            return;
+        }
         if (!validateEntryNumber(daqListNumber, odtNumber)) {
             return;
         }
-        //std::cout << "ALLOC_ODT_ENTRY " << daqListNumber << ":" << odtNumber << ":" << odtEntriesCount << std::endl;
         m_daq_lists[daqListNumber].m_odts[odtNumber].resize(odtEntriesCount);
     }
 
     void set_first_pid(std::uint16_t daqListNumber, std::uint16_t firstPid) {
-        //std::cout << "set_first_pid(" << daqListNumber << ", " << firstPid << ")\n";
+        if (!m_activate) {
+            return;
+        }
         m_first_pids[daqListNumber] = firstPid;
     }
 
@@ -579,6 +524,9 @@ class Stim {
     }
 
     void send(std::uint8_t stim_list_num, const std::vector<std::uint8_t> frame) {
+        if (!m_activate) {
+            return;
+        }
         if (m_send_function) {
             m_send_function.value()(FakeEnum(stim_list_num), frame);
         }
@@ -587,25 +535,29 @@ class Stim {
    protected:
 
     void calculate_scheduler_period(std::size_t value) {
+        if (!m_activate) {
+            return;
+        }
         if (!m_scheduler_period) {
             m_scheduler_period = value;
-            //std::cout << "\tSet Period\n";
         }
         if (!m_scheduler_max_value) {
             m_scheduler_max_value = value;
-            //std::cout << "\tSet Max\n";
         }
 
-        std::cout << "\tSCHED_Value: " << value << " - BEFORE: " << *m_scheduler_period << ":" << *m_scheduler_max_value << std::endl;
+        // std::cout << "\tSCHED_Value: " << value << " - BEFORE: " << *m_scheduler_period << ":" << *m_scheduler_max_value << std::endl;
         m_scheduler_period    = std::gcd(*m_scheduler_period, value);
         m_scheduler_max_value = std::lcm(*m_scheduler_max_value, value);
-        std::cout << "\tSCHED_Period: " << *m_scheduler_period << " max: " << *m_scheduler_max_value << std::endl;
+        // std::cout << "\tSCHED_Period: " << *m_scheduler_period << " max: " << *m_scheduler_max_value << std::endl;
     }
 
     bool validateEntryNumber(
         std::uint16_t daqListNumber, std::optional<std::uint16_t> odtNumber = std::nullopt,
         std::optional<std::uint16_t> odtEntryNumber = std::nullopt
     ) const {
+        if (!m_activate) {
+            return false;
+        }
         if (daqListNumber >= std::size(m_daq_lists)) {
             return false;
         }
@@ -625,7 +577,7 @@ class Stim {
     }
 
    private:
-
+    bool                                                    m_activate;
     StimParameters                                          m_params{};
     std::vector<DynamicListType>                            m_daq_lists{};
     std::tuple<std::uint16_t, std::uint16_t, std::uint16_t> m_daq_ptr;

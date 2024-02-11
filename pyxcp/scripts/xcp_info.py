@@ -1,74 +1,87 @@
 #!/usr/bin/env python
-"""Very basic hello-world example.
+
+"""XCP info/exploration tool.
 """
+
 from pprint import pprint
 
 from pyxcp.cmdline import ArgumentParser
+from pyxcp.types import TryCommandResult
 
 
-daq_info = False
+ap = ArgumentParser(description="XCP info/exploration tool.")
 
-
-def callout(master, args):
-    global daq_info
-    if args.daq_info:
-        daq_info = True
-
-
-ap = ArgumentParser(description="pyXCP hello world.", callout=callout)
-ap.parser.add_argument(
-    "-d",
-    "--daq-info",
-    dest="daq_info",
-    help="Display DAQ-info",
-    default=False,
-    action="store_true",
-)
 with ap.run() as x:
     x.connect()
     if x.slaveProperties.optionalCommMode:
-        x.getCommModeInfo()
-    identifier = x.identifier(0x01)
+        x.try_command(x.getCommModeInfo, extra_msg="availability signaled by CONNECT, this may be a slave configuration error.")
     print("\nSlave Properties:")
     print("=================")
-    print(f"ID: '{identifier}'")
     pprint(x.slaveProperties)
+
+    result = x.id_scanner()
+    print("\n")
+    print("Implemented IDs:")
+    print("================")
+    pprint(result)
     cps = x.getCurrentProtectionStatus()
     print("\nProtection Status")
     print("=================")
     for k, v in cps.items():
         print(f"    {k:6s}: {v}")
-    if daq_info:
-        dqp = x.getDaqProcessorInfo()
-        print("\nDAQ Processor Info:")
-        print("===================")
-        print(dqp)
-        print("\nDAQ Events:")
-        print("===========")
-        for idx in range(dqp.maxEventChannel):
-            evt = x.getDaqEventInfo(idx)
-            length = evt.eventChannelNameLength
-            name = x.pull(length).decode("utf-8")
-            dq = "DAQ" if evt.daqEventProperties.daq else ""
-            st = "STIM" if evt.daqEventProperties.stim else ""
-            dq_st = dq + " " + st
-            print(f'    [{idx:04}] "{name:s}"')
-            print(f"        dir:            {dq_st}")
-            print(f"        packed:         {evt.daqEventProperties.packed}")
-            PFX_CONS = "CONSISTENCY_"
-            print(f"        consistency:    {evt.daqEventProperties.consistency.strip(PFX_CONS)}")
-            print(f"        max. DAQ lists: {evt.maxDaqList}")
-            PFX_TU = "EVENT_CHANNEL_TIME_UNIT_"
-            print(f"        unit:           {evt.eventChannelTimeUnit.strip(PFX_TU)}")
-            print(f"        cycle:          {evt.eventChannelTimeCycle or 'SPORADIC'}")
-            print(f"        priority        {evt.eventChannelPriority}")
+    x.cond_unlock()
+    print("\nDAQ Info:")
+    print("=========")
+    daq_info = x.getDaqInfo()
+    pprint(daq_info)
 
-        dqr = x.getDaqResolutionInfo()
-        print("\nDAQ Resolution Info:")
-        print("====================")
-        print(dqr)
-        for idx in range(dqp.maxDaq):
-            print(f"\nDAQ List Info #{idx}")
-            print("=================")
-            print(f"{x.getDaqListInfo(idx)}")
+    daq_pro = daq_info["processor"]
+    daq_properties = daq_pro["properties"]
+    if x.slaveProperties.transport_layer == "CAN":
+        print("")
+        if daq_properties["pidOffSupported"]:
+            print("*** pidOffSupported -- i.e. one CAN-ID per DAQ-list.")
+        else:
+            print("*** NO support for PID_OFF")
+    num_predefined = daq_pro["minDaq"]
+    print("\nPredefined DAQ-Lists")
+    print("====================")
+    if num_predefined > 0:
+        print(f"There are {num_predefined} predefined DAQ-lists")
+        for idx in range(num_predefined):
+            print(f"DAQ-List #{idx}\n____________\n")
+            status, dm = x.try_command(x.getDaqListMode, idx)
+            if status == TryCommandResult.OK:
+                print(dm)
+            status, di = x.try_command(x.getDaqListInfo, idx)
+            if status == TryCommandResult.OK:
+                print(di)
+    else:
+        print("*** NO Predefined DAQ-Lists")
+    print("\nPAG Info:")
+    print("=========")
+    if x.slaveProperties.supportsCalpag:
+        status, pag = x.try_command(x.getPagProcessorInfo)
+        if status == TryCommandResult.OK:
+            print(pag)
+            # for idx in range(pag.maxSegments):
+            #     x.getSegmentInfo(0x01, idx, 0, 0)
+    else:
+        print("*** PAGING IS NOT SUPPORTED.")
+
+    print("\nPGM Info:")
+    print("=========")
+    if x.slaveProperties.supportsPgm:
+        status, pgm = x.try_command(x.getPgmProcessorInfo)
+        if status == TryCommandResult.OK:
+            print(pgm)
+    else:
+        print("*** FLASH PROGRAMMING IS NOT SUPPORTED.")
+
+    if x.slaveProperties.transport_layer == "CAN":
+        # print("OK, CAN!!!")
+        status, res = x.try_command(x.getDaqId, 0)
+        print(status, res)
     x.disconnect()
+
+    print("\nDone.")

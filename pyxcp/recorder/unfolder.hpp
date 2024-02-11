@@ -49,22 +49,30 @@ auto get_value_swapped(blob_t const * buf, std::uint32_t offset) -> Ty {
 
 template<>
 auto get_value<float>(blob_t const * buf, std::uint32_t offset) -> float {
-    return static_cast<float>(get_value<uint32_t>(buf, offset));
+    auto tmp = get_value<std::uint32_t>(buf, offset);
+
+    return *(reinterpret_cast<float*>(&tmp));
 }
 
 template<>
 auto get_value<double>(blob_t const * buf, std::uint32_t offset) -> double {
-    return static_cast<double>(get_value<uint64_t>(buf, offset));
+    auto tmp = get_value<std::uint64_t>(buf, offset);
+
+    return *(reinterpret_cast<double*>(&tmp));
 }
 
 template<>
 auto get_value_swapped<float>(blob_t const * buf, std::uint32_t offset) -> float {
-    return static_cast<float>(get_value_swapped<uint32_t>(buf, offset));
+    auto tmp = get_value_swapped<std::uint32_t>(buf, offset);
+
+    return *(reinterpret_cast<float*>(&tmp));
 }
 
 template<>
 auto get_value_swapped<double>(blob_t const * buf, std::uint32_t offset) -> double {
-    return static_cast<double>(get_value_swapped<uint64_t>(buf, offset));
+    auto tmp = get_value_swapped<std::uint64_t>(buf, offset);
+
+    return *(reinterpret_cast<double*>(&tmp));
 }
 
 template<>
@@ -152,22 +160,22 @@ void set_value_swapped<std::int64_t>(blob_t * buf, std::uint32_t offset, std::in
 
 template<>
 void set_value<float>(blob_t * buf, std::uint32_t offset, float value) {
-    set_value<std::uint32_t>(buf, offset, static_cast<std::uint32_t>(value));
+    set_value<std::uint32_t>(buf, offset, *reinterpret_cast<std::uint32_t*>(&value));
 }
 
 template<>
 void set_value_swapped<float>(blob_t * buf, std::uint32_t offset, float value) {
-    set_value_swapped<std::uint32_t>(buf, offset, static_cast<std::uint32_t>(value));
+    set_value_swapped<std::uint32_t>(buf, offset, *reinterpret_cast<std::uint32_t*>(&value));
 }
 
 template<>
 void set_value<double>(blob_t * buf, std::uint32_t offset, double value) {
-    set_value<std::uint64_t>(buf, offset, static_cast<std::uint64_t>(value));
+    set_value<std::uint64_t>(buf, offset, *reinterpret_cast<std::uint64_t*>(&value));
 }
 
 template<>
 void set_value_swapped<double>(blob_t * buf, std::uint32_t offset, double value) {
-    set_value_swapped<std::uint64_t>(buf, offset, static_cast<std::uint64_t>(value));
+    set_value_swapped<std::uint64_t>(buf, offset, *reinterpret_cast<std::uint64_t*>(&value));
 }
 
 
@@ -514,7 +522,7 @@ class DaqListState {
                     return state_t::FINISHED;
                 }
             } else {
-                std::cout << "\t\tODT num out of order: " << odt_num << " -- expected: " << m_next_odt << std::endl;
+                // std::cout << "\t\tODT num out of order: " << odt_num << " -- expected: " << m_next_odt << std::endl;
                 resetSM();
                 return state_t::_ERROR;
             }
@@ -602,7 +610,7 @@ class DaqListState {
     MeasurementParameters            m_params;
 };
 
-auto requires_swap(std::uint8_t byte_order) {
+auto requires_swap(std::uint8_t byte_order) -> bool {
     // INTEL(LITTLE)=0, MOTOROLA(BIG)=1
     std::endian target_byte_order = (byte_order == 1) ? std::endian::big : std::endian::little;
     return (target_byte_order != std::endian::native) ? true : false;
@@ -762,7 +770,7 @@ class DAQParser {
 
     void set_parameters(const MeasurementParameters& params) noexcept {
         m_unfolder = std::make_unique<UnfolderBase>(params);
-        post_setup();
+        Initialize();
     }
 
     virtual void on_daq_list(
@@ -780,7 +788,7 @@ class DAQParser {
         }
     }
 
-    virtual void post_setup() {
+    virtual void Initialize() {
     }
 
     virtual void finalize() {

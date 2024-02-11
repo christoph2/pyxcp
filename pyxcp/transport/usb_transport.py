@@ -5,8 +5,12 @@ from array import array
 from collections import deque
 from time import perf_counter, sleep, time
 
+import usb.backend.libusb0 as libusb0
+import usb.backend.libusb1 as libusb1
+import usb.backend.openusb as openusb
 import usb.core
 import usb.util
+from usb.core import USBError, USBTimeoutError
 
 from pyxcp.transport.base import BaseTransport
 from pyxcp.utils import SHORT_SLEEP
@@ -18,16 +22,6 @@ RECV_SIZE = 16384
 class Usb(BaseTransport):
     """"""
 
-    PARAMETER_MAP = {
-        #                            Type    Req'd   Default
-        "serial_number": (str, True, ""),
-        "configuration_number": (int, True, 1),
-        "interface_number": (int, True, 2),
-        "command_endpoint_number": (int, True, 0),
-        "reply_endpoint_number": (int, True, 1),
-        "vendor_id": (int, False, 0),
-        "product_id": (int, False, 0),
-    }
     HEADER = struct.Struct("<2H")
     HEADER_SIZE = HEADER.size
 
@@ -39,10 +33,22 @@ class Usb(BaseTransport):
         self.product_id = self.config.product_id
         self.configuration_number = self.config.configuration_number
         self.interface_number = self.config.interface_number
-        self.command_endpoint_number = self.config.command_endpoint_number
-        self.reply_endpoint_number = self.config.reply_endpoint_number
-        self.device = None
+        self.library = self.config.library
+        self.header_format = self.config.header_format
 
+        ## IN-EP (RES/ERR, DAQ, and EV/SERV) Parameters.
+        self.in_ep_number = self.config.in_ep_number
+        self.in_ep_transfer_type = self.config.in_ep_transfer_type
+        self.in_ep_max_packet_size = self.config.in_ep_max_packet_size
+        self.in_ep_polling_interval = self.config.in_ep_polling_interval
+        self.in_ep_message_packing = self.config.in_ep_message_packing
+        self.in_ep_alignment = self.config.in_ep_alignment
+        self.in_ep_recommended_host_bufsize = self.config.in_ep_recommended_host_bufsize
+
+        ## OUT-EP (CMD and STIM) Parameters.
+        self.out_ep_number = self.config.out_ep_number
+
+        self.device = None
         self.status = 0
 
         self._packet_listener = threading.Thread(
@@ -53,15 +59,24 @@ class Usb(BaseTransport):
         self._packets = deque()
 
     def connect(self):
+        if self.library:
+            for backend_provider in (libusb1, libusb0, openusb):
+                backend = backend_provider.get_backend(find_library=lambda x: self.library)
+                if backend:
+                    break
+        else:
+            backend = None
         if self.vendor_id and self.product_id:
             kwargs = {
                 "find_all": True,
                 "idVendor": self.vendor_id,
                 "idProduct": self.product_id,
+                "backend": backend,
             }
         else:
             kwargs = {
                 "find_all": True,
+                "backend": backend,
             }
 
         for device in usb.core.find(**kwargs):
@@ -69,10 +84,10 @@ class Usb(BaseTransport):
                 if device.serial_number.strip().strip("\0").lower() == self.serial_number.lower():
                     self.device = device
                     break
-            except BaseException:
+            except (USBError, USBTimeoutError):
                 continue
         else:
-            raise Exception(f"Device with serial {self.serial_number} not found")
+            raise Exception(f"Device with serial {self.serial_number!r} not found")
 
         current_configuration = self.device.get_active_configuration()
         if current_configuration.bConfigurationValue != self.configuration_number:
@@ -81,8 +96,8 @@ class Usb(BaseTransport):
 
         interface = cfg[(self.interface_number, 0)]
 
-        self.command_endpoint = interface[self.command_endpoint_number]
-        self.reply_endpoint = interface[self.reply_endpoint_number]
+        self.out_ep = interface[self.out_ep_number]
+        self.in_ep = interface[self.in_ep_number]
 
         self.startListener()
         self.status = 1  # connected
@@ -107,7 +122,7 @@ class Usb(BaseTransport):
         close_event_set = self.closeEvent.is_set
 
         _packets = self._packets
-        read = self.reply_endpoint.read
+        read = self.in_ep.read
 
         buffer = array("B", bytes(RECV_SIZE))
         buffer_view = memoryview(buffer)
@@ -116,7 +131,6 @@ class Usb(BaseTransport):
             try:
                 if close_event_set():
                     return
-
                 try:
                     recv_timestamp = time()
                     read_count = read(buffer, 100)  # 100ms timeout
@@ -124,12 +138,12 @@ class Usb(BaseTransport):
                         _packets.append((buffer_view[:read_count].tobytes(), recv_timestamp))
                     else:
                         _packets.append((buffer.tobytes(), recv_timestamp))
-                except BaseException:
+                except (USBError, USBTimeoutError):
                     # print(format_exc())
                     sleep(SHORT_SLEEP)
                     continue
-
-            except BaseException:
+            except BaseException:  # noqa: B036
+                # Note: catch-all only permitted if the intention is re-raising.
                 self.status = 0  # disconnected
                 break
 
@@ -197,8 +211,8 @@ class Usb(BaseTransport):
     def send(self, frame):
         self.pre_send_timestamp = time()
         try:
-            self.command_endpoint.write(frame)
-        except BaseException:
+            self.out_ep.write(frame)
+        except (USBError, USBTimeoutError):
             # sometimes usb.core.USBError: [Errno 5] Input/Output Error is raised
             # even though the command is send and a reply is received from the device.
             # Ignore this here since a Timeout error will be raised anyway if

@@ -10,7 +10,7 @@
     #include <vector>
 
 const std::map<const std::string, std::tuple<std::uint16_t, std::uint16_t>> TYPE_MAP = {
-    {"U8",   { 0, 1 }},
+    { "U8",  { 0, 1 }},
     { "I8",  { 1, 1 }},
     { "U16", { 2, 2 }},
     { "I16", { 3, 2 }},
@@ -38,7 +38,15 @@ class McObject {
         m_type_index(-1) {
         if (data_type != "") {
 			std::string dt_toupper;
+
+            dt_toupper.resize(data_type.size());
+
 			std::transform(data_type.begin(), data_type.end(), dt_toupper.begin(), [](unsigned char c) -> unsigned char { return std::toupper(c); });
+
+            if (!TYPE_MAP.contains(dt_toupper)) {
+                throw std::runtime_error("Invalid data type: " + data_type);
+            }
+
             const auto [ti, len] = TYPE_MAP.at(dt_toupper);
             m_type_index         = ti;
             m_length             = len;

@@ -23,6 +23,12 @@ class SxI(BaseTransport):
         self.bytesize = self.config.bytesize
         self.parity = self.config.parity
         self.stopbits = self.config.stopbits
+        self.mode = self.config.mode
+        self.header_format = self.config.header_format
+        self.tail_format = self.config.tail_format
+        self.framing = self.config.framing
+        self.esc_sync = self.config.esc_sync
+        self.esc_esc = self.config.esc_esc
 
     def __del__(self):
         self.closeConnection()
@@ -41,7 +47,7 @@ class SxI(BaseTransport):
         except serial.SerialException as e:
             self.logger.critical(f"{e}")
             raise
-        self.logger.info(f"Serial comm_port openend as '{self.comm_port.portstr}' @ {self.baudrate} Bits/Sec.")
+        self.logger.info(f"Serial comm_port openend as {self.comm_port.portstr}@{self.baudrate} Bits/Sec.")
         self.startListener()
 
     def output(self, enable):

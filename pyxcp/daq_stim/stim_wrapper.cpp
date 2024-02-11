@@ -17,7 +17,7 @@ PYBIND11_MODULE(stim, m) {
         );
 
     py::class_<Stim>(m, "Stim")
-        .def(py::init<>())
+        .def(py::init<bool>())
         .def("setDaqEventInfo", &Stim::setDaqEventInfo)
         .def("clear", &Stim::clear)
         .def("freeDaq", &Stim::freeDaq)
