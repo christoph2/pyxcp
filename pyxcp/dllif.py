@@ -27,7 +27,7 @@ LOADER = Path(sys.modules["pyxcp"].__file__).parent / "asamkeydll"  # Absolute p
 
 bwidth, _ = platform.architecture()
 
-if sys.platform in ("win32", "linux"):
+if sys.platform in ("win32", "linux", "darwin"):
     if bwidth == "64bit":
         use_ctypes = False
     elif bwidth == "32bit":

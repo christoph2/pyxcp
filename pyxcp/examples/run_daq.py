@@ -128,7 +128,7 @@ with ap.run(policy=daq_parser) as x:
     if x.slaveProperties.optionalCommMode:
         x.getCommModeInfo()
 
-    x.cond_unlock()  # DAQ resource is locked in many cases.
+    x.cond_unlock("DAQ")  # DAQ resource is locked in many cases.
 
     print("setup DAQ lists.")
     daq_parser.setup()  # Run internal and XCP setup procedures.
