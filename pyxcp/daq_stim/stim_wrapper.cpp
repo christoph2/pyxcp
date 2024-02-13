@@ -7,7 +7,9 @@
 namespace py = pybind11;
 using namespace py::literals;
 
+#if defined(_MSC_VER)
 #pragma warning(disable: 4251 4273)
+#endif
 
 #include "stim.hpp"
 

@@ -332,7 +332,7 @@ struct Setter {
         }
     }
 
-    std::uint32_t set_timestamp(blob_t * buf, std::uint32_t timestamp) {
+    /*std::uint32_t*/void set_timestamp(blob_t * buf, std::uint32_t timestamp) {
         switch (m_ts_size) {
             case 0:
                 break;
@@ -467,10 +467,10 @@ struct MeasurementParameters {
     bool                 m_timestamps_supported;
     bool                 m_ts_fixed;
     bool                 m_prescaler_supported;
+    bool                 m_selectable_timestamps;
     double               m_ts_scale_factor;
     std::uint8_t         m_ts_size;
     std::uint16_t        m_min_daq;
-    bool                 m_selectable_timestamps;
     std::vector<DaqList> m_daq_lists;
 };
 
@@ -495,12 +495,17 @@ class DaqListState {
         m_total_entries(total_entries),
         m_enable_timestamps(enable_timestamps),
         m_initial_offset(initial_offset),
+        m_next_odt(0),
+        m_current_idx(0),
+        m_timestamp0(0.0),
+        m_timestamp1(0.0),
+        m_state(state_t::IDLE),
+        m_buffer{},
         m_flatten_odts(flatten_odts),
         m_getter(getter),
-        m_params(params),
-        m_state(state_t::IDLE) {
-        // std::cout << "DaqListState: " << daq_list_num << " : " << num_odts << " : " << total_entries << " : " <<
-        // enable_timestamps << std::endl;
+        m_params(params)
+        {
+
         m_buffer.resize(m_total_entries);
     }
 
@@ -587,7 +592,7 @@ class DaqListState {
                 );
             }
 
-            m_buffer[m_current_idx++] = std::move(m_getter.reader(type_index, payload_data, offset));
+            m_buffer[m_current_idx++] = m_getter.reader(type_index, payload_data, offset);
             offset += size;
         }
     }
@@ -679,7 +684,7 @@ class UnfolderBase {
 
     void create_state_vars(const MeasurementParameters& params) noexcept {
         m_getter = Getter(requires_swap(params.m_byte_order), params.m_id_field_size, params.m_ts_size);
-        for (auto idx = 0; idx < params.m_daq_lists.size(); ++idx) {
+        for (std::size_t idx = 0; idx < params.m_daq_lists.size(); ++idx) {
             m_state.emplace_back(DaqListState(
                 idx, params.m_daq_lists[idx].get_odt_count(), params.m_daq_lists[idx].get_total_entries(),
                 params.m_daq_lists[idx].get_enable_timestamps(), params.m_id_field_size, params.m_daq_lists[idx].get_flatten_odts(),

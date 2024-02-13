@@ -70,10 +70,11 @@ class AsamKeyDllAutogen(setuptools.Command):
     def run(self):
         """Run gcc"""
         word_width, _ = platform.architecture()
-        if sys.platform == "win32" and word_width == "64bit":
+        if sys.platform in ("win32") and word_width == "64bit":
             gccCmd = ["gcc", "-m32", "-O3", "-Wall"]
             self.announce(" ".join(gccCmd + self.arguments))
             try:
+                print("running: ", gccCmd + self.arguments)
                 subprocess.check_call(gccCmd + self.arguments)  # nosec
             except Exception as e:
                 print(f"Building pyxcp/asamkeydll.exe failed: '{str(e)}'")
@@ -122,6 +123,5 @@ if __name__ == "__main__":
             "package_dir": {"pyxcp": str(ROOT_DIRPATH / "pyxcp")},
         }
     )
-
-    invoke_command(distribution, "asam_key_dll")
     invoke_command(distribution, "CXX_extensions")
+    invoke_command(distribution, "asam_key_dll")

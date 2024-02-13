@@ -592,8 +592,8 @@ class Stim {
     std::set<std::size_t>                                   m_stim_lists{};
     std::optional<feed_function_t>                          m_feed_function{ std::nullopt };
     std::optional<send_function_t>                          m_send_function{ std::nullopt };
-    Scheduler                                               m_scheduler{};
-    bool                                                    m_daq_running{ false };
+    // Scheduler                                               m_scheduler{};
+    // bool                                                    m_daq_running{ false };
 };
 
 #endif  // __STIM_HPP

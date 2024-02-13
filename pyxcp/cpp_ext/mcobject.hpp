@@ -34,8 +34,8 @@ class McObject {
         m_ext(ext),
         m_length(length),
         m_data_type(data_type),
-        m_components(components),
-        m_type_index(-1) {
+        m_type_index(-1),
+        m_components(components) {
         if (data_type != "") {
 			std::string dt_toupper;
 
