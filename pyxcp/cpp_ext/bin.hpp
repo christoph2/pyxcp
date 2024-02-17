@@ -45,6 +45,21 @@ class Bin {
         return (m_size == other.m_size) && (m_residual_capacity == other.m_residual_capacity) && (m_entries == other.m_entries);
     }
 
+    std::string dumps() const {
+        std::stringstream ss;
+
+        ss << to_binary(m_size);
+        ss << to_binary(m_residual_capacity);
+
+        std::size_t entries_size = m_entries.size();
+        ss << to_binary(entries_size);
+        for (const auto& entry : m_entries) {
+            ss << entry.dumps();
+        }
+
+        return ss.str();
+    }
+
    private:
 
     std::uint16_t         m_size;

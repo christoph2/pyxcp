@@ -46,7 +46,9 @@ PYBIND11_MODULE(rekorder, m) {
     py::class_<MeasurementParameters>(m, "_MeasurementParameters")
         .def(py::init<
              std::uint8_t, std::uint8_t, bool, bool, bool, bool, double, std::uint8_t, std::uint16_t, const std::vector<DaqList> &>(
-        ));
+        ))
+        .def("dumps", &MeasurementParameters::dumps)
+        ;
 
     py::class_<DAQParser, PyDAQParser>(m, "DAQParser", py::dynamic_attr())
         .def(py::init<>())

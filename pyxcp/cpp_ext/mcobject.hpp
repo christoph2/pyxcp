@@ -9,6 +9,8 @@
 	#include <ranges>
     #include <vector>
 
+    #include "helper.hpp"
+
 const std::map<const std::string, std::tuple<std::uint16_t, std::uint16_t>> TYPE_MAP = {
     { "U8",  { 0, 1 }},
     { "I8",  { 1, 1 }},
@@ -20,6 +22,13 @@ const std::map<const std::string, std::tuple<std::uint16_t, std::uint16_t>> TYPE
     { "I64", { 7, 8 }},
     { "F32", { 8, 4 }},
     { "F64", { 9, 8 }},
+#if HAS_FLOAT16
+    { "F16", { 10, 2 }},
+#endif
+#if HAS_BFLOAT16
+    { "BF16", { 11, 2 }},
+#endif
+
 };
 
 class McObject {
@@ -114,6 +123,24 @@ class McObject {
         return (m_name == other.m_name) && (m_address == other.m_address) && (m_ext == other.m_ext) &&
                (m_length == other.m_length) && (m_data_type == other.m_data_type) &&
                (std::equal(m_components.begin(), m_components.end(), other.m_components.begin(), other.m_components.end()));
+    }
+
+    std::string dumps() const {
+        std::stringstream ss;
+
+        ss << to_binary(m_name);
+        ss << to_binary(m_address);
+        ss << to_binary(m_ext);
+        ss << to_binary(m_length);
+        ss << to_binary(m_data_type);
+        ss << to_binary(m_type_index);
+
+        std::size_t ccount = m_components.size();
+        ss << to_binary(ccount);
+        for (const auto& obj : m_components) {
+            ss << obj.dumps();
+        }
+        return ss.str();
     }
 
    private:

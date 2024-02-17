@@ -11,31 +11,13 @@
 #include <cstring>
 
 #include "daqlist.hpp"
+#include "helper.hpp"
 #include "mcobject.hpp"
 
 
 using measurement_value_t = std::variant<std::int64_t, std::uint64_t, long double, std::string>;
 using measurement_tuple_t = std::tuple<std::uint16_t, double, double, std::vector<measurement_value_t>>;
 using measurement_callback_t = std::function<void(std::uint16_t, double, double, std::vector<measurement_value_t>)>;
-
-
-// NOTE: C++23 has std::byteswap()
-constexpr auto _bswap(std::uint64_t v) noexcept {
-    return ((v & UINT64_C(0x0000'0000'0000'00FF)) << 56) | ((v & UINT64_C(0x0000'0000'0000'FF00)) << 40) |
-           ((v & UINT64_C(0x0000'0000'00FF'0000)) << 24) | ((v & UINT64_C(0x0000'0000'FF00'0000)) << 8) |
-           ((v & UINT64_C(0x0000'00FF'0000'0000)) >> 8) | ((v & UINT64_C(0x0000'FF00'0000'0000)) >> 24) |
-           ((v & UINT64_C(0x00FF'0000'0000'0000)) >> 40) | ((v & UINT64_C(0xFF00'0000'0000'0000)) >> 56);
-}
-
-constexpr auto _bswap(std::uint32_t v) noexcept {
-    return ((v & UINT32_C(0x0000'00FF)) << 24) | ((v & UINT32_C(0x0000'FF00)) << 8) | ((v & UINT32_C(0x00FF'0000)) >> 8) |
-           ((v & UINT32_C(0xFF00'0000)) >> 24);
-}
-
-constexpr auto _bswap(std::uint16_t v) noexcept {
-    return ((v & UINT16_C(0x00FF)) << 8) | ((v & UINT16_C(0xFF00)) >> 8);
-}
-
 
 template<typename Ty>
 auto get_value(blob_t const * buf, std::uint32_t offset) -> Ty {
@@ -46,6 +28,25 @@ template<typename Ty>
 auto get_value_swapped(blob_t const * buf, std::uint32_t offset) -> Ty {
     return _bswap(get_value<Ty>(buf, offset));
 }
+
+#if HAS_FLOAT16==1
+template<>
+auto get_value<std::float16_t>(blob_t const * buf, std::uint32_t offset) -> std::float16_t {
+    auto tmp = get_value<std::uint16_t>(buf, offset);
+
+    return *(reinterpret_cast<std::float16_t*>(&tmp));
+}
+#endif
+
+#if HAS_BFLOAT16==1
+template<>
+auto get_value<std::bfloat16_t>(blob_t const * buf, std::uint32_t offset) -> std::bfloat16_t {
+    auto tmp = get_value<std::uint16_t>(buf, offset);
+
+    return *(reinterpret_cast<std::bfloat16_t*>(&tmp));
+}
+#endif
+
 
 template<>
 auto get_value<float>(blob_t const * buf, std::uint32_t offset) -> float {
@@ -60,6 +61,25 @@ auto get_value<double>(blob_t const * buf, std::uint32_t offset) -> double {
 
     return *(reinterpret_cast<double*>(&tmp));
 }
+
+#if HAS_FLOAT16==1
+template<>
+auto get_value_swapped<std::float16_t>(blob_t const * buf, std::uint32_t offset) -> std::float16_t {
+    auto tmp = get_value_swapped<std::uint16_t>(buf, offset);
+
+    return *(reinterpret_cast<std::float16_t*>(&tmp));
+}
+#endif
+
+#if HAS_BFLOAT16==1
+template<>
+auto get_value_swapped<std::bfloat16_t>(blob_t const * buf, std::uint32_t offset) -> std::bfloat16_t {
+    auto tmp = get_value_swapped<std::uint16_t>(buf, offset);
+
+    return *(reinterpret_cast<std::bfloat16_t*>(&tmp));
+}
+#endif
+
 
 template<>
 auto get_value_swapped<float>(blob_t const * buf, std::uint32_t offset) -> float {
@@ -158,6 +178,30 @@ void set_value_swapped<std::int64_t>(blob_t * buf, std::uint32_t offset, std::in
     set_value_swapped<std::uint64_t>(buf, offset, static_cast<std::uint64_t>(value));
 }
 
+#if HAS_FLOAT16==1
+template<>
+void set_value<std::float16_t>(blob_t * buf, std::uint32_t offset, std::float16_t value) {
+    set_value<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
+}
+
+template<>
+void set_value_swapped<std::float16_t>(blob_t * buf, std::uint32_t offset, std::float16_t value) {
+    set_value_swapped<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
+}
+#endif
+
+#if HAS_BFLOAT16==1
+template<>
+void set_value<std::bfloat16_t>(blob_t * buf, std::uint32_t offset, std::bfloat16_t value) {
+    set_value<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
+}
+
+template<>
+void set_value_swapped<std::bfloat16_t>(blob_t * buf, std::uint32_t offset, std::bfloat16_t value) {
+    set_value_swapped<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
+}
+#endif
+
 template<>
 void set_value<float>(blob_t * buf, std::uint32_t offset, float value) {
     set_value<std::uint32_t>(buf, offset, *reinterpret_cast<std::uint32_t*>(&value));
@@ -198,6 +242,12 @@ struct Getter {
             uint64  = get_value_swapped<std::uint64_t>;
             float_  = get_value_swapped<float>;
             double_ = get_value_swapped<double>;
+#if HAS_FLOAT16==1
+            float16  = get_value_swapped<std::float16_t>;
+#endif
+#if HAS_BFLOAT16==1
+            bfloat16  = get_value_swapped<std::bfloat16_t>;
+#endif
         } else {
             int16   = get_value<std::int16_t>;
             int32   = get_value<std::int32_t>;
@@ -207,6 +257,12 @@ struct Getter {
             uint64  = get_value<std::uint64_t>;
             float_  = get_value<float>;
             double_ = get_value<double>;
+#if HAS_FLOAT16==1
+            float16  = get_value<std::float16_t>;
+#endif
+#if HAS_BFLOAT16==1
+            bfloat16  = get_value<std::bfloat16_t>;
+#endif
         }
     }
 
@@ -247,6 +303,14 @@ struct Getter {
                 return float_(buf, offset);
             case 9:
                 return double_(buf, offset);
+#if HAS_FLOAT16==1
+            case 10:
+                return float16(buf, offset);
+#endif
+#if HAS_BFLOAT16==1
+            case 11:
+                return bfloat16(buf, offset);
+#endif
             default:
                 throw std::runtime_error("Unsupported data type: " + std::to_string(tp));
         }
@@ -299,6 +363,12 @@ struct Getter {
     std::function<std::uint64_t(blob_t const * buf, std::uint32_t offset)> uint64;
     std::function<float(blob_t const * buf, std::uint32_t offset)>         float_;
     std::function<double(blob_t const * buf, std::uint32_t offset)>        double_;
+#if HAS_FLOAT16==1
+    std::function<std::float16_t(blob_t const * buf, std::uint32_t offset)>     float16;
+#endif
+#if HAS_BFLOAT16==1
+    std::function<std::bfloat16_t(blob_t const * buf, std::uint32_t offset)>    bfloat16;
+#endif
     std::vector<std::uint16_t>                                             m_first_pids;
     std::map<std::uint16_t, std::tuple<std::uint16_t, std::uint16_t>>      m_odt_to_daq_map;
 };
@@ -320,6 +390,12 @@ struct Setter {
             uint64  = set_value_swapped<std::uint64_t>;
             float_  = set_value_swapped<float>;
             double_ = set_value_swapped<double>;
+#if HAS_FLOAT16==1
+            float16  = set_value_swapped<std::float16_t>;
+#endif
+#if HAS_BFLOAT16==1
+            bfloat16  = set_value_swapped<std::bfloat16_t>;
+#endif
         } else {
             int16   = set_value<std::int16_t>;
             int32   = set_value<std::int32_t>;
@@ -329,10 +405,16 @@ struct Setter {
             uint64  = set_value<std::uint64_t>;
             float_  = set_value<float>;
             double_ = set_value<double>;
+#if HAS_FLOAT16==1
+            float16  = set_value<std::float16_t>;
+#endif
+#if HAS_BFLOAT16==1
+            bfloat16  = set_value<std::bfloat16_t>;
+#endif
         }
     }
 
-    /*std::uint32_t*/void set_timestamp(blob_t * buf, std::uint32_t timestamp) {
+    void set_timestamp(blob_t * buf, std::uint32_t timestamp) {
         switch (m_ts_size) {
             case 0:
                 break;
@@ -382,6 +464,16 @@ struct Setter {
             case 9:
                 double_(buf, offset, static_cast<double>(std::get<long double>(value)));
                 break;
+#if HAS_FLOAT16==1
+            case 10:
+                float16(buf, offset, static_cast<std::float16_t>(std::get<long double>(value)));
+                break;
+#endif
+#if HAS_BFLOAT16==1
+            case 11:
+                bfloat16(buf, offset, static_cast<std::bfloat16_t>(std::get<long double>(value)));
+                break;
+#endif
             default:
                 throw std::runtime_error("Unsupported data type: " + std::to_string(tp));
         }
@@ -437,6 +529,12 @@ struct Setter {
     std::function<void(blob_t * buf, std::uint32_t offset, std::uint64_t)> uint64;
     std::function<void(blob_t * buf, std::uint32_t offset, float)>         float_;
     std::function<void(blob_t * buf, std::uint32_t offset, double)>        double_;
+#if HAS_FLOAT16==1
+    std::function<void(blob_t * buf, std::uint32_t offset, std::float16_t)> float16;
+#endif
+#if HAS_BFLOAT16==1
+    std::function<void(blob_t * buf, std::uint32_t offset, std::bfloat16_t)> bfloat16;
+#endif
     std::vector<std::uint16_t>                                             m_first_pids;
     std::map<std::uint16_t, std::tuple<std::uint16_t, std::uint16_t>>      m_odt_to_daq_map;
 };
@@ -460,6 +558,27 @@ struct MeasurementParameters {
         m_ts_size(ts_size),
         m_min_daq(min_daq),
         m_daq_lists(daq_lists) {
+    }
+
+    std::string dumps() const {
+        std::stringstream ss;
+
+        ss << to_binary(m_byte_order);
+        ss << to_binary(m_id_field_size);
+        ss << to_binary(m_timestamps_supported);
+        ss << to_binary(m_ts_fixed);
+        ss << to_binary(m_prescaler_supported);
+        ss << to_binary(m_selectable_timestamps);
+        ss << to_binary(m_ts_scale_factor);
+        ss << to_binary(m_ts_size);
+        ss << to_binary(m_min_daq);
+
+        std::size_t dl_count = m_daq_lists.size();
+        ss << to_binary(dl_count);
+        for (const auto& daq_list : m_daq_lists) {
+            ss << daq_list.dumps();
+        }
+        return ss.str();
     }
 
     std::uint8_t         m_byte_order;

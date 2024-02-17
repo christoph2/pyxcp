@@ -3,6 +3,7 @@
     #define __DAQ_LIST_HPP
 
     #include "bin.hpp"
+    #include "helper.hpp"
     #include "mcobject.hpp"
 
 class DaqList {
@@ -94,6 +95,55 @@ class DaqList {
         m_total_entries = total_entries;
         m_total_length  = total_length;
     }
+
+    std::string dumps() const {
+        std::stringstream ss;
+
+        ss << to_binary(m_name);
+        ss << to_binary(m_event_num);
+        ss << to_binary(m_stim);
+        ss << to_binary(m_enable_timestamps);
+
+        ss << to_binary(m_odt_count);
+        ss << to_binary(m_total_entries);
+        ss << to_binary(m_total_length);
+
+        std::size_t meas_size = m_measurements.size();
+        ss << to_binary(meas_size);
+        for (const auto& mc_obj : m_measurements) {
+            ss << mc_obj.dumps();
+        }
+        std::size_t meas_opt_size = m_measurements_opt.size();
+        ss << to_binary(meas_opt_size);
+        for (const auto& mc_obj : m_measurements_opt) {
+            ss << mc_obj.dumps();
+        }
+        std::size_t hname_size = m_header_names.size();
+        ss << to_binary(hname_size);
+        for (const auto& hdr_obj : m_header_names) {
+            ss << to_binary(hdr_obj);
+        }
+        /////
+        std::size_t odt_size = m_flatten_odts.size();
+        ss << to_binary(odt_size);
+        for (const auto& odt : m_flatten_odts) {
+            ss << to_binary(odt.size());
+            for (const auto& odt_entry : odt) {
+                const auto& [name, address, ext, size, type_index] = odt_entry;
+                ss << to_binary(name);
+                ss << to_binary(address);
+                ss << to_binary(ext);
+                ss << to_binary(size);
+                ss << to_binary(type_index);
+            }
+        }
+        return ss.str();
+    }
+
+    static void loads(std::string_view buffer) {
+
+    }
+
 
    private:
 
