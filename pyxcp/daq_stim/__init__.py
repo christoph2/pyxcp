@@ -25,11 +25,9 @@ DAQ_TIMESTAMP_SIZE = {
     "S4": 4,
 }
 
-
 class DAQParser(_DAQParser):
-    def __init__(self, file_name: str, daq_lists: List[DaqList]):
+    def __init__(self, daq_lists: List[DaqList]):
         super().__init__()
-        self.file_name = file_name
         self.daq_lists = daq_lists
         self.setup_called = False
         self.log = get_application().log
@@ -152,6 +150,12 @@ class DAQParser(_DAQParser):
     def stop(self):
         self.xcp_master.startStopSynch(0x00)
 
+
+class DaqRecorder(DAQParser):
+
+    def __init__(self, daq_lists: List[DaqList], file_name: str):
+        super().__init__(daq_lists)
+        self.file_name = file_name
 
 class DaqToCsv(DAQParser):
     """Save a measurement as CSV files (one per DAQ-list)."""

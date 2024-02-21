@@ -121,7 +121,7 @@ else:
         ),
     ]
 
-daq_parser = DaqToCsv(None, DAQ_LISTS)  # Saves  our measurement data to one or more CSV file(s)k.
+daq_parser = DaqToCsv(DAQ_LISTS)  # Saves  our measurement data to one or more CSV file(s)k.
 
 with ap.run(policy=daq_parser) as x:
     x.connect()
