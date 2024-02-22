@@ -803,7 +803,7 @@ class UnfolderBase {
 
     void create_state_vars(const MeasurementParameters& params) noexcept {
         m_getter = Getter(requires_swap(params.m_byte_order), params.m_id_field_size, params.m_ts_size);
-        for (std::size_t idx = 0; idx < params.m_daq_lists.size(); ++idx) {
+        for (std::uint16_t idx = 0; idx < params.m_daq_lists.size(); ++idx) {
             m_state.emplace_back(DaqListState(
                 idx, params.m_daq_lists[idx].get_odt_count(), params.m_daq_lists[idx].get_total_entries(),
                 params.m_daq_lists[idx].get_enable_timestamps(), params.m_id_field_size, params.m_daq_lists[idx].get_flatten_odts(),

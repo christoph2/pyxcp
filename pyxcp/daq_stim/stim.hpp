@@ -23,7 +23,7 @@
 
 #if defined(_MSC_VER) && (defined(_WIN32) || defined(_WIN64) )
     #include <Windows.h>
-    #include <Avrt.h
+    #include <Avrt.h>
 #endif
 
 namespace py = pybind11;
