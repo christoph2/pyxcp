@@ -1809,9 +1809,8 @@ class Master:
                 offset = 0
                 while offset < total_length:
                     data = key[offset : offset + MAX_PAYLOAD]
-                    key_length = len(data)
-                    offset += key_length
-                    self.unlock(key_length, data)
+                    self.unlock(total_length-offset, data)
+                    offset += len(data)
             else:
                 raise SeedNKeyError("SeedAndKey DLL returned: {}".format(SeedNKeyResult(result).name))
 
