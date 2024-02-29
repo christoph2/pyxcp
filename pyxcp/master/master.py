@@ -1790,12 +1790,13 @@ class Master:
             length = result.length
             if length == 0:
                 continue
-            if length > MAX_PAYLOAD:
-                remaining = length - len(seed)
-                while remaining > 0:
-                    result = self.getSeed(types.XcpGetSeedMode.REMAINING, resource_value)
-                    seed.extend(list(result.seed))
-                    remaining = result.length
+
+            while length - len(seed) > 0:
+                result = self.getSeed(types.XcpGetSeedMode.REMAINING, resource_value)
+                seed.extend(list(result.seed))
+
+            seed = seed[: length]  # maybe there are some padding bytes
+
             result, key = getKey(
                 self.logger,
                 self.seedNKeyDLL,
@@ -1809,9 +1810,8 @@ class Master:
                 offset = 0
                 while offset < total_length:
                     data = key[offset : offset + MAX_PAYLOAD]
-                    key_length = len(data)
-                    offset += key_length
-                    self.unlock(key_length, data)
+                    self.unlock(total_length-offset, data)
+                    offset += len(data)
             else:
                 raise SeedNKeyError("SeedAndKey DLL returned: {}".format(SeedNKeyResult(result).name))
 
