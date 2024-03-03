@@ -6,12 +6,12 @@
     #include "helper.hpp"
     #include "mcobject.hpp"
 
+using flatten_odts_t = std::vector<std::vector<std::tuple<std::string, std::uint32_t, std::uint8_t, std::uint16_t, std::int16_t>>>;
+
 class DaqList {
    public:
 
     using daq_list_initialzer_t = std::tuple<std::string, std::uint32_t, std::uint16_t, std::string>;
-    using flatten_odts_t =
-        std::vector<std::vector<std::tuple<std::string, std::uint32_t, std::uint8_t, std::uint16_t, std::int16_t>>>;
 
     DaqList(
         std::string_view meas_name, std::uint16_t event_num, bool stim, bool enable_timestamps,

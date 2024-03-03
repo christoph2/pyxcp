@@ -5,10 +5,11 @@ from typing import List
 
 from pyxcp import types
 from pyxcp.config import get_application
-from pyxcp.cpp_ext import DaqList  # , StimList
+from pyxcp.cpp_ext import DaqList
 from pyxcp.daq_stim.optimize import make_continuous_blocks
 from pyxcp.daq_stim.optimize.binpacking import first_fit_decreasing
-from pyxcp.recorder import DAQParser as _DAQParser
+from pyxcp.recorder import DaqOnlinePolicy as _DaqOnlinePolicy
+from pyxcp.recorder import DaqRecorderPolicy as _DaqRecorderPolicy
 from pyxcp.recorder import MeasurementParameters
 
 
@@ -25,9 +26,10 @@ DAQ_TIMESTAMP_SIZE = {
     "S4": 4,
 }
 
-class DAQParser(_DAQParser):
+
+class DaqProcessor:
     def __init__(self, daq_lists: List[DaqList]):
-        super().__init__()
+        # super().__init__()
         self.daq_lists = daq_lists
         self.setup_called = False
         self.log = get_application().log
@@ -87,7 +89,7 @@ class DAQParser(_DAQParser):
             ttt = make_continuous_blocks(daq_list.measurements, max_payload_size, max_payload_size_first)
             daq_list.measurements_opt = first_fit_decreasing(ttt, max_payload_size, max_payload_size_first)
         byte_order = 0 if self.xcp_master.slaveProperties.byteOrder == "INTEL" else 1
-        measurement_params = MeasurementParameters(
+        self.measurement_params = MeasurementParameters(
             byte_order,
             header_len,
             self.supports_timestampes,
@@ -99,8 +101,7 @@ class DAQParser(_DAQParser):
             self.min_daq,
             self.daq_lists,
         )
-        self.set_parameters(measurement_params)
-
+        self.set_parameters(self.measurement_params)
         self.first_pids = []
         daq_count = len(self.daq_lists)
         self.xcp_master.freeDaq()
@@ -151,16 +152,34 @@ class DAQParser(_DAQParser):
         self.xcp_master.startStopSynch(0x00)
 
 
-class DaqRecorder(DAQParser):
+class DaqRecorder(DaqProcessor, _DaqRecorderPolicy):
 
-    def __init__(self, daq_lists: List[DaqList], file_name: str):
-        super().__init__(daq_lists)
+    def __init__(self, daq_lists: List[DaqList], file_name: str, prealloc: int = 10, chunk_size: int = 1):
+        DaqProcessor.__init__(self, daq_lists)
+        _DaqRecorderPolicy.__init__(self)
         self.file_name = file_name
+        self.prealloc = prealloc
+        self.chunk_size = chunk_size
 
-class DaqToCsv(DAQParser):
+    def initialize(self):
+        metadata = self.measurement_params.dumps()
+        print(metadata)
+        _DaqRecorderPolicy.create_writer(self, self.file_name, self.prealloc, self.chunk_size, metadata)
+        print("After initialization")
+        _DaqRecorderPolicy.initialize(self)
+
+    def finalize(self):
+        _DaqRecorderPolicy.finalize(self)
+
+
+# DaqRecorder
+# DaqOnline
+
+
+class DaqToCsv(DaqProcessor, _DaqOnlinePolicy):
     """Save a measurement as CSV files (one per DAQ-list)."""
 
-    def Initialize(self):
+    def initialize(self):
         self.log.debug("DaqCsv::Initialize()")
         self.files = {}
         for num, daq_list in enumerate(self.daq_lists):

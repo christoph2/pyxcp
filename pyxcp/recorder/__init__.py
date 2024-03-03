@@ -14,17 +14,22 @@ except ImportError:
 else:
     HAS_PANDAS = True
 
-import pyxcp.recorder.rekorder as rec
-
-
-MeasurementParameters = rec._MeasurementParameters
-DAQParser = rec.DAQParser
+from pyxcp.recorder.rekorder import (  # noqa: F401
+    DaqOnlinePolicy,
+    DaqRecorderPolicy,
+    Deserializer,
+    MeasurementParameters,
+    _PyXcpLogFileReader,
+    _PyXcpLogFileWriter,
+)
 
 
 @dataclass
 class XcpLogFileHeader:
     """ """
 
+    version: int
+    options: int
     num_containers: int
     record_count: int
     size_uncompressed: int
@@ -39,10 +44,13 @@ class XcpLogFileReader:
     """ """
 
     def __init__(self, file_name):
-        self._reader = rec._PyXcpLogFileReader(file_name)
+        self._reader = _PyXcpLogFileReader(file_name)
 
     def get_header(self):
         return XcpLogFileHeader(*self._reader.get_header_as_tuple())
+
+    def get_metadata(self):
+        return self._reader.get_metadata()
 
     def __iter__(self):
         while True:
@@ -70,7 +78,7 @@ class XcpLogFileWriter:
     """ """
 
     def __init__(self, file_name: str, prealloc=10, chunk_size=1):
-        self._writer = rec._PyXcpLogFileWriter(file_name, prealloc, chunk_size)
+        self._writer = _PyXcpLogFileWriter(file_name, prealloc, chunk_size)
         self._finalized = False
 
     def __del__(self):

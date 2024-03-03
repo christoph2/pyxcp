@@ -39,7 +39,7 @@ with ap.run(recorder_policy) as x:  # parameter policy is new.
     identifier = x.identifier(0x01)
     print("\nSlave Properties:")
     print("=================")
-    print(f"ID: '{identifier}'")
+    print(f"ID: {identifier!r}")
     pprint(x.slaveProperties)
     cps = x.getCurrentProtectionStatus()
     print("\nProtection Status")
@@ -60,7 +60,7 @@ with ap.run(recorder_policy) as x:  # parameter policy is new.
             dq = "DAQ" if evt.daqEventProperties.daq else ""
             st = "STIM" if evt.daqEventProperties.stim else ""
             dq_st = dq + " " + st
-            print(f'    [{idx:04}] "{name:s}"')
+            print(f"    [{idx:04}] {name:r}")
             print(f"        dir:            {dq_st}")
             print(f"        packed:         {evt.daqEventProperties.packed}")
             PFX_CONS = "CONSISTENCY_"

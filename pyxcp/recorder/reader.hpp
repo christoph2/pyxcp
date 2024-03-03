@@ -2,6 +2,8 @@
 #ifndef RECORDER_READER_HPP
 #define RECORDER_READER_HPP
 
+#include <iostream>
+
 class XcpLogFileReader {
    public:
 
@@ -37,6 +39,17 @@ class XcpLogFileReader {
         }
 
         m_offset += detail::FILE_HEADER_SIZE;
+
+        if ((m_header.options & XMRAW_HAS_METADATA) == XMRAW_HAS_METADATA) {
+            std::size_t metadata_length = 0;
+            std::size_t data_start = m_offset + sizeof(std::size_t);
+
+            read_bytes(m_offset, sizeof(std::size_t), reinterpret_cast<blob_t *>(&metadata_length));
+
+            std::copy(ptr(data_start), ptr(data_start + metadata_length), std::back_inserter(m_metadata));
+            // std::cout << "Metadata: " << m_metadata << std::endl;
+            m_offset += (metadata_length + sizeof(std::size_t));
+        }
     }
 
     [[nodiscard]] FileHeaderType get_header() const noexcept {
@@ -46,10 +59,14 @@ class XcpLogFileReader {
     [[nodiscard]] auto get_header_as_tuple() const noexcept -> HeaderTuple {
         auto hdr = get_header();
 
-        return std::make_tuple(
+        return std::make_tuple(hdr.version, hdr.options,
             hdr.num_containers, hdr.record_count, hdr.size_uncompressed, hdr.size_compressed,
             (double)((std::uint64_t)(((double)hdr.size_uncompressed / (double)hdr.size_compressed * 100.0) + 0.5)) / 100.0
         );
+    }
+
+    [[nodiscard]] auto get_metadata() const noexcept {
+        return m_metadata;
     }
 
     void reset() noexcept {
@@ -116,6 +133,7 @@ class XcpLogFileReader {
     std::uint32_t     m_current_container{ 0 };
     mio::mmap_source *m_mmap{ nullptr };
     FileHeaderType    m_header;
+    std::string       m_metadata;
 };
 
 #endif  // RECORDER_READER_HPP

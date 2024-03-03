@@ -15,7 +15,7 @@ warnings.simplefilter("always")
 class FakeParser:
     def __getattr__(self, key):
         if key == "add_argument":
-            warnings.warn("Argument parser extension is currently not supported.", DeprecationWarning)
+            warnings.warn("Argument parser extension is currently not supported.", DeprecationWarning, 2)
         return lambda *args, **kws: None
 
 
@@ -23,7 +23,7 @@ class ArgumentParser:
     def __init__(self, callout=None, *args, **kws):
         self._parser = FakeParser()
         if callout is not None:
-            warnings.warn("callout  argument is not supported anymore", DeprecationWarning)
+            warnings.warn("callout  argument is not supported anymore", DeprecationWarning, 2)
 
     def run(self, policy=None):
         application = create_application()

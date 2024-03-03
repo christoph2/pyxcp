@@ -17,8 +17,16 @@ class Bin {
     Bin(std::uint16_t size) : m_size(size), m_residual_capacity(size) {
     }
 
+    Bin(std::uint16_t size, uint16_t residual_capacity, const std::vector<McObject>& entries) :
+        m_size(size), m_residual_capacity(residual_capacity), m_entries(entries) {
+    }
+
     void append(const McObject& bin) {
         m_entries.emplace_back(bin);
+    }
+
+    void set_entries(std::vector<McObject>&& entries) {
+           m_entries = std::move(entries);
     }
 
     std::uint16_t get_size() const {

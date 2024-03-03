@@ -34,8 +34,7 @@ class FrameAcquisitionPolicy:
     def filtered_out(self) -> typing.Set[types.FrameCategory]:
         return self._frame_types_to_filter_out
 
-    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: float, payload: bytes) -> None:
-        ...
+    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: float, payload: bytes) -> None: ...  # noqa: E704
 
     def finalize(self, *args) -> None:
         """

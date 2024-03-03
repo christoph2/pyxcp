@@ -51,7 +51,7 @@ class Eth(BaseTransport):
                 self.canonname,
                 self.sockaddr,
             ) = addrinfo[0]
-        except BaseException as ex:
+        except BaseException as ex:  # noqa: B036
             msg = f"Failed to resolve address {self.host}:{self.port}"
             self.logger.critical(msg)
             raise Exception(msg) from ex
@@ -69,7 +69,7 @@ class Eth(BaseTransport):
         if self._local_address:
             try:
                 self.sock.bind(self._local_address)
-            except BaseException as ex:
+            except BaseException as ex:  # noqa: B036
                 msg = f"Failed to bind socket to given address {self._local_address}"
                 self.logger.critical(msg)
                 raise Exception(msg) from ex
@@ -142,7 +142,7 @@ class Eth(BaseTransport):
                                 break
                             else:
                                 _packets.append((response, recv_timestamp))
-            except BaseException:
+            except BaseException:  # noqa: B036
                 self.status = 0  # disconnected
                 break
 

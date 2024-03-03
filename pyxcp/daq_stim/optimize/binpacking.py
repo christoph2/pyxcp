@@ -27,7 +27,7 @@ def first_fit_decreasing(items, bin_size: int, initial_bin_size: Optional[int] =
     bins = [Bin(size=initial_bin_size)]  # Initial bin
     for item in sorted(items, key=lambda x: x.length, reverse=True):
         if item.length > bin_size:
-            raise ValueError(f"Item '{item}' is too large to fit in a {bin_size} byte sized bin.")
+            raise ValueError(f"Item {item!r} is too large to fit in a {bin_size} byte sized bin.")
         for bin in bins:
             if bin.residual_capacity >= item.length:
                 bin.append(item)

@@ -1,26 +1,26 @@
 import os
-from pathlib import Path
 import platform
 import subprocess  # nosec
 import sys
+from pathlib import Path
 from typing import Any, Dict
 
 import setuptools.command.build_py
 import setuptools.command.develop
+from pybind11.setup_helpers import (
+    ParallelCompile,
+    Pybind11Extension,
+    build_ext,
+    naive_recompile,
+)
 from setuptools import Distribution
+
 
 ROOT_DIRPATH = Path(".")
 
 if sys.platform == "darwin":
     os.environ["CC"] = "clang++"
     os.environ["CXX"] = "clang++"
-
-from pybind11.setup_helpers import (
-    ParallelCompile,
-    Pybind11Extension,
-    naive_recompile,
-build_ext,
-)
 
 ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
 PYB11_INCLUDE_DIRS = subprocess.check_output(["pybind11-config", "--includes"])  # nosec
@@ -53,6 +53,7 @@ ext_modules = [
     ),
 ]
 
+
 class AsamKeyDllAutogen(setuptools.Command):
     """Custom command to compile `asamkeydll.exe`."""
 
@@ -74,10 +75,9 @@ class AsamKeyDllAutogen(setuptools.Command):
             gccCmd = ["gcc", "-m32", "-O3", "-Wall"]
             self.announce(" ".join(gccCmd + self.arguments))
             try:
-                print("running: ", gccCmd + self.arguments)
                 subprocess.check_call(gccCmd + self.arguments)  # nosec
             except Exception as e:
-                print(f"Building pyxcp/asamkeydll.exe failed: '{str(e)}'")
+                print(f"Building pyxcp/asamkeydll.exe failed: {e!r}")
             else:
                 print("Successfully  build pyxcp/asamkeydll.exe")
 
@@ -103,12 +103,14 @@ def build(setup_kwargs: Dict[str, Any]) -> None:
         }
     )
 
+
 def invoke_command(distribution: Distribution, name: str) -> None:
     cmd = distribution.cmdclass.get(name)(distribution)
     print(f"Building target {name!r}...")
     cmd.inplace = 1
     cmd.ensure_finalized()
     cmd.run()
+
 
 ###
 if __name__ == "__main__":

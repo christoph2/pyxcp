@@ -215,7 +215,7 @@ class XcpLogFileReader:
             self.total_size_uncompressed,
         ) = FILE_HEADER_STRUCT.unpack(self.get(0, FILE_HEADER_STRUCT.size))
         if magic != MAGIC:
-            raise XcpLogFileParseError(f"Invalid file magic: '{magic}'.")
+            raise XcpLogFileParseError(f"Invalid file magic: {magic!r}.")
 
     def __del__(self):
         if not self._is_closed:

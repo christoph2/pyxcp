@@ -79,20 +79,4 @@ inline std::string to_binary<std::string>(const std::string& value) {
     return result;
 }
 
-template<typename T>
-inline T from_binary(const std::string& buf, std::size_t offset) {
-    return *reinterpret_cast<const T*>(&buf[offset]);
-}
-
-template<>
-inline std::string from_binary<std::string>(const std::string& buf, std::size_t offset) {
-    auto length = from_binary<std::size_t>(buf, offset);
-    std::string result(length, '\0');
-    auto start = buf.cbegin() + offset + sizeof(std::size_t);
-
-    std::copy(start, start + length, std::back_inserter(result));
-
-    return result;
-}
-
 #endif // __HELPER_HPP

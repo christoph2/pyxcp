@@ -9,4 +9,3 @@
 0x5555 /* PORT */
 "127.0.0.1" /* ADDRESS */
 /end XCP_ON_UDP_IP
-

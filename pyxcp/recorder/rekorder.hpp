@@ -64,7 +64,9 @@ constexpr auto megabytes(std::uint32_t value) -> std::uint32_t {
     return kilobytes(value) * 1024;
 }
 
-constexpr uint16_t XCP_PAYLOAD_MAX = 0xFFFF;
+constexpr std::uint16_t XCP_PAYLOAD_MAX = 0xFFFFUL;
+
+constexpr std::uint16_t XMRAW_HAS_METADATA = 0x0004UL;
 
     /*
     byte-order is, where applicable little ending (LSB first).
@@ -73,23 +75,23 @@ constexpr uint16_t XCP_PAYLOAD_MAX = 0xFFFF;
     #pragma pack(1)
 
 struct FileHeaderType {
-    uint16_t hdr_size;
-    uint16_t version;
-    uint16_t options;
-    uint32_t num_containers;
-    uint32_t record_count;
-    uint32_t size_compressed;
-    uint32_t size_uncompressed;
+    std::uint16_t hdr_size;
+    std::uint16_t version;
+    std::uint16_t options;
+    std::uint32_t num_containers;
+    std::uint32_t record_count;
+    std::uint32_t size_compressed;
+    std::uint32_t size_uncompressed;
 };
 
-using HeaderTuple = std::tuple<std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, double>;
+using HeaderTuple = std::tuple<std::uint16_t, std::uint16_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, double>;
 
 static_assert(sizeof(FileHeaderType) == 22);
 
 struct ContainerHeaderType {
-    uint32_t record_count;
-    uint32_t size_compressed;
-    uint32_t size_uncompressed;
+    std::uint32_t record_count;
+    std::uint32_t size_compressed;
+    std::uint32_t size_uncompressed;
 };
 
 using blob_t      = unsigned char;
@@ -102,10 +104,10 @@ using payload_t = py::array_t<blob_t>;
     #endif /* STANDALONE_REKORDER */
 
 struct frame_header_t {
-    uint8_t  category{ 0 };
-    uint16_t counter{ 0 };
+    std::uint8_t  category{ 0 };
+    std::uint16_t counter{ 0 };
     double   timestamp{ 0.0 };
-    uint16_t length{ 0 };
+    std::uint16_t length{ 0 };
 };
 
     #pragma pack(pop)

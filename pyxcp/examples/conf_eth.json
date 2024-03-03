@@ -1,8 +1,8 @@
 {
-    "TRANSPORT": "ETH",
-    "HOST": "localhost",
-    "PORT": 5555,
-    "PROTOCOL": "TCP",
-    "IPV6": false,
-    "CREATE_DAQ_TIMESTAMPS": false
+  "TRANSPORT": "ETH",
+  "HOST": "localhost",
+  "PORT": 5555,
+  "PROTOCOL": "TCP",
+  "IPV6": false,
+  "CREATE_DAQ_TIMESTAMPS": false
 }

@@ -111,7 +111,7 @@ class AsamKeyDllAutogen(setuptools.Command):
             try:
                 subprocess.check_call(gccCmd + self.arguments)  # nosec
             except Exception as e:
-                print(f"Building pyxcp/asamkeydll.exe failed: '{str(e)}'")
+                print(f"Building pyxcp/asamkeydll.exe failed: {e!r}")
             else:
                 print("Successfully  build pyxcp/asamkeydll.exe")
 

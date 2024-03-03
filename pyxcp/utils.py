@@ -13,7 +13,7 @@ def hexDump(arr):
         size = len(arr)
         try:
             arr = arr.hex()
-        except BaseException:
+        except BaseException:  # noqa: B036
             arr = hexlify(arr).decode("ascii")
         return "[{}]".format(" ".join([arr[i * 2 : (i + 1) * 2] for i in range(size)]))
     elif isinstance(arr, (list, tuple)):
@@ -21,7 +21,7 @@ def hexDump(arr):
         size = len(arr)
         try:
             arr = arr.hex()
-        except BaseException:
+        except BaseException:  # noqa: B036
             arr = hexlify(arr).decode("ascii")
         return "[{}]".format(" ".join([arr[i * 2 : (i + 1) * 2] for i in range(size)]))
     else:

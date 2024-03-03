@@ -3,15 +3,15 @@
 import time
 
 from pyxcp.cmdline import ArgumentParser
-from pyxcp.daq_stim import DaqList, DaqToCsv
+from pyxcp.daq_stim import DaqList, DaqRecorder, DaqToCsv  # noqa: F401
 
 
 # RECORDER_FILE_NAME = "daq_test"
 
 ap = ArgumentParser(description="DAQ test")
 
-XCP_LITE = True
-
+# XCP_LITE = True
+XCP_LITE = False
 
 # Completly random configurations, only for illustrative purposes.
 #
@@ -121,7 +121,9 @@ else:
         ),
     ]
 
-daq_parser = DaqToCsv(DAQ_LISTS)  # Saves  our measurement data to one or more CSV file(s)k.
+# daq_parser = DaqToCsv(DAQ_LISTS)  # Saves  our measurement data to one or more CSV file(s)k.
+
+daq_parser = DaqRecorder(DAQ_LISTS, "run_daq")
 
 with ap.run(policy=daq_parser) as x:
     x.connect()

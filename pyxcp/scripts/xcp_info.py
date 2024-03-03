@@ -23,7 +23,8 @@ with ap.run() as x:
     print("\n")
     print("Implemented IDs:")
     print("================")
-    pprint(result)
+    for key, value in result.items():
+        print(f"{key}: {value}", end="\n\n")
     cps = x.getCurrentProtectionStatus()
     print("\nProtection Status")
     print("=================")

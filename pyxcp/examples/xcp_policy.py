@@ -24,7 +24,7 @@ with ap.run(policy=policy) as x:
     identifier = x.identifier(0x01)
     print("\nSlave Properties:")
     print("=================")
-    print(f"ID: '{identifier}'")
+    print(f"ID: {identifier!r}")
     pprint(x.slaveProperties)
     x.disconnect()
 

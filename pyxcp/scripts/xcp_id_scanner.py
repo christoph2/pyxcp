@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Scan for available IDs.
 """
-from pprint import pprint
 
 from pyxcp.cmdline import ArgumentParser
 

@@ -9,7 +9,7 @@ from pybind11.setup_helpers import Pybind11Extension, build_ext
 try:
     INCLUDE_DIRS = subprocess.getoutput("pybind11-config --include")  # nosec
 except Exception as e:
-    print(f"Error while executing pybind11-config ('{str(e)}').\npybind11 probably not installed?")
+    print(f"Error while executing pybind11-config ({e!r}).\npybind11 probably not installed?")
     sys.exit(1)
 
 pf = sys.platform
@@ -18,7 +18,7 @@ if pf.startswith("win32"):
 elif pf.startswith("linux"):
     LIBS = ["pthread", "rt"]
 else:
-    raise RuntimeError(f"Platform '{pf}' currently not supported.")
+    raise RuntimeError(f"Platform {pf!r} currently not supported.")
 
 
 os.environ["CFLAGS"] = ""

@@ -26,4 +26,3 @@ void mul4_vectorized(float* ptr) {
     _mm_storeu_ps(ptr, f);
 }
 #endif
-

@@ -5,7 +5,7 @@
 class XcpLogFileWriter {
    public:
 
-    explicit XcpLogFileWriter(const std::string &file_name, uint32_t prealloc = 10UL, uint32_t chunk_size = 1) noexcept {
+    explicit XcpLogFileWriter(const std::string &file_name, uint32_t prealloc = 10UL, uint32_t chunk_size = 1, std::string_view metadata="") noexcept {
         if (!file_name.ends_with(detail::FILE_EXTENSION)) {
             m_file_name = file_name + detail::FILE_EXTENSION;
         } else {
@@ -25,6 +25,12 @@ class XcpLogFileWriter {
         m_chunk_size           = megabytes(chunk_size);
         m_intermediate_storage = new blob_t[m_chunk_size + megabytes(1)];
         m_offset               = detail::FILE_HEADER_SIZE + detail::MAGIC_SIZE;
+        m_metadata             = metadata;
+
+        if (!metadata.empty()) {
+            std::cout << "XMRAW_HAS_METADATA: " << std::size(metadata) << std::endl;
+            m_offset += std::size(metadata);
+        }
 
         start_thread();
     }
@@ -45,8 +51,11 @@ class XcpLogFileWriter {
             if (m_container_record_count) {
                 compress_frames();
             }
+
+            std::uint16_t options = m_metadata.empty() ? 0 : XMRAW_HAS_METADATA;
+
             write_header(
-                detail::VERSION, 0x0000, m_num_containers, m_record_count, m_total_size_compressed, m_total_size_uncompressed
+                detail::VERSION, options, m_num_containers, m_record_count, m_total_size_compressed, m_total_size_uncompressed
             );
             m_mmap->unmap();
             truncate(m_offset);
@@ -135,6 +144,7 @@ class XcpLogFileWriter {
         uint32_t size_uncompressed
     ) noexcept {
         auto header = FileHeaderType{};
+        auto has_metadata =!m_metadata.empty();
         write_bytes(0x00000000UL, detail::MAGIC_SIZE, detail::MAGIC.c_str());
         header.hdr_size          = detail::FILE_HEADER_SIZE + detail::MAGIC_SIZE;
         header.version           = version;
@@ -144,6 +154,10 @@ class XcpLogFileWriter {
         header.size_compressed   = size_compressed;
         header.size_uncompressed = size_uncompressed;
         write_bytes(0x00000000UL + detail::MAGIC_SIZE, detail::FILE_HEADER_SIZE, reinterpret_cast<char const *>(&header));
+        if (has_metadata) {
+            //std::cout << "MD-offset:" << detail::MAGIC_SIZE + detail::FILE_HEADER_SIZE << std::endl;
+            write_bytes(detail::MAGIC_SIZE + detail::FILE_HEADER_SIZE, m_metadata.size(), m_metadata.c_str());
+        }
     }
 
     bool start_thread() noexcept {
@@ -192,6 +206,7 @@ class XcpLogFileWriter {
     std::string           m_file_name;
     std::uint32_t         m_offset{ 0 };
     std::uint32_t         m_chunk_size{ 0 };
+    std::string           m_metadata;
     std::uint32_t         m_num_containers{ 0 };
     std::uint32_t         m_record_count{ 0UL };
     std::uint32_t         m_container_record_count{ 0UL };

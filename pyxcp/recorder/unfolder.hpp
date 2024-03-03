@@ -13,7 +13,7 @@
 #include "daqlist.hpp"
 #include "helper.hpp"
 #include "mcobject.hpp"
-
+#include "writer.hpp"
 
 using measurement_value_t = std::variant<std::int64_t, std::uint64_t, long double, std::string>;
 using measurement_tuple_t = std::tuple<std::uint16_t, double, double, std::vector<measurement_value_t>>;
@@ -541,7 +541,12 @@ struct Setter {
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 struct MeasurementParameters {
-    MeasurementParameters() = delete;
+    MeasurementParameters() = default;
+
+    MeasurementParameters(MeasurementParameters&& ) = default;
+    MeasurementParameters(const MeasurementParameters& ) = default;
+    MeasurementParameters& operator=(MeasurementParameters&& ) = default;
+    MeasurementParameters& operator=(const MeasurementParameters& ) = default;
 
     explicit MeasurementParameters(
         std::uint8_t byte_order, std::uint8_t id_field_size, bool timestamps_supported, bool ts_fixed, bool prescaler_supported,
@@ -578,7 +583,8 @@ struct MeasurementParameters {
         for (const auto& daq_list : m_daq_lists) {
             ss << daq_list.dumps();
         }
-        return ss.str();
+
+        return to_binary(std::size(ss.str())) +  ss.str();
     }
 
     std::uint8_t         m_byte_order;
@@ -593,6 +599,205 @@ struct MeasurementParameters {
     std::vector<DaqList> m_daq_lists;
 };
 
+
+class Deserializer {
+public:
+    explicit Deserializer(const std::string& buf) : m_buf(buf) {
+    }
+
+    MeasurementParameters run() {
+        std::uint8_t         byte_order;
+        std::uint8_t         id_field_size;
+        bool                 timestamps_supported;
+        bool                 ts_fixed;
+        bool                 prescaler_supported;
+        bool                 selectable_timestamps;
+        double               ts_scale_factor;
+        std::uint8_t         ts_size;
+        std::uint16_t        min_daq;
+        std::size_t          dl_count;
+        std::vector<DaqList> daq_lists;
+
+        byte_order = from_binary<std::uint8_t>();
+        id_field_size = from_binary<std::uint8_t>();
+        timestamps_supported = from_binary<bool>();
+        ts_fixed = from_binary<bool>();
+        prescaler_supported = from_binary<bool>();
+        selectable_timestamps = from_binary<bool>();
+        ts_scale_factor = from_binary<double>();
+        ts_size = from_binary<std::uint8_t>();
+        min_daq = from_binary<std::uint16_t>();
+        dl_count = from_binary<std::size_t>();
+        std::cout << (int)byte_order << " " << (int)id_field_size << " " << timestamps_supported << " " << ts_fixed << " " << prescaler_supported <<
+            " " << selectable_timestamps << " " << ts_scale_factor << " " << (int)ts_size << " " << min_daq << std::endl;
+        std::cout << "DL-count: " << (int)dl_count << std::endl;
+
+        for (std::size_t i = 0; i < dl_count; i++) {
+            daq_lists.push_back(create_daq_list());
+        }
+        return MeasurementParameters(byte_order, id_field_size, timestamps_supported, ts_fixed, prescaler_supported, selectable_timestamps,
+            ts_scale_factor, ts_size, min_daq, daq_lists);
+    }
+
+protected:
+
+    DaqList create_daq_list() {
+        std::string              name;
+        std::uint16_t            event_num;
+        bool                     stim;
+        bool                     enable_timestamps;
+        std::vector<McObject>    measurements;
+        std::vector<Bin>         measurements_opt;
+        std::vector<std::string> header_names;
+
+        std::uint16_t            odt_count;
+        std::uint16_t            total_entries;
+        std::uint16_t            total_length;
+
+        flatten_odts_t           flatten_odts;
+
+        std::vector<DaqList::daq_list_initialzer_t> initializer_list{};
+
+        name = from_binary<std::string>();
+        event_num = from_binary<std::uint16_t>();
+        stim = from_binary<bool>();
+        enable_timestamps = from_binary<bool>();
+
+        odt_count = from_binary<std::uint16_t>();
+        total_entries = from_binary<std::uint16_t>();
+        total_length = from_binary<std::uint16_t>();
+
+        std::cout << "Name: " << name << " " << event_num << " " << stim << " " << enable_timestamps << std::endl;
+        std::cout << "Odt-count: " << (int)odt_count << " " << "Total-entries: " << (int)total_entries << " " << "Total-length: " << (int)total_length << std::endl;
+
+        std::size_t meas_size = from_binary<std::size_t>();
+        std::cout << "Meas-size: " << (int)meas_size << std::endl;
+
+        for (auto i = 0; i < meas_size; ++i) {
+            // name, address, ext, dt_name
+            auto meas = create_mc_object();
+            measurements.push_back(meas);
+            initializer_list.push_back({meas.get_name(), meas.get_address(), meas.get_ext(), meas.get_data_type()});
+        }
+
+        std::size_t meas_opt_size = from_binary<std::size_t>();
+        std::cout << "Meas-opt-size: " << (int)meas_opt_size << std::endl;
+        for (auto i = 0; i < meas_opt_size; ++i) {
+            measurements_opt.emplace_back(create_bin());
+        }
+
+        std::size_t hname_size = from_binary<std::size_t>();
+        std::cout << "Hname-size: " << (int)hname_size << std::endl;
+        for (auto i = 0; i < hname_size; ++i) {
+            auto header = from_binary<std::string>();
+            header_names.push_back(header);
+            std::cout << header << " ";
+        }
+        std::cout << std::endl << std::endl;
+
+        auto odts = create_flatten_odts();
+
+        auto result = DaqList(name, event_num, stim, enable_timestamps, initializer_list);
+        result.set_measurements_opt(measurements_opt);
+        return result;
+    }
+
+    flatten_odts_t create_flatten_odts() {
+        std::string name;
+        std::uint32_t address;
+        std::uint8_t ext;
+        std::uint16_t size;
+        std::int16_t type_index;
+
+        flatten_odts_t odts;
+
+        std::size_t odt_count = from_binary<std::size_t>();
+        std::cout << "Odt-count: " << (int)odt_count << std::endl;
+        for (auto i = 0; i < odt_count; ++i) {
+            std::vector<std::tuple<std::string, std::uint32_t, std::uint8_t, std::uint16_t, std::int16_t>> flatten_odt{};
+            std::size_t odt_entry_count = from_binary<std::size_t>();
+            std::cout << "Odt-entry-count: " << (int)odt_entry_count << std::endl;
+            for (auto j = 0; j < odt_entry_count; ++j) {
+                name = from_binary<std::string>();
+                address = from_binary<std::uint32_t>();
+                ext = from_binary<std::uint8_t>();
+                size = from_binary<std::uint16_t>();
+                type_index = from_binary<std::int16_t>();
+                std::cout << "\t" << name << " " << address << " " << (int)ext << " " << (int)size << " " << (int)type_index << std::endl;
+                flatten_odt.push_back(std::make_tuple(name, address, ext, size, type_index));
+            }
+            odts.push_back(flatten_odt);
+        }
+
+        return odts;
+    }
+
+    McObject create_mc_object() {
+        std::string           name;
+        std::uint32_t         address;
+        std::uint8_t          ext;
+        std::uint16_t         length;
+        std::string           data_type;
+        std::int16_t          type_index;
+        std::vector<McObject> components{};
+
+        name       = from_binary<std::string>();
+        address    = from_binary<std::uint32_t>();
+        ext        = from_binary<std::uint8_t>();
+        length     = from_binary<std::uint16_t>();
+        data_type  = from_binary<std::string>();
+        type_index = from_binary<std::int16_t>();
+        std::cout << "Name: " << name << " " << address << " " << (int)ext << " " << (int)length << " " << data_type << " " << (int)type_index << std::endl;
+        std::size_t comp_size = from_binary<std::size_t>();
+        std::cout << "Comp-size: " << (int)comp_size << std::endl;
+        for (auto i=0U; i < comp_size; i++) {
+            components.push_back(create_mc_object());
+        }
+
+        return McObject(name, address, ext, length, data_type, components);
+    }
+
+    Bin create_bin() {
+        std::uint16_t         size;
+        std::uint16_t         residual_capacity;
+        std::vector<McObject> entries{};
+
+        size = from_binary<std::uint16_t>();
+        residual_capacity = from_binary<std::uint16_t>();
+        std::cout << "BinSize: " << (int)size << " " << "Residual-capacity: " << (int)residual_capacity << std::endl;
+        std::size_t entry_size = from_binary<std::size_t>();
+        std::cout << "\tEntry-count: " << (int)entry_size << std::endl;
+        for (auto i=0U; i < entry_size; i++) {
+            entries.push_back(create_mc_object());
+        }
+
+        return Bin(size, residual_capacity, entries);
+    }
+
+    template<typename T>
+    inline T from_binary() {
+        auto tmp = *reinterpret_cast<const T*>(&m_buf[m_offset]);
+        m_offset += sizeof(T);
+        return tmp;
+    }
+
+    template<>
+    inline std::string from_binary<std::string>() {
+        auto length = from_binary<std::size_t>();
+        std::string result;
+        auto start = m_buf.cbegin() + m_offset;
+
+        std::copy(start, start + length, std::back_inserter(result));
+        m_offset += length;
+        return result;
+    }
+
+private:
+    std::string     m_buf;
+    std::size_t     m_offset = 0;
+};
+
+
 class DaqListState {
    public:
 
@@ -606,7 +811,7 @@ class DaqListState {
 
     DaqListState(
         std::uint16_t daq_list_num, std::uint16_t num_odts, std::uint16_t total_entries, bool enable_timestamps,
-        std::uint16_t initial_offset, const DaqList::flatten_odts_t& flatten_odts, const Getter& getter,
+        std::uint16_t initial_offset, const flatten_odts_t& flatten_odts, const Getter& getter,
         MeasurementParameters params
     ) :
         m_daq_list_num(daq_list_num),
@@ -729,7 +934,7 @@ class DaqListState {
     double                           m_timestamp1  = 0.0;
     state_t                          m_state       = state_t::IDLE;
     std::vector<measurement_value_t> m_buffer;
-    DaqList::flatten_odts_t          m_flatten_odts;
+    flatten_odts_t          m_flatten_odts;
     Getter                           m_getter;
     MeasurementParameters            m_params;
 };
@@ -745,15 +950,15 @@ auto requires_swap(std::uint8_t byte_order) -> bool {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-class UnfolderBase {
+class DAQProcessor {
    public:
 
-    explicit UnfolderBase(const MeasurementParameters& params) : m_params(params) {
+    explicit DAQProcessor(const MeasurementParameters& params) : m_params(params) {
         create_state_vars(params);
     }
 
-    UnfolderBase()          = delete;
-    virtual ~UnfolderBase() = default;
+    DAQProcessor()          = delete;
+    virtual ~DAQProcessor() = default;
 
     void start(const std::vector<std::uint16_t>& first_pids) noexcept {
         m_getter.set_first_pids(m_params.m_daq_lists, first_pids);
@@ -881,20 +1086,79 @@ class XcpLogFileUnfolder {
 };
 #endif
 
-// startMeasurement
-// stopMeasurement
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class DAQParser {
+
+class DAQPolicyBase {
    public:
 
-    virtual ~DAQParser() {
+    virtual ~DAQPolicyBase() {}
+
+    virtual void set_parameters(const MeasurementParameters& params) noexcept {
+        initialize();
     }
 
-    DAQParser()          = default;
+    virtual void feed(std::uint8_t frame_cat, std::uint16_t counter, double timestamp, const std::string& payload) = 0;
+
+    virtual void initialize() = 0;
+
+    virtual void finalize() = 0;
+
+};
+
+
+class DaqRecorderPolicy : public DAQPolicyBase {
+public:
+
+    ~DaqRecorderPolicy() {}
+
+    DaqRecorderPolicy() = default;
+
+    void set_parameters(const MeasurementParameters& params) noexcept override {
+        m_params = params;
+        DAQPolicyBase::set_parameters(params);
+    }
+
+    void feed(std::uint8_t frame_cat, std::uint16_t counter, double timestamp, const std::string& payload) {
+        if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
+            // Only record DAQ frames for now.
+            return;
+        }
+        m_writer->add_frame(frame_cat, counter, timestamp, static_cast<std::uint16_t>(payload.size()), payload.c_str());
+    }
+
+    void create_writer(const std::string& file_name, std::uint32_t prealloc, std::uint32_t chunk_size, std::string_view metadata) {
+        m_writer = std::make_unique<XcpLogFileWriter>(file_name, prealloc, chunk_size, metadata);
+    }
+
+    void initialize() {
+        // TODO: Save meta-data.
+    }
+
+    void finalize() {
+        m_writer->finalize();
+    }
+
+private:
+
+    std::unique_ptr<XcpLogFileWriter> m_writer;
+    MeasurementParameters m_params;
+};
+
+
+class DaqOnlinePolicy  : public DAQPolicyBase {
+   public:
+
+    ~DaqOnlinePolicy() {
+    }
+
+    DaqOnlinePolicy()          = default;
 
     void set_parameters(const MeasurementParameters& params) noexcept {
-        m_unfolder = std::make_unique<UnfolderBase>(params);
-        Initialize();
+        m_unfolder = std::make_unique<DAQProcessor>(params);
+        DAQPolicyBase::set_parameters(params);
     }
 
     virtual void on_daq_list(
@@ -912,7 +1176,7 @@ class DAQParser {
         }
     }
 
-    virtual void Initialize() {
+    virtual void initialize() {
     }
 
     virtual void finalize() {
@@ -920,7 +1184,7 @@ class DAQParser {
 
    private:
 
-    std::unique_ptr<UnfolderBase> m_unfolder;
+    std::unique_ptr<DAQProcessor> m_unfolder;
 };
 
 #endif  // RECORDER_UNFOLDER_HPP
