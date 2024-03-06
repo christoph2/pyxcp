@@ -8,7 +8,6 @@
 .. [1] XCP Specification, Part 2 - Protocol Layer Specification
 """
 import functools
-import logging
 import struct
 import traceback
 import warnings
@@ -36,6 +35,7 @@ from pyxcp.constants import UnpackerType
 from pyxcp.master.errorhandler import disable_error_handling
 from pyxcp.master.errorhandler import wrapped
 from pyxcp.transport.base import createTransport
+from pyxcp.logger import Logger
 from pyxcp.utils import decode_bytes
 from pyxcp.utils import delay
 from pyxcp.utils import SHORT_SLEEP
@@ -92,8 +92,7 @@ class Master:
         self.ctr = 0
         self.succeeded = True
         self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
-        self.logger = logging.getLogger("pyXCP")
-        self.logger.setLevel(self.config.get("LOGLEVEL"))
+        self.logger = Logger("master.Master", level=self.config.get("LOGLEVEL"))
         disable_error_handling(self.config.get("DISABLE_ERROR_HANDLING"))
 
         self.transport = createTransport(transportName, config, policy)
