@@ -5,11 +5,13 @@ Parse (transport-layer specific) command line parameters
 and create a XCP master instance.
 """
 import argparse
+import logging
 
 from pyxcp.config import readConfiguration
 from pyxcp.master import Master
 from pyxcp.transport.can import registered_drivers
 from pyxcp.transport.can import try_to_install_system_supplied_drivers
+
 
 try_to_install_system_supplied_drivers()
 
@@ -51,6 +53,9 @@ class ArgumentParser:
 
     def run(self, policy=None):
         """"""
+        # Create a default logging context if run as command line
+        logging.basicConfig()
+
         self._args = self.parser.parse_args()
         args = self.args
         if args.conf is None:

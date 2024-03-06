@@ -15,6 +15,24 @@ General pyXCP Parameters
 * `ALIGNMENT`:                int,      False, 1        -- 1 | 2 | 4, byte alignment.
 * `DISCONNECT_RESPONSE_OPTIONAL`: bool, False, False    -- Don't require response from DISCONNECT service.
 
+Logging:
+^^^^^^^^
+
+When using one of the included examples/scripts, a default logger will be created for console output.
+When used as a library, the application should create log handlers.
+The pyxcp library loggers will be descendents of the base logger with name "pyxcp".
+See: https://docs.python.org/3/howto/logging.html. For example, one can use to create a root logger with defaults (stdout) use::
+
+    import logging
+    logging.basicConfig()
+
+Or, for more specific control::
+
+    import logging
+    logger = logging.getLogger('pyxcp')
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    logger.addHandler(ch)
 
 eth
 ~~~

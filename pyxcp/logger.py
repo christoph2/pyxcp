@@ -2,9 +2,6 @@
 # -*- coding: utf-8 -*-
 import logging
 
-logging.basicConfig()
-
-
 class Logger(object):
 
     LOGGER_BASE_NAME = "pyxcp"
