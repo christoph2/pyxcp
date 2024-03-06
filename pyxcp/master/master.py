@@ -18,7 +18,6 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Union
-from logger import Logger
 
 from pyxcp import checksum
 from pyxcp import types
@@ -36,6 +35,7 @@ from pyxcp.constants import UnpackerType
 from pyxcp.master.errorhandler import disable_error_handling
 from pyxcp.master.errorhandler import wrapped
 from pyxcp.transport.base import createTransport
+from pyxcp.logger import Logger
 from pyxcp.utils import decode_bytes
 from pyxcp.utils import delay
 from pyxcp.utils import SHORT_SLEEP

@@ -15,8 +15,8 @@ General pyXCP Parameters
 * `ALIGNMENT`:                int,      False, 1        -- 1 | 2 | 4, byte alignment.
 * `DISCONNECT_RESPONSE_OPTIONAL`: bool, False, False    -- Don't require response from DISCONNECT service.
 
-Logging:
-^^^^^^^^
+Note about LOGLEVEL:
+~~~~~~~~~~~~~~~~~~~~
 
 When using one of the included examples/scripts, a default logger will be created for console output.
 When used as a library, the application should create log handlers.
