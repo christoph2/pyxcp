@@ -307,6 +307,17 @@ class Can(BaseTransport):
         self.useDefaultListener = self.config.get("CAN_USE_DEFAULT_LISTENER")
         self.can_id_master = Identifier(self.config.get("CAN_ID_MASTER"))
         self.can_id_slave = Identifier(self.config.get("CAN_ID_SLAVE"))
+        self.daq_list_can_ids = []
+        # Start from DAQ0 and go upwards
+        n = 0
+        while True:
+            daq_identifier = self.config.get(f"CAN_ID_DAQ{n}")
+            if daq_identifier is None:
+                # Break the loop if no more DAQ identifiers are found
+                break
+            self.daq_list_can_ids.append(Identifier(daq_identifier))
+            n += 1  # Increment to check for the next DAQ
+            
         self.canInterface.loadConfig(config)
         self.canInterface.init(self, self.dataReceived)
         #
