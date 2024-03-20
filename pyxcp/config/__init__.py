@@ -782,7 +782,7 @@ class Transport(SingletonConfigurable):
     classes = List([Can, Eth, SxI, Usb])
 
     layer = Enum(
-        ["CAN", "ETH", "SXI", "USB"], default_value=None, allow_none=False, help="Choose one of the supported XCP transport layers."
+        ["CAN", "ETH", "SXI", "USB"], default_value=None, allow_none=True, help="Choose one of the supported XCP transport layers."
     ).tag(config=True)
     create_daq_timestamps = Bool(False, help="Record time of frame reception or set timestamp to 0.").tag(config=True)
     timeout = Float(
@@ -829,6 +829,7 @@ class ProfileCreate(Application):
     aliases = Dict(  # type:ignore[assignment]
         dict(
             d="ProfileCreate.dest_file",
+            o="ProfileCreate.dest_file",
         )
     )
 
@@ -849,6 +850,7 @@ class ProfileConvert(Application):
         dict(
             c="ProfileConvert.config_file",
             d="ProfileConvert.dest_file",
+            o="ProfileConvert.dest_file",
         )
     )
 
@@ -861,11 +863,10 @@ class ProfileConvert(Application):
                 if not Confirm.ask(f"Destination file [green]{dest.name!r}[/green] already exists. do you want to overwrite it?"):
                     print("Aborting...")
                     self.exit(1)
-            with dest.open("w") as out_file:
+            with dest.open("w", encoding="latin1") as out_file:
                 pyxcp.generate_config_file(out_file)
         else:
             pyxcp.generate_config_file(sys.stdout)
-
 
 class ProfileApp(Application):
     subcommands = Dict(
