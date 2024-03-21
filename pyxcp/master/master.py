@@ -12,12 +12,13 @@ import struct
 import traceback
 import warnings
 from time import sleep
+from typing import Any
 from typing import Callable
 from typing import Collection
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import Union
+from typing import Tuple
 
 from pyxcp import checksum
 from pyxcp import types
@@ -32,10 +33,10 @@ from pyxcp.constants import makeWordPacker
 from pyxcp.constants import makeWordUnpacker
 from pyxcp.constants import PackerType
 from pyxcp.constants import UnpackerType
+from pyxcp.logger import Logger
 from pyxcp.master.errorhandler import disable_error_handling
 from pyxcp.master.errorhandler import wrapped
 from pyxcp.transport.base import createTransport
-from pyxcp.logger import Logger
 from pyxcp.utils import decode_bytes
 from pyxcp.utils import delay
 from pyxcp.utils import SHORT_SLEEP
@@ -123,6 +124,7 @@ class Master:
         self.disconnect_response_optional = self.config.get("DISCONNECT_RESPONSE_OPTIONAL")
         self.slaveProperties = SlaveProperties()
         self.slaveProperties.pgmProcessor = SlaveProperties()
+        self.slaveProperties.transport_layer = self.transport_name.upper()
 
     def __enter__(self):
         """Context manager entry part."""
@@ -1794,7 +1796,7 @@ class Master:
                 result = self.getSeed(types.XcpGetSeedMode.REMAINING, resource_value)
                 seed.extend(list(result.seed))
 
-            seed = seed[: length]  # maybe there are some padding bytes
+            seed = seed[:length]  # maybe there are some padding bytes
 
             result, key = getKey(
                 self.logger,
@@ -1809,7 +1811,7 @@ class Master:
                 offset = 0
                 while offset < total_length:
                     data = key[offset : offset + MAX_PAYLOAD]
-                    self.unlock(total_length-offset, data)
+                    self.unlock(total_length - offset, data)
                     offset += len(data)
             else:
                 raise SeedNKeyError("SeedAndKey DLL returned: {}".format(SeedNKeyResult(result).name))
@@ -1901,6 +1903,47 @@ class Master:
             if response:
                 result[name] = response
         return result
+
+    def try_command(self, cmd: Callable, *args, **kws) -> Tuple[types.TryCommandResult, Any]:
+        """Call master functions and handle XCP errors more gracefuly.
+
+        Parameter
+        ---------
+        cmd: Callable
+        args: list
+            variable length arguments to `cmd`.
+        kws: dict
+            keyword arguments to `cmd`.
+
+            `extra_msg`: str
+                Additional info to log message (not passed to `cmd`).
+
+        Returns
+        -------
+
+        Note
+        ----
+        Mainly used for plug-and-play applications, e.g. `id_scanner` may confronted with `ERR_OUT_OF_RANGE` errors, which
+        is normal for this kind of applications -- or to test for optional commands.
+        Use carefuly not to hide serious error causes.
+        """
+        try:
+            extra_msg: Optional[str] = kws.get("extra_msg")
+            if extra_msg:
+                kws.pop("extra_msg")
+            res = cmd(*args, **kws)
+        except SystemExit as e:
+            if e.error_code == types.XcpError.ERR_CMD_UNKNOWN:
+                # This is a rather common use-case, so let the user know that there is some functionality missing.
+                if extra_msg:
+                    self.logger.warning(f"Optional command {cmd.__name__!r} not implemented -- {extra_msg!r}")
+                else:
+                    self.logger.warning(f"Optional command {cmd.__name__!r} not implemented.")
+            return (types.TryCommandResult.XCP_ERROR, e)
+        except Exception as e:
+            return (types.TryCommandResult.OTHER_ERROR, e)
+        else:
+            return (types.TryCommandResult.OK, res)
 
 
 def ticks_to_seconds(ticks, resolution):
