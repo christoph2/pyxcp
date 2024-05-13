@@ -28,7 +28,7 @@ class XcpLogFileWriter {
         m_metadata             = metadata;
 
         if (!metadata.empty()) {
-            std::cout << "XMRAW_HAS_METADATA: " << std::size(metadata) << std::endl;
+            // std::cout << "XMRAW_HAS_METADATA: " << std::size(metadata) << std::endl;
             m_offset += std::size(metadata);
         }
 

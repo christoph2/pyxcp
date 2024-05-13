@@ -89,7 +89,7 @@ std::string bin_entries_to_string(const std::vector<McObject>& entries) {
     std::stringstream ss;
 
     for (const auto& entry : entries) {
-        ss << to_string(entry) << ", ";
+        ss << to_string(entry) << ",\n ";
     }
     return ss.str();
 }

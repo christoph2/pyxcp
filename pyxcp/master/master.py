@@ -1626,7 +1626,8 @@ class Master:
     @broadcasted
     @wrapped
     def getSlaveID(self, mode: int):
-        self.transportLayerCmd(types.TransportLayerCommands.GET_SLAVE_ID, "X", "C", "P", mode)
+        response = self.transportLayerCmd(types.TransportLayerCommands.GET_SLAVE_ID, ord("X"), ord("C"), ord("P"), mode)
+        return types.GetSlaveIdResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     def getDaqId(self, daqListNumber: int):
         response = self.transportLayerCmd(types.TransportLayerCommands.GET_DAQ_ID, *self.WORD_pack(daqListNumber))
@@ -1791,7 +1792,8 @@ class Master:
 
         MAX_PAYLOAD = self.slaveProperties["maxCto"] - 2
 
-        if not (self.seed_n_key_dll or self.seed_n_key_function):
+        protection_status = self.getCurrentProtectionStatus()
+        if any(protection_status.values()) and (not (self.seed_n_key_dll or self.seed_n_key_function)):
             raise RuntimeError("Neither seed and key DLL nor function specified, cannot proceed.")  # TODO: ConfigurationError
         if resources is None:
             result = []
@@ -1804,7 +1806,6 @@ class Master:
             if self.slaveProperties["supportsPgm"]:
                 result.append("pgm")
             resources = ",".join(result)
-        protection_status = self.getCurrentProtectionStatus()
         resource_names = [r.lower() for r in re.split(r"[ ,]", resources) if r]
         for name in resource_names:
             if name not in types.RESOURCE_VALUES:

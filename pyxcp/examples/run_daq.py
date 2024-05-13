@@ -121,9 +121,9 @@ else:
         ),
     ]
 
-# daq_parser = DaqToCsv(DAQ_LISTS)  # Saves  our measurement data to one or more CSV file(s)k.
+daq_parser = DaqToCsv(DAQ_LISTS)  # Saves  our measurement data to one or more CSV file(s)k.
 
-daq_parser = DaqRecorder(DAQ_LISTS, "run_daq")
+# daq_parser = DaqRecorder(DAQ_LISTS, "run_daq")
 
 with ap.run(policy=daq_parser) as x:
     x.connect()
@@ -141,7 +141,8 @@ with ap.run(policy=daq_parser) as x:
     print("finalize DAQ lists.\n")
     x.disconnect()
 
-print("Data written to:")
-print("================")
-for fl in daq_parser.files.values():  # `files` attribute is specific to `DaqToCsv`.
-    print(fl.name)
+if hasattr(daq_parser, "files"):
+    print("Data written to:")
+    print("================")
+    for fl in daq_parser.files.values():  # `files` attribute is specific to `DaqToCsv`.
+        print(fl.name)

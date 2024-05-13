@@ -178,12 +178,14 @@ inline blob_t* get_payload_ptr(const payload_t& payload) noexcept {
 }
     #endif /* STANDALONE_REKORDER */
 
+
 inline void hexdump(blob_t const * buf, std::uint16_t sz) {
     for (std::uint16_t idx = 0; idx < sz; ++idx) {
         printf("%02X ", buf[idx]);
     }
     printf("\n\r");
 }
+
 
     #include "reader.hpp"
     #include "unfolder.hpp"

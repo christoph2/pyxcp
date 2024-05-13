@@ -80,9 +80,26 @@ with ap.run() as x:
         print("*** FLASH PROGRAMMING IS NOT SUPPORTED.")
 
     if x.slaveProperties.transport_layer == "CAN":
-        # print("OK, CAN!!!")
-        status, res = x.try_command(x.getDaqId, 0)
-        print(status, res)
+        print("\nTransport-Layer CAN:")
+        print("====================")
+        status, res = x.try_command(x.getSlaveID, 0)
+        if status == TryCommandResult.OK:
+            print("CAN identifier for CMD/STIM:\n", res)
+        else:
+            print("*** GET_SLAVE_ID() IS NOT SUPPORTED.")  # no response from bc address ???
+
+        print("\nPer DAQ-list Identifier")
+        print("-----------------------")
+        daq_id = 0
+        while True:
+            status, res = x.try_command(x.getDaqId, daq_id)
+            if status == TryCommandResult.OK:
+                print(f"DAQ-list #{daq_id}:", res)
+                daq_id += 1
+            else:
+                break
+        if daq_id == 0:
+            print("N/A")
     x.disconnect()
 
     print("\nDone.")

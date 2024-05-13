@@ -140,6 +140,37 @@ class DaqList {
         return ss.str();
     }
 
+
+	std::string to_string() const {
+        std::stringstream ss;
+
+		ss << "DaqList(";
+		ss << "name=\"" << m_name << "\", ";
+		ss << "event_num=" << static_cast<std::uint16_t>(m_event_num) << ", ";
+		ss << "stim=" << bool_to_string(m_stim) << ", ";
+		ss << "enable_timestamps" << bool_to_string(m_enable_timestamps) << ", ";
+		ss << "measurements=[\n";
+		for (const auto& meas: m_measurements) {
+			ss << ::to_string(meas) << ",\n";
+		}
+		ss << "],\n";
+		ss << "measurements_opt=[\n";
+		for (const auto& meas: m_measurements_opt) {
+			ss << ::to_string(meas) << ",\n";
+		}
+		ss << "],\n";
+		ss << "header_names=[\n";
+		for (const auto& header: m_header_names) {
+			ss << "\"" << header << "\",";
+		}
+		ss << "\n]";
+
+		// using flatten_odts_t = std::vector<std::vector<std::tuple<std::string, std::uint32_t, std::uint8_t, std::uint16_t, std::int16_t>>>;
+		ss << ")";
+	    return ss.str();
+    }
+
+
     static void loads(std::string_view buffer) {
 
     }

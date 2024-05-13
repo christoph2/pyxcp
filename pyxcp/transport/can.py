@@ -363,7 +363,7 @@ class Can(BaseTransport):
         self.processResponse(
             payload,
             len(payload),
-            counter=self.counterReceived + 1,
+            counter=(self.counterReceived + 1) & 0xFFFF,
             recv_timestamp=recv_timestamp,
         )
 

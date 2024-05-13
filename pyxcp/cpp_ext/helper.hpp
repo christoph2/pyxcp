@@ -79,4 +79,21 @@ inline std::string to_binary<std::string>(const std::string& value) {
     return result;
 }
 
+
+inline auto bool_to_string(bool value) {
+	return (value == true) ? "True" : "False";
+}
+
+inline auto byte_order_to_string(int value) {
+	switch (value) {
+		case 0:
+			return "INTEL";
+		case 1:
+			return "MOTOROLA";
+		default:
+			return "<UNKNOWN>";
+	}
+	return "<UNKNOWN>";
+}
+
 #endif // __HELPER_HPP

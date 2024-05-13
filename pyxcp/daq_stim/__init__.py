@@ -31,7 +31,6 @@ class DaqProcessor:
     def __init__(self, daq_lists: List[DaqList]):
         # super().__init__()
         self.daq_lists = daq_lists
-        self.setup_called = False
         self.log = get_application().log
 
     def setup(self, write_multiple: bool = True):
@@ -89,20 +88,7 @@ class DaqProcessor:
             ttt = make_continuous_blocks(daq_list.measurements, max_payload_size, max_payload_size_first)
             daq_list.measurements_opt = first_fit_decreasing(ttt, max_payload_size, max_payload_size_first)
         byte_order = 0 if self.xcp_master.slaveProperties.byteOrder == "INTEL" else 1
-        self.measurement_params = MeasurementParameters(
-            byte_order,
-            header_len,
-            self.supports_timestampes,
-            self.ts_fixed,
-            self.supports_prescaler,
-            self.selectable_timestamps,
-            self.ts_scale_factor,
-            self.ts_size,
-            self.min_daq,
-            self.daq_lists,
-        )
-        self.set_parameters(self.measurement_params)
-        self.first_pids = []
+        self._first_pids = []
         daq_count = len(self.daq_lists)
         self.xcp_master.freeDaq()
 
@@ -126,11 +112,8 @@ class DaqProcessor:
                 self.xcp_master.setDaqPtr(i, j, 0)
                 for entry in measurement.entries:
                     self.xcp_master.writeDaq(0xFF, entry.length, entry.ext, entry.address)
-        self.setup_called = True
 
-    def start(self):
-        if not self.setup_called:
-            raise RuntimeError("please run setup() before start()")
+        # arm DAQ lists -- this is technically a function on its own.
         for i, daq_list in enumerate(self.daq_lists, self.min_daq):
             # print(daq_list.name, daq_list.event_num, daq_list.stim)
             mode = 0x00
@@ -145,11 +128,30 @@ class DaqProcessor:
                 daqListNumber=i, mode=mode, eventChannelNumber=daq_list.event_num, prescaler=1, priority=0xFF
             )
             res = self.xcp_master.startStopDaqList(0x02, i)
-            self.first_pids.append(res.firstPid)
+            self._first_pids.append(res.firstPid)
+        self.measurement_params = MeasurementParameters(
+            byte_order,
+            header_len,
+            self.supports_timestampes,
+            self.ts_fixed,
+            self.supports_prescaler,
+            self.selectable_timestamps,
+            self.ts_scale_factor,
+            self.ts_size,
+            self.min_daq,
+            self.daq_lists,
+            self._first_pids,
+        )
+        self.set_parameters(self.measurement_params)
+
+    def start(self):
         self.xcp_master.startStopSynch(0x01)
 
     def stop(self):
         self.xcp_master.startStopSynch(0x00)
+
+    def first_pids(self):
+        return self._first_pids
 
 
 class DaqRecorder(DaqProcessor, _DaqRecorderPolicy):
@@ -163,20 +165,30 @@ class DaqRecorder(DaqProcessor, _DaqRecorderPolicy):
 
     def initialize(self):
         metadata = self.measurement_params.dumps()
-        print(metadata)
         _DaqRecorderPolicy.create_writer(self, self.file_name, self.prealloc, self.chunk_size, metadata)
-        print("After initialization")
         _DaqRecorderPolicy.initialize(self)
 
     def finalize(self):
         _DaqRecorderPolicy.finalize(self)
 
+    def start(self):
+        DaqProcessor.start(self)
 
-# DaqRecorder
-# DaqOnline
+
+class DaqOnlinePolicy(DaqProcessor, _DaqOnlinePolicy):
+    """Base class for on-line measurements.
+    Handles multiple inheritence.
+    """
+
+    def __init__(self, daq_lists: List[DaqList]):
+        DaqProcessor.__init__(self, daq_lists)
+        _DaqOnlinePolicy.__init__(self)
+
+    def start(self):
+        DaqProcessor.start(self)
 
 
-class DaqToCsv(DaqProcessor, _DaqOnlinePolicy):
+class DaqToCsv(DaqOnlinePolicy):
     """Save a measurement as CSV files (one per DAQ-list)."""
 
     def initialize(self):

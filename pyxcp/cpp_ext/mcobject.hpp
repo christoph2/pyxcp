@@ -169,7 +169,7 @@ std::string mc_components_to_string(const std::vector<McObject>& components) {
     std::stringstream ss;
 
     for (const auto& obj : components) {
-        ss << to_string(obj) << ", ";
+        ss << to_string(obj) << ",\n ";
     }
     return ss.str();
 }

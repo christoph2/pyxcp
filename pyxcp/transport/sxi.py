@@ -63,7 +63,7 @@ class SxI(BaseTransport):
 
     def listen(self):
         while True:
-            if self.closeEvent.isSet():
+            if self.closeEvent.is_set():
                 return
             if not self.comm_port.inWaiting():
                 continue

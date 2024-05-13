@@ -6,6 +6,7 @@ import construct
 from construct import (
     BitsInteger,
     BitStruct,
+    Bytes,
     Enum,
     Flag,
     GreedyBytes,
@@ -734,6 +735,11 @@ GetEventChannelInfoResponse = Struct(
         EVENT_CHANNEL_TIME_UNIT_100PS=12,
     ),
     "eventChannelPriority" / Int8ul,
+)
+
+GetSlaveIdResponse = Struct(
+    "magic" / Bytes(3),
+    "identifier" / Int32u,
 )
 
 GetDaqIdResponse = Struct(

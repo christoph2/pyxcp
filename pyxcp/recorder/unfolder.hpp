@@ -319,6 +319,8 @@ struct Getter {
     void set_first_pids(const std::vector<DaqList>& daq_lists, const std::vector<std::uint16_t>& first_pids) {
         m_first_pids = first_pids;
 
+		std::cout << "set_first_pids()\n";
+
         if (m_id_size == 1) {
             // In case of 1-byte ID field (absolute ODT number) we need a mapping.
             std::uint16_t daq_list_num = 0;
@@ -480,25 +482,6 @@ struct Setter {
     }
 
 #if 0
-    void set_first_pids(const std::vector<DaqList>& daq_lists, const std::vector<std::uint16_t>& first_pids) {
-        m_first_pids = first_pids;
-
-        if (m_id_size == 1) {
-            // In case of 1-byte ID field (absolute ODT number) we need a mapping.
-            std::uint16_t daq_list_num = 0;
-            for (const auto& daq_list : daq_lists) {
-                auto first_pid = m_first_pids[daq_list_num];
-
-                for (std::uint16_t idx = first_pid; idx < daq_list.set_odt_count() + first_pid; ++idx) {
-                    m_odt_to_daq_map[idx] = { daq_list_num, (idx - first_pid) };
-                }
-                daq_list_num++;
-            }
-        }
-    }
-#endif
-
-#if 0
     std::tuple<std::uint16_t, std::uint16_t> set_id(blob_t const * buf) {
         std::uint16_t odt_num = 0;
 
@@ -535,7 +518,6 @@ struct Setter {
 #if HAS_BFLOAT16==1
     std::function<void(blob_t * buf, std::uint32_t offset, std::bfloat16_t)> bfloat16;
 #endif
-    std::vector<std::uint16_t>                                             m_first_pids;
     std::map<std::uint16_t, std::tuple<std::uint16_t, std::uint16_t>>      m_odt_to_daq_map;
 };
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -551,7 +533,7 @@ struct MeasurementParameters {
     explicit MeasurementParameters(
         std::uint8_t byte_order, std::uint8_t id_field_size, bool timestamps_supported, bool ts_fixed, bool prescaler_supported,
         bool selectable_timestamps, double ts_scale_factor, std::uint8_t ts_size, std::uint16_t min_daq,
-        const std::vector<DaqList>& daq_lists
+        const std::vector<DaqList>& daq_lists, const std::vector<std::uint16_t>& first_pids
     ) :
         m_byte_order(byte_order),
         m_id_field_size(id_field_size),
@@ -562,7 +544,8 @@ struct MeasurementParameters {
         m_ts_scale_factor(ts_scale_factor),
         m_ts_size(ts_size),
         m_min_daq(min_daq),
-        m_daq_lists(daq_lists) {
+        m_daq_lists(daq_lists),
+		m_first_pids(first_pids) {
     }
 
     std::string dumps() const {
@@ -584,8 +567,58 @@ struct MeasurementParameters {
             ss << daq_list.dumps();
         }
 
+        std::size_t fp_count = m_first_pids.size();
+        ss << to_binary(fp_count);
+		for (const auto& fp : m_first_pids) {
+			ss << to_binary(fp);
+		}
+
         return to_binary(std::size(ss.str())) +  ss.str();
     }
+
+	auto get_byte_order() const noexcept {
+		return m_byte_order;
+	}
+
+	auto get_id_field_size() const noexcept {
+		return m_id_field_size;
+	}
+
+	auto get_timestamps_supported() const noexcept {
+		return m_timestamps_supported;
+	}
+
+	auto get_ts_fixed() const noexcept {
+		return m_ts_fixed;
+	}
+
+	auto get_prescaler_supported() const noexcept {
+		return m_prescaler_supported;
+	}
+
+	auto get_selectable_timestamps() const noexcept {
+		return m_selectable_timestamps;
+	}
+
+	auto get_ts_scale_factor() const noexcept {
+		return m_ts_scale_factor;
+	}
+
+	auto get_ts_size() const noexcept {
+		return m_ts_size;
+	}
+
+	auto get_min_daq() const noexcept {
+		return m_min_daq;
+	}
+
+	auto get_daq_lists() const noexcept {
+		return m_daq_lists;
+	}
+
+	auto get_first_pids() const noexcept {
+		return m_first_pids;
+	}
 
     std::uint8_t         m_byte_order;
     std::uint8_t         m_id_field_size;
@@ -597,6 +630,7 @@ struct MeasurementParameters {
     std::uint8_t         m_ts_size;
     std::uint16_t        m_min_daq;
     std::vector<DaqList> m_daq_lists;
+	std::vector<std::uint16_t> m_first_pids;
 };
 
 
@@ -617,6 +651,8 @@ public:
         std::uint16_t        min_daq;
         std::size_t          dl_count;
         std::vector<DaqList> daq_lists;
+		std::size_t fp_count;
+		std::vector<std::uint16_t> first_pids;
 
         byte_order = from_binary<std::uint8_t>();
         id_field_size = from_binary<std::uint8_t>();
@@ -635,8 +671,14 @@ public:
         for (std::size_t i = 0; i < dl_count; i++) {
             daq_lists.push_back(create_daq_list());
         }
+
+		fp_count = from_binary<std::size_t>();
+		for (std::size_t i = 0; i < fp_count; i++) {
+			first_pids.push_back(from_binary<std::uint16_t>());
+		}
+
         return MeasurementParameters(byte_order, id_field_size, timestamps_supported, ts_fixed, prescaler_supported, selectable_timestamps,
-            ts_scale_factor, ts_size, min_daq, daq_lists);
+            ts_scale_factor, ts_size, min_daq, daq_lists, first_pids);
     }
 
 protected:
@@ -945,10 +987,6 @@ auto requires_swap(std::uint8_t byte_order) -> bool {
     return (target_byte_order != std::endian::native) ? true : false;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 class DAQProcessor {
    public:
@@ -960,35 +998,6 @@ class DAQProcessor {
     DAQProcessor()          = delete;
     virtual ~DAQProcessor() = default;
 
-    void start(const std::vector<std::uint16_t>& first_pids) noexcept {
-        m_getter.set_first_pids(m_params.m_daq_lists, first_pids);
-    }
-
-#if 0
-    std::optional<std::vector<measurement_tuple_t>> next_block() {
-        std::vector<measurement_tuple_t> result{};
-
-        const auto& block = m_reader.next_block();
-
-        if (!block) {
-            return std::nullopt;
-        }
-
-        for (const auto& frame : block.value()) {
-            if (std::get<0>(frame) != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
-                continue;
-            }
-            const auto& [category, counter, frame_timestamp, frame_length, payload] = frame;
-            auto [daq_num, odt_num]                                                 = m_getter.get_id(payload.data());
-
-            if (m_state[daq_num].feed(odt_num, frame_timestamp, payload)) {
-                m_state[daq_num].add_result(result);
-            }
-        }
-        return result;
-    }
-
-#endif
 
     std::optional<measurement_tuple_t> feed(double timestamp, const std::string& payload) noexcept {
         const auto data         = reinterpret_cast<blob_t const *>(payload.data());
@@ -1015,6 +1024,7 @@ class DAQProcessor {
                 m_getter, params
             ));
         }
+		m_getter.set_first_pids(m_params.m_daq_lists, m_params.m_first_pids);
     }
 
     MeasurementParameters                  m_params;
@@ -1022,73 +1032,6 @@ class DAQProcessor {
     std::map<std::uint16_t, std::uint16_t> m_first_pids;
     std::vector<DaqListState>              m_state;
 };
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#if 0
-class XcpLogFileUnfolder {
-   public:
-
-    explicit XcpLogFileUnfolder(const std::string& file_name, const MeasurementParameters& params) :
-        m_reader(file_name), m_params(params) {
-        create_state_vars(params);
-    }
-
-    XcpLogFileUnfolder() = delete;
-
-    void start(const std::vector<std::uint16_t>& first_pids) {
-        m_getter.set_first_pids(m_params.m_daq_lists, first_pids);
-    }
-
-    std::optional<std::vector<measurement_tuple_t>> next_block() {
-        std::vector<measurement_tuple_t> result{};
-
-        const auto& block = m_reader.next_block();
-
-        if (!block) {
-            return std::nullopt;
-        }
-
-        for (const auto& frame : block.value()) {
-            if (std::get<0>(frame) != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
-                continue;
-            }
-            const auto& [category, counter, frame_timestamp, frame_length, payload] = frame;
-            auto [daq_num, odt_num]                                                 = m_getter.get_id(payload.data());
-
-            if (m_state[daq_num].feed(odt_num, frame_timestamp, payload)) {
-                m_state[daq_num].add_result(result);
-            }
-        }
-        return result;
-    }
-
-   private:
-
-    void create_state_vars(const MeasurementParameters& params) {
-        m_getter = Getter(requires_swap(params.m_byte_order), params.m_id_field_size, params.m_ts_size);
-        for (auto idx = 0; idx < params.m_daq_lists.size(); ++idx) {
-            m_state.emplace_back(DaqListState(
-                idx, params.m_daq_lists[idx].get_odt_count(), params.m_daq_lists[idx].get_total_entries(),
-                params.m_daq_lists[idx].get_enable_timestamps(), params.m_id_field_size, params.m_daq_lists[idx].get_flatten_odts(),
-                m_getter, params
-            ));
-        }
-    }
-
-    XcpLogFileReader                       m_reader;
-    MeasurementParameters                  m_params;
-    Getter                                 m_getter;
-    std::map<std::uint16_t, std::uint16_t> m_first_pids;
-    std::vector<DaqListState>              m_state;
-};
-#endif
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 class DAQPolicyBase {
@@ -1186,5 +1129,95 @@ class DaqOnlinePolicy  : public DAQPolicyBase {
 
     std::unique_ptr<DAQProcessor> m_unfolder;
 };
+
+
+class XcpLogFileUnfolder {
+   public:
+
+    explicit XcpLogFileUnfolder(const std::string& file_name) :
+        m_reader(file_name) {
+
+		auto metadata = m_reader.get_metadata();
+		if (metadata != "") {
+			auto des = Deserializer(metadata);
+			m_params = des.run();
+			m_unfolder = std::make_unique<DAQProcessor>(m_params);
+		} else {
+			// cannot proceed!!!
+		}
+
+    }
+
+    XcpLogFileUnfolder() = delete;
+
+
+	void run() {
+
+		const auto converter = [](const blob_t * in_str, std::size_t length) -> std::string {
+			std::string result;
+			result.resize(length);
+
+			for (auto idx=0; idx < length; ++idx) {
+				result[idx] = static_cast<char>(in_str[idx]);
+			}
+
+			return result;
+		};
+
+		while (true) {
+			const auto& block = m_reader.next_block();
+			if (!block) {
+				return;
+			}
+
+			for (const auto& [frame_cat, counter, timestamp, length, payload] : block.value()) {
+				auto str_data = converter(payload.data(), std::size(payload));
+
+				if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
+					continue;
+				}
+				// std::cout << static_cast<std::uint16_t>(frame_cat) << " " << counter << " " << timestamp << " " <<  length << ": " << std::size(str_data) << " ==> " << str_data << std::endl;
+
+				auto result = m_unfolder->feed(timestamp, str_data);
+				if (result) {
+					 const auto& [daq_list, ts0, ts1, meas] = *result;
+					 on_daq_list(daq_list, ts0, ts1, meas);
+
+					 // std::cout << daq_list << " " << ts0 << " " << ts1 << " " << std::endl;
+				}
+			}
+		}
+    }
+
+
+	virtual void on_daq_list(
+        std::uint16_t daq_list_num, double timestamp0, double timestamp1, const std::vector<measurement_value_t>& measurement
+    ) = 0;
+
+
+	MeasurementParameters get_parameters() const noexcept {
+		return m_params;
+	}
+
+	auto get_daq_lists() const noexcept {
+		return m_params.m_daq_lists;
+	}
+
+
+   private:
+
+    XcpLogFileReader                       m_reader;
+	std::unique_ptr<DAQProcessor> 			m_unfolder;
+    MeasurementParameters                  m_params;
+};
+
+#if 0
+      wrap.obj : error LNK2001: Nicht aufgel”stes externes Symbol ""public: virtual void __cdecl XcpLogFileUnfolder::on_daq_list(
+		unsigned short,double,double,
+			class std::vector<class std::variant<__int64,unsigned __int64,long double,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > >,
+			class std::allocator<class std::variant<__int64,unsigned __int64,long double,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > > > > const &)
+			" (?on_daq_list@XcpLogFileUnfolder@@UEAAXGNNAEBV?$vector@V?$variant@_J_KOV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@std@@V?$allocator@V?$variant@_J_KOV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@std@@@2@@std@@@Z)".
+#endif
+
 
 #endif  // RECORDER_UNFOLDER_HPP
