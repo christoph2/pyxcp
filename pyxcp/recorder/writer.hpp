@@ -5,7 +5,7 @@
 class XcpLogFileWriter {
    public:
 
-    explicit XcpLogFileWriter(const std::string &file_name, uint32_t prealloc = 10UL, uint32_t chunk_size = 1, std::string_view metadata="") noexcept {
+    explicit XcpLogFileWriter(const std::string &file_name, uint32_t prealloc = 10UL, uint32_t chunk_size = 1, std::string_view metadata="") {
         if (!file_name.ends_with(detail::FILE_EXTENSION)) {
             m_file_name = file_name + detail::FILE_EXTENSION;
         } else {
@@ -20,9 +20,10 @@ class XcpLogFileWriter {
 #else
         m_fd = open(m_file_name.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0666);
 #endif
-        truncate(megabytes(prealloc));
+        m_hard_limit = megabytes(prealloc);
+        truncate(m_hard_limit);
         m_mmap                 = new mio::mmap_sink(m_fd);
-        m_chunk_size           = megabytes(chunk_size);
+        m_chunk_size           = 512 * 1024; //megabytes(chunk_size);
         m_intermediate_storage = new blob_t[m_chunk_size + megabytes(1)];
         m_offset               = detail::FILE_HEADER_SIZE + detail::MAGIC_SIZE;
         m_metadata             = metadata;
@@ -31,11 +32,10 @@ class XcpLogFileWriter {
             // std::cout << "XMRAW_HAS_METADATA: " << std::size(metadata) << std::endl;
             m_offset += std::size(metadata);
         }
-
         start_thread();
     }
 
-    ~XcpLogFileWriter() noexcept {
+    ~XcpLogFileWriter() {
         finalize();
 #ifdef __APPLE__
         if (collector_thread.joinable()) {
@@ -45,7 +45,10 @@ class XcpLogFileWriter {
     }
 
     void finalize() {
+        std::error_code ec;
+        std::cout << "finalize?\n";
         if (!m_finalized) {
+            std::cout << "\tYES!!!\n";
             m_finalized = true;
             stop_thread();
             if (m_container_record_count) {
@@ -58,18 +61,27 @@ class XcpLogFileWriter {
                 detail::VERSION, options, m_num_containers, m_record_count, m_total_size_compressed, m_total_size_uncompressed
             );
             m_mmap->unmap();
+            ec = mio::detail::last_error();
+            if (ec.value() != 0) {
+                std::cout << error_string("mio::unmap", ec);
+            }
+
             truncate(m_offset);
 #if defined(_WIN32)
-            CloseHandle(m_fd);
+            if (!CloseHandle(m_fd)) {
+                std::cout << error_string("CloseHandle", get_last_error());
+            }
 #else
-            close(m_fd);
+            if (close(m_fd) == -1) {
+                std::cout << error_string("close", get_last_error());
+            }
 #endif
             delete m_mmap;
             delete[] m_intermediate_storage;
         }
     }
 
-    void add_frame(uint8_t category, uint16_t counter, double timestamp, uint16_t length, char const *data) noexcept {
+    void add_frame(uint8_t category, uint16_t counter, double timestamp, uint16_t length, char const *data)  {
         auto payload = new char[length];
         // auto payload = mem.acquire();
 
@@ -79,25 +91,45 @@ class XcpLogFileWriter {
 
    protected:
 
-    void truncate(off_t size) const noexcept {
+    void truncate(off_t size, bool remap = false) {
+        std::error_code ec;
+
+        if (remap) {
+            m_mmap->unmap();
+            ec = mio::detail::last_error();
+            if (ec.value() != 0) {
+                std::cout << error_string("mio::unmap", ec);
+            }
+        }
+
 #if defined(_WIN32)
         if (SetFilePointer(m_fd, size, nullptr, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
             // TODO: Errorhandling.
+            std::cout << error_string("SetFilePointer", get_last_error());
         }
         if (SetEndOfFile(m_fd) == 0) {
             // TODO: Errorhandling.
+            std::cout << error_string("SetEndOfFile", get_last_error());
         }
 #else
-        ftruncate(m_fd, size);
+        if (ftruncate(m_fd, size) == -1) {
+            std::cout << error_string("ftruncate", get_last_error());
+        }
 #endif
+        if (remap) {
+            m_mmap->map(m_fd, 0, size, ec);
+            if (ec.value() != 0) {
+                std::cout << error_string("mio::map", ec);
+            }
+        }
     }
 
-    blob_t *ptr(std::uint32_t pos = 0) const noexcept {
+    blob_t *ptr(std::uint32_t pos = 0) const {
         return (blob_t *)(m_mmap->data() + pos);
     }
 
     template<typename T>
-    void store_im(T const *data, std::uint32_t length) noexcept {
+    void store_im(T const *data, std::uint32_t length) {
         _fcopy(
             reinterpret_cast<char *>(m_intermediate_storage + m_intermediate_storage_offset), reinterpret_cast<char const *>(data),
             length
@@ -108,6 +140,7 @@ class XcpLogFileWriter {
     void compress_frames() {
         auto container = ContainerHeaderType{};
         // printf("Compressing %u frames... [%d]\n", m_container_record_count, m_intermediate_storage_offset);
+
         const int cp_size = ::LZ4_compress_default(
             reinterpret_cast<char const *>(m_intermediate_storage),
             reinterpret_cast<char *>(ptr(m_offset + detail::CONTAINER_SIZE)), m_intermediate_storage_offset,
@@ -118,10 +151,18 @@ class XcpLogFileWriter {
         }
         // printf("comp: %d %d [%f]\n", m_intermediate_storage_offset,  cp_size, double(m_intermediate_storage_offset) /
         // double(cp_size));
+        if (m_offset > (m_hard_limit >> 1)) {
+            //std::cout << "Offset " << m_offset  << " execceds the hard limit of " << (m_hard_limit >> 1) << std::endl;
+            std::cout <<"[INFO] " << std::chrono::system_clock::now() << ": Doubling measurement file size." << std::endl;
+            m_hard_limit <<= 1;
+            truncate(m_hard_limit, true);
+        }
         container.record_count      = m_container_record_count;
         container.size_compressed   = cp_size;
         container.size_uncompressed = m_container_size_uncompressed;
+
         _fcopy(reinterpret_cast<char *>(ptr(m_offset)), reinterpret_cast<char const *>(&container), detail::CONTAINER_SIZE);
+
         m_offset += (detail::CONTAINER_SIZE + cp_size);
         m_total_size_uncompressed += m_container_size_uncompressed;
         m_total_size_compressed += cp_size;
@@ -133,7 +174,7 @@ class XcpLogFileWriter {
         m_num_containers += 1;
     }
 
-    void write_bytes(std::uint32_t pos, std::uint32_t count, char const *buf) const noexcept {
+    void write_bytes(std::uint32_t pos, std::uint32_t count, char const *buf) const {
         auto addr = reinterpret_cast<char *>(ptr(pos));
 
         _fcopy(addr, buf, count);
@@ -142,7 +183,7 @@ class XcpLogFileWriter {
     void write_header(
         uint16_t version, uint16_t options, uint32_t num_containers, uint32_t record_count, uint32_t size_compressed,
         uint32_t size_uncompressed
-    ) noexcept {
+    ) {
         auto header = FileHeaderType{};
         auto has_metadata =!m_metadata.empty();
         write_bytes(0x00000000UL, detail::MAGIC_SIZE, detail::MAGIC.c_str());
@@ -160,7 +201,7 @@ class XcpLogFileWriter {
         }
     }
 
-    bool start_thread() noexcept {
+    bool start_thread() {
         if (collector_thread.joinable()) {
             return false;
         }
@@ -187,11 +228,13 @@ class XcpLogFileWriter {
                     compress_frames();
                 }
             }
+            std::cout << "Exiting collector_thread()\n";
         });
+
         return true;
     }
 
-    bool stop_thread() noexcept {
+    bool stop_thread() {
         if (!collector_thread.joinable()) {
             return false;
         }
@@ -216,6 +259,7 @@ class XcpLogFileWriter {
     std::uint32_t         m_container_size_compressed{ 0UL };
     __ALIGN blob_t       *m_intermediate_storage{ nullptr };
     std::uint32_t         m_intermediate_storage_offset{ 0 };
+    std::uint32_t         m_hard_limit{0};
     mio::file_handle_type m_fd{ INVALID_HANDLE_VALUE };
     mio::mmap_sink       *m_mmap{ nullptr };
     bool                  m_finalized{ false };

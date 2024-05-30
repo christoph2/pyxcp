@@ -11,6 +11,7 @@
     #include <bit>
     #include <bitset>
     #include <cerrno>
+    #include <chrono>
     #include <cstdint>
     #include <cstdio>
     #include <cstdlib>
@@ -21,6 +22,7 @@
     #include <optional>
     #include <stdexcept>
     #include <string>
+    #include <sstream>
     #include <thread>
     #include <utility>
     #include <variant>
@@ -177,6 +179,50 @@ inline blob_t* get_payload_ptr(const payload_t& payload) noexcept {
     return static_cast<blob_t*>(buf.ptr);
 }
     #endif /* STANDALONE_REKORDER */
+
+////////////////////////////////////
+#ifdef _WIN32
+inline std::string error_string(std::string_view func, std::error_code error_code)
+{
+    LPSTR messageBuffer = nullptr;
+    std::ostringstream ss;
+
+    size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                                 NULL, static_cast<DWORD>(error_code.value()), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+
+    std::string message(messageBuffer, size);
+    LocalFree(messageBuffer);
+
+    ss << "[ERROR] ";
+    ss << func << ": ";
+    ss << message;
+    return ss.str();
+}
+
+std::error_code get_last_error() {
+    return std::error_code(GetLastError(), std::system_category());
+}
+
+#else
+inline error_string(std::string_view func, std::error_code error_code) {
+    std::ostringstream ss;
+
+    auto message = strerror(static_cast<int>(error_code.value()));
+
+    ss << "[ERROR] ";
+    ss << func << ": ";
+    ss << message;
+    return ss.str();
+
+}
+
+std::error_code get_last_error() {
+    return std::error_code(errno, std::system_category());
+}
+
+
+#endif // _WIN32
+////////////////////////////////////
 
 
 inline void hexdump(blob_t const * buf, std::uint16_t sz) {

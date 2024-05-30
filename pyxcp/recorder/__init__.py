@@ -78,7 +78,7 @@ class XcpLogFileReader:
 class XcpLogFileWriter:
     """ """
 
-    def __init__(self, file_name: str, prealloc=10, chunk_size=1):
+    def __init__(self, file_name: str, prealloc=500, chunk_size=1):
         self._writer = _PyXcpLogFileWriter(file_name, prealloc, chunk_size)
         self._finalized = False
 

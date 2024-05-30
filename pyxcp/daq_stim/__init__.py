@@ -109,6 +109,8 @@ class DaqProcessor:
         for i, daq_list in enumerate(self.daq_lists, self.min_daq):
             measurements = daq_list.measurements_opt
             for j, measurement in enumerate(measurements):
+                if len(measurement.entries) == 0:
+                    continue  # CAN special case: No room for data in first ODT.
                 self.xcp_master.setDaqPtr(i, j, 0)
                 for entry in measurement.entries:
                     self.xcp_master.writeDaq(0xFF, entry.length, entry.ext, entry.address)
@@ -156,12 +158,15 @@ class DaqProcessor:
 
 class DaqRecorder(DaqProcessor, _DaqRecorderPolicy):
 
-    def __init__(self, daq_lists: List[DaqList], file_name: str, prealloc: int = 10, chunk_size: int = 1):
+    def __init__(self, daq_lists: List[DaqList], file_name: str, prealloc: int = 200, chunk_size: int = 1):
         DaqProcessor.__init__(self, daq_lists)
         _DaqRecorderPolicy.__init__(self)
         self.file_name = file_name
         self.prealloc = prealloc
         self.chunk_size = chunk_size
+
+    def __del__(self):
+        print("DaqRecorder::__del__()")
 
     def initialize(self):
         metadata = self.measurement_params.dumps()
@@ -169,6 +174,7 @@ class DaqRecorder(DaqProcessor, _DaqRecorderPolicy):
         _DaqRecorderPolicy.initialize(self)
 
     def finalize(self):
+        print("DaqRecorder::finalize()")
         _DaqRecorderPolicy.finalize(self)
 
     def start(self):

@@ -1055,7 +1055,9 @@ class DAQPolicyBase {
 class DaqRecorderPolicy : public DAQPolicyBase {
 public:
 
-    ~DaqRecorderPolicy() {}
+    ~DaqRecorderPolicy() {
+        finalize();
+    }
 
     DaqRecorderPolicy() = default;
 
@@ -1081,6 +1083,7 @@ public:
     }
 
     void finalize() {
+        std::cout << "DaqRecorderPolicy::finalize()\n";
         m_writer->finalize();
     }
 
