@@ -63,6 +63,33 @@ PYBIND11_MODULE(rekorder, m) {
     m.doc() = "XCP raw frame recorder."
     ;
 
+    #if 0
+     version;
+     options;
+     num_containers;
+     record_count;
+     size_compressed;
+     size_uncompressed;
+    #endif
+
+    py::class_<FileHeaderType>(m, "FileHeaderType")
+        .def(py::init<std::uint16_t, std::uint16_t, std::uint16_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t>())
+		.def("__repr__",[](const FileHeaderType& self) {
+			std::stringstream ss;
+            ss << "FileHeaderType(" << std::endl;
+            ss << "    hdr_size=" << self.hdr_size << "," << std::endl;
+            ss << "    version=" << self.version << "," << std::endl;
+            ss << "    options=" << self.options << "," << std::endl;
+            ss << "    num_containers=" << self.num_containers << "," << std::endl;
+            ss << "    record_count=" << self.record_count << "," << std::endl;
+            ss << "    size_compressed=" << self.size_compressed << "," << std::endl;
+            ss << "    size_uncompressed=" << self.size_uncompressed << ","  << std::endl;
+            ss << "    compression_ratio=" << (double)((std::uint64_t)(((double)self.size_uncompressed / (double)self.size_compressed * 100.0) + 0.5)) / 100.0 << std::endl;
+            ss << ")" << std::endl;
+            return ss.str();
+        })
+    ;
+
     py::class_<Deserializer>(m, "Deserializer")
         .def(py::init<const std::string &>())
         .def("run", &Deserializer::run)
@@ -153,5 +180,6 @@ PYBIND11_MODULE(rekorder, m) {
 		.def("on_daq_list", &XcpLogFileUnfolder::on_daq_list)
 	    .def_property_readonly("parameters", &XcpLogFileUnfolder::get_parameters)
 		.def_property_readonly("daq_lists", &XcpLogFileUnfolder::get_daq_lists)
+		.def("get_header", &XcpLogFileUnfolder::get_header)
     ;
 }

@@ -38,7 +38,7 @@
         #include <io.h>
     #endif /* _WIN32 */
 
-    #include "lz4.h"
+    #include "lz4hc.h"
     #include "mio.hpp"
 
     #if STANDALONE_REKORDER == 0

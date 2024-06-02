@@ -319,8 +319,6 @@ struct Getter {
     void set_first_pids(const std::vector<DaqList>& daq_lists, const std::vector<std::uint16_t>& first_pids) {
         m_first_pids = first_pids;
 
-		std::cout << "set_first_pids()\n";
-
         if (m_id_size == 1) {
             // In case of 1-byte ID field (absolute ODT number) we need a mapping.
             std::uint16_t daq_list_num = 0;
@@ -664,9 +662,6 @@ public:
         ts_size = from_binary<std::uint8_t>();
         min_daq = from_binary<std::uint16_t>();
         dl_count = from_binary<std::size_t>();
-        std::cout << (int)byte_order << " " << (int)id_field_size << " " << timestamps_supported << " " << ts_fixed << " " << prescaler_supported <<
-            " " << selectable_timestamps << " " << ts_scale_factor << " " << (int)ts_size << " " << min_daq << std::endl;
-        std::cout << "DL-count: " << (int)dl_count << std::endl;
 
         for (std::size_t i = 0; i < dl_count; i++) {
             daq_lists.push_back(create_daq_list());
@@ -709,12 +704,7 @@ protected:
         total_entries = from_binary<std::uint16_t>();
         total_length = from_binary<std::uint16_t>();
 
-        std::cout << "Name: " << name << " " << event_num << " " << stim << " " << enable_timestamps << std::endl;
-        std::cout << "Odt-count: " << (int)odt_count << " " << "Total-entries: " << (int)total_entries << " " << "Total-length: " << (int)total_length << std::endl;
-
         std::size_t meas_size = from_binary<std::size_t>();
-        std::cout << "Meas-size: " << (int)meas_size << std::endl;
-
         for (auto i = 0; i < meas_size; ++i) {
             // name, address, ext, dt_name
             auto meas = create_mc_object();
@@ -723,19 +713,15 @@ protected:
         }
 
         std::size_t meas_opt_size = from_binary<std::size_t>();
-        std::cout << "Meas-opt-size: " << (int)meas_opt_size << std::endl;
         for (auto i = 0; i < meas_opt_size; ++i) {
             measurements_opt.emplace_back(create_bin());
         }
 
         std::size_t hname_size = from_binary<std::size_t>();
-        std::cout << "Hname-size: " << (int)hname_size << std::endl;
         for (auto i = 0; i < hname_size; ++i) {
             auto header = from_binary<std::string>();
             header_names.push_back(header);
-            std::cout << header << " ";
         }
-        std::cout << std::endl << std::endl;
 
         auto odts = create_flatten_odts();
 
@@ -754,18 +740,15 @@ protected:
         flatten_odts_t odts;
 
         std::size_t odt_count = from_binary<std::size_t>();
-        std::cout << "Odt-count: " << (int)odt_count << std::endl;
         for (auto i = 0; i < odt_count; ++i) {
             std::vector<std::tuple<std::string, std::uint32_t, std::uint8_t, std::uint16_t, std::int16_t>> flatten_odt{};
             std::size_t odt_entry_count = from_binary<std::size_t>();
-            std::cout << "Odt-entry-count: " << (int)odt_entry_count << std::endl;
             for (auto j = 0; j < odt_entry_count; ++j) {
                 name = from_binary<std::string>();
                 address = from_binary<std::uint32_t>();
                 ext = from_binary<std::uint8_t>();
                 size = from_binary<std::uint16_t>();
                 type_index = from_binary<std::int16_t>();
-                std::cout << "\t" << name << " " << address << " " << (int)ext << " " << (int)size << " " << (int)type_index << std::endl;
                 flatten_odt.push_back(std::make_tuple(name, address, ext, size, type_index));
             }
             odts.push_back(flatten_odt);
@@ -789,9 +772,7 @@ protected:
         length     = from_binary<std::uint16_t>();
         data_type  = from_binary<std::string>();
         type_index = from_binary<std::int16_t>();
-        std::cout << "Name: " << name << " " << address << " " << (int)ext << " " << (int)length << " " << data_type << " " << (int)type_index << std::endl;
         std::size_t comp_size = from_binary<std::size_t>();
-        std::cout << "Comp-size: " << (int)comp_size << std::endl;
         for (auto i=0U; i < comp_size; i++) {
             components.push_back(create_mc_object());
         }
@@ -806,9 +787,7 @@ protected:
 
         size = from_binary<std::uint16_t>();
         residual_capacity = from_binary<std::uint16_t>();
-        std::cout << "BinSize: " << (int)size << " " << "Residual-capacity: " << (int)residual_capacity << std::endl;
         std::size_t entry_size = from_binary<std::size_t>();
-        std::cout << "\tEntry-count: " << (int)entry_size << std::endl;
         for (auto i=0U; i < entry_size; i++) {
             entries.push_back(create_mc_object());
         }
@@ -893,7 +872,6 @@ class DaqListState {
                     return state_t::FINISHED;
                 }
             } else {
-                // std::cout << "\t\tODT num out of order: " << odt_num << " -- expected: " << m_next_odt << std::endl;
                 resetSM();
                 return state_t::_ERROR;
             }
@@ -921,7 +899,6 @@ class DaqListState {
     }
 
     void add_result(measurement_tuple_t& result_buffer) {
-        //std::cout << "add_result: " << m_daq_list_num << " " << m_timestamp0 << " " << m_timestamp1 << std::endl;
         result_buffer = { m_daq_list_num, m_timestamp0, m_timestamp1, m_buffer };
     }
 
@@ -1083,7 +1060,6 @@ public:
     }
 
     void finalize() {
-        std::cout << "DaqRecorderPolicy::finalize()\n";
         m_writer->finalize();
     }
 
@@ -1175,18 +1151,13 @@ class XcpLogFileUnfolder {
 
 			for (const auto& [frame_cat, counter, timestamp, length, payload] : block.value()) {
 				auto str_data = converter(payload.data(), std::size(payload));
-
 				if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
 					continue;
 				}
-				// std::cout << static_cast<std::uint16_t>(frame_cat) << " " << counter << " " << timestamp << " " <<  length << ": " << std::size(str_data) << " ==> " << str_data << std::endl;
-
 				auto result = m_unfolder->feed(timestamp, str_data);
 				if (result) {
 					 const auto& [daq_list, ts0, ts1, meas] = *result;
 					 on_daq_list(daq_list, ts0, ts1, meas);
-
-					 // std::cout << daq_list << " " << ts0 << " " << ts1 << " " << std::endl;
 				}
 			}
 		}
@@ -1198,20 +1169,23 @@ class XcpLogFileUnfolder {
     ) = 0;
 
 
-	MeasurementParameters get_parameters() const noexcept {
+	MeasurementParameters get_parameters() const  {
 		return m_params;
 	}
 
-	auto get_daq_lists() const noexcept {
+	auto get_daq_lists() const {
 		return m_params.m_daq_lists;
 	}
 
+	auto get_header() const {
+	    return m_reader.get_header();
+	}
 
    private:
 
-    XcpLogFileReader                       m_reader;
-	std::unique_ptr<DAQProcessor> 			m_unfolder;
-    MeasurementParameters                  m_params;
+    XcpLogFileReader                    m_reader;
+	std::unique_ptr<DAQProcessor> 		m_unfolder;
+    MeasurementParameters               m_params;
 };
 
 #if 0

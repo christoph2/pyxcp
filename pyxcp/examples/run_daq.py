@@ -123,7 +123,7 @@ else:
 
 # daq_parser = DaqToCsv(DAQ_LISTS)  # Saves  our measurement data to one or more CSV file(s)k.
 
-daq_parser = DaqRecorder(DAQ_LISTS, "run_daq")
+daq_parser = DaqRecorder(DAQ_LISTS, "run_daq", 2)
 
 with ap.run(policy=daq_parser) as x:
     x.connect()
@@ -136,7 +136,8 @@ with ap.run(policy=daq_parser) as x:
     daq_parser.setup()  # Run internal and XCP setup procedures.
     print("start DAQ lists.")
     daq_parser.start()  # Start DAQ lists.
-    time.sleep(12 * 5.0)  # Arbitrary termination condition.
+    # time.sleep(12 * 5.0)  # Arbitrary termination condition.ls *.
+    time.sleep(6 * 60.0 * 60.0)  # Arbitrary termination condition.ls *.
     daq_parser.stop()  # Stop DAQ lists.
     print("finalize DAQ lists.\n")
     x.disconnect()
