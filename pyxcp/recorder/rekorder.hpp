@@ -80,15 +80,15 @@ struct FileHeaderType {
     std::uint16_t hdr_size;
     std::uint16_t version;
     std::uint16_t options;
-    std::uint32_t num_containers;
-    std::uint32_t record_count;
-    std::uint32_t size_compressed;
-    std::uint32_t size_uncompressed;
+    std::uint64_t num_containers;
+    std::uint64_t record_count;
+    std::uint64_t size_compressed;
+    std::uint64_t size_uncompressed;
 };
 
-using HeaderTuple = std::tuple<std::uint16_t, std::uint16_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, double>;
+using HeaderTuple = std::tuple<std::uint16_t, std::uint16_t, std::uint64_t, std::uint64_t, std::uint64_t, std::uint64_t, double>;
 
-static_assert(sizeof(FileHeaderType) == 22);
+static_assert(sizeof(FileHeaderType) == 38);
 
 struct ContainerHeaderType {
     std::uint32_t record_count;
@@ -138,22 +138,22 @@ constexpr auto    FILE_HEADER_SIZE = sizeof(FileHeaderType);
 constexpr auto    CONTAINER_SIZE   = sizeof(ContainerHeaderType);
 }  // namespace detail
 
-constexpr auto file_header_size() -> std::uint32_t {
+constexpr auto file_header_size() -> std::uint64_t {
     return (detail::FILE_HEADER_SIZE + detail::MAGIC_SIZE);
 }
 
-using rounding_func_t = std::function<std::uint32_t(std::uint32_t)>;
+using rounding_func_t = std::function<std::uint64_t(std::uint64_t)>;
 
-inline rounding_func_t create_rounding_func(std::uint32_t multiple) {
-    return [multiple](std::uint32_t value) {
+inline rounding_func_t create_rounding_func(std::uint64_t multiple) {
+    return [multiple](std::uint64_t value) {
         return (value + (multiple - 1)) & ~(multiple - 1);
     };
 }
 
 const auto round_to_alignment = create_rounding_func(__ALIGNMENT_REQUIREMENT);
 
-inline void _fcopy(char* dest, char const * src, std::uint32_t n) noexcept {
-    for (std::uint32_t i = 0; i < n; ++i) {
+inline void _fcopy(char* dest, char const * src, std::uint64_t n) noexcept {
+    for (std::uint64_t i = 0; i < n; ++i) {
         dest[i] = src[i];
     }
 }
@@ -163,13 +163,13 @@ inline blob_t* get_payload_ptr(const payload_t& payload) noexcept {
     return payload.get();
 }
 
-inline payload_t create_payload(std::uint32_t size, blob_t const * data) noexcept {
+inline payload_t create_payload(std::uint64_t size, blob_t const * data) noexcept {
     auto pl = std::make_shared<blob_t[]>(size);
     _fcopy(reinterpret_cast<char*>(pl.get()), reinterpret_cast<char const *>(data), size);
     return pl;
 }
     #else
-inline payload_t create_payload(std::uint32_t size, blob_t const * data) {
+inline payload_t create_payload(std::uint64_t size, blob_t const * data) {
     return py::array_t<blob_t>(size, data);
 }
 

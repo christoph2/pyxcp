@@ -165,16 +165,12 @@ class DaqRecorder(DaqProcessor, _DaqRecorderPolicy):
         self.prealloc = prealloc
         self.chunk_size = chunk_size
 
-    def __del__(self):
-        print("DaqRecorder::__del__()")
-
     def initialize(self):
         metadata = self.measurement_params.dumps()
         _DaqRecorderPolicy.create_writer(self, self.file_name, self.prealloc, self.chunk_size, metadata)
         _DaqRecorderPolicy.initialize(self)
 
     def finalize(self):
-        print("DaqRecorder::finalize()")
         _DaqRecorderPolicy.finalize(self)
 
     def start(self):

@@ -29,7 +29,6 @@ class XcpLogFileWriter {
         m_metadata             = metadata;
 
         if (!metadata.empty()) {
-            // std::cout << "XMRAW_HAS_METADATA: " << std::size(metadata) << std::endl;
             m_offset += std::size(metadata);
             write_metadata();
         }
@@ -47,9 +46,7 @@ class XcpLogFileWriter {
 
     void finalize() {
         std::error_code ec;
-        std::cout << "finalize?\n";
         if (!m_finalized) {
-            std::cout << "\tYES!!!\n";
             m_finalized = true;
             stop_thread();
             if (m_container_record_count) {
@@ -125,33 +122,6 @@ class XcpLogFileWriter {
         }
     }
 
-    void flush() {
-        std::chrono::time_point<std::chrono::system_clock> start_time = std::chrono::system_clock::now();
-
-
-    #ifdef __APPLE__
-        flushing_thread = std::thread([this]() {
-#else
-        flushing_thread = std::jthread([this]() {
-#endif
-        #if defined(_WIN32)
-            if (!FlushFileBuffers(m_fd)) {
-                std::cout << error_string("FlushFileBuffers", get_last_error());
-            }
-        #else
-            if (fflush(m_fd); == -1) {
-                std::cout << error_string("fflush", get_last_error());
-            }
-        #endif
-        });
-
-        std::chrono::time_point<std::chrono::system_clock> stop_time = std::chrono::system_clock::now();
-        auto eta = std::chrono::duration_cast<std::chrono::microseconds>(stop_time - start_time);
-
-        std::cout <<"[DEBUG] " << "Flushing took " << static_cast<double>(eta.count()) / 1000000.0 << " seconds." << std::endl;
-
-    }
-
     blob_t *ptr(std::uint32_t pos = 0) const {
         return (blob_t *)(m_mmap->data() + pos);
     }
@@ -190,7 +160,6 @@ class XcpLogFileWriter {
                 detail::VERSION, m_metadata.empty() ? 0 : XMRAW_HAS_METADATA, m_num_containers, m_record_count,
                 m_total_size_compressed, m_total_size_uncompressed
             );
-            flush();
         }
         container.record_count      = m_container_record_count;
         container.size_compressed   = cp_size;
@@ -209,7 +178,7 @@ class XcpLogFileWriter {
         m_num_containers += 1;
     }
 
-    void write_bytes(std::uint32_t pos, std::uint32_t count, char const *buf) const {
+    void write_bytes(std::uint64_t pos, std::uint64_t count, char const *buf) const {
         auto addr = reinterpret_cast<char *>(ptr(pos));
 
         _fcopy(addr, buf, count);
@@ -234,7 +203,6 @@ class XcpLogFileWriter {
     void write_metadata() {
         if (!m_metadata.empty()) {
             write_bytes(detail::MAGIC_SIZE + detail::FILE_HEADER_SIZE, m_metadata.size(), m_metadata.c_str());
-            flush();
         }
     }
 
@@ -265,7 +233,6 @@ class XcpLogFileWriter {
                     compress_frames();
                 }
             }
-            std::cout << "Exiting collector_thread()\n";
         });
 
         return true;
@@ -284,28 +251,26 @@ class XcpLogFileWriter {
    private:
 
     std::string           m_file_name;
-    std::uint32_t         m_offset{ 0 };
-    std::uint32_t         m_chunk_size{ 0 };
+    std::uint64_t         m_offset{ 0 };
+    std::uint64_t         m_chunk_size{ 0 };
     std::string           m_metadata;
-    std::uint32_t         m_num_containers{ 0 };
-    std::uint32_t         m_record_count{ 0UL };
-    std::uint32_t         m_container_record_count{ 0UL };
-    std::uint32_t         m_total_size_uncompressed{ 0UL };
-    std::uint32_t         m_total_size_compressed{ 0UL };
-    std::uint32_t         m_container_size_uncompressed{ 0UL };
-    std::uint32_t         m_container_size_compressed{ 0UL };
+    std::uint64_t         m_num_containers{ 0 };
+    std::uint64_t         m_record_count{ 0UL };
+    std::uint64_t         m_container_record_count{ 0UL };
+    std::uint64_t         m_total_size_uncompressed{ 0UL };
+    std::uint64_t         m_total_size_compressed{ 0UL };
+    std::uint64_t         m_container_size_uncompressed{ 0UL };
+    std::uint64_t         m_container_size_compressed{ 0UL };
     __ALIGN blob_t       *m_intermediate_storage{ nullptr };
-    std::uint32_t         m_intermediate_storage_offset{ 0 };
-    std::uint32_t         m_hard_limit{0};
+    std::uint64_t         m_intermediate_storage_offset{ 0 };
+    std::uint64_t         m_hard_limit{0};
     mio::file_handle_type m_fd{ INVALID_HANDLE_VALUE };
     mio::mmap_sink       *m_mmap{ nullptr };
     bool                  m_finalized{ false };
 #ifdef __APPLE__
     std::thread collector_thread{};
-    std::thread flushing_thread{};
 #else
     std::jthread collector_thread{};
-    std::jthread flushing_thread{};
 #endif
     std::mutex                             mtx;
     TsQueue<FrameTupleWriter>              my_queue;

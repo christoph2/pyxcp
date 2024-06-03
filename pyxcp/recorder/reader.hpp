@@ -77,7 +77,7 @@ class XcpLogFileReader {
     std::optional<FrameVector> next_block() {
         auto          container = ContainerHeaderType{};
         auto          frame     = frame_header_t{};
-        std::uint32_t boffs     = 0;
+        std::uint64_t boffs     = 0;
         auto          result    = FrameVector{};
         payload_t     payload;
 
@@ -96,7 +96,7 @@ class XcpLogFileReader {
             throw std::runtime_error("LZ4 decompression failed.");
         }
         boffs = 0;
-        for (std::uint32_t idx = 0; idx < container.record_count; ++idx) {
+        for (std::uint64_t idx = 0; idx < container.record_count; ++idx) {
             _fcopy(reinterpret_cast<char *>(&frame), reinterpret_cast<char const *>(&(buffer[boffs])), sizeof(frame_header_t));
             boffs += sizeof(frame_header_t);
             result.emplace_back(
@@ -117,11 +117,11 @@ class XcpLogFileReader {
 
    protected:
 
-    [[nodiscard]] blob_t const *ptr(std::uint32_t pos = 0) const {
+    [[nodiscard]] blob_t const *ptr(std::uint64_t pos = 0) const {
         return reinterpret_cast<blob_t const *>(m_mmap->data() + pos);
     }
 
-    void read_bytes(std::uint32_t pos, std::uint32_t count, blob_t *buf) const {
+    void read_bytes(std::uint64_t pos, std::uint64_t count, blob_t *buf) const {
         auto addr = reinterpret_cast<char const *>(ptr(pos));
         _fcopy(reinterpret_cast<char *>(buf), addr, count);
     }
@@ -129,8 +129,8 @@ class XcpLogFileReader {
    private:
 
     std::string       m_file_name;
-    std::uint32_t     m_offset{ 0 };
-    std::uint32_t     m_current_container{ 0 };
+    std::uint64_t     m_offset{ 0 };
+    std::uint64_t     m_current_container{ 0 };
     mio::mmap_source *m_mmap{ nullptr };
     FileHeaderType    m_header;
     std::string       m_metadata;

@@ -20,18 +20,18 @@ using measurement_tuple_t = std::tuple<std::uint16_t, double, double, std::vecto
 using measurement_callback_t = std::function<void(std::uint16_t, double, double, std::vector<measurement_value_t>)>;
 
 template<typename Ty>
-auto get_value(blob_t const * buf, std::uint32_t offset) -> Ty {
+auto get_value(blob_t const * buf, std::uint64_t offset) -> Ty {
     return *reinterpret_cast<Ty const *>(&buf[offset]);
 }
 
 template<typename Ty>
-auto get_value_swapped(blob_t const * buf, std::uint32_t offset) -> Ty {
+auto get_value_swapped(blob_t const * buf, std::uint64_t offset) -> Ty {
     return _bswap(get_value<Ty>(buf, offset));
 }
 
 #if HAS_FLOAT16==1
 template<>
-auto get_value<std::float16_t>(blob_t const * buf, std::uint32_t offset) -> std::float16_t {
+auto get_value<std::float16_t>(blob_t const * buf, std::uint64_t offset) -> std::float16_t {
     auto tmp = get_value<std::uint16_t>(buf, offset);
 
     return *(reinterpret_cast<std::float16_t*>(&tmp));
@@ -40,7 +40,7 @@ auto get_value<std::float16_t>(blob_t const * buf, std::uint32_t offset) -> std:
 
 #if HAS_BFLOAT16==1
 template<>
-auto get_value<std::bfloat16_t>(blob_t const * buf, std::uint32_t offset) -> std::bfloat16_t {
+auto get_value<std::bfloat16_t>(blob_t const * buf, std::uint64_t offset) -> std::bfloat16_t {
     auto tmp = get_value<std::uint16_t>(buf, offset);
 
     return *(reinterpret_cast<std::bfloat16_t*>(&tmp));
@@ -49,14 +49,14 @@ auto get_value<std::bfloat16_t>(blob_t const * buf, std::uint32_t offset) -> std
 
 
 template<>
-auto get_value<float>(blob_t const * buf, std::uint32_t offset) -> float {
+auto get_value<float>(blob_t const * buf, std::uint64_t offset) -> float {
     auto tmp = get_value<std::uint32_t>(buf, offset);
 
     return *(reinterpret_cast<float*>(&tmp));
 }
 
 template<>
-auto get_value<double>(blob_t const * buf, std::uint32_t offset) -> double {
+auto get_value<double>(blob_t const * buf, std::uint64_t offset) -> double {
     auto tmp = get_value<std::uint64_t>(buf, offset);
 
     return *(reinterpret_cast<double*>(&tmp));
@@ -64,7 +64,7 @@ auto get_value<double>(blob_t const * buf, std::uint32_t offset) -> double {
 
 #if HAS_FLOAT16==1
 template<>
-auto get_value_swapped<std::float16_t>(blob_t const * buf, std::uint32_t offset) -> std::float16_t {
+auto get_value_swapped<std::float16_t>(blob_t const * buf, std::uint64_t offset) -> std::float16_t {
     auto tmp = get_value_swapped<std::uint16_t>(buf, offset);
 
     return *(reinterpret_cast<std::float16_t*>(&tmp));
@@ -73,7 +73,7 @@ auto get_value_swapped<std::float16_t>(blob_t const * buf, std::uint32_t offset)
 
 #if HAS_BFLOAT16==1
 template<>
-auto get_value_swapped<std::bfloat16_t>(blob_t const * buf, std::uint32_t offset) -> std::bfloat16_t {
+auto get_value_swapped<std::bfloat16_t>(blob_t const * buf, std::uint64_t offset) -> std::bfloat16_t {
     auto tmp = get_value_swapped<std::uint16_t>(buf, offset);
 
     return *(reinterpret_cast<std::bfloat16_t*>(&tmp));
@@ -82,46 +82,46 @@ auto get_value_swapped<std::bfloat16_t>(blob_t const * buf, std::uint32_t offset
 
 
 template<>
-auto get_value_swapped<float>(blob_t const * buf, std::uint32_t offset) -> float {
+auto get_value_swapped<float>(blob_t const * buf, std::uint64_t offset) -> float {
     auto tmp = get_value_swapped<std::uint32_t>(buf, offset);
 
     return *(reinterpret_cast<float*>(&tmp));
 }
 
 template<>
-auto get_value_swapped<double>(blob_t const * buf, std::uint32_t offset) -> double {
+auto get_value_swapped<double>(blob_t const * buf, std::uint64_t offset) -> double {
     auto tmp = get_value_swapped<std::uint64_t>(buf, offset);
 
     return *(reinterpret_cast<double*>(&tmp));
 }
 
 template<>
-auto get_value<std::int16_t>(blob_t const * buf, std::uint32_t offset) -> std::int16_t {
+auto get_value<std::int16_t>(blob_t const * buf, std::uint64_t offset) -> std::int16_t {
     return static_cast<std::int16_t>(get_value<uint16_t>(buf, offset));
 }
 
 template<>
-auto get_value_swapped<std::int16_t>(blob_t const * buf, std::uint32_t offset) -> std::int16_t {
+auto get_value_swapped<std::int16_t>(blob_t const * buf, std::uint64_t offset) -> std::int16_t {
     return static_cast<std::int16_t>(get_value_swapped<uint16_t>(buf, offset));
 }
 
 template<>
-auto get_value<std::int32_t>(blob_t const * buf, std::uint32_t offset) -> std::int32_t {
+auto get_value<std::int32_t>(blob_t const * buf, std::uint64_t offset) -> std::int32_t {
     return static_cast<std::int32_t>(get_value<uint32_t>(buf, offset));
 }
 
 template<>
-auto get_value_swapped<std::int32_t>(blob_t const * buf, std::uint32_t offset) -> std::int32_t {
+auto get_value_swapped<std::int32_t>(blob_t const * buf, std::uint64_t offset) -> std::int32_t {
     return static_cast<std::int32_t>(get_value_swapped<uint32_t>(buf, offset));
 }
 
 template<>
-auto get_value<std::int64_t>(blob_t const * buf, std::uint32_t offset) -> std::int64_t {
+auto get_value<std::int64_t>(blob_t const * buf, std::uint64_t offset) -> std::int64_t {
     return static_cast<std::int64_t>(get_value<uint64_t>(buf, offset));
 }
 
 template<>
-auto get_value_swapped<std::int64_t>(blob_t const * buf, std::uint32_t offset) -> std::int64_t {
+auto get_value_swapped<std::int64_t>(blob_t const * buf, std::uint64_t offset) -> std::int64_t {
     return static_cast<std::int64_t>(get_value_swapped<uint64_t>(buf, offset));
 }
 
@@ -129,96 +129,96 @@ auto get_value_swapped<std::int64_t>(blob_t const * buf, std::uint32_t offset) -
 /////////////////////////////////////////////////////
 /////////////////////////////////////////////////////
 template<typename Ty>
-void set_value(blob_t * buf, std::uint32_t offset, Ty value) {
+void set_value(blob_t * buf, std::uint64_t offset, Ty value) {
     ::memcpy(&buf[offset], &value, sizeof(Ty));
 }
 
 template<typename Ty>
-void set_value_swapped(blob_t * buf, std::uint32_t offset, Ty value) {
+void set_value_swapped(blob_t * buf, std::uint64_t offset, Ty value) {
     set_value<Ty>(buf, offset, _bswap(value));
 }
 
 template<>
-void set_value<std::int8_t>(blob_t * buf, std::uint32_t offset, std::int8_t value) {
+void set_value<std::int8_t>(blob_t * buf, std::uint64_t offset, std::int8_t value) {
     buf[offset] = static_cast<blob_t>(value);
 }
 
 template<>
-void set_value<std::uint8_t>(blob_t * buf, std::uint32_t offset, std::uint8_t value) {
+void set_value<std::uint8_t>(blob_t * buf, std::uint64_t offset, std::uint8_t value) {
     buf[offset] = static_cast<blob_t>(value);
 }
 
 template<>
-void set_value<std::int16_t>(blob_t * buf, std::uint32_t offset, std::int16_t value) {
+void set_value<std::int16_t>(blob_t * buf, std::uint64_t offset, std::int16_t value) {
     set_value<std::uint16_t>(buf, offset, static_cast<std::uint16_t>(value));
 }
 
 template<>
-void set_value_swapped<std::int16_t>(blob_t * buf, std::uint32_t offset, std::int16_t value) {
+void set_value_swapped<std::int16_t>(blob_t * buf, std::uint64_t offset, std::int16_t value) {
     set_value_swapped<std::uint16_t>(buf, offset, static_cast<std::uint16_t>(value));
 }
 
 template<>
-void set_value<std::int32_t>(blob_t * buf, std::uint32_t offset, std::int32_t value) {
+void set_value<std::int32_t>(blob_t * buf, std::uint64_t offset, std::int32_t value) {
     set_value<std::uint32_t>(buf, offset, static_cast<std::uint32_t>(value));
 }
 
 template<>
-void set_value_swapped<std::int32_t>(blob_t * buf, std::uint32_t offset, std::int32_t value) {
+void set_value_swapped<std::int32_t>(blob_t * buf, std::uint64_t offset, std::int32_t value) {
     set_value_swapped<std::uint32_t>(buf, offset, static_cast<std::uint32_t>(value));
 }
 
 template<>
-void set_value<std::int64_t>(blob_t * buf, std::uint32_t offset, std::int64_t value) {
+void set_value<std::int64_t>(blob_t * buf, std::uint64_t offset, std::int64_t value) {
     set_value<std::uint64_t>(buf, offset, static_cast<std::uint64_t>(value));
 }
 
 template<>
-void set_value_swapped<std::int64_t>(blob_t * buf, std::uint32_t offset, std::int64_t value) {
+void set_value_swapped<std::int64_t>(blob_t * buf, std::uint64_t offset, std::int64_t value) {
     set_value_swapped<std::uint64_t>(buf, offset, static_cast<std::uint64_t>(value));
 }
 
 #if HAS_FLOAT16==1
 template<>
-void set_value<std::float16_t>(blob_t * buf, std::uint32_t offset, std::float16_t value) {
+void set_value<std::float16_t>(blob_t * buf, std::uint64_t offset, std::float16_t value) {
     set_value<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
 }
 
 template<>
-void set_value_swapped<std::float16_t>(blob_t * buf, std::uint32_t offset, std::float16_t value) {
+void set_value_swapped<std::float16_t>(blob_t * buf, std::uint64_t offset, std::float16_t value) {
     set_value_swapped<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
 }
 #endif
 
 #if HAS_BFLOAT16==1
 template<>
-void set_value<std::bfloat16_t>(blob_t * buf, std::uint32_t offset, std::bfloat16_t value) {
+void set_value<std::bfloat16_t>(blob_t * buf, std::uint64_t offset, std::bfloat16_t value) {
     set_value<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
 }
 
 template<>
-void set_value_swapped<std::bfloat16_t>(blob_t * buf, std::uint32_t offset, std::bfloat16_t value) {
+void set_value_swapped<std::bfloat16_t>(blob_t * buf, std::uint64_t offset, std::bfloat16_t value) {
     set_value_swapped<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
 }
 #endif
 
 template<>
-void set_value<float>(blob_t * buf, std::uint32_t offset, float value) {
+void set_value<float>(blob_t * buf, std::uint64_t offset, float value) {
     set_value<std::uint32_t>(buf, offset, *reinterpret_cast<std::uint32_t*>(&value));
 }
 
 template<>
-void set_value_swapped<float>(blob_t * buf, std::uint32_t offset, float value) {
+void set_value_swapped<float>(blob_t * buf, std::uint64_t offset, float value) {
     set_value_swapped<std::uint32_t>(buf, offset, *reinterpret_cast<std::uint32_t*>(&value));
 }
 
 template<>
-void set_value<double>(blob_t * buf, std::uint32_t offset, double value) {
+void set_value<double>(blob_t * buf, std::uint64_t offset, double value) {
     set_value<std::uint64_t>(buf, offset, *reinterpret_cast<std::uint64_t*>(&value));
 }
 
 template<>
-void set_value_swapped<double>(blob_t * buf, std::uint32_t offset, double value) {
+void set_value_swapped<double>(blob_t * buf, std::uint64_t offset, double value) {
     set_value_swapped<std::uint64_t>(buf, offset, *reinterpret_cast<std::uint64_t*>(&value));
 }
 
@@ -353,21 +353,21 @@ struct Getter {
 
     std::uint8_t                                                           m_id_size;
     std::uint8_t                                                           m_ts_size;
-    std::function<std::int8_t(blob_t const * buf, std::uint32_t offset)>   int8;
-    std::function<std::uint8_t(blob_t const * buf, std::uint32_t offset)>  uint8;
-    std::function<std::int16_t(blob_t const * buf, std::uint32_t offset)>  int16;
-    std::function<std::int32_t(blob_t const * buf, std::uint32_t offset)>  int32;
-    std::function<std::int64_t(blob_t const * buf, std::uint32_t offset)>  int64;
-    std::function<std::uint16_t(blob_t const * buf, std::uint32_t offset)> uint16;
-    std::function<std::uint32_t(blob_t const * buf, std::uint32_t offset)> uint32;
-    std::function<std::uint64_t(blob_t const * buf, std::uint32_t offset)> uint64;
-    std::function<float(blob_t const * buf, std::uint32_t offset)>         float_;
-    std::function<double(blob_t const * buf, std::uint32_t offset)>        double_;
+    std::function<std::int8_t(blob_t const * buf, std::uint64_t offset)>   int8;
+    std::function<std::uint8_t(blob_t const * buf, std::uint64_t offset)>  uint8;
+    std::function<std::int16_t(blob_t const * buf, std::uint64_t offset)>  int16;
+    std::function<std::int32_t(blob_t const * buf, std::uint64_t offset)>  int32;
+    std::function<std::int64_t(blob_t const * buf, std::uint64_t offset)>  int64;
+    std::function<std::uint16_t(blob_t const * buf, std::uint64_t offset)> uint16;
+    std::function<std::uint32_t(blob_t const * buf, std::uint64_t offset)> uint32;
+    std::function<std::uint64_t(blob_t const * buf, std::uint64_t offset)> uint64;
+    std::function<float(blob_t const * buf, std::uint64_t offset)>         float_;
+    std::function<double(blob_t const * buf, std::uint64_t offset)>        double_;
 #if HAS_FLOAT16==1
-    std::function<std::float16_t(blob_t const * buf, std::uint32_t offset)>     float16;
+    std::function<std::float16_t(blob_t const * buf, std::uint64_t offset)>     float16;
 #endif
 #if HAS_BFLOAT16==1
-    std::function<std::bfloat16_t(blob_t const * buf, std::uint32_t offset)>    bfloat16;
+    std::function<std::bfloat16_t(blob_t const * buf, std::uint64_t offset)>    bfloat16;
 #endif
     std::vector<std::uint16_t>                                             m_first_pids;
     std::map<std::uint16_t, std::tuple<std::uint16_t, std::uint16_t>>      m_odt_to_daq_map;
@@ -500,21 +500,21 @@ struct Setter {
 #endif
     std::uint8_t                                                           m_id_size;
     std::uint8_t                                                           m_ts_size;
-    std::function<void(blob_t * buf, std::uint32_t offset, std::int8_t)>   int8;
-    std::function<void(blob_t * buf, std::uint32_t offset, std::uint8_t)>  uint8;
-    std::function<void(blob_t * buf, std::uint32_t offset, std::int16_t)>  int16;
-    std::function<void(blob_t * buf, std::uint32_t offset, std::int32_t)>  int32;
-    std::function<void(blob_t * buf, std::uint32_t offset, std::int64_t)>  int64;
-    std::function<void(blob_t * buf, std::uint32_t offset, std::uint16_t)> uint16;
-    std::function<void(blob_t * buf, std::uint32_t offset, std::uint32_t)> uint32;
-    std::function<void(blob_t * buf, std::uint32_t offset, std::uint64_t)> uint64;
-    std::function<void(blob_t * buf, std::uint32_t offset, float)>         float_;
-    std::function<void(blob_t * buf, std::uint32_t offset, double)>        double_;
+    std::function<void(blob_t * buf, std::uint64_t offset, std::int8_t)>   int8;
+    std::function<void(blob_t * buf, std::uint64_t offset, std::uint8_t)>  uint8;
+    std::function<void(blob_t * buf, std::uint64_t offset, std::int16_t)>  int16;
+    std::function<void(blob_t * buf, std::uint64_t offset, std::int32_t)>  int32;
+    std::function<void(blob_t * buf, std::uint64_t offset, std::int64_t)>  int64;
+    std::function<void(blob_t * buf, std::uint64_t offset, std::uint16_t)> uint16;
+    std::function<void(blob_t * buf, std::uint64_t offset, std::uint32_t)> uint32;
+    std::function<void(blob_t * buf, std::uint64_t offset, std::uint64_t)> uint64;
+    std::function<void(blob_t * buf, std::uint64_t offset, float)>         float_;
+    std::function<void(blob_t * buf, std::uint64_t offset, double)>        double_;
 #if HAS_FLOAT16==1
-    std::function<void(blob_t * buf, std::uint32_t offset, std::float16_t)> float16;
+    std::function<void(blob_t * buf, std::uint64_t offset, std::float16_t)> float16;
 #endif
 #if HAS_BFLOAT16==1
-    std::function<void(blob_t * buf, std::uint32_t offset, std::bfloat16_t)> bfloat16;
+    std::function<void(blob_t * buf, std::uint64_t offset, std::bfloat16_t)> bfloat16;
 #endif
     std::map<std::uint16_t, std::tuple<std::uint16_t, std::uint16_t>>      m_odt_to_daq_map;
 };
@@ -1051,7 +1051,7 @@ public:
         m_writer->add_frame(frame_cat, counter, timestamp, static_cast<std::uint16_t>(payload.size()), payload.c_str());
     }
 
-    void create_writer(const std::string& file_name, std::uint32_t prealloc, std::uint32_t chunk_size, std::string_view metadata) {
+    void create_writer(const std::string& file_name, std::uint64_t prealloc, std::uint64_t chunk_size, std::string_view metadata) {
         m_writer = std::make_unique<XcpLogFileWriter>(file_name, prealloc, chunk_size, metadata);
     }
 

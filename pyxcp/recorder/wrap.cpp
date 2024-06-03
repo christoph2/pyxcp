@@ -106,7 +106,7 @@ PYBIND11_MODULE(rekorder, m) {
     ;
 
     py::class_<XcpLogFileWriter>(m, "_PyXcpLogFileWriter")
-        .def(py::init<const std::string &, std::uint32_t, std::uint32_t, std::string_view>(),
+        .def(py::init<const std::string &, std::uint64_t, std::uint64_t, std::string_view>(),
             py::arg("filename"), py::arg("prealloc"), py::arg("chunk_size"), py::arg("metadata")="")
         .def("finalize", &XcpLogFileWriter::finalize)
         .def("add_frame", &XcpLogFileWriter::add_frame)
