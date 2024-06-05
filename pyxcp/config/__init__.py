@@ -27,9 +27,6 @@ from traitlets.config import Application, Instance, SingletonConfigurable
 from pyxcp.config import legacy
 
 
-# warnings.simplefilter("always")
-
-
 class CanBase:
     has_fd = False
     has_bitrate = True
@@ -708,8 +705,19 @@ class SxI(SingletonConfigurable):
             "HEADER_LEN_CTR_WORD",
             "HEADER_LEN_FILL_WORD",
         ],
-        default_value="HEADER_LEN_BYTE",
-        help="XCPonSxI header format.",
+        default_value="HEADER_LEN_CTR_WORD",
+        help="""XCPonSxI header format.
+Number of bytes:
+
+                            LEN CTR FILL
+______________________________________________________________
+HEADER_LEN_BYTE         |   1   X   X
+HEADER_LEN_CTR_BYTE     |   1   1   X
+HEADER_LEN_FILL_BYTE    |   1   X   1
+HEADER_LEN_WORD         |   2   X   X
+HEADER_LEN_CTR_WORD     |   2   2   X
+HEADER_LEN_FILL_WORD    |   2   X   2
+""",
     ).tag(config=True)
     tail_format = Enum(
         ["NO_CHECKSUM", "CHECKSUM_BYTE", "CHECKSUM_WORD"], default_value="NO_CHECKSUM", help="XCPonSxI tail format."
@@ -808,7 +816,7 @@ if there is no response to a command.""",
 class General(SingletonConfigurable):
     """ """
 
-    loglevel = Unicode("WARN", help="Set the log level by value or name.").tag(config=True)
+    loglevel = Unicode("INFO", help="Set the log level by value or name.").tag(config=True)
     disable_error_handling = Bool(False, help="Disable XCP error-handler for performance reasons.").tag(config=True)
     disconnect_response_optional = Bool(False, help="Ignore missing response on DISCONNECT request.").tag(config=True)
     seed_n_key_dll = Unicode("", allow_none=False, help="Dynamic library used for slave resource unlocking.").tag(config=True)
@@ -867,6 +875,7 @@ class ProfileConvert(Application):
                 pyxcp.generate_config_file(out_file)
         else:
             pyxcp.generate_config_file(sys.stdout)
+
 
 class ProfileApp(Application):
     subcommands = Dict(

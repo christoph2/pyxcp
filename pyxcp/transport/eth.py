@@ -14,6 +14,23 @@ DEFAULT_XCP_PORT = 5555
 RECV_SIZE = 8196
 
 
+def socket_to_str(sock: socket.socket) -> str:
+    peer = sock.getpeername()
+    local = sock.getsockname()
+    AF = {
+        socket.AF_INET: "AF_INET",
+        socket.AF_INET6: "AF_INET6",
+    }
+    TYPE = {
+        socket.SOCK_DGRAM: "SOCK_DGRAM",
+        socket.SOCK_STREAM: "SOCK_STREAM",
+    }
+    family = AF.get(sock.family, "OTHER")
+    typ = TYPE.get(sock.type, "UNKNOWN")
+    res = f"Connected to: {peer[0]}:{peer[1]}    local address: {local[0]}:{local[1]} [{family}][{typ}]"
+    return res
+
+
 class Eth(BaseTransport):
     """"""
 
@@ -83,6 +100,7 @@ class Eth(BaseTransport):
     def connect(self):
         if self.status == 0:
             self.sock.connect(self.sockaddr)
+            self.logger.info(socket_to_str(self.sock))
             self.startListener()
             self.status = 1  # connected
 

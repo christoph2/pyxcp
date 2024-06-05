@@ -121,6 +121,25 @@ else:
         ),
     ]
 
+DAQ_LISTS = [
+    DaqList(
+        "mkrzero_floats",
+        0,
+        False,
+        True,
+        [
+            ("floatCounter1", 0x6A77, 0, "F32"),
+            ("floatCounter2", 0x6A7B, 0, "F32"),
+            ("floatCounter3", 0x6A7F, 0, "F32"),
+            ("floatCounter4", 0x6A83, 0, "F32"),
+            ("floatCounter5", 0x6A87, 0, "F32"),
+            ("floatCounter6", 0x6A8B, 0, "F32"),
+            ("floatCounter7", 0x6A8F, 0, "F32"),
+            ("floatCounter8", 0x6A93, 0, "F32"),
+        ],
+    ),
+]
+
 # daq_parser = DaqToCsv(DAQ_LISTS)  # Saves  our measurement data to one or more CSV file(s)k.
 
 daq_parser = DaqRecorder(DAQ_LISTS, "run_daq", 2)
