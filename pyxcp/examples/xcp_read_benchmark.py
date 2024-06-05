@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from pyxcp.cmdline import ArgumentParser
+from pyxcp.transport import FrameRecorderPolicy
 
 
 sns.set()
@@ -16,7 +17,8 @@ ADDR = 0x4000
 LENGTH = 0x1000
 ITERATIONS = 100
 
-ap = ArgumentParser(description="pyXCP hello world.")
+recorder_policy = FrameRecorderPolicy()  # Create frame recorder.
+ap = ArgumentParser(description="pyXCP hello world.", policy=recorder_policy)
 with ap.run() as x:
     xs = []
     ys = []

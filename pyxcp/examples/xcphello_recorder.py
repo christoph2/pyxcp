@@ -80,7 +80,7 @@ with ap.run(recorder_policy) as x:  # parameter policy is new.
             print("=================")
             print(f"{x.getDaqListInfo(idx)}")
     x.disconnect()
-
+print("After recording...")
 ##
 ## Now read and dump recorded frames.
 ##
