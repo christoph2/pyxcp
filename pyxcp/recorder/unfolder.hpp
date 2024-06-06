@@ -1171,12 +1171,4 @@ class XcpLogFileUnfolder {
     MeasurementParameters         m_params;
 };
 
-#if 0
-      wrap.obj : error LNK2001: Nicht aufgel”stes externes Symbol ""public: virtual void __cdecl XcpLogFileUnfolder::on_daq_list(
-		unsigned short,double,double,
-			class std::vector<class std::variant<__int64,unsigned __int64,long double,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > >,
-			class std::allocator<class std::variant<__int64,unsigned __int64,long double,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > > > > const &)
-			" (?on_daq_list@XcpLogFileUnfolder@@UEAAXGNNAEBV?$vector@V?$variant@_J_KOV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@std@@V?$allocator@V?$variant@_J_KOV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@std@@@2@@std@@@Z)".
-#endif
-
 #endif  // RECORDER_UNFOLDER_HPP
