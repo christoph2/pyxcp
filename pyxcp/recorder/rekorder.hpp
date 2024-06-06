@@ -204,7 +204,7 @@ std::error_code get_last_error() {
 }
 
 #else
-inline error_string(std::string_view func, std::error_code error_code) {
+inline std::string error_string(std::string_view func, std::error_code error_code) {
     std::ostringstream ss;
 
     auto message = strerror(static_cast<int>(error_code.value()));

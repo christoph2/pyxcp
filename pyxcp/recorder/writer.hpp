@@ -152,7 +152,7 @@ class XcpLogFileWriter {
         // printf("comp: %d %d [%f]\n", m_intermediate_storage_offset,  cp_size, double(m_intermediate_storage_offset) /
         // double(cp_size));
         if (m_offset > (m_hard_limit >> 1)) {
-            std::cout <<"[INFO] " << std::chrono::system_clock::now() << ": Doubling measurement file size." << std::endl;
+            // std::cout <<"[INFO] " << std::chrono::system_clock::now() << ": Doubling measurement file size." << std::endl;
             m_hard_limit <<= 1;
             truncate(m_hard_limit, true);
             write_header(

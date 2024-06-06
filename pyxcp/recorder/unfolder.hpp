@@ -700,12 +700,12 @@ protected:
         stim = from_binary<bool>();
         enable_timestamps = from_binary<bool>();
 
-        odt_count = from_binary<std::uint16_t>();
-        total_entries = from_binary<std::uint16_t>();
-        total_length = from_binary<std::uint16_t>();
+        odt_count = from_binary<std::uint16_t>();   // not used
+        total_entries = from_binary<std::uint16_t>();   // not used
+        total_length = from_binary<std::uint16_t>();    // not used
 
         std::size_t meas_size = from_binary<std::size_t>();
-        for (auto i = 0; i < meas_size; ++i) {
+        for (std::size_t i = 0; i < meas_size; ++i) {
             // name, address, ext, dt_name
             auto meas = create_mc_object();
             measurements.push_back(meas);
@@ -713,12 +713,12 @@ protected:
         }
 
         std::size_t meas_opt_size = from_binary<std::size_t>();
-        for (auto i = 0; i < meas_opt_size; ++i) {
+        for (std::size_t i = 0; i < meas_opt_size; ++i) {
             measurements_opt.emplace_back(create_bin());
         }
 
         std::size_t hname_size = from_binary<std::size_t>();
-        for (auto i = 0; i < hname_size; ++i) {
+        for (std::size_t i = 0; i < hname_size; ++i) {
             auto header = from_binary<std::string>();
             header_names.push_back(header);
         }
@@ -740,10 +740,10 @@ protected:
         flatten_odts_t odts;
 
         std::size_t odt_count = from_binary<std::size_t>();
-        for (auto i = 0; i < odt_count; ++i) {
+        for (std::size_t i = 0; i < odt_count; ++i) {
             std::vector<std::tuple<std::string, std::uint32_t, std::uint8_t, std::uint16_t, std::int16_t>> flatten_odt{};
             std::size_t odt_entry_count = from_binary<std::size_t>();
-            for (auto j = 0; j < odt_entry_count; ++j) {
+            for (std::size_t j = 0; j < odt_entry_count; ++j) {
                 name = from_binary<std::string>();
                 address = from_binary<std::uint32_t>();
                 ext = from_binary<std::uint8_t>();
@@ -771,7 +771,7 @@ protected:
         ext        = from_binary<std::uint8_t>();
         length     = from_binary<std::uint16_t>();
         data_type  = from_binary<std::string>();
-        type_index = from_binary<std::int16_t>();
+        type_index = from_binary<std::int16_t>();   // not used
         std::size_t comp_size = from_binary<std::size_t>();
         for (auto i=0U; i < comp_size; i++) {
             components.push_back(create_mc_object());
@@ -1043,7 +1043,7 @@ public:
         DAQPolicyBase::set_parameters(params);
     }
 
-    void feed(std::uint8_t frame_cat, std::uint16_t counter, double timestamp, const std::string& payload) {
+    void feed(std::uint8_t frame_cat, std::uint16_t counter, double timestamp, const std::string& payload) override {
         if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
             // Only record DAQ frames for now.
             return;
@@ -1055,11 +1055,11 @@ public:
         m_writer = std::make_unique<XcpLogFileWriter>(file_name, prealloc, chunk_size, metadata);
     }
 
-    void initialize() {
+    void initialize() override {
         // TODO: Save meta-data.
     }
 
-    void finalize() {
+    void finalize() override {
         m_writer->finalize();
     }
 
@@ -1128,6 +1128,7 @@ class XcpLogFileUnfolder {
     }
 
     XcpLogFileUnfolder() = delete;
+    virtual ~XcpLogFileUnfolder() = default;
 
 
 	void run() {
@@ -1136,7 +1137,7 @@ class XcpLogFileUnfolder {
 			std::string result;
 			result.resize(length);
 
-			for (auto idx=0; idx < length; ++idx) {
+			for (std::size_t idx=0; idx < length; ++idx) {
 				result[idx] = static_cast<char>(in_str[idx]);
 			}
 
