@@ -5,12 +5,11 @@
 #ifndef PYXCP_LINREG_HPP
 #define PYXCP_LINREG_HPP
 
+#include <cmath>
+#include <cstdlib>
 #include <iostream>
 #include <ranges>
 #include <vector>
-
-#include <cstdlib>
-#include <cmath>
 
 #if 0
     #include "linreg.h"
@@ -33,19 +32,16 @@
 #define ERR_EQUALS 1.05
 
 struct servo {
-    double max_frequency;
-    double step_threshold;
-    double first_step_threshold;
-    int first_update;
+    double  max_frequency;
+    double  step_threshold;
+    double  first_step_threshold;
+    int     first_update;
     int64_t offset_threshold;
-    int num_offset_values;
-    int curr_offset_values;
+    int     num_offset_values;
+    int     curr_offset_values;
 
     void (*destroy)(struct servo *servo);
-f
-    double (*sample)(struct servo *servo,
-                     int64_t offset, uint64_t local_ts, double weight,
-                     enum servo_state *state);
+    f double (*sample)(struct servo *servo, int64_t offset, uint64_t local_ts, double weight, enum servo_state *state);
 
     void (*sync_interval)(struct servo *servo, double interval);
 
@@ -56,12 +52,11 @@ f
     void (*leap)(struct servo *servo, int leap);
 };
 
-
 /* Uncorrected local time vs remote time */
 struct point {
     uint64_t x;
     uint64_t y;
-    double w;
+    double   w;
 };
 
 struct result {
@@ -104,23 +99,17 @@ struct linreg_servo {
 
 class LinearRegression {
    public:
-
-
    private:
-
 };
 
-
-static void linreg_destroy(struct servo *servo)
-{
+static void linreg_destroy(struct servo *servo) {
     struct linreg_servo *s = container_of(servo, struct linreg_servo, servo);
     free(s);
 }
 
-static void move_reference(struct linreg_servo *s, int64_t x, int64_t y)
-{
+static void move_reference(struct linreg_servo *s, int64_t x, int64_t y) {
     struct result *res;
-    unsigned int i;
+    unsigned int   i;
 
     s->reference.x += x;
     s->reference.y += y;
@@ -132,9 +121,8 @@ static void move_reference(struct linreg_servo *s, int64_t x, int64_t y)
     }
 }
 
-static void update_reference(struct linreg_servo *s, uint64_t local_ts)
-{
-    double x_interval;
+static void update_reference(struct linreg_servo *s, uint64_t local_ts) {
+    double  x_interval;
     int64_t y_interval;
 
     if (s->last_update) {
@@ -151,8 +139,7 @@ static void update_reference(struct linreg_servo *s, uint64_t local_ts)
     s->last_update = local_ts;
 }
 
-static void add_sample(struct linreg_servo *s, int64_t offset, double weight)
-{
+static void add_sample(struct linreg_servo *s, int64_t offset, double weight) {
     s->last_point = (s->last_point + 1) % MAX_POINTS;
 
     s->points[s->last_point].x = s->reference.x;
@@ -163,14 +150,14 @@ static void add_sample(struct linreg_servo *s, int64_t offset, double weight)
         s->num_points++;
 }
 
-static void regress(struct linreg_servo *s)
-{
-    double x, y, y0, e, x_sum, y_sum, xy_sum, x2_sum, w, w_sum;
-    unsigned int i, l, n, size;
+static void regress(struct linreg_servo *s) {
+    double         x, y, y0, e, x_sum, y_sum, xy_sum, x2_sum, w, w_sum;
+    unsigned int   i, l, n, size;
     struct result *res;
 
-    x_sum = 0.0, y_sum = 0.0, xy_sum = 0.0, x2_sum = 0.0; w_sum = 0.0;
-    i = 0;
+    x_sum = 0.0, y_sum = 0.0, xy_sum = 0.0, x2_sum = 0.0;
+    w_sum = 0.0;
+    i     = 0;
 
     y0 = (int64_t)(s->points[s->last_point].y - s->reference.y);
 
@@ -211,52 +198,43 @@ static void regress(struct linreg_servo *s)
         }
 
         /* Get new intercept and slope */
-        res->slope = (xy_sum - x_sum * y_sum / w_sum) /
-                     (x2_sum - x_sum * x_sum / w_sum);
+        res->slope     = (xy_sum - x_sum * y_sum / w_sum) / (x2_sum - x_sum * x_sum / w_sum);
         res->intercept = (y_sum - res->slope * x_sum) / w_sum;
     }
 }
 
-static void update_size(struct linreg_servo *s)
-{
+static void update_size(struct linreg_servo *s) {
     struct result *res;
-    double best_err;
-    int size, best_size;
+    double         best_err;
+    int            size, best_size;
 
     /* Find largest size with smallest prediction error */
 
     best_size = 0;
-    best_err = 0.0;
+    best_err  = 0.0;
 
     for (size = MIN_SIZE; size <= MAX_SIZE; size++) {
         res = &s->results[size - MIN_SIZE];
-        if ((!best_size && res->slope) ||
-            (best_err * ERR_EQUALS > res->err &&
-             res->err_updates >= ERR_INITIAL_UPDATES)) {
+        if ((!best_size && res->slope) || (best_err * ERR_EQUALS > res->err && res->err_updates >= ERR_INITIAL_UPDATES)) {
             best_size = size;
-            best_err = res->err;
+            best_err  = res->err;
         }
     }
 
     s->size = best_size;
 }
 
-static double linreg_sample(struct servo *servo,
-                            int64_t offset,
-                            uint64_t local_ts,
-                            double weight,
-                            enum servo_state *state)
-{
+static double linreg_sample(struct servo *servo, int64_t offset, uint64_t local_ts, double weight, enum servo_state *state) {
     struct linreg_servo *s = container_of(servo, struct linreg_servo, servo);
-    struct result *res;
-    int corr_interval;
+    struct result       *res;
+    int                  corr_interval;
 
     /*
-	 * The current time and the time when will be the frequency of the
-	 * clock actually updated is assumed here to be equal to local_ts
-	 * (which is the time stamp of the received sync message). As long as
-	 * the differences are smaller than the update interval, the loop
-	 * should be robust enough to handle this simplification.
+     * The current time and the time when will be the frequency of the
+     * clock actually updated is assumed here to be equal to local_ts
+     * (which is the time stamp of the received sync message). As long as
+     * the differences are smaller than the update interval, the loop
+     * should be robust enough to handle this simplification.
      */
 
     update_reference(s, local_ts);
@@ -273,14 +251,10 @@ static double linreg_sample(struct servo *servo,
 
     res = &s->results[s->size - MIN_SIZE];
 
-    pr_debug("linreg: points %d slope %.9f intercept %.0f err %.0f",
-             1 << s->size, res->slope, res->intercept, res->err);
+    pr_debug("linreg: points %d slope %.9f intercept %.0f err %.0f", 1 << s->size, res->slope, res->intercept, res->err);
 
-    if ((servo->first_update &&
-         servo->first_step_threshold &&
-         servo->first_step_threshold < fabs(res->intercept)) ||
-        (servo->step_threshold &&
-         servo->step_threshold < fabs(res->intercept))) {
+    if ((servo->first_update && servo->first_step_threshold && servo->first_step_threshold < fabs(res->intercept)) ||
+        (servo->step_threshold && servo->step_threshold < fabs(res->intercept))) {
         /* The clock will be stepped by offset */
         move_reference(s, 0, -offset);
         s->last_update -= offset;
@@ -293,12 +267,12 @@ static double linreg_sample(struct servo *servo,
     s->clock_freq = 1e9 * (res->slope - 1.0);
 
     /*
-	 * Adjust the frequency to correct the time offset. Use longer
-	 * correction interval with larger sizes to reduce the frequency error.
-	 * The update interval is assumed to be not affected by the frequency
-	 * adjustment. If it is (e.g. phc2sys controlling the system clock), a
-	 * correction slowing down the clock will result in an overshoot. With
-	 * the system clock's maximum adjustment of 10% that's acceptable.
+     * Adjust the frequency to correct the time offset. Use longer
+     * correction interval with larger sizes to reduce the frequency error.
+     * The update interval is assumed to be not affected by the frequency
+     * adjustment. If it is (e.g. phc2sys controlling the system clock), a
+     * correction slowing down the clock will result in an overshoot. With
+     * the system clock's maximum adjustment of 10% that's acceptable.
      */
     corr_interval = s->size <= 4 ? 1 : s->size / 2;
     s->clock_freq += res->intercept / s->update_interval / corr_interval;
@@ -314,43 +288,39 @@ static double linreg_sample(struct servo *servo,
     return -s->clock_freq;
 }
 
-static void linreg_sync_interval(struct servo *servo, double interval)
-{
+static void linreg_sync_interval(struct servo *servo, double interval) {
     struct linreg_servo *s = container_of(servo, struct linreg_servo, servo);
 
     s->update_interval = interval;
 }
 
-static void linreg_reset(struct servo *servo)
-{
+static void linreg_reset(struct servo *servo) {
     struct linreg_servo *s = container_of(servo, struct linreg_servo, servo);
-    unsigned int i;
+    unsigned int         i;
 
-    s->num_points = 0;
-    s->last_update = 0;
-    s->size = 0;
+    s->num_points      = 0;
+    s->last_update     = 0;
+    s->size            = 0;
     s->frequency_ratio = 1.0;
 
     for (i = MIN_SIZE; i <= MAX_SIZE; i++) {
-        s->results[i - MIN_SIZE].slope = 0.0;
+        s->results[i - MIN_SIZE].slope       = 0.0;
         s->results[i - MIN_SIZE].err_updates = 0;
     }
 }
 
-static double linreg_rate_ratio(struct servo *servo)
-{
+static double linreg_rate_ratio(struct servo *servo) {
     struct linreg_servo *s = container_of(servo, struct linreg_servo, servo);
 
     return s->frequency_ratio;
 }
 
-static void linreg_leap(struct servo *servo, int leap)
-{
+static void linreg_leap(struct servo *servo, int leap) {
     struct linreg_servo *s = container_of(servo, struct linreg_servo, servo);
 
     /*
-	 * Move reference when leap second is applied to the reference
-	 * time as if the clock was stepped in the opposite direction
+     * Move reference when leap second is applied to the reference
+     * time as if the clock was stepped in the opposite direction
      */
     if (s->leap && !leap)
         move_reference(s, 0, s->leap * 1000000000);
@@ -358,26 +328,24 @@ static void linreg_leap(struct servo *servo, int leap)
     s->leap = leap;
 }
 
-struct servo *linreg_servo_create(double fadj)
-{
+struct servo *linreg_servo_create(double fadj) {
     struct linreg_servo *s;
 
     s = calloc(1, sizeof(*s));
     if (!s)
         return NULL;
 
-    s->servo.destroy = linreg_destroy;
-    s->servo.sample = linreg_sample;
+    s->servo.destroy       = linreg_destroy;
+    s->servo.sample        = linreg_sample;
     s->servo.sync_interval = linreg_sync_interval;
-    s->servo.reset = linreg_reset;
-    s->servo.rate_ratio = linreg_rate_ratio;
-    s->servo.leap = linreg_leap;
+    s->servo.reset         = linreg_reset;
+    s->servo.rate_ratio    = linreg_rate_ratio;
+    s->servo.leap          = linreg_leap;
 
-    s->clock_freq = -fadj;
+    s->clock_freq      = -fadj;
     s->frequency_ratio = 1.0;
 
     return &s->servo;
 }
-
 
 #endif  // PYXCP_LINREG_HPP

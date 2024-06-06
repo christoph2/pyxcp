@@ -816,7 +816,7 @@ namespace detail {
             );
         }
 
-    }       // namespace win
+    }  // namespace win
     #endif  // _WIN32
 
     /**
@@ -843,7 +843,7 @@ namespace detail {
     #ifdef _WIN32
         const auto handle = win::open_file_helper(path, mode);
     #else  // POSIX
-        const auto  handle = ::open(c_str(path), mode == access_mode::read ? O_RDONLY : O_RDWR);
+        const auto handle = ::open(c_str(path), mode == access_mode::read ? O_RDONLY : O_RDWR);
     #endif
         if (handle == invalid_handle) {
             error = detail::last_error();

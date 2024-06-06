@@ -55,5 +55,4 @@ class BlockMemory {
     std::mutex    m_mtx;
 };
 
-
 #endif  // __BLOCKMEM_HPP

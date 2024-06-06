@@ -10,9 +10,9 @@
 #include <stdio.h>
 
 #if defined(_WIN32)
-#include <windows.h>
+    #include <windows.h>
 
-#include <thread>
+    #include <thread>
 
 VOID CALLBACK TimerRoutine(PVOID lpParam, BOOLEAN TimerOrWaitFired);
 
@@ -68,7 +68,6 @@ struct Scheduler {
 struct Scheduler {
     Scheduler()  = default;
     ~Scheduler() = default;
-
 };
 
 #endif

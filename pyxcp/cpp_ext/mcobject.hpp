@@ -6,29 +6,28 @@
     #include <map>
     #include <optional>
     #include <string>
-	#include <ranges>
+    #include <ranges>
     #include <vector>
 
     #include "helper.hpp"
 
 const std::map<const std::string, std::tuple<std::uint16_t, std::uint16_t>> TYPE_MAP = {
-    { "U8",  { 0, 1 }},
-    { "I8",  { 1, 1 }},
-    { "U16", { 2, 2 }},
-    { "I16", { 3, 2 }},
-    { "U32", { 4, 4 }},
-    { "I32", { 5, 4 }},
-    { "U64", { 6, 8 }},
-    { "I64", { 7, 8 }},
-    { "F32", { 8, 4 }},
-    { "F64", { 9, 8 }},
-#if HAS_FLOAT16
-    { "F16", { 10, 2 }},
-#endif
-#if HAS_BFLOAT16
-    { "BF16", { 11, 2 }},
-#endif
-
+    { "U8",   { 0, 1 }  },
+    { "I8",   { 1, 1 }  },
+    { "U16",  { 2, 2 }  },
+    { "I16",  { 3, 2 }  },
+    { "U32",  { 4, 4 }  },
+    { "I32",  { 5, 4 }  },
+    { "U64",  { 6, 8 }  },
+    { "I64",  { 7, 8 }  },
+    { "F32",  { 8, 4 }  },
+    { "F64",  { 9, 8 }  },
+    #if HAS_FLOAT16
+    { "F16",  { 10, 2 } },
+    #endif
+    #if HAS_BFLOAT16
+    { "BF16", { 11, 2 } },
+    #endif
 };
 
 class McObject {
@@ -46,11 +45,13 @@ class McObject {
         m_type_index(-1),
         m_components(components) {
         if (data_type != "") {
-			std::string dt_toupper;
+            std::string dt_toupper;
 
             dt_toupper.resize(data_type.size());
 
-			std::transform(data_type.begin(), data_type.end(), dt_toupper.begin(), [](unsigned char c) -> unsigned char { return std::toupper(c); });
+            std::transform(data_type.begin(), data_type.end(), dt_toupper.begin(), [](unsigned char c) -> unsigned char {
+                return std::toupper(c);
+            });
 
             if (!TYPE_MAP.contains(dt_toupper)) {
                 throw std::runtime_error("Invalid data type: " + data_type);

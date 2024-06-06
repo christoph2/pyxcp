@@ -2,10 +2,14 @@
 #ifndef RECORDER_WRITER_HPP
 #define RECORDER_WRITER_HPP
 
+#include <ctime>
+
 class XcpLogFileWriter {
    public:
 
-    explicit XcpLogFileWriter(const std::string &file_name, uint32_t prealloc = 10UL, uint32_t chunk_size = 1, std::string_view metadata="") {
+    explicit XcpLogFileWriter(
+        const std::string &file_name, uint32_t prealloc = 10UL, uint32_t chunk_size = 1, std::string_view metadata = ""
+    ) {
         if (!file_name.ends_with(detail::FILE_EXTENSION)) {
             m_file_name = file_name + detail::FILE_EXTENSION;
         } else {
@@ -21,9 +25,9 @@ class XcpLogFileWriter {
         m_fd = open(m_file_name.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0666);
 #endif
         m_hard_limit = megabytes(prealloc);
-        truncate(m_hard_limit);
+        resize(m_hard_limit);
         m_mmap                 = new mio::mmap_sink(m_fd);
-        m_chunk_size           = 512 * 1024; //megabytes(chunk_size);
+        m_chunk_size           = 512 * 1024;  // megabytes(chunk_size);
         m_intermediate_storage = new blob_t[m_chunk_size + megabytes(1)];
         m_offset               = detail::FILE_HEADER_SIZE + detail::MAGIC_SIZE;
         m_metadata             = metadata;
@@ -64,7 +68,7 @@ class XcpLogFileWriter {
                 std::cout << error_string("mio::unmap", ec);
             }
 
-            truncate(m_offset);
+            resize(m_offset);
 #if defined(_WIN32)
             if (!CloseHandle(m_fd)) {
                 std::cout << error_string("CloseHandle", get_last_error());
@@ -79,9 +83,8 @@ class XcpLogFileWriter {
         }
     }
 
-    void add_frame(uint8_t category, uint16_t counter, double timestamp, uint16_t length, char const *data)  {
+    void add_frame(uint8_t category, uint16_t counter, double timestamp, uint16_t length, char const *data) {
         auto payload = new char[length];
-        // auto payload = mem.acquire();
 
         _fcopy(payload, data, length);
         my_queue.put(std::make_tuple(category, counter, timestamp, length, payload));
@@ -89,7 +92,7 @@ class XcpLogFileWriter {
 
    protected:
 
-    void truncate(off_t size, bool remap = false) {
+    void resize(off_t size, bool remap = false) {
         std::error_code ec;
 
         if (remap) {
@@ -102,11 +105,9 @@ class XcpLogFileWriter {
 
 #if defined(_WIN32)
         if (SetFilePointer(m_fd, size, nullptr, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
-            // TODO: Errorhandling.
             std::cout << error_string("SetFilePointer", get_last_error());
         }
         if (SetEndOfFile(m_fd) == 0) {
-            // TODO: Errorhandling.
             std::cout << error_string("SetEndOfFile", get_last_error());
         }
 #else
@@ -144,17 +145,15 @@ class XcpLogFileWriter {
             LZ4_COMPRESSBOUND(m_intermediate_storage_offset), LZ4HC_CLEVEL_MAX
         );
 
-
-
         if (cp_size < 0) {
             throw std::runtime_error("LZ4 compression failed.");
         }
-        // printf("comp: %d %d [%f]\n", m_intermediate_storage_offset,  cp_size, double(m_intermediate_storage_offset) /
-        // double(cp_size));
+        std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
         if (m_offset > (m_hard_limit >> 1)) {
-            // std::cout <<"[INFO] " << std::chrono::system_clock::now() << ": Doubling measurement file size." << std::endl;
+            std::cout << "[INFO] " << std::ctime(&now) << ": Doubling measurement file size." << std::endl;
             m_hard_limit <<= 1;
-            truncate(m_hard_limit, true);
+            resize(m_hard_limit, true);
             write_header(
                 detail::VERSION, m_metadata.empty() ? 0 : XMRAW_HAS_METADATA, m_num_containers, m_record_count,
                 m_total_size_compressed, m_total_size_uncompressed
@@ -262,7 +261,7 @@ class XcpLogFileWriter {
     std::uint64_t         m_container_size_compressed{ 0UL };
     __ALIGN blob_t       *m_intermediate_storage{ nullptr };
     std::uint64_t         m_intermediate_storage_offset{ 0 };
-    std::uint64_t         m_hard_limit{0};
+    std::uint64_t         m_hard_limit{ 0 };
     mio::file_handle_type m_fd{ INVALID_HANDLE_VALUE };
     mio::mmap_sink       *m_mmap{ nullptr };
     bool                  m_finalized{ false };

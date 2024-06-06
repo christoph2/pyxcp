@@ -18,7 +18,7 @@ VOID CALLBACK TimerRoutine(PVOID lpParam, BOOLEAN TimerOrWaitFired) {
     }
 }
 
-#include <xmmintrin.h>
+    #include <xmmintrin.h>
 
 void mul4_vectorized(float* ptr) {
     __m128 f = _mm_loadu_ps(ptr);

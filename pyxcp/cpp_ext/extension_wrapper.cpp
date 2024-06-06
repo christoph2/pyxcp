@@ -50,9 +50,7 @@ PYBIND11_MODULE(cpp_ext, m) {
             py::init<std::string_view, std::uint16_t, bool, bool, const std::vector<DaqList::daq_list_initialzer_t>&>(), "name"_a,
             "event_num"_a, "stim"_a, "enable_timestamps"_a, "measurements"_a
         )
-		.def("__repr__", [](const DaqList& self) {
-			return self.to_string();
-		})
+        .def("__repr__", [](const DaqList& self) { return self.to_string(); })
         .def_property("name", &DaqList::get_name, nullptr)
         .def_property("event_num", &DaqList::get_event_num, nullptr)
         .def_property("stim", &DaqList::get_stim, nullptr)

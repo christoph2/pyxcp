@@ -20,9 +20,9 @@
     #include <exception>
     #include <functional>
     #include <optional>
+    #include <sstream>
     #include <stdexcept>
     #include <string>
-    #include <sstream>
     #include <thread>
     #include <utility>
     #include <variant>
@@ -56,7 +56,6 @@ using namespace pybind11::literals;
 
     #define __ALIGNMENT_REQUIREMENT __BIGGEST_ALIGNMENT__
     #define __ALIGN                 alignas(__ALIGNMENT_REQUIREMENT)
-
 
 constexpr auto kilobytes(std::uint32_t value) -> std::uint32_t {
     return value * 1024;
@@ -108,7 +107,7 @@ using payload_t = py::array_t<blob_t>;
 struct frame_header_t {
     std::uint8_t  category{ 0 };
     std::uint16_t counter{ 0 };
-    double   timestamp{ 0.0 };
+    double        timestamp{ 0.0 };
     std::uint16_t length{ 0 };
 };
 
@@ -180,15 +179,16 @@ inline blob_t* get_payload_ptr(const payload_t& payload) noexcept {
 }
     #endif /* STANDALONE_REKORDER */
 
-////////////////////////////////////
-#ifdef _WIN32
-inline std::string error_string(std::string_view func, std::error_code error_code)
-{
-    LPSTR messageBuffer = nullptr;
+    ////////////////////////////////////
+    #ifdef _WIN32
+inline std::string error_string(std::string_view func, std::error_code error_code) {
+    LPSTR              messageBuffer = nullptr;
     std::ostringstream ss;
 
-    size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                                 NULL, static_cast<DWORD>(error_code.value()), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+    size_t size = FormatMessageA(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
+        static_cast<DWORD>(error_code.value()), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL
+    );
 
     std::string message(messageBuffer, size);
     LocalFree(messageBuffer);
@@ -203,7 +203,7 @@ std::error_code get_last_error() {
     return std::error_code(GetLastError(), std::system_category());
 }
 
-#else
+    #else
 inline std::string error_string(std::string_view func, std::error_code error_code) {
     std::ostringstream ss;
 
@@ -213,17 +213,14 @@ inline std::string error_string(std::string_view func, std::error_code error_cod
     ss << func << ": ";
     ss << message;
     return ss.str();
-
 }
 
 std::error_code get_last_error() {
     return std::error_code(errno, std::system_category());
 }
 
-
-#endif // _WIN32
+    #endif  // _WIN32
 ////////////////////////////////////
-
 
 inline void hexdump(blob_t const * buf, std::uint16_t sz) {
     for (std::uint16_t idx = 0; idx < sz; ++idx) {
@@ -231,7 +228,6 @@ inline void hexdump(blob_t const * buf, std::uint16_t sz) {
     }
     printf("\n\r");
 }
-
 
     #include "reader.hpp"
     #include "unfolder.hpp"

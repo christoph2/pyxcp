@@ -26,7 +26,7 @@ class Bin {
     }
 
     void set_entries(std::vector<McObject>&& entries) {
-           m_entries = std::move(entries);
+        m_entries = std::move(entries);
     }
 
     std::uint16_t get_size() const {

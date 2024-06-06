@@ -4,19 +4,18 @@
 
 #include <bit>
 #include <charconv>
+#include <cstring>
 #include <iostream>
 #include <map>
 #include <variant>
-
-#include <cstring>
 
 #include "daqlist.hpp"
 #include "helper.hpp"
 #include "mcobject.hpp"
 #include "writer.hpp"
 
-using measurement_value_t = std::variant<std::int64_t, std::uint64_t, long double, std::string>;
-using measurement_tuple_t = std::tuple<std::uint16_t, double, double, std::vector<measurement_value_t>>;
+using measurement_value_t    = std::variant<std::int64_t, std::uint64_t, long double, std::string>;
+using measurement_tuple_t    = std::tuple<std::uint16_t, double, double, std::vector<measurement_value_t>>;
 using measurement_callback_t = std::function<void(std::uint16_t, double, double, std::vector<measurement_value_t>)>;
 
 template<typename Ty>
@@ -29,7 +28,7 @@ auto get_value_swapped(blob_t const * buf, std::uint64_t offset) -> Ty {
     return _bswap(get_value<Ty>(buf, offset));
 }
 
-#if HAS_FLOAT16==1
+#if HAS_FLOAT16 == 1
 template<>
 auto get_value<std::float16_t>(blob_t const * buf, std::uint64_t offset) -> std::float16_t {
     auto tmp = get_value<std::uint16_t>(buf, offset);
@@ -38,7 +37,7 @@ auto get_value<std::float16_t>(blob_t const * buf, std::uint64_t offset) -> std:
 }
 #endif
 
-#if HAS_BFLOAT16==1
+#if HAS_BFLOAT16 == 1
 template<>
 auto get_value<std::bfloat16_t>(blob_t const * buf, std::uint64_t offset) -> std::bfloat16_t {
     auto tmp = get_value<std::uint16_t>(buf, offset);
@@ -46,7 +45,6 @@ auto get_value<std::bfloat16_t>(blob_t const * buf, std::uint64_t offset) -> std
     return *(reinterpret_cast<std::bfloat16_t*>(&tmp));
 }
 #endif
-
 
 template<>
 auto get_value<float>(blob_t const * buf, std::uint64_t offset) -> float {
@@ -62,7 +60,7 @@ auto get_value<double>(blob_t const * buf, std::uint64_t offset) -> double {
     return *(reinterpret_cast<double*>(&tmp));
 }
 
-#if HAS_FLOAT16==1
+#if HAS_FLOAT16 == 1
 template<>
 auto get_value_swapped<std::float16_t>(blob_t const * buf, std::uint64_t offset) -> std::float16_t {
     auto tmp = get_value_swapped<std::uint16_t>(buf, offset);
@@ -71,7 +69,7 @@ auto get_value_swapped<std::float16_t>(blob_t const * buf, std::uint64_t offset)
 }
 #endif
 
-#if HAS_BFLOAT16==1
+#if HAS_BFLOAT16 == 1
 template<>
 auto get_value_swapped<std::bfloat16_t>(blob_t const * buf, std::uint64_t offset) -> std::bfloat16_t {
     auto tmp = get_value_swapped<std::uint16_t>(buf, offset);
@@ -79,7 +77,6 @@ auto get_value_swapped<std::bfloat16_t>(blob_t const * buf, std::uint64_t offset
     return *(reinterpret_cast<std::bfloat16_t*>(&tmp));
 }
 #endif
-
 
 template<>
 auto get_value_swapped<float>(blob_t const * buf, std::uint64_t offset) -> float {
@@ -125,103 +122,101 @@ auto get_value_swapped<std::int64_t>(blob_t const * buf, std::uint64_t offset) -
     return static_cast<std::int64_t>(get_value_swapped<uint64_t>(buf, offset));
 }
 
-
 /////////////////////////////////////////////////////
 /////////////////////////////////////////////////////
 template<typename Ty>
-void set_value(blob_t * buf, std::uint64_t offset, Ty value) {
+void set_value(blob_t* buf, std::uint64_t offset, Ty value) {
     ::memcpy(&buf[offset], &value, sizeof(Ty));
 }
 
 template<typename Ty>
-void set_value_swapped(blob_t * buf, std::uint64_t offset, Ty value) {
+void set_value_swapped(blob_t* buf, std::uint64_t offset, Ty value) {
     set_value<Ty>(buf, offset, _bswap(value));
 }
 
 template<>
-void set_value<std::int8_t>(blob_t * buf, std::uint64_t offset, std::int8_t value) {
+void set_value<std::int8_t>(blob_t* buf, std::uint64_t offset, std::int8_t value) {
     buf[offset] = static_cast<blob_t>(value);
 }
 
 template<>
-void set_value<std::uint8_t>(blob_t * buf, std::uint64_t offset, std::uint8_t value) {
+void set_value<std::uint8_t>(blob_t* buf, std::uint64_t offset, std::uint8_t value) {
     buf[offset] = static_cast<blob_t>(value);
 }
 
 template<>
-void set_value<std::int16_t>(blob_t * buf, std::uint64_t offset, std::int16_t value) {
+void set_value<std::int16_t>(blob_t* buf, std::uint64_t offset, std::int16_t value) {
     set_value<std::uint16_t>(buf, offset, static_cast<std::uint16_t>(value));
 }
 
 template<>
-void set_value_swapped<std::int16_t>(blob_t * buf, std::uint64_t offset, std::int16_t value) {
+void set_value_swapped<std::int16_t>(blob_t* buf, std::uint64_t offset, std::int16_t value) {
     set_value_swapped<std::uint16_t>(buf, offset, static_cast<std::uint16_t>(value));
 }
 
 template<>
-void set_value<std::int32_t>(blob_t * buf, std::uint64_t offset, std::int32_t value) {
+void set_value<std::int32_t>(blob_t* buf, std::uint64_t offset, std::int32_t value) {
     set_value<std::uint32_t>(buf, offset, static_cast<std::uint32_t>(value));
 }
 
 template<>
-void set_value_swapped<std::int32_t>(blob_t * buf, std::uint64_t offset, std::int32_t value) {
+void set_value_swapped<std::int32_t>(blob_t* buf, std::uint64_t offset, std::int32_t value) {
     set_value_swapped<std::uint32_t>(buf, offset, static_cast<std::uint32_t>(value));
 }
 
 template<>
-void set_value<std::int64_t>(blob_t * buf, std::uint64_t offset, std::int64_t value) {
+void set_value<std::int64_t>(blob_t* buf, std::uint64_t offset, std::int64_t value) {
     set_value<std::uint64_t>(buf, offset, static_cast<std::uint64_t>(value));
 }
 
 template<>
-void set_value_swapped<std::int64_t>(blob_t * buf, std::uint64_t offset, std::int64_t value) {
+void set_value_swapped<std::int64_t>(blob_t* buf, std::uint64_t offset, std::int64_t value) {
     set_value_swapped<std::uint64_t>(buf, offset, static_cast<std::uint64_t>(value));
 }
 
-#if HAS_FLOAT16==1
+#if HAS_FLOAT16 == 1
 template<>
-void set_value<std::float16_t>(blob_t * buf, std::uint64_t offset, std::float16_t value) {
+void set_value<std::float16_t>(blob_t* buf, std::uint64_t offset, std::float16_t value) {
     set_value<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
 }
 
 template<>
-void set_value_swapped<std::float16_t>(blob_t * buf, std::uint64_t offset, std::float16_t value) {
+void set_value_swapped<std::float16_t>(blob_t* buf, std::uint64_t offset, std::float16_t value) {
     set_value_swapped<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
 }
 #endif
 
-#if HAS_BFLOAT16==1
+#if HAS_BFLOAT16 == 1
 template<>
-void set_value<std::bfloat16_t>(blob_t * buf, std::uint64_t offset, std::bfloat16_t value) {
+void set_value<std::bfloat16_t>(blob_t* buf, std::uint64_t offset, std::bfloat16_t value) {
     set_value<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
 }
 
 template<>
-void set_value_swapped<std::bfloat16_t>(blob_t * buf, std::uint64_t offset, std::bfloat16_t value) {
+void set_value_swapped<std::bfloat16_t>(blob_t* buf, std::uint64_t offset, std::bfloat16_t value) {
     set_value_swapped<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
 }
 #endif
 
 template<>
-void set_value<float>(blob_t * buf, std::uint64_t offset, float value) {
+void set_value<float>(blob_t* buf, std::uint64_t offset, float value) {
     set_value<std::uint32_t>(buf, offset, *reinterpret_cast<std::uint32_t*>(&value));
 }
 
 template<>
-void set_value_swapped<float>(blob_t * buf, std::uint64_t offset, float value) {
+void set_value_swapped<float>(blob_t* buf, std::uint64_t offset, float value) {
     set_value_swapped<std::uint32_t>(buf, offset, *reinterpret_cast<std::uint32_t*>(&value));
 }
 
 template<>
-void set_value<double>(blob_t * buf, std::uint64_t offset, double value) {
+void set_value<double>(blob_t* buf, std::uint64_t offset, double value) {
     set_value<std::uint64_t>(buf, offset, *reinterpret_cast<std::uint64_t*>(&value));
 }
 
 template<>
-void set_value_swapped<double>(blob_t * buf, std::uint64_t offset, double value) {
+void set_value_swapped<double>(blob_t* buf, std::uint64_t offset, double value) {
     set_value_swapped<std::uint64_t>(buf, offset, *reinterpret_cast<std::uint64_t*>(&value));
 }
-
 
 /*
 ** Get primitive datatypes, consider byte-order.
@@ -242,11 +237,11 @@ struct Getter {
             uint64  = get_value_swapped<std::uint64_t>;
             float_  = get_value_swapped<float>;
             double_ = get_value_swapped<double>;
-#if HAS_FLOAT16==1
-            float16  = get_value_swapped<std::float16_t>;
+#if HAS_FLOAT16 == 1
+            float16 = get_value_swapped<std::float16_t>;
 #endif
-#if HAS_BFLOAT16==1
-            bfloat16  = get_value_swapped<std::bfloat16_t>;
+#if HAS_BFLOAT16 == 1
+            bfloat16 = get_value_swapped<std::bfloat16_t>;
 #endif
         } else {
             int16   = get_value<std::int16_t>;
@@ -257,11 +252,11 @@ struct Getter {
             uint64  = get_value<std::uint64_t>;
             float_  = get_value<float>;
             double_ = get_value<double>;
-#if HAS_FLOAT16==1
-            float16  = get_value<std::float16_t>;
+#if HAS_FLOAT16 == 1
+            float16 = get_value<std::float16_t>;
 #endif
-#if HAS_BFLOAT16==1
-            bfloat16  = get_value<std::bfloat16_t>;
+#if HAS_BFLOAT16 == 1
+            bfloat16 = get_value<std::bfloat16_t>;
 #endif
         }
     }
@@ -303,11 +298,11 @@ struct Getter {
                 return float_(buf, offset);
             case 9:
                 return double_(buf, offset);
-#if HAS_FLOAT16==1
+#if HAS_FLOAT16 == 1
             case 10:
                 return float16(buf, offset);
 #endif
-#if HAS_BFLOAT16==1
+#if HAS_BFLOAT16 == 1
             case 11:
                 return bfloat16(buf, offset);
 #endif
@@ -363,14 +358,14 @@ struct Getter {
     std::function<std::uint64_t(blob_t const * buf, std::uint64_t offset)> uint64;
     std::function<float(blob_t const * buf, std::uint64_t offset)>         float_;
     std::function<double(blob_t const * buf, std::uint64_t offset)>        double_;
-#if HAS_FLOAT16==1
-    std::function<std::float16_t(blob_t const * buf, std::uint64_t offset)>     float16;
+#if HAS_FLOAT16 == 1
+    std::function<std::float16_t(blob_t const * buf, std::uint64_t offset)> float16;
 #endif
-#if HAS_BFLOAT16==1
-    std::function<std::bfloat16_t(blob_t const * buf, std::uint64_t offset)>    bfloat16;
+#if HAS_BFLOAT16 == 1
+    std::function<std::bfloat16_t(blob_t const * buf, std::uint64_t offset)> bfloat16;
 #endif
-    std::vector<std::uint16_t>                                             m_first_pids;
-    std::map<std::uint16_t, std::tuple<std::uint16_t, std::uint16_t>>      m_odt_to_daq_map;
+    std::vector<std::uint16_t>                                        m_first_pids;
+    std::map<std::uint16_t, std::tuple<std::uint16_t, std::uint16_t>> m_odt_to_daq_map;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -390,11 +385,11 @@ struct Setter {
             uint64  = set_value_swapped<std::uint64_t>;
             float_  = set_value_swapped<float>;
             double_ = set_value_swapped<double>;
-#if HAS_FLOAT16==1
-            float16  = set_value_swapped<std::float16_t>;
+#if HAS_FLOAT16 == 1
+            float16 = set_value_swapped<std::float16_t>;
 #endif
-#if HAS_BFLOAT16==1
-            bfloat16  = set_value_swapped<std::bfloat16_t>;
+#if HAS_BFLOAT16 == 1
+            bfloat16 = set_value_swapped<std::bfloat16_t>;
 #endif
         } else {
             int16   = set_value<std::int16_t>;
@@ -405,16 +400,16 @@ struct Setter {
             uint64  = set_value<std::uint64_t>;
             float_  = set_value<float>;
             double_ = set_value<double>;
-#if HAS_FLOAT16==1
-            float16  = set_value<std::float16_t>;
+#if HAS_FLOAT16 == 1
+            float16 = set_value<std::float16_t>;
 #endif
-#if HAS_BFLOAT16==1
-            bfloat16  = set_value<std::bfloat16_t>;
+#if HAS_BFLOAT16 == 1
+            bfloat16 = set_value<std::bfloat16_t>;
 #endif
         }
     }
 
-    void set_timestamp(blob_t * buf, std::uint32_t timestamp) {
+    void set_timestamp(blob_t* buf, std::uint32_t timestamp) {
         switch (m_ts_size) {
             case 0:
                 break;
@@ -432,7 +427,7 @@ struct Setter {
         }
     }
 
-    void writer(std::uint16_t tp, blob_t * buf, std::uint16_t offset, const measurement_value_t& value) {
+    void writer(std::uint16_t tp, blob_t* buf, std::uint16_t offset, const measurement_value_t& value) {
         switch (tp) {
             case 0:
                 uint8(buf, offset, static_cast<std::uint8_t>(std::get<std::uint64_t>(value)));
@@ -464,12 +459,12 @@ struct Setter {
             case 9:
                 double_(buf, offset, static_cast<double>(std::get<long double>(value)));
                 break;
-#if HAS_FLOAT16==1
+#if HAS_FLOAT16 == 1
             case 10:
                 float16(buf, offset, static_cast<std::float16_t>(std::get<long double>(value)));
                 break;
 #endif
-#if HAS_BFLOAT16==1
+#if HAS_BFLOAT16 == 1
             case 11:
                 bfloat16(buf, offset, static_cast<std::bfloat16_t>(std::get<long double>(value)));
                 break;
@@ -498,35 +493,36 @@ struct Setter {
         }
     }
 #endif
-    std::uint8_t                                                           m_id_size;
-    std::uint8_t                                                           m_ts_size;
-    std::function<void(blob_t * buf, std::uint64_t offset, std::int8_t)>   int8;
-    std::function<void(blob_t * buf, std::uint64_t offset, std::uint8_t)>  uint8;
-    std::function<void(blob_t * buf, std::uint64_t offset, std::int16_t)>  int16;
-    std::function<void(blob_t * buf, std::uint64_t offset, std::int32_t)>  int32;
-    std::function<void(blob_t * buf, std::uint64_t offset, std::int64_t)>  int64;
-    std::function<void(blob_t * buf, std::uint64_t offset, std::uint16_t)> uint16;
-    std::function<void(blob_t * buf, std::uint64_t offset, std::uint32_t)> uint32;
-    std::function<void(blob_t * buf, std::uint64_t offset, std::uint64_t)> uint64;
-    std::function<void(blob_t * buf, std::uint64_t offset, float)>         float_;
-    std::function<void(blob_t * buf, std::uint64_t offset, double)>        double_;
-#if HAS_FLOAT16==1
-    std::function<void(blob_t * buf, std::uint64_t offset, std::float16_t)> float16;
+    std::uint8_t                                                          m_id_size;
+    std::uint8_t                                                          m_ts_size;
+    std::function<void(blob_t* buf, std::uint64_t offset, std::int8_t)>   int8;
+    std::function<void(blob_t* buf, std::uint64_t offset, std::uint8_t)>  uint8;
+    std::function<void(blob_t* buf, std::uint64_t offset, std::int16_t)>  int16;
+    std::function<void(blob_t* buf, std::uint64_t offset, std::int32_t)>  int32;
+    std::function<void(blob_t* buf, std::uint64_t offset, std::int64_t)>  int64;
+    std::function<void(blob_t* buf, std::uint64_t offset, std::uint16_t)> uint16;
+    std::function<void(blob_t* buf, std::uint64_t offset, std::uint32_t)> uint32;
+    std::function<void(blob_t* buf, std::uint64_t offset, std::uint64_t)> uint64;
+    std::function<void(blob_t* buf, std::uint64_t offset, float)>         float_;
+    std::function<void(blob_t* buf, std::uint64_t offset, double)>        double_;
+#if HAS_FLOAT16 == 1
+    std::function<void(blob_t* buf, std::uint64_t offset, std::float16_t)> float16;
 #endif
-#if HAS_BFLOAT16==1
-    std::function<void(blob_t * buf, std::uint64_t offset, std::bfloat16_t)> bfloat16;
+#if HAS_BFLOAT16 == 1
+    std::function<void(blob_t* buf, std::uint64_t offset, std::bfloat16_t)> bfloat16;
 #endif
-    std::map<std::uint16_t, std::tuple<std::uint16_t, std::uint16_t>>      m_odt_to_daq_map;
+    std::map<std::uint16_t, std::tuple<std::uint16_t, std::uint16_t>> m_odt_to_daq_map;
 };
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 struct MeasurementParameters {
     MeasurementParameters() = default;
 
-    MeasurementParameters(MeasurementParameters&& ) = default;
-    MeasurementParameters(const MeasurementParameters& ) = default;
-    MeasurementParameters& operator=(MeasurementParameters&& ) = default;
-    MeasurementParameters& operator=(const MeasurementParameters& ) = default;
+    MeasurementParameters(MeasurementParameters&&)                 = default;
+    MeasurementParameters(const MeasurementParameters&)            = default;
+    MeasurementParameters& operator=(MeasurementParameters&&)      = default;
+    MeasurementParameters& operator=(const MeasurementParameters&) = default;
 
     explicit MeasurementParameters(
         std::uint8_t byte_order, std::uint8_t id_field_size, bool timestamps_supported, bool ts_fixed, bool prescaler_supported,
@@ -543,7 +539,7 @@ struct MeasurementParameters {
         m_ts_size(ts_size),
         m_min_daq(min_daq),
         m_daq_lists(daq_lists),
-		m_first_pids(first_pids) {
+        m_first_pids(first_pids) {
     }
 
     std::string dumps() const {
@@ -567,116 +563,118 @@ struct MeasurementParameters {
 
         std::size_t fp_count = m_first_pids.size();
         ss << to_binary(fp_count);
-		for (const auto& fp : m_first_pids) {
-			ss << to_binary(fp);
-		}
+        for (const auto& fp : m_first_pids) {
+            ss << to_binary(fp);
+        }
 
-        return to_binary(std::size(ss.str())) +  ss.str();
+        return to_binary(std::size(ss.str())) + ss.str();
     }
 
-	auto get_byte_order() const noexcept {
-		return m_byte_order;
-	}
+    auto get_byte_order() const noexcept {
+        return m_byte_order;
+    }
 
-	auto get_id_field_size() const noexcept {
-		return m_id_field_size;
-	}
+    auto get_id_field_size() const noexcept {
+        return m_id_field_size;
+    }
 
-	auto get_timestamps_supported() const noexcept {
-		return m_timestamps_supported;
-	}
+    auto get_timestamps_supported() const noexcept {
+        return m_timestamps_supported;
+    }
 
-	auto get_ts_fixed() const noexcept {
-		return m_ts_fixed;
-	}
+    auto get_ts_fixed() const noexcept {
+        return m_ts_fixed;
+    }
 
-	auto get_prescaler_supported() const noexcept {
-		return m_prescaler_supported;
-	}
+    auto get_prescaler_supported() const noexcept {
+        return m_prescaler_supported;
+    }
 
-	auto get_selectable_timestamps() const noexcept {
-		return m_selectable_timestamps;
-	}
+    auto get_selectable_timestamps() const noexcept {
+        return m_selectable_timestamps;
+    }
 
-	auto get_ts_scale_factor() const noexcept {
-		return m_ts_scale_factor;
-	}
+    auto get_ts_scale_factor() const noexcept {
+        return m_ts_scale_factor;
+    }
 
-	auto get_ts_size() const noexcept {
-		return m_ts_size;
-	}
+    auto get_ts_size() const noexcept {
+        return m_ts_size;
+    }
 
-	auto get_min_daq() const noexcept {
-		return m_min_daq;
-	}
+    auto get_min_daq() const noexcept {
+        return m_min_daq;
+    }
 
-	auto get_daq_lists() const noexcept {
-		return m_daq_lists;
-	}
+    auto get_daq_lists() const noexcept {
+        return m_daq_lists;
+    }
 
-	auto get_first_pids() const noexcept {
-		return m_first_pids;
-	}
+    auto get_first_pids() const noexcept {
+        return m_first_pids;
+    }
 
-    std::uint8_t         m_byte_order;
-    std::uint8_t         m_id_field_size;
-    bool                 m_timestamps_supported;
-    bool                 m_ts_fixed;
-    bool                 m_prescaler_supported;
-    bool                 m_selectable_timestamps;
-    double               m_ts_scale_factor;
-    std::uint8_t         m_ts_size;
-    std::uint16_t        m_min_daq;
-    std::vector<DaqList> m_daq_lists;
-	std::vector<std::uint16_t> m_first_pids;
+    std::uint8_t               m_byte_order;
+    std::uint8_t               m_id_field_size;
+    bool                       m_timestamps_supported;
+    bool                       m_ts_fixed;
+    bool                       m_prescaler_supported;
+    bool                       m_selectable_timestamps;
+    double                     m_ts_scale_factor;
+    std::uint8_t               m_ts_size;
+    std::uint16_t              m_min_daq;
+    std::vector<DaqList>       m_daq_lists;
+    std::vector<std::uint16_t> m_first_pids;
 };
 
-
 class Deserializer {
-public:
+   public:
+
     explicit Deserializer(const std::string& buf) : m_buf(buf) {
     }
 
     MeasurementParameters run() {
-        std::uint8_t         byte_order;
-        std::uint8_t         id_field_size;
-        bool                 timestamps_supported;
-        bool                 ts_fixed;
-        bool                 prescaler_supported;
-        bool                 selectable_timestamps;
-        double               ts_scale_factor;
-        std::uint8_t         ts_size;
-        std::uint16_t        min_daq;
-        std::size_t          dl_count;
-        std::vector<DaqList> daq_lists;
-		std::size_t fp_count;
-		std::vector<std::uint16_t> first_pids;
+        std::uint8_t               byte_order;
+        std::uint8_t               id_field_size;
+        bool                       timestamps_supported;
+        bool                       ts_fixed;
+        bool                       prescaler_supported;
+        bool                       selectable_timestamps;
+        double                     ts_scale_factor;
+        std::uint8_t               ts_size;
+        std::uint16_t              min_daq;
+        std::size_t                dl_count;
+        std::vector<DaqList>       daq_lists;
+        std::size_t                fp_count;
+        std::vector<std::uint16_t> first_pids;
 
-        byte_order = from_binary<std::uint8_t>();
-        id_field_size = from_binary<std::uint8_t>();
-        timestamps_supported = from_binary<bool>();
-        ts_fixed = from_binary<bool>();
-        prescaler_supported = from_binary<bool>();
+        byte_order            = from_binary<std::uint8_t>();
+        id_field_size         = from_binary<std::uint8_t>();
+        timestamps_supported  = from_binary<bool>();
+        ts_fixed              = from_binary<bool>();
+        prescaler_supported   = from_binary<bool>();
         selectable_timestamps = from_binary<bool>();
-        ts_scale_factor = from_binary<double>();
-        ts_size = from_binary<std::uint8_t>();
-        min_daq = from_binary<std::uint16_t>();
-        dl_count = from_binary<std::size_t>();
+        ts_scale_factor       = from_binary<double>();
+        ts_size               = from_binary<std::uint8_t>();
+        min_daq               = from_binary<std::uint16_t>();
+        dl_count              = from_binary<std::size_t>();
 
         for (std::size_t i = 0; i < dl_count; i++) {
             daq_lists.push_back(create_daq_list());
         }
 
-		fp_count = from_binary<std::size_t>();
-		for (std::size_t i = 0; i < fp_count; i++) {
-			first_pids.push_back(from_binary<std::uint16_t>());
-		}
+        fp_count = from_binary<std::size_t>();
+        for (std::size_t i = 0; i < fp_count; i++) {
+            first_pids.push_back(from_binary<std::uint16_t>());
+        }
 
-        return MeasurementParameters(byte_order, id_field_size, timestamps_supported, ts_fixed, prescaler_supported, selectable_timestamps,
-            ts_scale_factor, ts_size, min_daq, daq_lists, first_pids);
+        return MeasurementParameters(
+            byte_order, id_field_size, timestamps_supported, ts_fixed, prescaler_supported, selectable_timestamps, ts_scale_factor,
+            ts_size, min_daq, daq_lists, first_pids
+        );
     }
 
-protected:
+   protected:
 
     DaqList create_daq_list() {
         std::string              name;
@@ -687,29 +685,29 @@ protected:
         std::vector<Bin>         measurements_opt;
         std::vector<std::string> header_names;
 
-        std::uint16_t            odt_count;
-        std::uint16_t            total_entries;
-        std::uint16_t            total_length;
+        std::uint16_t odt_count;
+        std::uint16_t total_entries;
+        std::uint16_t total_length;
 
-        flatten_odts_t           flatten_odts;
+        flatten_odts_t flatten_odts;
 
         std::vector<DaqList::daq_list_initialzer_t> initializer_list{};
 
-        name = from_binary<std::string>();
-        event_num = from_binary<std::uint16_t>();
-        stim = from_binary<bool>();
+        name              = from_binary<std::string>();
+        event_num         = from_binary<std::uint16_t>();
+        stim              = from_binary<bool>();
         enable_timestamps = from_binary<bool>();
 
-        odt_count = from_binary<std::uint16_t>();   // not used
-        total_entries = from_binary<std::uint16_t>();   // not used
-        total_length = from_binary<std::uint16_t>();    // not used
+        odt_count     = from_binary<std::uint16_t>();  // not used
+        total_entries = from_binary<std::uint16_t>();  // not used
+        total_length  = from_binary<std::uint16_t>();  // not used
 
         std::size_t meas_size = from_binary<std::size_t>();
         for (std::size_t i = 0; i < meas_size; ++i) {
             // name, address, ext, dt_name
             auto meas = create_mc_object();
             measurements.push_back(meas);
-            initializer_list.push_back({meas.get_name(), meas.get_address(), meas.get_ext(), meas.get_data_type()});
+            initializer_list.push_back({ meas.get_name(), meas.get_address(), meas.get_ext(), meas.get_data_type() });
         }
 
         std::size_t meas_opt_size = from_binary<std::size_t>();
@@ -731,11 +729,11 @@ protected:
     }
 
     flatten_odts_t create_flatten_odts() {
-        std::string name;
+        std::string   name;
         std::uint32_t address;
-        std::uint8_t ext;
+        std::uint8_t  ext;
         std::uint16_t size;
-        std::int16_t type_index;
+        std::int16_t  type_index;
 
         flatten_odts_t odts;
 
@@ -744,10 +742,10 @@ protected:
             std::vector<std::tuple<std::string, std::uint32_t, std::uint8_t, std::uint16_t, std::int16_t>> flatten_odt{};
             std::size_t odt_entry_count = from_binary<std::size_t>();
             for (std::size_t j = 0; j < odt_entry_count; ++j) {
-                name = from_binary<std::string>();
-                address = from_binary<std::uint32_t>();
-                ext = from_binary<std::uint8_t>();
-                size = from_binary<std::uint16_t>();
+                name       = from_binary<std::string>();
+                address    = from_binary<std::uint32_t>();
+                ext        = from_binary<std::uint8_t>();
+                size       = from_binary<std::uint16_t>();
                 type_index = from_binary<std::int16_t>();
                 flatten_odt.push_back(std::make_tuple(name, address, ext, size, type_index));
             }
@@ -766,14 +764,14 @@ protected:
         std::int16_t          type_index;
         std::vector<McObject> components{};
 
-        name       = from_binary<std::string>();
-        address    = from_binary<std::uint32_t>();
-        ext        = from_binary<std::uint8_t>();
-        length     = from_binary<std::uint16_t>();
-        data_type  = from_binary<std::string>();
-        type_index = from_binary<std::int16_t>();   // not used
+        name                  = from_binary<std::string>();
+        address               = from_binary<std::uint32_t>();
+        ext                   = from_binary<std::uint8_t>();
+        length                = from_binary<std::uint16_t>();
+        data_type             = from_binary<std::string>();
+        type_index            = from_binary<std::int16_t>();  // not used
         std::size_t comp_size = from_binary<std::size_t>();
-        for (auto i=0U; i < comp_size; i++) {
+        for (auto i = 0U; i < comp_size; i++) {
             components.push_back(create_mc_object());
         }
 
@@ -785,10 +783,10 @@ protected:
         std::uint16_t         residual_capacity;
         std::vector<McObject> entries{};
 
-        size = from_binary<std::uint16_t>();
-        residual_capacity = from_binary<std::uint16_t>();
+        size                   = from_binary<std::uint16_t>();
+        residual_capacity      = from_binary<std::uint16_t>();
         std::size_t entry_size = from_binary<std::size_t>();
-        for (auto i=0U; i < entry_size; i++) {
+        for (auto i = 0U; i < entry_size; i++) {
             entries.push_back(create_mc_object());
         }
 
@@ -804,20 +802,20 @@ protected:
 
     template<>
     inline std::string from_binary<std::string>() {
-        auto length = from_binary<std::size_t>();
+        auto        length = from_binary<std::size_t>();
         std::string result;
-        auto start = m_buf.cbegin() + m_offset;
+        auto        start = m_buf.cbegin() + m_offset;
 
         std::copy(start, start + length, std::back_inserter(result));
         m_offset += length;
         return result;
     }
 
-private:
-    std::string     m_buf;
-    std::size_t     m_offset = 0;
-};
+   private:
 
+    std::string m_buf;
+    std::size_t m_offset = 0;
+};
 
 class DaqListState {
    public:
@@ -832,8 +830,7 @@ class DaqListState {
 
     DaqListState(
         std::uint16_t daq_list_num, std::uint16_t num_odts, std::uint16_t total_entries, bool enable_timestamps,
-        std::uint16_t initial_offset, const flatten_odts_t& flatten_odts, const Getter& getter,
-        MeasurementParameters params
+        std::uint16_t initial_offset, const flatten_odts_t& flatten_odts, const Getter& getter, MeasurementParameters params
     ) :
         m_daq_list_num(daq_list_num),
         m_num_odts(num_odts),
@@ -848,9 +845,7 @@ class DaqListState {
         m_buffer{},
         m_flatten_odts(flatten_odts),
         m_getter(getter),
-        m_params(params)
-        {
-
+        m_params(params) {
         m_buffer.resize(m_total_entries);
     }
 
@@ -953,7 +948,7 @@ class DaqListState {
     double                           m_timestamp1  = 0.0;
     state_t                          m_state       = state_t::IDLE;
     std::vector<measurement_value_t> m_buffer;
-    flatten_odts_t          m_flatten_odts;
+    flatten_odts_t                   m_flatten_odts;
     Getter                           m_getter;
     MeasurementParameters            m_params;
 };
@@ -963,7 +958,6 @@ auto requires_swap(std::uint8_t byte_order) -> bool {
     std::endian target_byte_order = (byte_order == 1) ? std::endian::big : std::endian::little;
     return (target_byte_order != std::endian::native) ? true : false;
 }
-
 
 class DAQProcessor {
    public:
@@ -975,7 +969,6 @@ class DAQProcessor {
     DAQProcessor()          = delete;
     virtual ~DAQProcessor() = default;
 
-
     std::optional<measurement_tuple_t> feed(double timestamp, const std::string& payload) noexcept {
         const auto data         = reinterpret_cast<blob_t const *>(payload.data());
         auto [daq_num, odt_num] = m_getter.get_id(data);
@@ -984,7 +977,7 @@ class DAQProcessor {
             // DAQ list completed.
             measurement_tuple_t result;
 
-            m_state[daq_num].add_result(result);    // get_result()???
+            m_state[daq_num].add_result(result);  // get_result()???
             return result;
         }
         return std::nullopt;
@@ -1001,7 +994,7 @@ class DAQProcessor {
                 m_getter, params
             ));
         }
-		m_getter.set_first_pids(m_params.m_daq_lists, m_params.m_first_pids);
+        m_getter.set_first_pids(m_params.m_daq_lists, m_params.m_first_pids);
     }
 
     MeasurementParameters                  m_params;
@@ -1010,11 +1003,11 @@ class DAQProcessor {
     std::vector<DaqListState>              m_state;
 };
 
-
 class DAQPolicyBase {
    public:
 
-    virtual ~DAQPolicyBase() {}
+    virtual ~DAQPolicyBase() {
+    }
 
     virtual void set_parameters(const MeasurementParameters& params) noexcept {
         initialize();
@@ -1025,12 +1018,10 @@ class DAQPolicyBase {
     virtual void initialize() = 0;
 
     virtual void finalize() = 0;
-
 };
 
-
 class DaqRecorderPolicy : public DAQPolicyBase {
-public:
+   public:
 
     ~DaqRecorderPolicy() {
         finalize();
@@ -1063,20 +1054,19 @@ public:
         m_writer->finalize();
     }
 
-private:
+   private:
 
     std::unique_ptr<XcpLogFileWriter> m_writer;
-    MeasurementParameters m_params;
+    MeasurementParameters             m_params;
 };
 
-
-class DaqOnlinePolicy  : public DAQPolicyBase {
+class DaqOnlinePolicy : public DAQPolicyBase {
    public:
 
     ~DaqOnlinePolicy() {
     }
 
-    DaqOnlinePolicy()          = default;
+    DaqOnlinePolicy() = default;
 
     void set_parameters(const MeasurementParameters& params) noexcept {
         m_unfolder = std::make_unique<DAQProcessor>(params);
@@ -1093,8 +1083,8 @@ class DaqOnlinePolicy  : public DAQPolicyBase {
         }
         auto result = m_unfolder->feed(timestamp, payload);
         if (result) {
-             const auto& [daq_list, ts0, ts1, meas] = *result;
-             on_daq_list(daq_list, ts0, ts1, meas);
+            const auto& [daq_list, ts0, ts1, meas] = *result;
+            on_daq_list(daq_list, ts0, ts1, meas);
         }
     }
 
@@ -1109,84 +1099,76 @@ class DaqOnlinePolicy  : public DAQPolicyBase {
     std::unique_ptr<DAQProcessor> m_unfolder;
 };
 
-
 class XcpLogFileUnfolder {
    public:
 
-    explicit XcpLogFileUnfolder(const std::string& file_name) :
-        m_reader(file_name) {
-
-		auto metadata = m_reader.get_metadata();
-		if (metadata != "") {
-			auto des = Deserializer(metadata);
-			m_params = des.run();
-			m_unfolder = std::make_unique<DAQProcessor>(m_params);
-		} else {
-			// cannot proceed!!!
-		}
-
+    explicit XcpLogFileUnfolder(const std::string& file_name) : m_reader(file_name) {
+        auto metadata = m_reader.get_metadata();
+        if (metadata != "") {
+            auto des   = Deserializer(metadata);
+            m_params   = des.run();
+            m_unfolder = std::make_unique<DAQProcessor>(m_params);
+        } else {
+            // cannot proceed!!!
+        }
     }
 
-    XcpLogFileUnfolder() = delete;
+    XcpLogFileUnfolder()          = delete;
     virtual ~XcpLogFileUnfolder() = default;
 
+    void run() {
+        const auto converter = [](const blob_t* in_str, std::size_t length) -> std::string {
+            std::string result;
+            result.resize(length);
 
-	void run() {
+            for (std::size_t idx = 0; idx < length; ++idx) {
+                result[idx] = static_cast<char>(in_str[idx]);
+            }
 
-		const auto converter = [](const blob_t * in_str, std::size_t length) -> std::string {
-			std::string result;
-			result.resize(length);
+            return result;
+        };
 
-			for (std::size_t idx=0; idx < length; ++idx) {
-				result[idx] = static_cast<char>(in_str[idx]);
-			}
+        while (true) {
+            const auto& block = m_reader.next_block();
+            if (!block) {
+                return;
+            }
 
-			return result;
-		};
-
-		while (true) {
-			const auto& block = m_reader.next_block();
-			if (!block) {
-				return;
-			}
-
-			for (const auto& [frame_cat, counter, timestamp, length, payload] : block.value()) {
-				auto str_data = converter(payload.data(), std::size(payload));
-				if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
-					continue;
-				}
-				auto result = m_unfolder->feed(timestamp, str_data);
-				if (result) {
-					 const auto& [daq_list, ts0, ts1, meas] = *result;
-					 on_daq_list(daq_list, ts0, ts1, meas);
-				}
-			}
-		}
+            for (const auto& [frame_cat, counter, timestamp, length, payload] : block.value()) {
+                auto str_data = converter(payload.data(), std::size(payload));
+                if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
+                    continue;
+                }
+                auto result = m_unfolder->feed(timestamp, str_data);
+                if (result) {
+                    const auto& [daq_list, ts0, ts1, meas] = *result;
+                    on_daq_list(daq_list, ts0, ts1, meas);
+                }
+            }
+        }
     }
 
-
-	virtual void on_daq_list(
+    virtual void on_daq_list(
         std::uint16_t daq_list_num, double timestamp0, double timestamp1, const std::vector<measurement_value_t>& measurement
     ) = 0;
 
+    MeasurementParameters get_parameters() const {
+        return m_params;
+    }
 
-	MeasurementParameters get_parameters() const  {
-		return m_params;
-	}
+    auto get_daq_lists() const {
+        return m_params.m_daq_lists;
+    }
 
-	auto get_daq_lists() const {
-		return m_params.m_daq_lists;
-	}
-
-	auto get_header() const {
-	    return m_reader.get_header();
-	}
+    auto get_header() const {
+        return m_reader.get_header();
+    }
 
    private:
 
-    XcpLogFileReader                    m_reader;
-	std::unique_ptr<DAQProcessor> 		m_unfolder;
-    MeasurementParameters               m_params;
+    XcpLogFileReader              m_reader;
+    std::unique_ptr<DAQProcessor> m_unfolder;
+    MeasurementParameters         m_params;
 };
 
 #if 0
@@ -1196,6 +1178,5 @@ class XcpLogFileUnfolder {
 			class std::allocator<class std::variant<__int64,unsigned __int64,long double,class std::basic_string<char,struct std::char_traits<char>,class std::allocator<char> > > > > const &)
 			" (?on_daq_list@XcpLogFileUnfolder@@UEAAXGNNAEBV?$vector@V?$variant@_J_KOV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@std@@V?$allocator@V?$variant@_J_KOV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@std@@@2@@std@@@Z)".
 #endif
-
 
 #endif  // RECORDER_UNFOLDER_HPP
