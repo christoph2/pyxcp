@@ -10,6 +10,7 @@
     #include <atomic>
     #include <bit>
     #include <bitset>
+    #include <cctype>
     #include <cerrno>
     #include <chrono>
     #include <cstdint>
@@ -179,7 +180,6 @@ inline blob_t* get_payload_ptr(const payload_t& payload) noexcept {
 }
     #endif /* STANDALONE_REKORDER */
 
-    ////////////////////////////////////
     #ifdef _WIN32
 inline std::string error_string(std::string_view func, std::error_code error_code) {
     LPSTR              messageBuffer = nullptr;
@@ -199,7 +199,7 @@ inline std::string error_string(std::string_view func, std::error_code error_cod
     return ss.str();
 }
 
-std::error_code get_last_error() {
+inline std::error_code get_last_error() {
     return std::error_code(GetLastError(), std::system_category());
 }
 
@@ -215,12 +215,35 @@ inline std::string error_string(std::string_view func, std::error_code error_cod
     return ss.str();
 }
 
-std::error_code get_last_error() {
+inline std::error_code get_last_error() {
     return std::error_code(errno, std::system_category());
 }
 
     #endif  // _WIN32
-////////////////////////////////////
+
+inline std::string& ltrim(std::string& s) {
+    auto it = std::find_if(s.begin(), s.end(), [](char c) { return !std::isspace<char>(c, std::locale::classic()); });
+    s.erase(s.begin(), it);
+    return s;
+}
+
+inline std::string& rtrim(std::string& s) {
+    auto it = std::find_if(s.rbegin(), s.rend(), [](char c) { return !std::isspace<char>(c, std::locale::classic()); });
+    s.erase(it.base(), s.end());
+    return s;
+}
+
+inline std::string& trim(std::string& s) {
+    return ltrim(rtrim(s));
+}
+
+inline std::string current_timestamp() {
+    std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::string result{ std::ctime(&now) };
+
+    // result.erase(std::remove_if(result.begin(), result.end(), ::isspace), result.end());
+    return trim(result);
+}
 
 inline void hexdump(blob_t const * buf, std::uint16_t sz) {
     for (std::uint16_t idx = 0; idx < sz; ++idx) {

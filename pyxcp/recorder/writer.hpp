@@ -2,7 +2,7 @@
 #ifndef RECORDER_WRITER_HPP
 #define RECORDER_WRITER_HPP
 
-#include <ctime>
+constexpr std::uint64_t MASK32 = (1ULL << 32) - 1;
 
 class XcpLogFileWriter {
    public:
@@ -92,7 +92,7 @@ class XcpLogFileWriter {
 
    protected:
 
-    void resize(off_t size, bool remap = false) {
+    void resize(std::uint64_t size, bool remap = false) {
         std::error_code ec;
 
         if (remap) {
@@ -104,8 +104,15 @@ class XcpLogFileWriter {
         }
 
 #if defined(_WIN32)
-        if (SetFilePointer(m_fd, size, nullptr, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
-            std::cout << error_string("SetFilePointer", get_last_error());
+        LONG low_part  = (MASK32 & size);
+        LONG high_part = size >> 32;
+
+        if (SetFilePointer(m_fd, low_part, &high_part, FILE_BEGIN) == INVALID_SET_FILE_POINTER) {
+            auto err = get_last_error();
+
+            if (err.value() != NO_ERROR) {
+                std::cout << error_string("SetFilePointer", err);
+            }
         }
         if (SetEndOfFile(m_fd) == 0) {
             std::cout << error_string("SetEndOfFile", get_last_error());
@@ -148,10 +155,9 @@ class XcpLogFileWriter {
         if (cp_size < 0) {
             throw std::runtime_error("LZ4 compression failed.");
         }
-        std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
         if (m_offset > (m_hard_limit >> 1)) {
-            std::cout << "[INFO] " << std::ctime(&now) << ": Doubling measurement file size." << std::endl;
+            std::cout << "[INFO] " << current_timestamp() << ": Doubling measurement file size." << std::endl;
             m_hard_limit <<= 1;
             resize(m_hard_limit, true);
             write_header(
@@ -183,8 +189,8 @@ class XcpLogFileWriter {
     }
 
     void write_header(
-        uint16_t version, uint16_t options, uint32_t num_containers, uint32_t record_count, uint32_t size_compressed,
-        uint32_t size_uncompressed
+        std::uint16_t version, std::uint16_t options, std::uint64_t num_containers, std::uint64_t record_count,
+        std::uint64_t size_compressed, std::uint64_t size_uncompressed
     ) {
         auto header = FileHeaderType{};
         write_bytes(0x00000000UL, detail::MAGIC_SIZE, detail::MAGIC.c_str());
@@ -260,7 +266,7 @@ class XcpLogFileWriter {
     std::uint64_t         m_container_size_uncompressed{ 0UL };
     std::uint64_t         m_container_size_compressed{ 0UL };
     __ALIGN blob_t       *m_intermediate_storage{ nullptr };
-    std::uint64_t         m_intermediate_storage_offset{ 0 };
+    std::uint32_t         m_intermediate_storage_offset{ 0 };
     std::uint64_t         m_hard_limit{ 0 };
     mio::file_handle_type m_fd{ INVALID_HANDLE_VALUE };
     mio::mmap_sink       *m_mmap{ nullptr };
