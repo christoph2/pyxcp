@@ -701,7 +701,7 @@ class Deserializer {
 
         std::vector<DaqList::daq_list_initialzer_t> initializer_list{};
 
-        name              = from_binary<std::string>();
+        name              = from_binary_str();
         event_num         = from_binary<std::uint16_t>();
         stim              = from_binary<bool>();
         enable_timestamps = from_binary<bool>();
@@ -725,7 +725,7 @@ class Deserializer {
 
         std::size_t hname_size = from_binary<std::size_t>();
         for (std::size_t i = 0; i < hname_size; ++i) {
-            auto header = from_binary<std::string>();
+            auto header = from_binary_str();
             header_names.push_back(header);
         }
 
@@ -750,7 +750,7 @@ class Deserializer {
             std::vector<std::tuple<std::string, std::uint32_t, std::uint8_t, std::uint16_t, std::int16_t>> flatten_odt{};
             std::size_t odt_entry_count = from_binary<std::size_t>();
             for (std::size_t j = 0; j < odt_entry_count; ++j) {
-                name       = from_binary<std::string>();
+                name       = from_binary_str();
                 address    = from_binary<std::uint32_t>();
                 ext        = from_binary<std::uint8_t>();
                 size       = from_binary<std::uint16_t>();
@@ -772,11 +772,11 @@ class Deserializer {
         std::int16_t          type_index;
         std::vector<McObject> components{};
 
-        name                  = from_binary<std::string>();
+        name                  = from_binary_str();
         address               = from_binary<std::uint32_t>();
         ext                   = from_binary<std::uint8_t>();
         length                = from_binary<std::uint16_t>();
-        data_type             = from_binary<std::string>();
+        data_type             = from_binary_str();
         type_index            = from_binary<std::int16_t>();  // not used
         std::size_t comp_size = from_binary<std::size_t>();
         for (auto i = 0U; i < comp_size; i++) {
@@ -808,8 +808,9 @@ class Deserializer {
         return tmp;
     }
 
-    template<>
-    inline std::string from_binary<std::string>() {
+    //template<>
+    //inline std::string from_binary_str() {
+    inline std::string from_binary_str() {
         auto        length = from_binary<std::size_t>();
         std::string result;
         auto        start = m_buf.cbegin() + m_offset;
@@ -1050,7 +1051,7 @@ class DaqRecorderPolicy : public DAQPolicyBase {
         m_writer->add_frame(frame_cat, counter, timestamp, static_cast<std::uint16_t>(payload.size()), payload.c_str());
     }
 
-    void create_writer(const std::string& file_name, std::uint64_t prealloc, std::uint64_t chunk_size, std::string_view metadata) {
+    void create_writer(const std::string& file_name, std::uint32_t prealloc, std::uint32_t chunk_size, std::string_view metadata) {
         m_writer = std::make_unique<XcpLogFileWriter>(file_name, prealloc, chunk_size, metadata);
     }
 
