@@ -130,7 +130,7 @@ class XcpLogFileWriter {
         }
     }
 
-    blob_t *ptr(std::uint32_t pos = 0) const {
+    blob_t *ptr(std::uint64_t pos = 0) const {
         return (blob_t *)(m_mmap->data() + pos);
     }
 
@@ -148,7 +148,8 @@ class XcpLogFileWriter {
         // printf("Compressing %u frames... [%d]\n", m_container_record_count, m_intermediate_storage_offset);
         const int cp_size = ::LZ4_compress_HC(
             reinterpret_cast<char const *>(m_intermediate_storage),
-            reinterpret_cast<char *>(ptr(m_offset + detail::CONTAINER_SIZE)), m_intermediate_storage_offset,
+            reinterpret_cast<char *>(ptr(m_offset + detail::CONTAINER_SIZE)),
+            m_intermediate_storage_offset,
             LZ4_COMPRESSBOUND(m_intermediate_storage_offset), LZ4HC_CLEVEL_MAX
         );
 
@@ -169,7 +170,10 @@ class XcpLogFileWriter {
         container.size_compressed   = cp_size;
         container.size_uncompressed = m_container_size_uncompressed;
 
-        _fcopy(reinterpret_cast<char *>(ptr(m_offset)), reinterpret_cast<char const *>(&container), detail::CONTAINER_SIZE);
+        _fcopy(reinterpret_cast<char *>(ptr(m_offset)),
+            reinterpret_cast<char const *>(&container),
+            detail::CONTAINER_SIZE
+        );
 
         m_offset += (detail::CONTAINER_SIZE + cp_size);
         m_total_size_uncompressed += m_container_size_uncompressed;
@@ -256,15 +260,15 @@ class XcpLogFileWriter {
 
     std::string           m_file_name;
     std::uint64_t         m_offset{ 0 };
-    std::uint64_t         m_chunk_size{ 0 };
+    std::uint32_t         m_chunk_size{ 0 };
     std::string           m_metadata;
     std::uint64_t         m_num_containers{ 0 };
     std::uint64_t         m_record_count{ 0UL };
-    std::uint64_t         m_container_record_count{ 0UL };
+    std::uint32_t         m_container_record_count{ 0UL };
     std::uint64_t         m_total_size_uncompressed{ 0UL };
     std::uint64_t         m_total_size_compressed{ 0UL };
-    std::uint64_t         m_container_size_uncompressed{ 0UL };
-    std::uint64_t         m_container_size_compressed{ 0UL };
+    std::uint32_t         m_container_size_uncompressed{ 0UL };
+    std::uint32_t         m_container_size_compressed{ 0UL };
     __ALIGN blob_t       *m_intermediate_storage{ nullptr };
     std::uint32_t         m_intermediate_storage_offset{ 0 };
     std::uint64_t         m_hard_limit{ 0 };
