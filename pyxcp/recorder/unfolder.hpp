@@ -33,7 +33,8 @@ template<>
 auto get_value<std::float16_t>(blob_t const * buf, std::uint64_t offset) -> std::float16_t {
     auto tmp = get_value<std::uint16_t>(buf, offset);
 
-    return *(reinterpret_cast<std::float16_t*>(&tmp));
+    //return *(reinterpret_cast<std::float16_t*>(&tmp));
+    return std::bit_cast<std::float16_t>(tmp);
 }
 #endif
 
@@ -42,7 +43,8 @@ template<>
 auto get_value<std::bfloat16_t>(blob_t const * buf, std::uint64_t offset) -> std::bfloat16_t {
     auto tmp = get_value<std::uint16_t>(buf, offset);
 
-    return *(reinterpret_cast<std::bfloat16_t*>(&tmp));
+    //return *(reinterpret_cast<std::bfloat16_t*>(&tmp));
+    return std::bit_cast<std::bfloat16_t>(tmp);
 }
 #endif
 
@@ -50,14 +52,16 @@ template<>
 auto get_value<float>(blob_t const * buf, std::uint64_t offset) -> float {
     auto tmp = get_value<std::uint32_t>(buf, offset);
 
-    return *(reinterpret_cast<float*>(&tmp));
+    //return *(reinterpret_cast<float*>(&tmp));
+    return std::bit_cast<float>(tmp);
 }
 
 template<>
 auto get_value<double>(blob_t const * buf, std::uint64_t offset) -> double {
     auto tmp = get_value<std::uint64_t>(buf, offset);
 
-    return *(reinterpret_cast<double*>(&tmp));
+    //return *(reinterpret_cast<double*>(&tmp));
+    return std::bit_cast<double>(tmp);
 }
 
 #if HAS_FLOAT16 == 1
@@ -65,7 +69,8 @@ template<>
 auto get_value_swapped<std::float16_t>(blob_t const * buf, std::uint64_t offset) -> std::float16_t {
     auto tmp = get_value_swapped<std::uint16_t>(buf, offset);
 
-    return *(reinterpret_cast<std::float16_t*>(&tmp));
+    //return *(reinterpret_cast<std::float16_t*>(&tmp));
+    return std::bit_cast<std::float16_t>(tmp);
 }
 #endif
 
@@ -74,7 +79,8 @@ template<>
 auto get_value_swapped<std::bfloat16_t>(blob_t const * buf, std::uint64_t offset) -> std::bfloat16_t {
     auto tmp = get_value_swapped<std::uint16_t>(buf, offset);
 
-    return *(reinterpret_cast<std::bfloat16_t*>(&tmp));
+    //return *(reinterpret_cast<std::bfloat16_t*>(&tmp));
+    return std::bit_cast<std::bfloat16_t>(tmp);
 }
 #endif
 
@@ -82,14 +88,16 @@ template<>
 auto get_value_swapped<float>(blob_t const * buf, std::uint64_t offset) -> float {
     auto tmp = get_value_swapped<std::uint32_t>(buf, offset);
 
-    return *(reinterpret_cast<float*>(&tmp));
+    //return *(reinterpret_cast<float*>(&tmp));
+    return std::bit_cast<float>(tmp);
 }
 
 template<>
 auto get_value_swapped<double>(blob_t const * buf, std::uint64_t offset) -> double {
     auto tmp = get_value_swapped<std::uint64_t>(buf, offset);
 
-    return *(reinterpret_cast<double*>(&tmp));
+    //return *(reinterpret_cast<double*>(&tmp));
+    return std::bit_cast<double>(tmp);
 }
 
 template<>
