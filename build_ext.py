@@ -75,4 +75,5 @@ def build_extension(debug: bool = False) -> None:
 
 
 if __name__ == "__main__":
+    print("DIR:", os.listdir())
     build_extension()

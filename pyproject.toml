@@ -66,6 +66,7 @@ include = [
     { path = "pyxcp/recorder/*.so", format = "wheel" },
     { path = "pyxcp/recorder/*.pyd", format = "wheel" },
     { path = "pyxcp/*.exe", format = "wheel" },
+    { path = "CMakeLists.txt", format = "wheel" },
 ]
 
 [tool.poetry.dependencies]
