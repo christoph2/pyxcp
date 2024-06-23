@@ -239,7 +239,20 @@ inline std::string& trim(std::string& s) {
 
 inline std::string current_timestamp() {
     std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    std::string result{ std::ctime(&now) };
+
+#if defined(_MSC_VER)
+    errno_t err;
+    char tbuf[128];
+    std::string result{};
+
+    err = ::ctime_s(tbuf, 128, &now);
+    if (err == 0)  {
+        result = tbuf;
+    }
+
+#else
+    std::string result{ ::ctime(&now) };
+#endif
 
     // result.erase(std::remove_if(result.begin(), result.end(), ::isspace), result.end());
     return trim(result);
