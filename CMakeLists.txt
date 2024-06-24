@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.7...3.29)
 project(pyxcp_extensions LANGUAGES C CXX)
 
 find_package(Python COMPONENTS Interpreter Development)
-#find_package(pybind11 CONFIG)
 find_package(pybind11 CONFIG)
 
 SET(CMAKE_C_STANDARD 17)
@@ -20,11 +19,11 @@ SET(GCC_N_CLANG_BASE_OPTIONS "-std=c++23 -Wall -Wextra -Wpedantic -Warray-bounds
 SET(MSVC_BASE_OPTIONS "/W3 /permissive- /EHsc /bigobj /std:c++latest")
 
 
-if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Od /fsanitize=address /Zi")
-else ()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Ox ")	# /GL
-endif ()
+# if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+#     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Od /fsanitize=address /Zi")
+# else ()
+#     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Ox ")	# /GL
+# endif ()
 
 
 if (CMAKE_SYSTEM_NAME STREQUAL  "Darwin")
