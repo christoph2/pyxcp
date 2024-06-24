@@ -1,6 +1,6 @@
 
 [build-system]
-requires = ["poetry-core>=1.0.0", "setuptools>=68.0.0" , "pybind11>=2.11.1"]
+requires = ["poetry-core>=1.0.0", "setuptools>=68.0.0" , "pybind11[global]>=2.11.1"]
 build-backend = "poetry.core.masonry.api"
 
 
