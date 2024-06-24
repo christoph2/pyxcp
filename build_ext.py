@@ -76,6 +76,6 @@ def build_extension(debug: bool = False) -> None:
 
 if __name__ == "__main__":
     print("DIR:", os.listdir())
-    includes = subprocess.getoutput("pybind11-config --includes")  # nosec
-    # os.environ["pybind11_INCLUDE_DIRS"] = includes
+    includes = subprocess.getoutput("pybind11-config --cmakedir")  # nosec
+    os.environ["pybind11_DIR"] = includes
     build_extension()
