@@ -5,7 +5,7 @@
     #include <iostream>
     #include <utility>
 
-    #if __cplusplus >= 202302L
+    #if (__cplusplus >= 202302L) || (__STDC_VERSION__ >= 202302L)
         #include <stdfloat>
 
         #if defined(__STDCPP_BFLOAT16_T__)

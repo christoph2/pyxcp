@@ -28,6 +28,7 @@ def build_extension(debug: bool = False) -> None:
 
     debug = int(os.environ.get("DEBUG", 0)) or debug
     cfg = "Debug" if debug else "Release"
+    print(f" BUILD-TYPE: {cfg!r}")
 
     # Set Python_EXECUTABLE instead if you use PYBIND11_FINDPYTHON
     # EXAMPLE_VERSION_INFO shows you how to pass a value into the C++ code
@@ -77,4 +78,4 @@ def build_extension(debug: bool = False) -> None:
 if __name__ == "__main__":
     includes = subprocess.getoutput("pybind11-config --cmakedir")  # nosec
     os.environ["pybind11_DIR"] = includes
-    build_extension()
+    build_extension(False)
