@@ -87,6 +87,8 @@ bandit = "^1.7.8"
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.1.0"
 
+pre-commit-hooks = "^4.6.0"
+darglint = "^1.8.1"
 [tool.poetry.scripts]
 pyxcp-probe-can-drivers = "pyxcp.scripts.pyxcp_probe_can_drivers:main"
 xcp-id-scanner = "pyxcp.scripts.xcp_id_scanner:main"

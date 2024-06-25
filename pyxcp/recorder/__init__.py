@@ -26,7 +26,7 @@ from pyxcp.recorder.rekorder import (  # noqa: F401
 )
 
 
-data_types = data_types()
+DATA_TYPES = data_types()
 
 
 @dataclass
