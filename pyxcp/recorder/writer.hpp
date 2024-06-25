@@ -148,8 +148,7 @@ class XcpLogFileWriter {
         // printf("Compressing %u frames... [%d]\n", m_container_record_count, m_intermediate_storage_offset);
         const int cp_size = ::LZ4_compress_HC(
             reinterpret_cast<char const *>(m_intermediate_storage),
-            reinterpret_cast<char *>(ptr(m_offset + detail::CONTAINER_SIZE)),
-            m_intermediate_storage_offset,
+            reinterpret_cast<char *>(ptr(m_offset + detail::CONTAINER_SIZE)), m_intermediate_storage_offset,
             LZ4_COMPRESSBOUND(m_intermediate_storage_offset), LZ4HC_CLEVEL_MAX
         );
 
@@ -170,10 +169,7 @@ class XcpLogFileWriter {
         container.size_compressed   = cp_size;
         container.size_uncompressed = m_container_size_uncompressed;
 
-        _fcopy(reinterpret_cast<char *>(ptr(m_offset)),
-            reinterpret_cast<char const *>(&container),
-            detail::CONTAINER_SIZE
-        );
+        _fcopy(reinterpret_cast<char *>(ptr(m_offset)), reinterpret_cast<char const *>(&container), detail::CONTAINER_SIZE);
 
         m_offset += (detail::CONTAINER_SIZE + cp_size);
         m_total_size_uncompressed += m_container_size_uncompressed;

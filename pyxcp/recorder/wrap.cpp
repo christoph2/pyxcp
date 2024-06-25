@@ -59,6 +59,7 @@ class PyXcpLogFileUnfolder : public XcpLogFileUnfolder {
 
 PYBIND11_MODULE(rekorder, m) {
     m.doc() = "XCP raw frame recorder.";
+    m.def("data_types", get_data_types);
 
 #if 0
      version;
