@@ -19,6 +19,7 @@ from pyxcp.recorder.rekorder import (  # noqa: F401
     DaqRecorderPolicy,
     Deserializer,
     MeasurementParameters,
+    ValueHolder,
     XcpLogFileUnfolder,
     _PyXcpLogFileReader,
     _PyXcpLogFileWriter,

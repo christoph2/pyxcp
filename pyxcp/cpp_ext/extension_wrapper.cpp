@@ -57,7 +57,7 @@ PYBIND11_MODULE(cpp_ext, m) {
         .def_property("enable_timestamps", &DaqList::get_enable_timestamps, nullptr)
         .def_property("measurements", &DaqList::get_measurements, nullptr)
         .def_property("measurements_opt", &DaqList::get_measurements_opt, &DaqList::set_measurements_opt)
-        .def_property("header_names", &DaqList::get_header_names, nullptr)
+        .def_property("headers", &DaqList::get_headers, nullptr)
         .def_property("odt_count", &DaqList::get_odt_count, nullptr)
         .def_property("total_entries", &DaqList::get_total_entries, nullptr)
         .def_property("total_length", &DaqList::get_total_length, nullptr);

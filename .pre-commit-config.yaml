@@ -124,3 +124,7 @@ repos:
     rev: v2.6.0
     hooks:
       - id: prettier
+        #- repo: https://github.com/necaris/pre-commit-pyright
+        #rev: '1.1.53'
+        #hooks:
+        #- id: pyright

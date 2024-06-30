@@ -201,7 +201,7 @@ class DaqToCsv(DaqOnlinePolicy):
                 continue
             out_file = open(f"{daq_list.name}.csv", "w")
             self.files[num] = out_file
-            hdr = ",".join(["timestamp0", "timestamp1"] + daq_list.header_names)
+            hdr = ",".join(["timestamp0", "timestamp1"] + [h[0] for h in daq_list.headers])
             out_file.write(f"{hdr}\n")
 
     def on_daq_list(self, daq_list: int, ts0: float, ts1: float, payload: list):

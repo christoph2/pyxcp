@@ -30,6 +30,24 @@ const std::map<const std::string, std::tuple<std::uint16_t, std::uint16_t>> TYPE
     #endif
 };
 
+const std::map<std::uint16_t, const std::string> TYPE_MAP_REV = {
+    { 0,  "U8"   },
+    { 1,  "I8"   },
+    { 2,  "U16"  },
+    { 3,  "I16"  },
+    { 4,  "U32"  },
+    { 5,  "I32"  },
+    { 6,  "U64"  },
+    { 7,  "I64"  },
+    { 8,  "F32"  },
+    { 9,  "F64"  },
+    #if HAS_FLOAT16
+    { 10, "F16"  },
+    #endif
+    #if HAS_BFLOAT16
+    { 11, "BF16" },
+    #endif
+};
 inline std::vector<std::string> get_data_types() {
     std::vector<std::string> result;
 

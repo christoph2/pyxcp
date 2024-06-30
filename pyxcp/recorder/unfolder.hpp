@@ -2,6 +2,7 @@
 #ifndef RECORDER_UNFOLDER_HPP
 #define RECORDER_UNFOLDER_HPP
 
+#include <any>
 #include <bit>
 #include <charconv>
 #include <cstring>
@@ -1056,7 +1057,6 @@ class DaqRecorderPolicy : public DAQPolicyBase {
     }
 
     void initialize() override {
-        // TODO: Save meta-data.
     }
 
     void finalize() override {
@@ -1108,6 +1108,22 @@ class DaqOnlinePolicy : public DAQPolicyBase {
     std::unique_ptr<DAQProcessor> m_unfolder;
 };
 
+
+struct ValueHolder {
+
+    ValueHolder() = delete;
+    ValueHolder(const ValueHolder&) = default;
+	ValueHolder(const std::any& value) : m_value(value) {}
+	ValueHolder(std::any&& value) : m_value(std::move(value)) {}
+
+    std::any get_value() const noexcept {
+        return m_value;
+    }
+
+private:
+    std::any m_value;
+};
+
 class XcpLogFileUnfolder {
    public:
 
@@ -1125,7 +1141,14 @@ class XcpLogFileUnfolder {
     XcpLogFileUnfolder()          = delete;
     virtual ~XcpLogFileUnfolder() = default;
 
+    virtual void initialize() {
+    }
+
+    virtual void finalize() {
+    }
+
     void run() {
+        initialize();
         const auto converter = [](const blob_t* in_str, std::size_t length) -> std::string {
             std::string result;
             result.resize(length);
@@ -1140,6 +1163,7 @@ class XcpLogFileUnfolder {
         while (true) {
             const auto& block = m_reader.next_block();
             if (!block) {
+                finalize();
                 return;
             }
 
@@ -1155,6 +1179,7 @@ class XcpLogFileUnfolder {
                 }
             }
         }
+        return;
     }
 
     virtual void on_daq_list(

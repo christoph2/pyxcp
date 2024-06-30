@@ -11,6 +11,8 @@
 namespace py = pybind11;
 using namespace pybind11::literals;
 
+PYBIND11_MAKE_OPAQUE(ValueHolder);
+
 class PyDaqOnlinePolicy : public DaqOnlinePolicy {
    public:
 
@@ -55,20 +57,19 @@ class PyXcpLogFileUnfolder : public XcpLogFileUnfolder {
     ) override {
         PYBIND11_OVERRIDE_PURE(void, XcpLogFileUnfolder, on_daq_list, daq_list_num, timestamp0, timestamp1, measurement);
     }
+
+    void initialize() override {
+        PYBIND11_OVERRIDE(void, XcpLogFileUnfolder, initialize);
+    }
+
+    void finalize() override {
+        PYBIND11_OVERRIDE(void, XcpLogFileUnfolder, finalize);
+    }
 };
 
 PYBIND11_MODULE(rekorder, m) {
     m.doc() = "XCP raw frame recorder.";
     m.def("data_types", get_data_types);
-
-#if 0
-     version;
-     options;
-     num_containers;
-     record_count;
-     size_compressed;
-     size_uncompressed;
-#endif
 
     py::class_<FileHeaderType>(m, "FileHeaderType")
         .def(py::init<std::uint16_t, std::uint16_t, std::uint16_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t>())
@@ -89,7 +90,10 @@ PYBIND11_MODULE(rekorder, m) {
             return ss.str();
         });
 
-    py::class_<Deserializer>(m, "Deserializer").def(py::init<const std::string&>()).def("run", &Deserializer::run);
+    py::class_<Deserializer>(m, "Deserializer")
+        .def(py::init<const std::string&>())
+        .def("run", &Deserializer::run)
+        ;
 
     py::class_<XcpLogFileReader>(m, "_PyXcpLogFileReader")
         .def(py::init<const std::string&>())
@@ -172,5 +176,14 @@ PYBIND11_MODULE(rekorder, m) {
         .def("on_daq_list", &XcpLogFileUnfolder::on_daq_list)
         .def_property_readonly("parameters", &XcpLogFileUnfolder::get_parameters)
         .def_property_readonly("daq_lists", &XcpLogFileUnfolder::get_daq_lists)
-        .def("get_header", &XcpLogFileUnfolder::get_header);
+        .def("get_header", &XcpLogFileUnfolder::get_header)
+        .def("initialize", &XcpLogFileUnfolder::initialize)
+        .def("finalize", &XcpLogFileUnfolder::finalize)
+        ;
+
+    py::class_<ValueHolder>(m, "ValueHolder")
+        //.def(py::init<const ValueHolder&>())
+		.def(py::init<const std::any&>())
+        .def_property_readonly("value", &ValueHolder::get_value)
+    ;
 }

@@ -3,6 +3,7 @@
     #define __HELPER_HPP
 
     #include <iostream>
+    #include <map>
     #include <utility>
 
     #if (__cplusplus >= 202302L) || (__STDC_VERSION__ >= 202302L)
@@ -89,6 +90,15 @@ inline auto byte_order_to_string(int value) {
             return "<UNKNOWN>";
     }
     return "<UNKNOWN>";
+}
+
+template<typename K, typename V>
+static std::map<V, K> reverse_map(const std::map<K, V> &m) {
+    std::map<V, K> result;
+    for (const auto &[k, v] : m) {
+        result[v] = k;
+    }
+    return result;
 }
 
 #endif  // __HELPER_HPP

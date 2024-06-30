@@ -53,6 +53,10 @@ class DaqList {
         return m_header_names;
     }
 
+    const std::vector<std::tuple<std::string, std::string>>& get_headers() const noexcept {
+        return m_headers;
+    }
+
     std::uint16_t get_odt_count() const {
         return m_odt_count;
     }
@@ -85,6 +89,7 @@ class DaqList {
                         component.get_name(), component.get_address(), component.get_ext(), component.get_length(),
                         component.get_type_index()
                     );
+                    m_headers.emplace_back(component.get_name(), TYPE_MAP_REV.at(component.get_type_index()));
                     total_entries++;
                     total_length += component.get_length();
                 }
@@ -175,17 +180,18 @@ class DaqList {
 
    private:
 
-    std::string              m_name;
-    std::uint16_t            m_event_num;
-    bool                     m_stim;
-    bool                     m_enable_timestamps;
-    std::vector<McObject>    m_measurements;
-    std::vector<Bin>         m_measurements_opt;
-    std::vector<std::string> m_header_names;
-    std::uint16_t            m_odt_count;
-    std::uint16_t            m_total_entries;
-    std::uint16_t            m_total_length;
-    flatten_odts_t           m_flatten_odts;
+    std::string                                       m_name;
+    std::uint16_t                                     m_event_num;
+    bool                                              m_stim;
+    bool                                              m_enable_timestamps;
+    std::vector<McObject>                             m_measurements;
+    std::vector<Bin>                                  m_measurements_opt;
+    std::vector<std::string>                          m_header_names;
+    std::vector<std::tuple<std::string, std::string>> m_headers;
+    std::uint16_t                                     m_odt_count;
+    std::uint16_t                                     m_total_entries;
+    std::uint16_t                                     m_total_length;
+    flatten_odts_t                                    m_flatten_odts;
 };
 
 #endif  // __DAQ_LIST_HPP
