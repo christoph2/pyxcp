@@ -846,7 +846,7 @@ class ProfileCreate(Application):
 
 
 class ProfileConvert(Application):
-    description = "\nConvert legacy configuration file (.json/.toml) to new python based format."
+    description = "\nConvert legacy configuration file (.json/.toml) to new Python based format."
 
     config_file = Unicode(help="Name of legacy config file (.json/.toml).", default_value=None, allow_none=False).tag(
         config=True
@@ -970,7 +970,7 @@ class PyXCP(Application):
                 raise ValueError(f"Unknown file type for config: {suffix}")
             with pth.open("r") as f:
                 if emit_warning:
-                    self.log.warning(f"Legacy configuration file format ({suffix}), please use python based configuration.")
+                    self.log.warning(f"Legacy configuration file format ({suffix}), please use Python based configuration.")
                 cfg = reader.loads(f.read())
                 if cfg:
                     cfg = legacy.convert_config(cfg, self.log)

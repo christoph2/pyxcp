@@ -22,7 +22,11 @@ from pyxcp.recorder.rekorder import (  # noqa: F401
     XcpLogFileUnfolder,
     _PyXcpLogFileReader,
     _PyXcpLogFileWriter,
+    data_types,
 )
+
+
+DATA_TYPES = data_types()
 
 
 @dataclass

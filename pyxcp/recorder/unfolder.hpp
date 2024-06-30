@@ -33,7 +33,7 @@ template<>
 auto get_value<std::float16_t>(blob_t const * buf, std::uint64_t offset) -> std::float16_t {
     auto tmp = get_value<std::uint16_t>(buf, offset);
 
-    return *(reinterpret_cast<std::float16_t*>(&tmp));
+    return std::bit_cast<std::float16_t>(tmp);
 }
 #endif
 
@@ -42,7 +42,7 @@ template<>
 auto get_value<std::bfloat16_t>(blob_t const * buf, std::uint64_t offset) -> std::bfloat16_t {
     auto tmp = get_value<std::uint16_t>(buf, offset);
 
-    return *(reinterpret_cast<std::bfloat16_t*>(&tmp));
+    return std::bit_cast<std::bfloat16_t>(tmp);
 }
 #endif
 
@@ -50,14 +50,14 @@ template<>
 auto get_value<float>(blob_t const * buf, std::uint64_t offset) -> float {
     auto tmp = get_value<std::uint32_t>(buf, offset);
 
-    return *(reinterpret_cast<float*>(&tmp));
+    return std::bit_cast<float>(tmp);
 }
 
 template<>
 auto get_value<double>(blob_t const * buf, std::uint64_t offset) -> double {
     auto tmp = get_value<std::uint64_t>(buf, offset);
 
-    return *(reinterpret_cast<double*>(&tmp));
+    return std::bit_cast<double>(tmp);
 }
 
 #if HAS_FLOAT16 == 1
@@ -65,7 +65,7 @@ template<>
 auto get_value_swapped<std::float16_t>(blob_t const * buf, std::uint64_t offset) -> std::float16_t {
     auto tmp = get_value_swapped<std::uint16_t>(buf, offset);
 
-    return *(reinterpret_cast<std::float16_t*>(&tmp));
+    return std::bit_cast<std::float16_t>(tmp);
 }
 #endif
 
@@ -74,7 +74,7 @@ template<>
 auto get_value_swapped<std::bfloat16_t>(blob_t const * buf, std::uint64_t offset) -> std::bfloat16_t {
     auto tmp = get_value_swapped<std::uint16_t>(buf, offset);
 
-    return *(reinterpret_cast<std::bfloat16_t*>(&tmp));
+    return std::bit_cast<std::bfloat16_t>(tmp);
 }
 #endif
 
@@ -82,14 +82,14 @@ template<>
 auto get_value_swapped<float>(blob_t const * buf, std::uint64_t offset) -> float {
     auto tmp = get_value_swapped<std::uint32_t>(buf, offset);
 
-    return *(reinterpret_cast<float*>(&tmp));
+    return std::bit_cast<float>(tmp);
 }
 
 template<>
 auto get_value_swapped<double>(blob_t const * buf, std::uint64_t offset) -> double {
     auto tmp = get_value_swapped<std::uint64_t>(buf, offset);
 
-    return *(reinterpret_cast<double*>(&tmp));
+    return std::bit_cast<double>(tmp);
 }
 
 template<>
@@ -177,45 +177,53 @@ void set_value_swapped<std::int64_t>(blob_t* buf, std::uint64_t offset, std::int
 #if HAS_FLOAT16 == 1
 template<>
 void set_value<std::float16_t>(blob_t* buf, std::uint64_t offset, std::float16_t value) {
-    set_value<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
+    // set_value<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
+    set_value<std::uint16_t>(buf, offset, std::bit_cast<std::uint16_t>(value));
 }
 
 template<>
 void set_value_swapped<std::float16_t>(blob_t* buf, std::uint64_t offset, std::float16_t value) {
-    set_value_swapped<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
+    // set_value_swapped<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
+    set_value_swapped<std::uint16_t>(buf, offset, std::bit_cast<std::uint16_t>(value));
 }
 #endif
 
 #if HAS_BFLOAT16 == 1
 template<>
 void set_value<std::bfloat16_t>(blob_t* buf, std::uint64_t offset, std::bfloat16_t value) {
-    set_value<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
+    // set_value<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
+    set_value<std::uint16_t>(buf, offset, std::bit_cast<std::uint16_t>(value));
 }
 
 template<>
 void set_value_swapped<std::bfloat16_t>(blob_t* buf, std::uint64_t offset, std::bfloat16_t value) {
-    set_value_swapped<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
+    // set_value_swapped<std::uint16_t>(buf, offset, *reinterpret_cast<std::uint16_t*>(&value));
+    set_value_swapped<std::uint16_t>(buf, offset, std::bit_cast<std::uint16_t>(value));
 }
 #endif
 
 template<>
 void set_value<float>(blob_t* buf, std::uint64_t offset, float value) {
-    set_value<std::uint32_t>(buf, offset, *reinterpret_cast<std::uint32_t*>(&value));
+    // set_value<std::uint32_t>(buf, offset, *reinterpret_cast<std::uint32_t*>(&value));
+    set_value<std::uint32_t>(buf, offset, std::bit_cast<std::uint32_t>(value));
 }
 
 template<>
 void set_value_swapped<float>(blob_t* buf, std::uint64_t offset, float value) {
-    set_value_swapped<std::uint32_t>(buf, offset, *reinterpret_cast<std::uint32_t*>(&value));
+    // set_value_swapped<std::uint32_t>(buf, offset, *reinterpret_cast<std::uint32_t*>(&value));
+    set_value_swapped<std::uint32_t>(buf, offset, std::bit_cast<std::uint32_t>(value));
 }
 
 template<>
 void set_value<double>(blob_t* buf, std::uint64_t offset, double value) {
-    set_value<std::uint64_t>(buf, offset, *reinterpret_cast<std::uint64_t*>(&value));
+    // set_value<std::uint64_t>(buf, offset, *reinterpret_cast<std::uint64_t*>(&value));
+    set_value<std::uint64_t>(buf, offset, std::bit_cast<std::uint64_t>(value));
 }
 
 template<>
 void set_value_swapped<double>(blob_t* buf, std::uint64_t offset, double value) {
-    set_value_swapped<std::uint64_t>(buf, offset, *reinterpret_cast<std::uint64_t*>(&value));
+    // set_value_swapped<std::uint64_t>(buf, offset, *reinterpret_cast<std::uint64_t*>(&value));
+    set_value_swapped<std::uint64_t>(buf, offset, std::bit_cast<std::uint64_t>(value));
 }
 
 /*
@@ -693,7 +701,7 @@ class Deserializer {
 
         std::vector<DaqList::daq_list_initialzer_t> initializer_list{};
 
-        name              = from_binary<std::string>();
+        name              = from_binary_str();
         event_num         = from_binary<std::uint16_t>();
         stim              = from_binary<bool>();
         enable_timestamps = from_binary<bool>();
@@ -717,7 +725,7 @@ class Deserializer {
 
         std::size_t hname_size = from_binary<std::size_t>();
         for (std::size_t i = 0; i < hname_size; ++i) {
-            auto header = from_binary<std::string>();
+            auto header = from_binary_str();
             header_names.push_back(header);
         }
 
@@ -742,7 +750,7 @@ class Deserializer {
             std::vector<std::tuple<std::string, std::uint32_t, std::uint8_t, std::uint16_t, std::int16_t>> flatten_odt{};
             std::size_t odt_entry_count = from_binary<std::size_t>();
             for (std::size_t j = 0; j < odt_entry_count; ++j) {
-                name       = from_binary<std::string>();
+                name       = from_binary_str();
                 address    = from_binary<std::uint32_t>();
                 ext        = from_binary<std::uint8_t>();
                 size       = from_binary<std::uint16_t>();
@@ -764,11 +772,11 @@ class Deserializer {
         std::int16_t          type_index;
         std::vector<McObject> components{};
 
-        name                  = from_binary<std::string>();
+        name                  = from_binary_str();
         address               = from_binary<std::uint32_t>();
         ext                   = from_binary<std::uint8_t>();
         length                = from_binary<std::uint16_t>();
-        data_type             = from_binary<std::string>();
+        data_type             = from_binary_str();
         type_index            = from_binary<std::int16_t>();  // not used
         std::size_t comp_size = from_binary<std::size_t>();
         for (auto i = 0U; i < comp_size; i++) {
@@ -800,8 +808,9 @@ class Deserializer {
         return tmp;
     }
 
-    template<>
-    inline std::string from_binary<std::string>() {
+    // template<>
+    // inline std::string from_binary_str() {
+    inline std::string from_binary_str() {
         auto        length = from_binary<std::size_t>();
         std::string result;
         auto        start = m_buf.cbegin() + m_offset;
@@ -1042,7 +1051,7 @@ class DaqRecorderPolicy : public DAQPolicyBase {
         m_writer->add_frame(frame_cat, counter, timestamp, static_cast<std::uint16_t>(payload.size()), payload.c_str());
     }
 
-    void create_writer(const std::string& file_name, std::uint64_t prealloc, std::uint64_t chunk_size, std::string_view metadata) {
+    void create_writer(const std::string& file_name, std::uint32_t prealloc, std::uint32_t chunk_size, std::string_view metadata) {
         m_writer = std::make_unique<XcpLogFileWriter>(file_name, prealloc, chunk_size, metadata);
     }
 

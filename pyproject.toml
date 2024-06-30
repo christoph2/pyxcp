@@ -1,6 +1,6 @@
 
 [build-system]
-requires = ["poetry-core>=1.0.0", "setuptools>=68.0.0" , "pybind11>=2.11.1"]
+requires = ["poetry-core>=1.0.0", "setuptools>=68.0.0" , "pybind11[global]>=2.11.1"]
 build-backend = "poetry.core.masonry.api"
 
 
@@ -66,10 +66,11 @@ include = [
     { path = "pyxcp/recorder/*.so", format = "wheel" },
     { path = "pyxcp/recorder/*.pyd", format = "wheel" },
     { path = "pyxcp/*.exe", format = "wheel" },
+    { path = "CMakeLists.txt", format = "wheel" },
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 construct = "^2.10.68"
 mako = "^1.2.4"
 pyserial = "^3.5"
@@ -81,14 +82,19 @@ chardet = "^5.2.0"
 traitlets = "<=5.11.2"
 line-profiler-pycharm = "^1.1.0"
 
+toml = "^0.10.2"
+bandit = "^1.7.8"
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.1.0"
 
+pre-commit-hooks = "^4.6.0"
+darglint = "^1.8.1"
 [tool.poetry.scripts]
 pyxcp-probe-can-drivers = "pyxcp.scripts.pyxcp_probe_can_drivers:main"
 xcp-id-scanner = "pyxcp.scripts.xcp_id_scanner:main"
 xcp-fetch-a2l = "pyxcp.scripts.xcp_fetch_a2l:main"
 xcp-info = "pyxcp.scripts.xcp_info:main"
+xcp-profile = "pyxcp.scripts.xcp_profile:main"
 
 [tool.pytest]
 addopts = "--verbose --tb=short --junitxml=result.xml -o junit_family=xunit2"

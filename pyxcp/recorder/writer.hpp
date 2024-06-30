@@ -130,7 +130,7 @@ class XcpLogFileWriter {
         }
     }
 
-    blob_t *ptr(std::uint32_t pos = 0) const {
+    blob_t *ptr(std::uint64_t pos = 0) const {
         return (blob_t *)(m_mmap->data() + pos);
     }
 
@@ -256,15 +256,15 @@ class XcpLogFileWriter {
 
     std::string           m_file_name;
     std::uint64_t         m_offset{ 0 };
-    std::uint64_t         m_chunk_size{ 0 };
+    std::uint32_t         m_chunk_size{ 0 };
     std::string           m_metadata;
     std::uint64_t         m_num_containers{ 0 };
     std::uint64_t         m_record_count{ 0UL };
-    std::uint64_t         m_container_record_count{ 0UL };
+    std::uint32_t         m_container_record_count{ 0UL };
     std::uint64_t         m_total_size_uncompressed{ 0UL };
     std::uint64_t         m_total_size_compressed{ 0UL };
-    std::uint64_t         m_container_size_uncompressed{ 0UL };
-    std::uint64_t         m_container_size_compressed{ 0UL };
+    std::uint32_t         m_container_size_uncompressed{ 0UL };
+    std::uint32_t         m_container_size_compressed{ 0UL };
     __ALIGN blob_t       *m_intermediate_storage{ nullptr };
     std::uint32_t         m_intermediate_storage_offset{ 0 };
     std::uint64_t         m_hard_limit{ 0 };

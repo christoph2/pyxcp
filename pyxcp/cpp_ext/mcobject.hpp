@@ -30,6 +30,16 @@ const std::map<const std::string, std::tuple<std::uint16_t, std::uint16_t>> TYPE
     #endif
 };
 
+inline std::vector<std::string> get_data_types() {
+    std::vector<std::string> result;
+
+    for (const auto& [k, v] : TYPE_MAP) {
+        result.emplace_back(k);
+    }
+
+    return result;
+}
+
 class McObject {
    public:
 

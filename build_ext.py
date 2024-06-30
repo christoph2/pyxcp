@@ -1,129 +1,81 @@
+#!/usr/bin/env python
+
+import multiprocessing as mp
 import os
 import platform
+import re
 import subprocess  # nosec
 import sys
 from pathlib import Path
-from typing import Any, Dict
 
-import setuptools.command.build_py
-import setuptools.command.develop
-from pybind11.setup_helpers import (
-    ParallelCompile,
-    Pybind11Extension,
-    build_ext,
-    naive_recompile,
-)
-from setuptools import Distribution
+# from pprint import pprint
+from tempfile import TemporaryDirectory
 
 
-ROOT_DIRPATH = Path(".")
+print("Platform", platform.system())
 
-if sys.platform == "darwin":
-    os.environ["CC"] = "clang++"
-    os.environ["CXX"] = "clang++"
-
-ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
-PYB11_INCLUDE_DIRS = subprocess.check_output(["pybind11-config", "--includes"])  # nosec
-EXT_NAMES = ["pyxcp.recorder.rekorder", "pyxcp.cpp_ext.cpp_ext", "pyxcp.daq_stim.stim"]
-
-ext_modules = [
-    Pybind11Extension(
-        EXT_NAMES[0],
-        include_dirs=[PYB11_INCLUDE_DIRS, "pyxcp/recorder", "pyxcp/cpp_ext"],
-        sources=["pyxcp/recorder/lz4.c", "pyxcp/recorder/lz4hc.c", "pyxcp/recorder/wrap.cpp"],
-        define_macros=[("EXTENSION_NAME", EXT_NAMES[0]), ("NDEBUG", 1)],
-        optional=False,
-        cxx_std=20,
-    ),
-    Pybind11Extension(
-        EXT_NAMES[1],
-        include_dirs=[PYB11_INCLUDE_DIRS, "pyxcp/cpp_ext"],
-        sources=["pyxcp/cpp_ext/extension_wrapper.cpp"],
-        define_macros=[("EXTENSION_NAME", EXT_NAMES[1]), ("NDEBUG", 1)],
-        optional=False,
-        cxx_std=20,
-    ),
-    Pybind11Extension(
-        EXT_NAMES[2],
-        include_dirs=[PYB11_INCLUDE_DIRS, "pyxcp/daq_stim", "pyxcp/cpp_ext"],
-        sources=["pyxcp/daq_stim/stim.cpp", "pyxcp/daq_stim/stim_wrapper.cpp", "pyxcp/daq_stim/scheduler.cpp"],
-        define_macros=[("EXTENSION_NAME", EXT_NAMES[2]), ("NDEBUG", 1)],
-        optional=False,
-        cxx_std=20,  # Extension will use C++20 generators/coroutines.
-    ),
-]
+TOP_DIR = Path(__file__).parent
 
 
-class AsamKeyDllAutogen(setuptools.Command):
-    """Custom command to compile `asamkeydll.exe`."""
-
-    description = "Compile `asamkeydll.exe`."
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        """Post-process options."""
-        asamkeydll = os.path.join("pyxcp", "asamkeydll.c")
-        target = os.path.join("pyxcp", "asamkeydll.exe")
-        self.arguments = [asamkeydll, f"-o{target}"]
-
-    def run(self):
-        """Run gcc"""
-        word_width, _ = platform.architecture()
-        if sys.platform in ("win32") and word_width == "64bit":
-            gccCmd = ["gcc", "-m32", "-O3", "-Wall"]
-            self.announce(" ".join(gccCmd + self.arguments))
-            try:
-                subprocess.check_call(gccCmd + self.arguments)  # nosec
-            except Exception as e:
-                print(f"Building pyxcp/asamkeydll.exe failed: {e!r}")
-            else:
-                print("Successfully  build pyxcp/asamkeydll.exe")
+def banner(msg: str) -> None:
+    print("=" * 80)
+    print(str.center(msg, 80))
+    print("=" * 80)
 
 
-class CustomBuildPy(setuptools.command.build_py.build_py):
-    def run(self):
-        self.run_command("asamkeydll")
-        super().run()
+def build_extension(debug: bool = False) -> None:
+    print("CMakeBuild::build_extension()")
+
+    debug = int(os.environ.get("DEBUG", 0)) or debug
+    cfg = "Debug" if debug else "Release"
+    print(f" BUILD-TYPE: {cfg!r}")
+
+    # Set Python_EXECUTABLE instead if you use PYBIND11_FINDPYTHON
+    # EXAMPLE_VERSION_INFO shows you how to pass a value into the C++ code
+    # from Python.
+    cmake_args = [
+        # f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}{os.sep}",
+        # "-G Ninja",
+        f"-DPYTHON_EXECUTABLE={sys.executable}",
+        f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
+    ]
+    build_args = ["--config Release", "--verbose"]
+    # Adding CMake arguments set as environment variable
+    # (needed e.g. to build for ARM OSx on conda-forge)
+
+    # cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 /path/to/src
+
+    if sys.platform.startswith("darwin"):
+        # Cross-compile support for macOS - respect ARCHFLAGS if set
+        archs = re.findall(r"-arch (\S+)", os.environ.get("ARCHFLAGS", ""))
+        if archs:
+            cmake_args += ["-DCMAKE_OSX_ARCHITECTURES={}".format(";".join(archs))]
+
+    build_temp = Path(TemporaryDirectory(suffix=".build-temp").name) / "extension_it_in"
+    # build_temp = Path(".") / "build"
+    print("cwd:", os.getcwd(), "build-dir:", build_temp, "top:", str(TOP_DIR))
+    # print("PHILEZ:", os.listdir(TOP_DIR))
+    if not build_temp.exists():
+        build_temp.mkdir(parents=True)
+
+    banner("Step #1: Configure")
+    # cmake_args += ["--debug-output"]
+    print("aufruf:", ["cmake", str(TOP_DIR), *cmake_args])
+    subprocess.run(["cmake", str(TOP_DIR), *cmake_args], cwd=build_temp, check=True)  # nosec
+
+    cmake_args += [f"--parallel {mp.cpu_count()}"]
+
+    banner("Step #2: Build")
+    # subprocess.run(["cmake", "--build", ".", *build_args], cwd=build_temp, check=True)  # nosec
+    # build_args += ["-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON"]
+    subprocess.run(["cmake", "--build", build_temp, *build_args], cwd=TOP_DIR, check=True)  # nosec
+
+    banner("Step #3: Install")
+    # subprocess.run(["cmake", "--install", "."], cwd=build_temp, check=True)  # nosec
+    subprocess.run(["cmake", "--install", build_temp], cwd=TOP_DIR, check=True)  # nosec
 
 
-class CustomDevelop(setuptools.command.develop.develop):
-    def run(self):
-        self.run_command("asamkeydll")
-        super().run()
-
-
-def build(setup_kwargs: Dict[str, Any]) -> None:
-    setup_kwargs.update(
-        {
-            "ext_modules": ext_modules,
-            "cmd_class": dict(build_ext=Pybind11Extension),
-            "zip_safe": False,
-        }
-    )
-
-
-def invoke_command(distribution: Distribution, name: str) -> None:
-    cmd = distribution.cmdclass.get(name)(distribution)
-    print(f"Building target {name!r}...")
-    cmd.inplace = 1
-    cmd.ensure_finalized()
-    cmd.run()
-
-
-###
 if __name__ == "__main__":
-    distribution = Distribution(
-        {
-            "cmdclass": {
-                "asam_key_dll": AsamKeyDllAutogen,
-                "CXX_extensions": build_ext,
-            },
-            "name": "pyxcp",
-            "ext_modules": ext_modules,
-            "package_dir": {"pyxcp": str(ROOT_DIRPATH / "pyxcp")},
-        }
-    )
-    invoke_command(distribution, "CXX_extensions")
-    invoke_command(distribution, "asam_key_dll")
+    includes = subprocess.getoutput("pybind11-config --cmakedir")  # nosec
+    os.environ["pybind11_DIR"] = includes
+    build_extension(False)

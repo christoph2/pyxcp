@@ -59,6 +59,7 @@ class PyXcpLogFileUnfolder : public XcpLogFileUnfolder {
 
 PYBIND11_MODULE(rekorder, m) {
     m.doc() = "XCP raw frame recorder.";
+    m.def("data_types", get_data_types);
 
 #if 0
      version;
@@ -99,7 +100,7 @@ PYBIND11_MODULE(rekorder, m) {
 
     py::class_<XcpLogFileWriter>(m, "_PyXcpLogFileWriter")
         .def(
-            py::init<const std::string&, std::uint64_t, std::uint64_t, std::string_view>(), py::arg("filename"),
+            py::init<const std::string&, std::uint32_t, std::uint32_t, std::string_view>(), py::arg("filename"),
             py::arg("prealloc"), py::arg("chunk_size"), py::arg("metadata") = ""
         )
         .def("finalize", &XcpLogFileWriter::finalize)

@@ -5,7 +5,7 @@
     #include <iostream>
     #include <utility>
 
-    #if __cplusplus >= 202302L
+    #if (__cplusplus >= 202302L) || (__STDC_VERSION__ >= 202302L)
         #include <stdfloat>
 
         #if defined(__STDCPP_BFLOAT16_T__)
@@ -62,8 +62,8 @@ template<>
 inline std::string to_binary<std::string>(const std::string &value) {
     std::string result;
 
-    auto        ptr    = reinterpret_cast<const std::string::value_type *>(value.c_str());
-    std::size_t length = std::size(value);
+    auto              ptr    = reinterpret_cast<const std::string::value_type *>(value.c_str());
+    const std::size_t length = std::size(value);
 
     // We are using Pascal strings as serialization format.
     auto len_bin = to_binary(length);
