@@ -17,7 +17,7 @@ class BlockMemory {
 
     using mem_block_t = std::array<T, _IS>;
 
-    explicit BlockMemory() noexcept : m_memory{ nullptr }, m_allocation_count{ 0 } {
+    constexpr explicit BlockMemory() noexcept : m_memory{ nullptr }, m_allocation_count{ 0 } {
         m_memory = new T[_IS * _NB];
     }
 
@@ -29,7 +29,7 @@ class BlockMemory {
 
     BlockMemory(const BlockMemory&) = delete;
 
-    T* acquire() noexcept {
+    constexpr T* acquire() noexcept {
         const std::scoped_lock lock(m_mtx);
 
         if (m_allocation_count >= _NB) {
@@ -40,7 +40,7 @@ class BlockMemory {
         return ptr;
     }
 
-    void release() noexcept {
+    constexpr void release() noexcept {
         const std::scoped_lock lock(m_mtx);
         if (m_allocation_count == 0) {
             return;
