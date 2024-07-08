@@ -2,6 +2,7 @@
 #if !defined(__HELPER_HPP)
     #define __HELPER_HPP
 
+    #include <chrono>
     #include <iostream>
     #include <map>
     #include <utility>
@@ -100,5 +101,43 @@ static std::map<V, K> reverse_map(const std::map<K, V> &m) {
     }
     return result;
 }
+
+enum class TimestampType : std::uint8_t {
+    ABSOLUTE_TS,
+    RELATIVE_TS
+};
+
+class Timestamp {
+   public:
+
+    explicit Timestamp(TimestampType type) : m_type(type) {
+        m_initial = absolute();
+    }
+
+    Timestamp(const Timestamp &) = delete;
+    Timestamp(Timestamp &&)      = delete;
+
+    std::uint64_t get_value() const noexcept {
+        if (m_type == TimestampType::ABSOLUTE_TS) {
+            return absolute();
+        } else if (m_type == TimestampType::RELATIVE_TS) {
+            return relative();
+        }
+    }
+
+    std::uint64_t absolute() const noexcept {
+        const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
+    }
+
+    std::uint64_t relative() const noexcept {
+        return absolute() - m_initial;
+    }
+
+   private:
+
+    TimestampType m_type;
+    std::uint64_t m_initial;
+};
 
 #endif  // __HELPER_HPP

@@ -10,8 +10,8 @@ from pyxcp.daq_stim import DaqList, DaqRecorder, DaqToCsv  # noqa: F401
 
 ap = ArgumentParser(description="DAQ test")
 
-XCP_LITE = True
-# XCP_LITE = False
+# XCP_LITE = True
+XCP_LITE = False
 
 # Completly random configurations, only for illustrative purposes.
 #
@@ -156,7 +156,7 @@ with ap.run(policy=daq_parser) as x:
     daq_parser.setup()  # Run internal and XCP setup procedures.
     print("start DAQ lists.")
     daq_parser.start()  # Start DAQ lists.
-    time.sleep(12 * 60.0 * 60.0)  # Arbitrary termination condition.ls *.
+    time.sleep(1 * 60.0 * 60.0)  # Arbitrary termination condition.ls *.
     # time.sleep(6 * 60.0 * 60.0)  # Arbitrary termination condition.ls *.
     daq_parser.stop()  # Stop DAQ lists.
     print("finalize DAQ lists.\n")

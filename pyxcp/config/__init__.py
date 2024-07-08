@@ -793,6 +793,12 @@ class Transport(SingletonConfigurable):
         ["CAN", "ETH", "SXI", "USB"], default_value=None, allow_none=True, help="Choose one of the supported XCP transport layers."
     ).tag(config=True)
     create_daq_timestamps = Bool(False, help="Record time of frame reception or set timestamp to 0.").tag(config=True)
+    timestamp_mode = Enum(
+        ["ABSOLUTE", "RELATIVE"],
+        default_value="RELATIVE",
+        help="""Either absolute UTC timestamps since epoch (1-1-1970)
+or program start. Both values are in nano seconds.""",
+    ).tag(config=True)
     timeout = Float(
         2.0,
         help="""raise `XcpTimeoutError` after `timeout` seconds

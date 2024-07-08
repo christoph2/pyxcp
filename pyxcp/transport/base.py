@@ -4,10 +4,11 @@ import threading
 import typing
 from collections import deque
 from datetime import datetime
-from time import perf_counter, sleep, time
+from time import sleep
 
 import pyxcp.types as types
 
+from ..cpp_ext import Timestamp, TimestampType
 from ..recorder import XcpLogFileWriter
 from ..timing import Timing
 from ..utils import SHORT_SLEEP, flatten, hexDump
@@ -118,20 +119,6 @@ class EmptyFrameError(Exception):
     """Raised when an empty frame is received."""
 
 
-def get(q, timeout, restart_event):
-    """Get an item from a deque considering a timeout condition."""
-    start = time()
-    while not q:
-        if restart_event.is_set():
-            start = time()
-            restart_event.clear()
-        if time() - start > timeout:
-            raise EmptyFrameError
-        sleep(SHORT_SLEEP)
-    item = q.popleft()
-    return item
-
-
 class BaseTransport(metaclass=abc.ABCMeta):
     """Base class for transport-layers (Can, Eth, Sxi).
 
@@ -158,6 +145,10 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.counterSend = 0
         self.counterReceived = -1
         self.create_daq_timestamps = config.create_daq_timestamps
+
+        timestamp_mode = TimestampType.ABSOLUTE_TS if config.timestamp_mode == "ABSOLUTE" else TimestampType.RELATIVE_TS
+        self.timestamp = Timestamp(timestamp_mode)
+
         self.alignment = config.alignment
         self.timeout = config.timeout
         self.timer_restart_event = threading.Event()
@@ -171,12 +162,12 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
         self.first_daq_timestamp = None
 
-        self.timestamp_origin = time()
+        self.timestamp_origin = self.timestamp.value
         self.datetime_origin = datetime.fromtimestamp(self.timestamp_origin)
 
-        self.pre_send_timestamp = time()
-        self.post_send_timestamp = time()
-        self.recv_timestamp = time()
+        self.pre_send_timestamp = self.timestamp.value
+        self.post_send_timestamp = self.timestamp.value
+        self.recv_timestamp = self.timestamp.value
 
     def __del__(self):
         self.finishListener()
@@ -198,6 +189,19 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def connect(self):
         pass
 
+    def get(self, q: deque, timeout: int, restart_event: threading.Event):
+        """Get an item from a deque considering a timeout condition."""
+        start = self.timestamp.value
+        while not q:
+            if restart_event.is_set():
+                start = self.timestamp.value
+                restart_event.clear()
+            if self.timestamp.value - start > timeout:
+                raise EmptyFrameError
+            sleep(SHORT_SLEEP)
+        item = q.popleft()
+        return item
+
     def startListener(self):
         if self.listener.is_alive():
             self.finishListener()
@@ -215,10 +219,10 @@ class BaseTransport(metaclass=abc.ABCMeta):
             frame = self._prepare_request(cmd, *data)
             self.timing.start()
             with self.policy_lock:
-                self.policy.feed(types.FrameCategory.CMD, self.counterSend, perf_counter(), frame)
+                self.policy.feed(types.FrameCategory.CMD, self.counterSend, self.timestamp.value, frame)
             self.send(frame)
             try:
-                xcpPDU = get(
+                xcpPDU = self.get(
                     self.resQueue,
                     timeout=self.timeout,
                     restart_event=self.timer_restart_event,
@@ -227,7 +231,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 if not ignore_timeout:
                     MSG = f"Response timed out (timeout={self.timeout}s)"
                     with self.policy_lock:
-                        self.policy.feed(types.FrameCategory.METADATA, self.counterSend, perf_counter(), bytes(MSG, "ascii"))
+                        self.policy.feed(types.FrameCategory.METADATA, self.counterSend, self.timestamp.value, bytes(MSG, "ascii"))
                     raise types.XcpTimeoutError(MSG) from None
                 else:
                     self.timing.stop()
@@ -236,7 +240,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             pid = types.Response.parse(xcpPDU).type
             if pid == "ERR" and cmd.name != "SYNCH":
                 with self.policy_lock:
-                    self.policy.feed(types.FrameCategory.ERROR, self.counterReceived, perf_counter(), xcpPDU[1:])
+                    self.policy.feed(types.FrameCategory.ERROR, self.counterReceived, self.timestamp.value, xcpPDU[1:])
                 err = types.XcpError.parse(xcpPDU[1:])
                 raise types.XcpResponseError(err)
 
@@ -271,7 +275,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 self.policy.feed(
                     types.FrameCategory.CMD if int(cmd) >= 0xC0 else types.FrameCategory.STIM,
                     self.counterSend,
-                    perf_counter(),
+                    self.timestamp.value,
                     frame,
                 )
             self.send(frame)
@@ -320,13 +324,13 @@ class BaseTransport(metaclass=abc.ABCMeta):
         :class:`pyxcp.types.XcpTimeoutError`
         """
         block_response = b""
-        start = time()
+        start = self.timestamp.value
         while len(block_response) < length_required:
             if len(self.resQueue):
                 partial_response = self.resQueue.popleft()
                 block_response += partial_response[1:]
             else:
-                if time() - start > self.timeout:
+                if self.timestamp.value - start > self.timeout:
                     raise types.XcpTimeoutError("Response timed out [block_receive].") from None
                 sleep(SHORT_SLEEP)
         return block_response
@@ -367,15 +371,15 @@ class BaseTransport(metaclass=abc.ABCMeta):
             if pid >= 0xFE:
                 self.resQueue.append(response)
                 with self.policy_lock:
-                    self.policy.feed(types.FrameCategory.RESPONSE, self.counterReceived, perf_counter(), response)
+                    self.policy.feed(types.FrameCategory.RESPONSE, self.counterReceived, self.timestamp.value, response)
                 self.recv_timestamp = recv_timestamp
             elif pid == 0xFD:
                 self.process_event_packet(response)
                 with self.policy_lock:
-                    self.policy.feed(types.FrameCategory.EVENT, self.counterReceived, perf_counter(), response)
+                    self.policy.feed(types.FrameCategory.EVENT, self.counterReceived, self.timestamp.value, response)
             elif pid == 0xFC:
                 with self.policy_lock:
-                    self.policy.feed(types.FrameCategory.SERV, self.counterReceived, perf_counter(), response)
+                    self.policy.feed(types.FrameCategory.SERV, self.counterReceived, self.timestamp.value, response)
         else:
             if self._debug:
                 self.logger.debug(f"<- L{length} C{counter} ODT_Data[0:8] {hexDump(response[:8])}")

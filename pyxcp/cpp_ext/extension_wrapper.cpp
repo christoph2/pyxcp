@@ -61,4 +61,14 @@ PYBIND11_MODULE(cpp_ext, m) {
         .def_property("odt_count", &DaqList::get_odt_count, nullptr)
         .def_property("total_entries", &DaqList::get_total_entries, nullptr)
         .def_property("total_length", &DaqList::get_total_length, nullptr);
+
+    py::enum_<TimestampType>(m, "TimestampType")
+        .value("ABSOLUTE_TS", TimestampType::ABSOLUTE_TS)
+        .value("RELATIVE_TS", TimestampType::RELATIVE_TS);
+
+    py::class_<Timestamp>(m, "Timestamp")
+        .def(py::init<TimestampType>(), "ts_type"_a)
+        .def_property_readonly("absolute", &Timestamp::absolute)
+        .def_property_readonly("relative", &Timestamp::relative)
+        .def_property_readonly("value", &Timestamp::get_value);
 }

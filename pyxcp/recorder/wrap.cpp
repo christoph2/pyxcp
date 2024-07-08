@@ -90,10 +90,7 @@ PYBIND11_MODULE(rekorder, m) {
             return ss.str();
         });
 
-    py::class_<Deserializer>(m, "Deserializer")
-        .def(py::init<const std::string&>())
-        .def("run", &Deserializer::run)
-        ;
+    py::class_<Deserializer>(m, "Deserializer").def(py::init<const std::string&>()).def("run", &Deserializer::run);
 
     py::class_<XcpLogFileReader>(m, "_PyXcpLogFileReader")
         .def(py::init<const std::string&>())
@@ -178,12 +175,10 @@ PYBIND11_MODULE(rekorder, m) {
         .def_property_readonly("daq_lists", &XcpLogFileUnfolder::get_daq_lists)
         .def("get_header", &XcpLogFileUnfolder::get_header)
         .def("initialize", &XcpLogFileUnfolder::initialize)
-        .def("finalize", &XcpLogFileUnfolder::finalize)
-        ;
+        .def("finalize", &XcpLogFileUnfolder::finalize);
 
     py::class_<ValueHolder>(m, "ValueHolder")
         //.def(py::init<const ValueHolder&>())
-		.def(py::init<const std::any&>())
-        .def_property_readonly("value", &ValueHolder::get_value)
-    ;
+        .def(py::init<const std::any&>())
+        .def_property_readonly("value", &ValueHolder::get_value);
 }

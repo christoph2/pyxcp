@@ -1108,19 +1108,22 @@ class DaqOnlinePolicy : public DAQPolicyBase {
     std::unique_ptr<DAQProcessor> m_unfolder;
 };
 
-
 struct ValueHolder {
-
-    ValueHolder() = delete;
+    ValueHolder()                   = delete;
     ValueHolder(const ValueHolder&) = default;
-	ValueHolder(const std::any& value) : m_value(value) {}
-	ValueHolder(std::any&& value) : m_value(std::move(value)) {}
+
+    ValueHolder(const std::any& value) : m_value(value) {
+    }
+
+    ValueHolder(std::any&& value) : m_value(std::move(value)) {
+    }
 
     std::any get_value() const noexcept {
         return m_value;
     }
 
-private:
+   private:
+
     std::any m_value;
 };
 
