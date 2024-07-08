@@ -3,12 +3,13 @@ import abc
 import threading
 import typing
 from collections import deque
-from datetime import datetime
+
+# from datetime import datetime
 from time import sleep
 
 import pyxcp.types as types
 
-from ..cpp_ext import Timestamp, TimestampType
+from ..cpp_ext import ClockType, Timestamp, TimestampType
 from ..recorder import XcpLogFileWriter
 from ..timing import Timing
 from ..utils import SHORT_SLEEP, flatten, hexDump
@@ -35,7 +36,7 @@ class FrameAcquisitionPolicy:
     def filtered_out(self) -> typing.Set[types.FrameCategory]:
         return self._frame_types_to_filter_out
 
-    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: float, payload: bytes) -> None: ...  # noqa: E704
+    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: int, payload: bytes) -> None: ...  # noqa: E704
 
     def finalize(self, *args) -> None:
         """
@@ -77,7 +78,7 @@ class LegacyFrameAcquisitionPolicy(FrameAcquisitionPolicy):
             types.FrameCategory.STIM: self.stimQueue,
         }
 
-    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: float, payload: bytes) -> None:
+    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: int, payload: bytes) -> None:
         # print(f"{frame_type.name:8} {counter:6}  {timestamp:7.7f} {hexDump(payload)}")
         if frame_type not in self.filtered_out:
             self.QUEUE_MAP.get(frame_type).append((counter, timestamp, payload))
@@ -96,7 +97,7 @@ class FrameRecorderPolicy(FrameAcquisitionPolicy):
         super().__init__(filter_out)
         self.recorder = XcpLogFileWriter(file_name, prealloc=prealloc, chunk_size=chunk_size)
 
-    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: float, payload: bytes) -> None:
+    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: int, payload: bytes) -> None:
         if frame_type not in self.filtered_out:
             self.recorder.add_frame(frame_type, counter, timestamp, payload)
 
@@ -110,9 +111,9 @@ class StdoutPolicy(FrameAcquisitionPolicy):
     def __init__(self, filter_out: typing.Optional[typing.Set[types.FrameCategory]] = None):
         super().__init__(filter_out)
 
-    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: float, payload: bytes) -> None:
+    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: int, payload: bytes) -> None:
         if frame_type not in self.filtered_out:
-            print(f"{frame_type.name:8} {counter:6}  {timestamp:7.7f} {hexDump(payload)}")
+            print(f"{frame_type.name:8} {counter:6}  {timestamp:8u} {hexDump(payload)}")
 
 
 class EmptyFrameError(Exception):
@@ -145,9 +146,16 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.counterSend = 0
         self.counterReceived = -1
         self.create_daq_timestamps = config.create_daq_timestamps
-
+        if config.clock_type == "UTC":
+            clock_type = ClockType.UTC_CLK
+        elif config.clock_type == "TAI":
+            clock_type = ClockType.TAI_CLK
+        elif config.clock_type == "SYSTEM":
+            clock_type = ClockType.SYSTEM_CLK
+        elif config.clock_type == "GPS":
+            clock_type = ClockType.GPS_CLK
         timestamp_mode = TimestampType.ABSOLUTE_TS if config.timestamp_mode == "ABSOLUTE" else TimestampType.RELATIVE_TS
-        self.timestamp = Timestamp(timestamp_mode)
+        self.timestamp = Timestamp(timestamp_mode, clock_type)
 
         self.alignment = config.alignment
         self.timeout = config.timeout
@@ -162,8 +170,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
         self.first_daq_timestamp = None
 
-        self.timestamp_origin = self.timestamp.value
-        self.datetime_origin = datetime.fromtimestamp(self.timestamp_origin)
+        # self.timestamp_origin = self.timestamp.value
+        # self.datetime_origin = datetime.fromtimestamp(self.timestamp_origin)
 
         self.pre_send_timestamp = self.timestamp.value
         self.post_send_timestamp = self.timestamp.value
@@ -189,17 +197,19 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def connect(self):
         pass
 
-    def get(self, q: deque, timeout: int, restart_event: threading.Event):
+    def get(self):
         """Get an item from a deque considering a timeout condition."""
         start = self.timestamp.value
-        while not q:
-            if restart_event.is_set():
+        while not self.resQueue:
+            if self.timer_restart_event.is_set():
                 start = self.timestamp.value
-                restart_event.clear()
-            if self.timestamp.value - start > timeout:
+                self.timer_restart_event.restart_event.clear()
+            if self.timestamp.value - start > self.timeout:
+                # print("*E*")
                 raise EmptyFrameError
             sleep(SHORT_SLEEP)
-        item = q.popleft()
+        item = self.resQueue.popleft()
+        # print("Q", item)
         return item
 
     def startListener(self):
@@ -222,11 +232,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 self.policy.feed(types.FrameCategory.CMD, self.counterSend, self.timestamp.value, frame)
             self.send(frame)
             try:
-                xcpPDU = self.get(
-                    self.resQueue,
-                    timeout=self.timeout,
-                    restart_event=self.timer_restart_event,
-                )
+                xcpPDU = self.get()
             except EmptyFrameError:
                 if not ignore_timeout:
                     MSG = f"Response timed out (timeout={self.timeout}s)"
@@ -243,7 +249,6 @@ class BaseTransport(metaclass=abc.ABCMeta):
                     self.policy.feed(types.FrameCategory.ERROR, self.counterReceived, self.timestamp.value, xcpPDU[1:])
                 err = types.XcpError.parse(xcpPDU[1:])
                 raise types.XcpResponseError(err)
-
             return xcpPDU[1:]
 
     def request(self, cmd, *data):

@@ -66,8 +66,14 @@ PYBIND11_MODULE(cpp_ext, m) {
         .value("ABSOLUTE_TS", TimestampType::ABSOLUTE_TS)
         .value("RELATIVE_TS", TimestampType::RELATIVE_TS);
 
+    py::enum_<ClockType>(m, "ClockType")
+        .value("SYSTEM_CLK", ClockType::SYSTEM_CLK)
+        .value("GPS_CLK", ClockType::GPS_CLK)
+        .value("TAI_CLK", ClockType::TAI_CLK)
+        .value("UTC_CLK", ClockType::UTC_CLK);
+
     py::class_<Timestamp>(m, "Timestamp")
-        .def(py::init<TimestampType>(), "ts_type"_a)
+        .def(py::init<TimestampType, ClockType>(), "ts_type"_a, "clock_type"_a)
         .def_property_readonly("absolute", &Timestamp::absolute)
         .def_property_readonly("relative", &Timestamp::relative)
         .def_property_readonly("value", &Timestamp::get_value)

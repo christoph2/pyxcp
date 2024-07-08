@@ -3,7 +3,6 @@
 import struct
 from collections import deque
 from dataclasses import dataclass
-from time import time
 
 import serial
 
@@ -109,9 +108,9 @@ class SxI(BaseTransport):
             if not self.comm_port.inWaiting():
                 continue
 
-            recv_timestamp = time()
+            recv_timestamp = self.timestamp.value
             header_values = self.unpacker(self.HEADER.unpack(self.comm_port.read(self.HEADER_SIZE)))
-            length, counter, _git  = header_values.length, header_values.counter, header_values.filler
+            length, counter, _ = header_values.length, header_values.counter, header_values.filler
 
             response = self.comm_port.read(length)
             self.timing.stop()
@@ -121,9 +120,9 @@ class SxI(BaseTransport):
             self.processResponse(response, length, counter, recv_timestamp)
 
     def send(self, frame):
-        self.pre_send_timestamp = time()
+        self.pre_send_timestamp = self.timestamp.value
         self.comm_port.write(frame)
-        self.post_send_timestamp = time()
+        self.post_send_timestamp = self.timestamp.value
 
     def closeConnection(self):
         if hasattr(self, "comm_port") and self.comm_port.isOpen():

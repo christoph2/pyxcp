@@ -108,14 +108,37 @@ enum class TimestampType : std::uint8_t {
     RELATIVE_TS
 };
 
+enum class ClockType : std::uint8_t {
+    SYSTEM_CLK,
+    GPS_CLK,
+    TAI_CLK,
+    UTC_CLK,
+};
+
 class Timestamp {
    public:
 
     using clock_variant =
         std::variant<std::chrono::system_clock, std::chrono::tai_clock, std::chrono::utc_clock, std::chrono::gps_clock>;
 
-    explicit Timestamp(TimestampType type) : m_type(type) {
+    explicit Timestamp(TimestampType ts_type, ClockType clk_type) : m_type(ts_type) {
+        switch (clk_type) {
+            case ClockType::SYSTEM_CLK:
+                m_clk = std::make_unique<clock_variant>(std::chrono::system_clock());
+                break;
+            case ClockType::GPS_CLK:
+                m_clk = std::make_unique<clock_variant>(std::chrono::gps_clock());
+                break;
+            case ClockType::TAI_CLK:
+                m_clk = std::make_unique<clock_variant>(std::chrono::tai_clock());
+                break;
+            case ClockType::UTC_CLK:
+                m_clk = std::make_unique<clock_variant>(std::chrono::utc_clock());
+                break;
+        }
+        std::cout << static_cast<std::uint16_t>(ts_type) << " : " << static_cast<std::uint16_t>(clk_type) << std::endl;
         m_initial = absolute();
+        std::cout << "initial: " << m_initial << std::endl;
     }
 
     Timestamp(const Timestamp &) = delete;
@@ -134,8 +157,25 @@ class Timestamp {
     }
 
     std::uint64_t absolute() const noexcept {
-        const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-        return std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
+        std::uint64_t current;
+
+        std::visit(
+            [&current](auto &&arg) {
+                using T = std::decay_t<decltype(arg)>;
+
+                if constexpr (std::is_same_v<T, std::chrono::system_clock>) {
+                    current = std::chrono::duration_cast<std::chrono::nanoseconds>(arg.now().time_since_epoch()).count();
+                } else if constexpr (std::is_same_v<T, std::chrono::gps_clock>) {
+                    current = std::chrono::duration_cast<std::chrono::nanoseconds>(arg.now().time_since_epoch()).count();
+                } else if constexpr (std::is_same_v<T, std::chrono::tai_clock>) {
+                    current = std::chrono::duration_cast<std::chrono::nanoseconds>(arg.now().time_since_epoch()).count();
+                } else if constexpr (std::is_same_v<T, std::chrono::utc_clock>) {
+                    current = std::chrono::duration_cast<std::chrono::nanoseconds>(arg.now().time_since_epoch()).count();
+                }
+            },
+            *m_clk
+        );
+        return current;
     }
 
     std::uint64_t relative() const noexcept {
@@ -145,8 +185,8 @@ class Timestamp {
    private:
 
     TimestampType                  m_type;
-    std::uint64_t                  m_initial;
     std::unique_ptr<clock_variant> m_clk;
+    std::uint64_t                  m_initial;
 };
 
 #endif  // __HELPER_HPP

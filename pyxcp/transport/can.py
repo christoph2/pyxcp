@@ -5,7 +5,6 @@
 import functools
 import operator
 from bisect import bisect_left
-from time import time
 from typing import Any, Dict, Optional
 
 from can import CanError, CanInitializationError, Message, detect_available_configs
@@ -389,9 +388,9 @@ class Can(BaseTransport):
 
     def send(self, frame: bytes) -> None:
         # send the request
-        self.pre_send_timestamp = time()
+        self.pre_send_timestamp = self.timestamp.value
         self.can_interface.transmit(payload=padFrame(frame, self.max_dlc_required, self.padding_value))
-        self.post_send_timestamp = time()
+        self.post_send_timestamp = self.timestamp.value
 
     def closeConnection(self):
         if hasattr(self, "can_interface"):

@@ -3,7 +3,7 @@ import struct
 import threading
 from array import array
 from collections import deque
-from time import perf_counter, sleep, time
+from time import perf_counter, sleep
 
 import usb.backend.libusb0 as libusb0
 import usb.backend.libusb1 as libusb1
@@ -132,7 +132,7 @@ class Usb(BaseTransport):
                 if close_event_set():
                     return
                 try:
-                    recv_timestamp = time()
+                    recv_timestamp = self.timestamp.value
                     read_count = read(buffer, 100)  # 100ms timeout
                     if read_count != RECV_SIZE:
                         _packets.append((buffer_view[:read_count].tobytes(), recv_timestamp))
@@ -209,7 +209,7 @@ class Usb(BaseTransport):
                             break
 
     def send(self, frame):
-        self.pre_send_timestamp = time()
+        self.pre_send_timestamp = self.timestamp.value
         try:
             self.out_ep.write(frame)
         except (USBError, USBTimeoutError):
@@ -218,7 +218,7 @@ class Usb(BaseTransport):
             # Ignore this here since a Timeout error will be raised anyway if
             # the device does not respond
             pass
-        self.post_send_timestamp = time()
+        self.post_send_timestamp = self.timestamp.value
 
     def closeConnection(self):
         if self.device is not None:

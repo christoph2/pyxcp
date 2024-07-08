@@ -4,7 +4,7 @@ import socket
 import struct
 import threading
 from collections import deque
-from time import sleep, time
+from time import sleep
 
 from pyxcp.transport.base import BaseTransport
 from pyxcp.utils import SHORT_SLEEP
@@ -142,7 +142,7 @@ class Eth(BaseTransport):
                 sel = select(0.02)
                 for _, events in sel:
                     if events & EVENT_READ:
-                        recv_timestamp = time()
+                        recv_timestamp = self.timestamp.value
 
                         if use_tcp:
                             response = sock_recv(RECV_SIZE)
@@ -154,6 +154,7 @@ class Eth(BaseTransport):
                                 _packets.append((response, recv_timestamp))
                         else:
                             response, _ = sock_recv(Eth.MAX_DATAGRAM_SIZE)
+                            print("U:", response)
                             if not response:
                                 self.sock.close()
                                 self.status = 0
@@ -190,6 +191,7 @@ class Eth(BaseTransport):
 
             for _ in range(count):
                 bts, timestamp = popleft()
+                print("P:", bts, timestamp)
 
                 data += bts
                 current_size = len(data)
@@ -219,9 +221,9 @@ class Eth(BaseTransport):
                             break
 
     def send(self, frame):
-        self.pre_send_timestamp = time()
+        self.pre_send_timestamp = self.timestamp.value
         self.sock.send(frame)
-        self.post_send_timestamp = time()
+        self.post_send_timestamp = self.timestamp.value
 
     def closeConnection(self):
         if not self.invalidSocket:
