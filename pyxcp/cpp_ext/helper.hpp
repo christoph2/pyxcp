@@ -6,6 +6,7 @@
     #include <iostream>
     #include <map>
     #include <utility>
+    #include <variant>
 
     #if (__cplusplus >= 202302L) || (__STDC_VERSION__ >= 202302L)
         #include <stdfloat>
@@ -110,6 +111,9 @@ enum class TimestampType : std::uint8_t {
 class Timestamp {
    public:
 
+    using clock_variant =
+        std::variant<std::chrono::system_clock, std::chrono::tai_clock, std::chrono::utc_clock, std::chrono::gps_clock>;
+
     explicit Timestamp(TimestampType type) : m_type(type) {
         m_initial = absolute();
     }
@@ -125,6 +129,10 @@ class Timestamp {
         }
     }
 
+    std::uint64_t get_initial_value() const noexcept {
+        return m_initial;
+    }
+
     std::uint64_t absolute() const noexcept {
         const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
         return std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
@@ -136,8 +144,9 @@ class Timestamp {
 
    private:
 
-    TimestampType m_type;
-    std::uint64_t m_initial;
+    TimestampType                  m_type;
+    std::uint64_t                  m_initial;
+    std::unique_ptr<clock_variant> m_clk;
 };
 
 #endif  // __HELPER_HPP

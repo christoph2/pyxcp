@@ -70,5 +70,6 @@ PYBIND11_MODULE(cpp_ext, m) {
         .def(py::init<TimestampType>(), "ts_type"_a)
         .def_property_readonly("absolute", &Timestamp::absolute)
         .def_property_readonly("relative", &Timestamp::relative)
-        .def_property_readonly("value", &Timestamp::get_value);
+        .def_property_readonly("value", &Timestamp::get_value)
+        .def_property_readonly("initial_value", &Timestamp::get_initial_value);
 }
