@@ -19,7 +19,8 @@ class PyDaqOnlinePolicy : public DaqOnlinePolicy {
     using DaqOnlinePolicy::DaqOnlinePolicy;
 
     void on_daq_list(
-        std::uint16_t daq_list_num, double timestamp0, double timestamp1, const std::vector<measurement_value_t>& measurement
+        std::uint16_t daq_list_num, std::uint64_t timestamp0, std::uint64_t timestamp1,
+        const std::vector<measurement_value_t>& measurement
     ) override {
         PYBIND11_OVERRIDE_PURE(void, DaqOnlinePolicy, on_daq_list, daq_list_num, timestamp0, timestamp1, measurement);
     }
@@ -53,7 +54,8 @@ class PyXcpLogFileUnfolder : public XcpLogFileUnfolder {
     using XcpLogFileUnfolder::XcpLogFileUnfolder;
 
     void on_daq_list(
-        std::uint16_t daq_list_num, double timestamp0, double timestamp1, const std::vector<measurement_value_t>& measurement
+        std::uint16_t daq_list_num, std::uint64_t timestamp0, std::uint64_t timestamp1,
+        const std::vector<measurement_value_t>& measurement
     ) override {
         PYBIND11_OVERRIDE_PURE(void, XcpLogFileUnfolder, on_daq_list, daq_list_num, timestamp0, timestamp1, measurement);
     }

@@ -83,7 +83,7 @@ class XcpLogFileWriter {
         }
     }
 
-    void add_frame(uint8_t category, uint16_t counter, double timestamp, uint16_t length, char const *data) {
+    void add_frame(uint8_t category, uint16_t counter, std::uint64_t timestamp, uint16_t length, char const *data) {
         auto payload = new char[length];
 
         _fcopy(payload, data, length);

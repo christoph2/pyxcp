@@ -85,6 +85,7 @@ line-profiler-pycharm = "^1.1.0"
 toml = "^0.10.2"
 bandit = "^1.7.8"
 tomlkit = "^0.12.5"
+pytz = "^2024.1"
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.1.0"
 

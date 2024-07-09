@@ -14,6 +14,8 @@ from rich.console import Console
 from pyxcp.config import CAN_INTERFACE_MAP
 from pyxcp.transport.base import BaseTransport
 
+from ..utils import seconds_to_nanoseconds
+
 
 console = Console()
 
@@ -279,7 +281,7 @@ class PythonCanWrapper:
                 id_=identifier,
                 dlc=frame.dlc,
                 data=frame.data,
-                timestamp=frame.timestamp,
+                timestamp=seconds_to_nanoseconds(frame.timestamp),
             )
 
     def getTimestampResolution(self) -> int:
@@ -358,7 +360,7 @@ class Can(BaseTransport):
                 result[name] = value
         return result
 
-    def dataReceived(self, payload: bytes, recv_timestamp: float = None):
+    def dataReceived(self, payload: bytes, recv_timestamp: int = None):
         self.processResponse(
             payload,
             len(payload),

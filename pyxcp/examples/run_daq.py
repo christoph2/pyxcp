@@ -53,7 +53,7 @@ else:
             "pwm_stuff",
             2,
             False,
-            False,
+            True,
             [
                 ("channel1", 0x1BD004, 0, "F32"),
                 ("period", 0x001C0028, 0, "F32"),

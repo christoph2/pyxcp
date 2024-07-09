@@ -1936,6 +1936,11 @@ class Master:
                 raise RuntimeError(f"Error while scanning for ID {id_value}: {response!r}")
         return result
 
+    @property
+    def start_datetime(self) -> int:
+        """"""
+        return self.transport.start_datetime
+
     def try_command(self, cmd: Callable, *args, **kws) -> Tuple[types.TryCommandResult, Any]:
         """Call master functions and handle XCP errors more gracefuly.
 

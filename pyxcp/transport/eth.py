@@ -154,7 +154,6 @@ class Eth(BaseTransport):
                                 _packets.append((response, recv_timestamp))
                         else:
                             response, _ = sock_recv(Eth.MAX_DATAGRAM_SIZE)
-                            print("U:", response)
                             if not response:
                                 self.sock.close()
                                 self.status = 0
@@ -191,8 +190,6 @@ class Eth(BaseTransport):
 
             for _ in range(count):
                 bts, timestamp = popleft()
-                print("P:", bts, timestamp)
-
                 data += bts
                 current_size = len(data)
                 current_position = 0

@@ -16,8 +16,8 @@
 #include "writer.hpp"
 
 using measurement_value_t    = std::variant<std::int64_t, std::uint64_t, long double, std::string>;
-using measurement_tuple_t    = std::tuple<std::uint16_t, double, double, std::vector<measurement_value_t>>;
-using measurement_callback_t = std::function<void(std::uint16_t, double, double, std::vector<measurement_value_t>)>;
+using measurement_tuple_t    = std::tuple<std::uint16_t, std::uint64_t, std::uint64_t, std::vector<measurement_value_t>>;
+using measurement_callback_t = std::function<void(std::uint16_t, std::uint64_t, std::uint64_t, std::vector<measurement_value_t>)>;
 
 template<typename Ty>
 auto get_value(blob_t const * buf, std::uint64_t offset) -> Ty {
@@ -849,8 +849,8 @@ class DaqListState {
         m_initial_offset(initial_offset),
         m_next_odt(0),
         m_current_idx(0),
-        m_timestamp0(0.0),
-        m_timestamp1(0.0),
+        m_timestamp0(0ULL),
+        m_timestamp1(0ULL),
         m_state(state_t::IDLE),
         m_buffer{},
         m_flatten_odts(flatten_odts),
@@ -884,7 +884,7 @@ class DaqListState {
         return m_state;
     }
 
-    bool feed(uint16_t odt_num, double timestamp, const std::string& payload) {
+    bool feed(uint16_t odt_num, std::uint64_t timestamp, const std::string& payload) {
         auto state    = check_state(odt_num);
         auto finished = false;
 
@@ -912,7 +912,7 @@ class DaqListState {
     void resetSM() {
         m_state      = state_t::IDLE;
         m_next_odt   = 0;
-        m_timestamp0 = 0.0;
+        m_timestamp0 = 0ULL;
     }
 
     void parse_Odt(uint16_t odt_num, const std::string& payload) {
@@ -924,10 +924,10 @@ class DaqListState {
             m_current_idx = 0;
             if (m_params.m_timestamps_supported &&
                 (m_params.m_ts_fixed || (m_params.m_selectable_timestamps && m_enable_timestamps == true))) {
-                m_timestamp1 = static_cast<double>(m_getter.get_timestamp(payload_data)) * m_params.m_ts_scale_factor;
+                m_timestamp1 = static_cast<std::uint64_t>(m_getter.get_timestamp(payload_data) * m_params.m_ts_scale_factor);
                 offset += m_params.m_ts_size;
             } else {
-                m_timestamp1 = 0.0;
+                m_timestamp1 = 0ULL;
             }
         }
 
@@ -954,8 +954,8 @@ class DaqListState {
     std::uint16_t                    m_initial_offset;
     std::uint16_t                    m_next_odt    = 0;
     std::uint16_t                    m_current_idx = 0;
-    double                           m_timestamp0  = 0.0;
-    double                           m_timestamp1  = 0.0;
+    std::uint64_t                    m_timestamp0  = 0ULL;
+    std::uint64_t                    m_timestamp1  = 0ULL;
     state_t                          m_state       = state_t::IDLE;
     std::vector<measurement_value_t> m_buffer;
     flatten_odts_t                   m_flatten_odts;
@@ -979,7 +979,7 @@ class DAQProcessor {
     DAQProcessor()          = delete;
     virtual ~DAQProcessor() = default;
 
-    std::optional<measurement_tuple_t> feed(double timestamp, const std::string& payload) noexcept {
+    std::optional<measurement_tuple_t> feed(std::uint64_t timestamp, const std::string& payload) noexcept {
         const auto data         = reinterpret_cast<blob_t const *>(payload.data());
         auto [daq_num, odt_num] = m_getter.get_id(data);
 
@@ -1023,7 +1023,7 @@ class DAQPolicyBase {
         initialize();
     }
 
-    virtual void feed(std::uint8_t frame_cat, std::uint16_t counter, double timestamp, const std::string& payload) = 0;
+    virtual void feed(std::uint8_t frame_cat, std::uint16_t counter, std::uint64_t timestamp, const std::string& payload) = 0;
 
     virtual void initialize() = 0;
 
@@ -1044,7 +1044,7 @@ class DaqRecorderPolicy : public DAQPolicyBase {
         DAQPolicyBase::set_parameters(params);
     }
 
-    void feed(std::uint8_t frame_cat, std::uint16_t counter, double timestamp, const std::string& payload) override {
+    void feed(std::uint8_t frame_cat, std::uint16_t counter, std::uint64_t timestamp, const std::string& payload) override {
         if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
             // Only record DAQ frames for now.
             return;
@@ -1083,10 +1083,11 @@ class DaqOnlinePolicy : public DAQPolicyBase {
     }
 
     virtual void on_daq_list(
-        std::uint16_t daq_list_num, double timestamp0, double timestamp1, const std::vector<measurement_value_t>& measurement
+        std::uint16_t daq_list_num, std::uint64_t timestamp0, std::uint64_t timestamp1,
+        const std::vector<measurement_value_t>& measurement
     ) = 0;
 
-    void feed(std::uint8_t frame_cat, std::uint16_t counter, double timestamp, const std::string& payload) {
+    void feed(std::uint8_t frame_cat, std::uint16_t counter, std::uint64_t timestamp, const std::string& payload) {
         if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
             return;
         }
@@ -1186,7 +1187,8 @@ class XcpLogFileUnfolder {
     }
 
     virtual void on_daq_list(
-        std::uint16_t daq_list_num, double timestamp0, double timestamp1, const std::vector<measurement_value_t>& measurement
+        std::uint16_t daq_list_num, std::uint64_t timestamp0, std::uint64_t timestamp1,
+        const std::vector<measurement_value_t>& measurement
     ) = 0;
 
     MeasurementParameters get_parameters() const {

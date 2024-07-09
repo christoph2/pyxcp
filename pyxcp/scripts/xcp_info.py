@@ -19,12 +19,12 @@ with ap.run() as x:
     print("=================")
     pprint(x.slaveProperties)
 
-    #    result = x.id_scanner()
-    #    print("\n")
-    #    print("Implemented IDs:")
-    #    print("================")
-    #    for key, value in result.items():
-    #        print(f"{key}: {value}", end="\n\n")
+    result = x.id_scanner()
+    print("\n")
+    print("Implemented IDs:")
+    print("================")
+    for key, value in result.items():
+        print(f"{key}: {value}", end="\n\n")
     cps = x.getCurrentProtectionStatus()
     print("\nProtection Status")
     print("=================")
@@ -101,5 +101,4 @@ with ap.run() as x:
         if daq_id == 0:
             print("N/A")
     x.disconnect()
-
     print("\nDone.")

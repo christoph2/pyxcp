@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import datetime
 import functools
 import operator
 import sys
@@ -6,6 +7,7 @@ from binascii import hexlify
 from time import perf_counter
 
 import chardet
+import pytz
 
 
 def hexDump(arr):
@@ -26,6 +28,10 @@ def hexDump(arr):
         return "[{}]".format(" ".join([arr[i * 2 : (i + 1) * 2] for i in range(size)]))
     else:
         return "[{}]".format(" ".join([f"{x:02x}" for x in arr]))
+
+
+def seconds_to_nanoseconds(value: float) -> int:
+    return int(value * 1000 * 1000 * 1000)
 
 
 def slicer(iterable, sliceLength, converter=None):
@@ -70,3 +76,22 @@ def delay(amount: float):
     start = perf_counter()
     while perf_counter() < start + amount:
         pass
+
+
+class CurrentDatetime:
+
+    def __init__(self, timestamp_ns: int, tz_name: str):
+        self.timestamp_ns = timestamp_ns
+        self.timezone = pytz.timezone(tz_name)
+        self._dt = datetime.datetime.fromtimestamp(timestamp_ns / (1000.0 * 1000.0 * 1000.0))
+        self.utc_offset = int(self.timezone.utcoffset(self._dt).total_seconds() / 60)
+        self.dst_offset = int(self.timezone.dst(self._dt).total_seconds() / 60)
+
+    def __str__(self):
+        return f"""CurrentDatetime(
+    datetime="{self._dt!s}",
+    timezone="{self.timezone}",
+    timestamp_ns={self.timestamp_ns},
+    utc_offset={self.utc_offset},
+    dst_offset={self.dst_offset}
+)"""

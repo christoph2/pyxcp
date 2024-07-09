@@ -12,7 +12,13 @@ import pyxcp.types as types
 from ..cpp_ext import ClockType, Timestamp, TimestampType
 from ..recorder import XcpLogFileWriter
 from ..timing import Timing
-from ..utils import SHORT_SLEEP, flatten, hexDump
+from ..utils import (
+    SHORT_SLEEP,
+    CurrentDatetime,
+    flatten,
+    hexDump,
+    seconds_to_nanoseconds,
+)
 
 
 class FrameAcquisitionPolicy:
@@ -143,8 +149,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.logger = config.log
         self._debug = self.logger.level == 10
 
-        self.counterSend = 0
-        self.counterReceived = -1
+        self.counterSend: int = 0
+        self.counterReceived: int = -1
         self.create_daq_timestamps = config.create_daq_timestamps
         if config.clock_type == "UTC":
             clock_type = ClockType.UTC_CLK
@@ -157,8 +163,10 @@ class BaseTransport(metaclass=abc.ABCMeta):
         timestamp_mode = TimestampType.ABSOLUTE_TS if config.timestamp_mode == "ABSOLUTE" else TimestampType.RELATIVE_TS
         self.timestamp = Timestamp(timestamp_mode, clock_type)
 
+        # Reference point for UTC timestamps.
+        self._start_datetime = CurrentDatetime(self.timestamp.initial_value, self.timestamp.current_time_zone_name)
         self.alignment = config.alignment
-        self.timeout = config.timeout
+        self.timeout = seconds_to_nanoseconds(config.timeout)
         self.timer_restart_event = threading.Event()
         self.timing = Timing()
         self.resQueue = deque()
@@ -205,12 +213,16 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 start = self.timestamp.value
                 self.timer_restart_event.restart_event.clear()
             if self.timestamp.value - start > self.timeout:
-                # print("*E*")
                 raise EmptyFrameError
             sleep(SHORT_SLEEP)
         item = self.resQueue.popleft()
         # print("Q", item)
         return item
+
+    @property
+    def start_datetime(self) -> int:
+        """"""
+        return self._start_datetime
 
     def startListener(self):
         if self.listener.is_alive():

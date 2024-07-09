@@ -796,8 +796,7 @@ class Transport(SingletonConfigurable):
     timestamp_mode = Enum(
         ["ABSOLUTE", "RELATIVE"],
         default_value="RELATIVE",
-        help="""Either absolute timestamps since some epoch
-or program start. Both values are in nano-seconds.""",
+        help="""Either absolute timestamps since some epoch or program start, both values are in nano-seconds.""",
     ).tag(config=True)
     clock_type = Enum(
         ["GPS", "SYSTEM", "TAI", "UTC"], default_value="UTC", help="""Change from UTC only if you know what are you doing."""

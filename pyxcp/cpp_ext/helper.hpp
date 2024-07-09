@@ -136,9 +136,8 @@ class Timestamp {
                 m_clk = std::make_unique<clock_variant>(std::chrono::utc_clock());
                 break;
         }
-        std::cout << static_cast<std::uint16_t>(ts_type) << " : " << static_cast<std::uint16_t>(clk_type) << std::endl;
-        m_initial = absolute();
-        std::cout << "initial: " << m_initial << std::endl;
+        m_initial                = absolute();
+        m_current_time_zone_name = std::chrono::current_zone()->name();
     }
 
     Timestamp(const Timestamp &) = delete;
@@ -154,6 +153,10 @@ class Timestamp {
 
     std::uint64_t get_initial_value() const noexcept {
         return m_initial;
+    }
+
+    std::string get_current_time_zone_name() const noexcept {
+        return m_current_time_zone_name;
     }
 
     std::uint64_t absolute() const noexcept {
@@ -187,6 +190,7 @@ class Timestamp {
     TimestampType                  m_type;
     std::unique_ptr<clock_variant> m_clk;
     std::uint64_t                  m_initial;
+    std::string                    m_current_time_zone_name;
 };
 
 #endif  // __HELPER_HPP

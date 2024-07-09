@@ -11,6 +11,7 @@ from pyxcp.daq_stim.optimize.binpacking import first_fit_decreasing
 from pyxcp.recorder import DaqOnlinePolicy as _DaqOnlinePolicy
 from pyxcp.recorder import DaqRecorderPolicy as _DaqRecorderPolicy
 from pyxcp.recorder import MeasurementParameters
+from pyxcp.utils import CurrentDatetime
 
 
 DAQ_ID_FIELD_SIZE = {
@@ -33,9 +34,8 @@ class DaqProcessor:
         self.daq_lists = daq_lists
         self.log = get_application().log
 
-    def setup(self, write_multiple: bool = True):
+    def setup(self, start_datetime: CurrentDatetime | None = None, write_multiple: bool = True):
         self.daq_info = self.xcp_master.getDaqInfo()
-        # pprint(self.daq_info)
         try:
             processor = self.daq_info.get("processor")
             properties = processor.get("properties")
@@ -49,9 +49,9 @@ class DaqProcessor:
                 mode = resolution.get("timestampMode")
                 self.ts_fixed = mode.get("fixed")
                 self.ts_size = DAQ_TIMESTAMP_SIZE[mode.get("size")]
-                ts_unit_exp = types.DAQ_TIMESTAMP_UNIT_TO_EXP[mode.get("unit")]
+                ts_factor = types.DAQ_TIMESTAMP_UNIT_TO_NS[mode.get("unit")]
                 ts_ticks = resolution.get("timestampTicks")
-                self.ts_scale_factor = (10**ts_unit_exp) * ts_ticks
+                self.ts_scale_factor = ts_factor * ts_ticks
             else:
                 self.ts_size = 0
                 self.ts_fixed = False
@@ -131,6 +131,8 @@ class DaqProcessor:
             )
             res = self.xcp_master.startStopDaqList(0x02, i)
             self._first_pids.append(res.firstPid)
+        if start_datetime:
+            pass
         self.measurement_params = MeasurementParameters(
             byte_order,
             header_len,

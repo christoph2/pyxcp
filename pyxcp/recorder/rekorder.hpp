@@ -107,16 +107,16 @@ using payload_t = py::array_t<blob_t>;
 
 struct frame_header_t {
     std::uint8_t  category{ 0 };
-    std::uint16_t counter{ 0 };
-    double        timestamp{ 0.0 };
-    std::uint16_t length{ 0 };
+    std::uint16_t counter{ 0U };
+    std::uint64_t timestamp{ 0ULL };
+    std::uint16_t length{ 0U };
 };
 
     #pragma pack(pop)
 
-using FrameTuple       = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, payload_t>;
+using FrameTuple       = std::tuple<std::uint8_t, std::uint16_t, std::uint64_t, std::uint16_t, payload_t>;
 using FrameVector      = std::vector<FrameTuple>;
-using FrameTupleWriter = std::tuple<std::uint8_t, std::uint16_t, double, std::uint16_t, char*>;
+using FrameTupleWriter = std::tuple<std::uint8_t, std::uint16_t, std::uint64_t, std::uint16_t, char*>;
 
 enum class FrameCategory : std::uint8_t {
     META,
