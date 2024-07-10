@@ -127,7 +127,8 @@ class TimestampInfo {
         struct tm *timeinfo;
         timeinfo = localtime(&rawtime);
         //std::copy(std::begin(timeinfo->tm_zone), std::end(timeinfo->tm_zone), std::back_inserter(m_timezone));
-        m_timezone = timeinfo->tm_zone;
+        //m_timezone = timeinfo->tm_zone;
+        m_timezone = tzname[0];
 
     #endif  // _WIN32 || _WIN64
     }
