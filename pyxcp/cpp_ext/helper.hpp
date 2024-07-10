@@ -122,11 +122,12 @@ class TimestampInfo {
         m_timezone = std::chrono::current_zone()->name();
     #else
         tzset();
-
-        time_t     rawtime = time(timestamp_ns / 1'000'000'000);
+        time_t rawtime = static_cast<time_t>(timestamp_ns / 1'000'000'000);
+        //time_t     rawtime = time(&value);
         struct tm *timeinfo;
         timeinfo = localtime(&rawtime);
-        std::copy(std::begin(timeinfo->tm_zone), std::end(timeinfo->tm_zone), std::back_inserter(m_timezone));
+        //std::copy(std::begin(timeinfo->tm_zone), std::end(timeinfo->tm_zone), std::back_inserter(m_timezone));
+        m_timezone = timeinfo->tm_zone;
 
     #endif  // _WIN32 || _WIN64
     }
