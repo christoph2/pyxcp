@@ -2,7 +2,13 @@
 #if !defined(__HELPER_HPP)
     #define __HELPER_HPP
 
+#if defined(_WIN32) || defined(_WIN64)
     #include <chrono>
+#else
+    #include <sys/time.h>
+    #include <time.h>
+#endif
+
     #include <iostream>
     #include <map>
     #include <utility>
@@ -118,10 +124,11 @@ enum class ClockType : std::uint8_t {
 class Timestamp {
    public:
 
-    using clock_variant =
-        std::variant<std::chrono::system_clock, std::chrono::tai_clock, std::chrono::utc_clock, std::chrono::gps_clock>;
+    //using clock_variant = std::variant<std::chrono::system_clock, std::chrono::tai_clock, std::chrono::utc_clock, std::chrono::gps_clock>;
 
     explicit Timestamp(TimestampType ts_type, ClockType clk_type) : m_type(ts_type) {
+
+    #if defined(_WIN32) || defined(_WIN64)
         switch (clk_type) {
             case ClockType::SYSTEM_CLK:
                 m_clk = std::make_unique<clock_variant>(std::chrono::system_clock());
@@ -136,9 +143,15 @@ class Timestamp {
                 m_clk = std::make_unique<clock_variant>(std::chrono::utc_clock());
                 break;
         }
-        m_initial                = absolute();
         m_current_time_zone_name = std::chrono::current_zone()->name();
+    #else
+        tzset();
+
+    #endif  // _WIN32 || _WIN64
+        m_initial                = absolute();
     }
+
+
 
     Timestamp(const Timestamp &) = delete;
     Timestamp(Timestamp &&)      = delete;
@@ -162,6 +175,7 @@ class Timestamp {
     std::uint64_t absolute() const noexcept {
         std::uint64_t current;
 
+#if defined(_WIN32) || defined(_WIN64)
         std::visit(
             [&current](auto &&arg) {
                 using T = std::decay_t<decltype(arg)>;
@@ -178,6 +192,12 @@ class Timestamp {
             },
             *m_clk
         );
+#else
+        // On MacOS `clock_gettime_nsec_np` could be used.
+        timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        current = static_cast<std::uint64_t>(ts.tv_sec) * 1'000'000'000 + ts.tv_nsec;
+#endif  // _WIN32 || _WIN64
         return current;
     }
 
@@ -188,7 +208,11 @@ class Timestamp {
    private:
 
     TimestampType                  m_type;
+#if defined(_WIN32) || defined(_WIN64)
     std::unique_ptr<clock_variant> m_clk;
+    #else
+
+    #endif  // _WIN32 || _WIN64
     std::uint64_t                  m_initial;
     std::string                    m_current_time_zone_name;
 };
