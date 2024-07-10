@@ -2,12 +2,12 @@
 #if !defined(__HELPER_HPP)
     #define __HELPER_HPP
 
-#if defined(_WIN32) || defined(_WIN64)
-    #include <chrono>
-#else
-    #include <sys/time.h>
-    #include <time.h>
-#endif
+    #if defined(_WIN32) || defined(_WIN64)
+        #include <chrono>
+    #else
+        #include <sys/time.h>
+        #include <time.h>
+    #endif
 
     #include <iostream>
     #include <map>
@@ -114,44 +114,67 @@ enum class TimestampType : std::uint8_t {
     RELATIVE_TS
 };
 
-enum class ClockType : std::uint8_t {
-    SYSTEM_CLK,
-    GPS_CLK,
-    TAI_CLK,
-    UTC_CLK,
+class TimestampInfo {
+   public:
+
+    explicit TimestampInfo(std::uint64_t timestamp_ns) : m_timestamp_ns(timestamp_ns) {
+    #if defined(_WIN32) || defined(_WIN64)
+        m_timezone = std::chrono::current_zone()->name();
+    #else
+        tzset();
+
+        time_t     rawtime = time(timestamp_ns / 1'000'000'000);
+        struct tm *timeinfo;
+        timeinfo = localtime(&rawtime);
+        std::copy(std::begin(timeinfo->tm_zone), std::end(timeinfo->tm_zone), std::back_inserter(m_timezone));
+
+    #endif  // _WIN32 || _WIN64
+    }
+
+    std::string get_timezone() const noexcept {
+        return m_timezone;
+    }
+
+    void set_timezone(const std::string &value) noexcept {
+        m_timezone = value;
+    }
+
+    std::uint64_t get_timestamp_ns() const noexcept {
+        return m_timestamp_ns;
+    }
+
+    void set_utc_offset(std::int16_t value) noexcept {
+        m_utc_offset = value;
+    }
+
+    std::int16_t get_utc_offset() const noexcept {
+        return m_utc_offset;
+    }
+
+    void set_dst_offset(std::int16_t value) noexcept {
+        m_dst_offset = value;
+    }
+
+    std::int16_t get_dst_offset() const noexcept {
+        return m_dst_offset;
+    }
+
+    virtual void dummy() const noexcept {};
+
+   private:
+
+    std::uint64_t m_timestamp_ns;
+    std::string   m_timezone{};
+    std::int16_t  m_utc_offset{ 0 };
+    std::int16_t  m_dst_offset{ 0 };
 };
 
 class Timestamp {
    public:
 
-    //using clock_variant = std::variant<std::chrono::system_clock, std::chrono::tai_clock, std::chrono::utc_clock, std::chrono::gps_clock>;
-
-    explicit Timestamp(TimestampType ts_type, ClockType clk_type) : m_type(ts_type) {
-
-    #if defined(_WIN32) || defined(_WIN64)
-        switch (clk_type) {
-            case ClockType::SYSTEM_CLK:
-                m_clk = std::make_unique<clock_variant>(std::chrono::system_clock());
-                break;
-            case ClockType::GPS_CLK:
-                m_clk = std::make_unique<clock_variant>(std::chrono::gps_clock());
-                break;
-            case ClockType::TAI_CLK:
-                m_clk = std::make_unique<clock_variant>(std::chrono::tai_clock());
-                break;
-            case ClockType::UTC_CLK:
-                m_clk = std::make_unique<clock_variant>(std::chrono::utc_clock());
-                break;
-        }
-        m_current_time_zone_name = std::chrono::current_zone()->name();
-    #else
-        tzset();
-
-    #endif  // _WIN32 || _WIN64
-        m_initial                = absolute();
+    explicit Timestamp(TimestampType ts_type) : m_type(ts_type) {
+        m_initial = absolute();
     }
-
-
 
     Timestamp(const Timestamp &) = delete;
     Timestamp(Timestamp &&)      = delete;
@@ -168,36 +191,17 @@ class Timestamp {
         return m_initial;
     }
 
-    std::string get_current_time_zone_name() const noexcept {
-        return m_current_time_zone_name;
-    }
-
     std::uint64_t absolute() const noexcept {
         std::uint64_t current;
 
-#if defined(_WIN32) || defined(_WIN64)
-        std::visit(
-            [&current](auto &&arg) {
-                using T = std::decay_t<decltype(arg)>;
-
-                if constexpr (std::is_same_v<T, std::chrono::system_clock>) {
-                    current = std::chrono::duration_cast<std::chrono::nanoseconds>(arg.now().time_since_epoch()).count();
-                } else if constexpr (std::is_same_v<T, std::chrono::gps_clock>) {
-                    current = std::chrono::duration_cast<std::chrono::nanoseconds>(arg.now().time_since_epoch()).count();
-                } else if constexpr (std::is_same_v<T, std::chrono::tai_clock>) {
-                    current = std::chrono::duration_cast<std::chrono::nanoseconds>(arg.now().time_since_epoch()).count();
-                } else if constexpr (std::is_same_v<T, std::chrono::utc_clock>) {
-                    current = std::chrono::duration_cast<std::chrono::nanoseconds>(arg.now().time_since_epoch()).count();
-                }
-            },
-            *m_clk
-        );
-#else
+    #if defined(_WIN32) || defined(_WIN64)
+        current = std::chrono::duration_cast<std::chrono::nanoseconds>(m_clk.now().time_since_epoch()).count();
+    #else
         // On MacOS `clock_gettime_nsec_np` could be used.
         timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts);
         current = static_cast<std::uint64_t>(ts.tv_sec) * 1'000'000'000 + ts.tv_nsec;
-#endif  // _WIN32 || _WIN64
+    #endif  // _WIN32 || _WIN64
         return current;
     }
 
@@ -207,14 +211,13 @@ class Timestamp {
 
    private:
 
-    TimestampType                  m_type;
-#if defined(_WIN32) || defined(_WIN64)
-    std::unique_ptr<clock_variant> m_clk;
+    TimestampType m_type;
+    #if defined(_WIN32) || defined(_WIN64)
+    std::chrono::utc_clock m_clk;
     #else
 
     #endif  // _WIN32 || _WIN64
-    std::uint64_t                  m_initial;
-    std::string                    m_current_time_zone_name;
+    std::uint64_t m_initial;
 };
 
 #endif  // __HELPER_HPP

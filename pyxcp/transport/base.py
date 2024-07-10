@@ -9,7 +9,7 @@ from time import sleep
 
 import pyxcp.types as types
 
-from ..cpp_ext import ClockType, Timestamp, TimestampType
+from ..cpp_ext import Timestamp, TimestampType
 from ..recorder import XcpLogFileWriter
 from ..timing import Timing
 from ..utils import (
@@ -152,19 +152,13 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.counterSend: int = 0
         self.counterReceived: int = -1
         self.create_daq_timestamps = config.create_daq_timestamps
-        if config.clock_type == "UTC":
-            clock_type = ClockType.UTC_CLK
-        elif config.clock_type == "TAI":
-            clock_type = ClockType.TAI_CLK
-        elif config.clock_type == "SYSTEM":
-            clock_type = ClockType.SYSTEM_CLK
-        elif config.clock_type == "GPS":
-            clock_type = ClockType.GPS_CLK
         timestamp_mode = TimestampType.ABSOLUTE_TS if config.timestamp_mode == "ABSOLUTE" else TimestampType.RELATIVE_TS
-        self.timestamp = Timestamp(timestamp_mode, clock_type)
+        self.timestamp = Timestamp(timestamp_mode)
 
-        # Reference point for UTC timestamps.
-        self._start_datetime = CurrentDatetime(self.timestamp.initial_value, self.timestamp.current_time_zone_name)
+        # Reference point for timestamping (may relative).
+        self._start_datetime = CurrentDatetime(self.timestamp.initial_value)
+
+        print(self._start_datetime)
         self.alignment = config.alignment
         self.timeout = seconds_to_nanoseconds(config.timeout)
         self.timer_restart_event = threading.Event()

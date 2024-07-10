@@ -9,6 +9,8 @@ from time import perf_counter
 import chardet
 import pytz
 
+from pyxcp.cpp_ext import TimestampInfo
+
 
 def hexDump(arr):
     if isinstance(arr, (bytes, bytearray)):
@@ -31,7 +33,7 @@ def hexDump(arr):
 
 
 def seconds_to_nanoseconds(value: float) -> int:
-    return int(value * 1000 * 1000 * 1000)
+    return int(value * 1_000_000_000)
 
 
 def slicer(iterable, sliceLength, converter=None):
@@ -78,14 +80,15 @@ def delay(amount: float):
         pass
 
 
-class CurrentDatetime:
+class CurrentDatetime(TimestampInfo):
 
-    def __init__(self, timestamp_ns: int, tz_name: str):
-        self.timestamp_ns = timestamp_ns
-        self.timezone = pytz.timezone(tz_name)
-        self._dt = datetime.datetime.fromtimestamp(timestamp_ns / (1000.0 * 1000.0 * 1000.0))
-        self.utc_offset = int(self.timezone.utcoffset(self._dt).total_seconds() / 60)
-        self.dst_offset = int(self.timezone.dst(self._dt).total_seconds() / 60)
+    def __init__(self, timestamp_ns: int):
+        TimestampInfo.__init__(self, timestamp_ns)
+        # self.timestamp_ns = timestamp_ns
+        timezone = pytz.timezone(self.timezone)
+        self._dt = datetime.datetime.fromtimestamp(timestamp_ns / 1_000_000_000.0)
+        self.utc_offset = int(timezone.utcoffset(self._dt).total_seconds() / 60)
+        self.dst_offset = int(timezone.dst(self._dt).total_seconds() / 60)
 
     def __str__(self):
         return f"""CurrentDatetime(
