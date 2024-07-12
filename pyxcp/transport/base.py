@@ -154,11 +154,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.create_daq_timestamps = config.create_daq_timestamps
         timestamp_mode = TimestampType.ABSOLUTE_TS if config.timestamp_mode == "ABSOLUTE" else TimestampType.RELATIVE_TS
         self.timestamp = Timestamp(timestamp_mode)
-
         # Reference point for timestamping (may relative).
         self._start_datetime = CurrentDatetime(self.timestamp.initial_value)
-
-        print(self._start_datetime)
         self.alignment = config.alignment
         self.timeout = seconds_to_nanoseconds(config.timeout)
         self.timer_restart_event = threading.Event()

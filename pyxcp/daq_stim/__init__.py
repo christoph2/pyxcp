@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # from pprint import pprint
+from time import time_ns
 from typing import List
 
 from pyxcp import types
@@ -36,6 +37,10 @@ class DaqProcessor:
 
     def setup(self, start_datetime: CurrentDatetime | None = None, write_multiple: bool = True):
         self.daq_info = self.xcp_master.getDaqInfo()
+        if start_datetime is None:
+            start_datetime = CurrentDatetime(time_ns())
+        self.start_datetime = start_datetime
+        print(self.start_datetime)
         try:
             processor = self.daq_info.get("processor")
             properties = processor.get("properties")
@@ -143,6 +148,7 @@ class DaqProcessor:
             self.ts_scale_factor,
             self.ts_size,
             self.min_daq,
+            self.start_datetime,
             self.daq_lists,
             self._first_pids,
         )

@@ -117,17 +117,18 @@ enum class TimestampType : std::uint8_t {
 class TimestampInfo {
    public:
 
+    TimestampInfo() : m_timestamp_ns(0), m_timezone{}, m_utc_offset(0), m_dst_offset(0) {
+    }
+
+    TimestampInfo(std::uint64_t timestamp_ns, const std::string &timezone, std::int16_t utc_offset, std::int16_t dst_offset) :
+        m_timestamp_ns(timestamp_ns), m_timezone(timezone), m_utc_offset(utc_offset), m_dst_offset(dst_offset) {
+    }
+
     explicit TimestampInfo(std::uint64_t timestamp_ns) : m_timestamp_ns(timestamp_ns) {
     #if defined(_WIN32) || defined(_WIN64)
         m_timezone = std::chrono::current_zone()->name();
     #else
         tzset();
-        time_t rawtime = static_cast<time_t>(timestamp_ns / 1'000'000'000);
-        //time_t     rawtime = time(&value);
-        struct tm *timeinfo;
-        timeinfo = localtime(&rawtime);
-        //std::copy(std::begin(timeinfo->tm_zone), std::end(timeinfo->tm_zone), std::back_inserter(m_timezone));
-        //m_timezone = timeinfo->tm_zone;
         m_timezone = tzname[0];
 
     #endif  // _WIN32 || _WIN64
@@ -178,8 +179,8 @@ class Timestamp {
         m_initial = absolute();
     }
 
-    Timestamp(const Timestamp &) = delete;
-    Timestamp(Timestamp &&)      = delete;
+    Timestamp(const Timestamp &) = default;
+    Timestamp(Timestamp &&)      = default;
 
     std::uint64_t get_value() const noexcept {
         if (m_type == TimestampType::ABSOLUTE_TS) {

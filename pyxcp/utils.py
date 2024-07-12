@@ -84,7 +84,6 @@ class CurrentDatetime(TimestampInfo):
 
     def __init__(self, timestamp_ns: int):
         TimestampInfo.__init__(self, timestamp_ns)
-        # self.timestamp_ns = timestamp_ns
         timezone = pytz.timezone(self.timezone)
         self._dt = datetime.datetime.fromtimestamp(timestamp_ns / 1_000_000_000.0)
         self.utc_offset = int(timezone.utcoffset(self._dt).total_seconds() / 60)

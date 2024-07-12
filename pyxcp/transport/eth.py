@@ -27,7 +27,7 @@ def socket_to_str(sock: socket.socket) -> str:
     }
     family = AF.get(sock.family, "OTHER")
     typ = TYPE.get(sock.type, "UNKNOWN")
-    res = f"Connected to: {peer[0]}:{peer[1]}    local address: {local[0]}:{local[1]} [{family}][{typ}]"
+    res = f"XCPonEth - Connected to: {peer[0]}:{peer[1]}  local address: {local[0]}:{local[1]} [{family}][{typ}]"
     return res
 
 

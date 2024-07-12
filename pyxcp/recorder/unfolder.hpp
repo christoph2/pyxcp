@@ -536,7 +536,7 @@ struct MeasurementParameters {
     explicit MeasurementParameters(
         std::uint8_t byte_order, std::uint8_t id_field_size, bool timestamps_supported, bool ts_fixed, bool prescaler_supported,
         bool selectable_timestamps, double ts_scale_factor, std::uint8_t ts_size, std::uint16_t min_daq,
-        const std::vector<DaqList>& daq_lists, const std::vector<std::uint16_t>& first_pids
+        const TimestampInfo& timestamp_info, const std::vector<DaqList>& daq_lists, const std::vector<std::uint16_t>& first_pids
     ) :
         m_byte_order(byte_order),
         m_id_field_size(id_field_size),
@@ -547,6 +547,7 @@ struct MeasurementParameters {
         m_ts_scale_factor(ts_scale_factor),
         m_ts_size(ts_size),
         m_min_daq(min_daq),
+        m_timestamp_info(timestamp_info),
         m_daq_lists(daq_lists),
         m_first_pids(first_pids) {
     }
@@ -563,7 +564,12 @@ struct MeasurementParameters {
         ss << to_binary(m_ts_scale_factor);
         ss << to_binary(m_ts_size);
         ss << to_binary(m_min_daq);
-
+        ////
+        ss << to_binary<std::uint64_t>(m_timestamp_info.get_timestamp_ns());
+        //ss << to_binary(m_timestamp_info.get_timezone());
+        ss << to_binary<std::int16_t>(m_timestamp_info.get_utc_offset());
+        ss << to_binary<std::int16_t>(m_timestamp_info.get_dst_offset());
+        ////
         std::size_t dl_count = m_daq_lists.size();
         ss << to_binary(dl_count);
         for (const auto& daq_list : m_daq_lists) {
@@ -615,6 +621,10 @@ struct MeasurementParameters {
         return m_min_daq;
     }
 
+    auto get_timestamp_info() const noexcept {
+        return m_timestamp_info;
+    }
+
     auto get_daq_lists() const noexcept {
         return m_daq_lists;
     }
@@ -632,6 +642,7 @@ struct MeasurementParameters {
     double                     m_ts_scale_factor;
     std::uint8_t               m_ts_size;
     std::uint16_t              m_min_daq;
+    TimestampInfo              m_timestamp_info;
     std::vector<DaqList>       m_daq_lists;
     std::vector<std::uint16_t> m_first_pids;
 };
@@ -655,7 +666,12 @@ class Deserializer {
         std::size_t                dl_count;
         std::vector<DaqList>       daq_lists;
         std::size_t                fp_count;
+        std::uint64_t              timestamp_ns;
+        std::int16_t               utc_offset;
+        std::int16_t               dst_offset;
+        std::string                timezone;
         std::vector<std::uint16_t> first_pids;
+        // TimestampInfo              timestamp_info{ 0 };
 
         byte_order            = from_binary<std::uint8_t>();
         id_field_size         = from_binary<std::uint8_t>();
@@ -668,6 +684,20 @@ class Deserializer {
         min_daq               = from_binary<std::uint16_t>();
         dl_count              = from_binary<std::size_t>();
 
+        ////
+        timestamp_ns = from_binary<std::uint64_t>();
+		std::cout << "TS: " << timestamp_ns << std::endl;
+        //timezone     = from_binary_str();
+		//std::cout << "TZ: " << timezone << std::endl;
+        utc_offset   = from_binary<std::int16_t>();
+		std::cout << "UTC:" << utc_offset << std::endl;
+        dst_offset   = from_binary<std::int16_t>();
+		std::cout << "DST:" << dst_offset << std::endl;
+
+        //TimestampInfo timestamp_info{ timestamp_ns, timezone, utc_offset, dst_offset };
+		TimestampInfo timestamp_info(0);
+        ////
+
         for (std::size_t i = 0; i < dl_count; i++) {
             daq_lists.push_back(create_daq_list());
         }
@@ -679,7 +709,7 @@ class Deserializer {
 
         return MeasurementParameters(
             byte_order, id_field_size, timestamps_supported, ts_fixed, prescaler_supported, selectable_timestamps, ts_scale_factor,
-            ts_size, min_daq, daq_lists, first_pids
+            ts_size, min_daq, timestamp_info, daq_lists, first_pids
         );
     }
 

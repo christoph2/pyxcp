@@ -111,8 +111,8 @@ PYBIND11_MODULE(rekorder, m) {
 
     py::class_<MeasurementParameters>(m, "MeasurementParameters")
         .def(py::init<
-             std::uint8_t, std::uint8_t, bool, bool, bool, bool, double, std::uint8_t, std::uint16_t, const std::vector<DaqList>&,
-             const std::vector<std::uint16_t>&>())
+             std::uint8_t, std::uint8_t, bool, bool, bool, bool, double, std::uint8_t, std::uint16_t, const TimestampInfo&,
+             const std::vector<DaqList>&, const std::vector<std::uint16_t>&>())
         .def("dumps", [](const MeasurementParameters& self) { return py::bytes(self.dumps()); })
         .def(
             "__repr__",
@@ -150,6 +150,7 @@ PYBIND11_MODULE(rekorder, m) {
         .def_property_readonly("ts_scale_factor", &MeasurementParameters::get_ts_scale_factor)
         .def_property_readonly("ts_size", &MeasurementParameters::get_ts_size)
         .def_property_readonly("min_daq", &MeasurementParameters::get_min_daq)
+        .def_property_readonly("timestamp_info", &MeasurementParameters::get_timestamp_info)
         .def_property_readonly("daq_lists", &MeasurementParameters::get_daq_lists)
         .def_property_readonly("first_pids", &MeasurementParameters::get_first_pids);
 
