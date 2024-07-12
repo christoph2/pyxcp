@@ -117,6 +117,11 @@ enum class TimestampType : std::uint8_t {
 class TimestampInfo {
    public:
 
+   TimestampInfo(const TimestampInfo&) = default;
+   TimestampInfo(TimestampInfo&&) = default;
+   TimestampInfo& operator=(const TimestampInfo&) = default;
+   TimestampInfo& operator=(TimestampInfo&&) = default;
+
     TimestampInfo() : m_timestamp_ns(0), m_timezone{}, m_utc_offset(0), m_dst_offset(0) {
     }
 

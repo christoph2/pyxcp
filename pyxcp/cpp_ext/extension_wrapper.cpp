@@ -81,6 +81,8 @@ PYBIND11_MODULE(cpp_ext, m) {
 
     py::class_<TimestampInfo, PyTimestampInfo>(m, "TimestampInfo", py::dynamic_attr())
         .def(py::init<std::uint64_t>())
+        .def(py::init<std::uint64_t, const std::string &, std::int16_t, std::int16_t>())
+
         .def_property_readonly("timestamp_ns", &TimestampInfo::get_timestamp_ns)
         .def_property("utc_offset", &TimestampInfo::get_utc_offset, &TimestampInfo::set_utc_offset)
         .def_property("dst_offset", &TimestampInfo::get_dst_offset, &TimestampInfo::set_dst_offset)
