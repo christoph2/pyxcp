@@ -16,8 +16,14 @@ print(args.xmraw_file)
 
 class Unfolder(XcpLogFileUnfolder):
 
+    prev = 0
+    wraps = 0
+
     def on_daq_list(self, daq_list_num, timestamp0, timestamp1, measurement):
+        if timestamp1 < self.prev:
+            self.wraps += 1
         print(daq_list_num, timestamp0, timestamp1, measurement)
+        self.prev = timestamp1
 
 
 lfr = Unfolder(args.xmraw_file)
@@ -30,6 +36,8 @@ print("=" * 80)
 print("=" * 80)
 print("=" * 80)
 print(lfr.daq_lists)
+print(lfr.parameters.timestamp_info)
+print("Wrap-arounds:", lfr.wraps)
 sys.exit()
 
 reader = XcpLogFileReader(args.xmraw_file)

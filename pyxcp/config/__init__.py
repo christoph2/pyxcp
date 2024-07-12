@@ -795,7 +795,7 @@ class Transport(SingletonConfigurable):
     create_daq_timestamps = Bool(False, help="Record time of frame reception or set timestamp to 0.").tag(config=True)
     timestamp_mode = Enum(
         ["ABSOLUTE", "RELATIVE"],
-        default_value="RELATIVE",
+        default_value="ABSOLUTE",
         help="""Either absolute timestamps since some epoch or program start, both values are in nano-seconds.""",
     ).tag(config=True)
     timeout = Float(
@@ -990,7 +990,7 @@ class PyXCP(Application):
 
     aliases = Dict(  # type:ignore[assignment]
         dict(
-            c="PyXCP.config_file",
+            c="PyXCP.config_file",  # Application
             log_level="PyXCP.log_level",
             l="PyXCP.log_level",
         )

@@ -10,8 +10,8 @@ from pyxcp.daq_stim import DaqList, DaqRecorder, DaqToCsv  # noqa: F401
 
 ap = ArgumentParser(description="DAQ test")
 
-# XCP_LITE = True
-XCP_LITE = False
+XCP_LITE = True
+# XCP_LITE = False
 
 # Completly random configurations, only for illustrative purposes.
 #
@@ -26,10 +26,10 @@ if XCP_LITE:
             False,
             False,
             [
-                ("byteCounter", 0x1D48080, 0, "U8"),  #
-                ("wordCounter", 0x1D48082, 0, "U16"),
-                ("dwordCounter", 0x1D48084, 0, "U32"),
-                ("sbyteCounter", 0x1D48088, 0, "I8"),
+                ("byteCounter", 0x114A0, 0, "U8"),  #
+                ("wordCounter", 0x114A2, 0, "U16"),
+                ("dwordCounter", 0x114A4, 0, "U32"),
+                ("sbyteCounter", 0x114A8, 0, "I8"),
             ],
         ),
         DaqList(
@@ -38,11 +38,11 @@ if XCP_LITE:
             False,
             False,
             [
-                ("swordCounter", 0x1D4808A, 0, "I16"),
-                ("sdwordCounter", 0x1D4808C, 0, "I32"),
-                ("channel1", 0x1D48068, 0, "F64"),
-                ("channel2", 0x1D48070, 0, "F64"),
-                ("channel3", 0x1D48078, 0, "F64"),
+                ("swordCounter", 0x114AA, 0, "I16"),
+                ("sdwordCounter", 0x114AC, 0, "I32"),
+                ("channel1", 0x10088, 0, "F64"),
+                ("channel2", 0x10090, 0, "F64"),
+                ("channel3", 0x10098, 0, "F64"),
             ],
         ),
     ]
@@ -142,7 +142,6 @@ DAQ_LISTS = [
 ]
 """
 # daq_parser = DaqToCsv(DAQ_LISTS)  # Saves  our measurement data to one or more CSV file(s)k.
-
 daq_parser = DaqRecorder(DAQ_LISTS, "run_daq", 2)
 
 with ap.run(policy=daq_parser) as x:
@@ -160,6 +159,7 @@ with ap.run(policy=daq_parser) as x:
     time.sleep(15.0 * 60.0)
     # time.sleep(1 * 60.0 * 60.0)  # Arbitrary termination condition.ls *.
     # time.sleep(6 * 60.0 * 60.0)  # Arbitrary termination condition.ls *.
+    print("Stop DAQ....")
     daq_parser.stop()  # Stop DAQ lists.
     print("finalize DAQ lists.\n")
     x.disconnect()

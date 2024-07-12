@@ -167,6 +167,17 @@ class TimestampInfo {
         return m_dst_offset;
     }
 
+    std::string to_string() const noexcept {
+        std::stringstream ss;
+        ss << "TimestamInfo(\n";
+        ss << "\ttimestamp_ns=" << m_timestamp_ns << ",\n";
+        ss << "\ttimezone=\"" << m_timezone << "\",\n";
+        ss << "\tutc_offset=" << m_utc_offset << ",\n";
+        ss << "\tdst_offset=" << m_dst_offset << "\n";
+        ss << ");";
+        return ss.str();
+    }
+
     virtual void dummy() const noexcept {};
 
    private:

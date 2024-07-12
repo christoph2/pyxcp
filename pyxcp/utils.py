@@ -97,5 +97,5 @@ class CurrentDatetime(TimestampInfo):
     utc_offset={self.utc_offset},
     dst_offset={self.dst_offset}
 )"""
-    
-    __repr__ = __str__()
+
+    __repr__ = __str__

@@ -564,14 +564,15 @@ struct MeasurementParameters {
         ss << to_binary(m_ts_scale_factor);
         ss << to_binary(m_ts_size);
         ss << to_binary(m_min_daq);
+        std::size_t dl_count = m_daq_lists.size();
+        ss << to_binary(dl_count);
         ////
         ss << to_binary<std::uint64_t>(m_timestamp_info.get_timestamp_ns());
-        //ss << to_binary(m_timestamp_info.get_timezone());
+        ss << to_binary(m_timestamp_info.get_timezone());
         ss << to_binary<std::int16_t>(m_timestamp_info.get_utc_offset());
         ss << to_binary<std::int16_t>(m_timestamp_info.get_dst_offset());
         ////
-        std::size_t dl_count = m_daq_lists.size();
-        ss << to_binary(dl_count);
+
         for (const auto& daq_list : m_daq_lists) {
             ss << daq_list.dumps();
         }
@@ -686,17 +687,15 @@ class Deserializer {
 
         ////
         timestamp_ns = from_binary<std::uint64_t>();
-		std::cout << "TS: " << timestamp_ns << std::endl;
-        //timezone     = from_binary_str();
+		//std::cout << "TS: " << timestamp_ns << std::endl;
+        timezone     = from_binary_str();
 		//std::cout << "TZ: " << timezone << std::endl;
         utc_offset   = from_binary<std::int16_t>();
-		std::cout << "UTC:" << utc_offset << std::endl;
+		//std::cout << "UTC:" << utc_offset << std::endl;
         dst_offset   = from_binary<std::int16_t>();
-		std::cout << "DST:" << dst_offset << std::endl;
+		//std::cout << "DST:" << dst_offset << std::endl;
 
-        //TimestampInfo timestamp_info{ timestamp_ns, timezone, utc_offset, dst_offset };
-		TimestampInfo timestamp_info(0);
-        ////
+        TimestampInfo timestamp_info{ timestamp_ns, timezone, utc_offset, dst_offset };
 
         for (std::size_t i = 0; i < dl_count; i++) {
             daq_lists.push_back(create_daq_list());
@@ -839,8 +838,6 @@ class Deserializer {
         return tmp;
     }
 
-    // template<>
-    // inline std::string from_binary_str() {
     inline std::string from_binary_str() {
         auto        length = from_binary<std::size_t>();
         std::string result;
@@ -1090,6 +1087,7 @@ class DaqRecorderPolicy : public DAQPolicyBase {
     }
 
     void finalize() override {
+    std::cout << "DaqRecorderPolicy::finalize()\n";
         m_writer->finalize();
     }
 
