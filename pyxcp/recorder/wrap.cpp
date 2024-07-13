@@ -128,7 +128,7 @@ PYBIND11_MODULE(rekorder, m) {
                 ss << "ts_scale_factor=" << self.m_ts_scale_factor << ", ";
                 ss << "ts_size=" << static_cast<std::uint16_t>(self.m_ts_size) << ", ";
                 ss << "min_daq=" << static_cast<std::uint16_t>(self.m_min_daq) << ", ";
-                ss << "timestamp=" << self.get_timestamp_info().to_string() << ", ";
+                ss << "timestamp_info=" << self.get_timestamp_info().to_string() << ", ";
                 ss << "daq_lists=[\n";
                 for (const auto& dl : self.m_daq_lists) {
                     ss << dl.to_string() << ",\n";

@@ -85,9 +85,9 @@ class CurrentDatetime(TimestampInfo):
     def __init__(self, timestamp_ns: int):
         TimestampInfo.__init__(self, timestamp_ns)
         timezone = pytz.timezone(self.timezone)
-        self._dt = datetime.datetime.fromtimestamp(timestamp_ns / 1_000_000_000.0)
-        self.utc_offset = int(timezone.utcoffset(self._dt).total_seconds() / 60)
-        self.dst_offset = int(timezone.dst(self._dt).total_seconds() / 60)
+        dt = datetime.datetime.fromtimestamp(timestamp_ns / 1_000_000_000.0)
+        self.utc_offset = int(timezone.utcoffset(dt).total_seconds() / 60)
+        self.dst_offset = int(timezone.dst(dt).total_seconds() / 60)
 
     def __str__(self):
         return f"""CurrentDatetime(
@@ -97,5 +97,3 @@ class CurrentDatetime(TimestampInfo):
     utc_offset={self.utc_offset},
     dst_offset={self.dst_offset}
 )"""
-
-    __repr__ = __str__
