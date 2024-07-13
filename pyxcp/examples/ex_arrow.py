@@ -96,12 +96,12 @@ class Unfolder(XcpLogFileUnfolder):
         # print("finalize()")
         result = []
         for arr in self.arrow_tables:
-            # timestamps = arr.ts0
+            timestamps = arr.ts0
             names = []
             data = []
 
-            # names = ["timestamp"]
-            # data = [timestamps]
+            names = ["timestamp"]
+            data = [timestamps]
             for sd in arr.arr:
                 # print(sd.name, sd.arrow_type, len(sd.arr))
                 adt = pa.array(sd.arr, type=sd.arrow_type)
