@@ -5,7 +5,7 @@ import logging
 from array import array
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, List
 
 import numpy as np
 from asammdf import MDF, Signal
@@ -67,9 +67,10 @@ class Storage:
 class StorageContainer:
     name: str
     arr: list[Storage] = field(default_factory=[])
-    ts0: array[float] = field(default_factory=lambda: array("d"))
-    ts1: array[float] = field(default_factory=lambda: array("d"))
-
+    #ts0: array[float] = field(default_factory=lambda: array("d"))
+    #ts1: array[float] = field(default_factory=lambda: array("d"))
+    ts0: List[float] = field(default_factory=lambda: array("Q"))
+    ts1: List[float] = field(default_factory=lambda: array("Q"))
 
 class Unfolder(XcpLogFileUnfolder):
 

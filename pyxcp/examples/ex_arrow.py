@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 # from pprint import pprint
-from typing import Any
+from typing import Any, List
 
 import pyarrow as pa
 
@@ -68,9 +68,11 @@ class Storage:
 @dataclass
 class StorageContainer:
     name: str
-    arr: list[Storage] = field(default_factory=[])
-    ts0: array[float] = field(default_factory=lambda: array("d"))
-    ts1: array[float] = field(default_factory=lambda: array("d"))
+    arr: List[Storage] = field(default_factory=[])
+    #ts0: array[float] = field(default_factory=lambda: array("d"))
+    #ts1: array[float] = field(default_factory=lambda: array("d"))
+    ts0: List[float] = field(default_factory=lambda: array("Q"))
+    ts1: List[float] = field(default_factory=lambda: array("Q"))
 
 
 class Unfolder(XcpLogFileUnfolder):
@@ -89,33 +91,28 @@ class Unfolder(XcpLogFileUnfolder):
                 print(f"\t{name!r} {array_txpe} {arrow_type}", sd)
                 result.append(sd)
             sc = StorageContainer(dl.name, result)
-            # print(sc)
             self.arrow_tables.append(sc)
 
     def finalize(self) -> Any:
         # print("finalize()")
         result = []
         for arr in self.arrow_tables:
-            timestamps = arr.ts0
-            names = []
-            data = []
+            timestamp0 = arr.ts0
+            timestamp1 = arr.ts1
+            names = ["timestamp0", "timestamp1"]
+            data = [timestamp0, timestamp1
 
-            names = ["timestamp"]
-            data = [timestamps]
+                    ]
             for sd in arr.arr:
-                # print(sd.name, sd.arrow_type, len(sd.arr))
                 adt = pa.array(sd.arr, type=sd.arrow_type)
                 names.append(sd.name)
                 data.append(adt)
             table = pa.Table.from_arrays(data, names=names)
-            # table = table.append_column("timestamp", [timestamps])
             fname = f"{arr.name}.parquet"
             print("Writing table", fname)
             pq.write_table(table, fname)
             print("done.", table.shape)
             result.append(table)
-            # xcv = ValueHolder(result)
-            # print(xcv)
         return result
 
     def on_daq_list(self, daq_list_num: int, timestamp0: float, timestamp1: float, measurements: list):

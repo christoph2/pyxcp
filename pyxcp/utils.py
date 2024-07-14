@@ -91,7 +91,7 @@ class CurrentDatetime(TimestampInfo):
 
     def __str__(self):
         return f"""CurrentDatetime(
-    datetime="{self._dt!s}",
+    datetime="{datetime.datetime.fromtimestamp(self.timestamp_ns / 1_000_000_000.0)!s}",
     timezone="{self.timezone}",
     timestamp_ns={self.timestamp_ns},
     utc_offset={self.utc_offset},
