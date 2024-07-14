@@ -48,10 +48,6 @@ MAP_TO_ARRAY = {
 }
 
 logger = logging.getLogger("PyXCP")
-# logger.setLevel(logging.INFO)
-
-
-# sys.argv.append(r"C:\Users\Chris\PycharmProjects\pyxcp\pyxcp\examples\run_daq.xmraw")
 
 parser = argparse.ArgumentParser(description="Use .xmraw files in an Apache Arrow application.")
 parser.add_argument("xmraw_file", help=".xmraw file")
@@ -69,10 +65,10 @@ class Storage:
 class StorageContainer:
     name: str
     arr: List[Storage] = field(default_factory=[])
-    #ts0: array[float] = field(default_factory=lambda: array("d"))
-    #ts1: array[float] = field(default_factory=lambda: array("d"))
-    ts0: List[float] = field(default_factory=lambda: array("Q"))
-    ts1: List[float] = field(default_factory=lambda: array("Q"))
+    # ts0: array[int] = field(default_factory=lambda: array("d"))
+    # ts1: array[int] = field(default_factory=lambda: array("d"))
+    ts0: List[int] = field(default_factory=lambda: array("Q"))
+    ts1: List[int] = field(default_factory=lambda: array("Q"))
 
 
 class Unfolder(XcpLogFileUnfolder):
@@ -100,9 +96,7 @@ class Unfolder(XcpLogFileUnfolder):
             timestamp0 = arr.ts0
             timestamp1 = arr.ts1
             names = ["timestamp0", "timestamp1"]
-            data = [timestamp0, timestamp1
-
-                    ]
+            data = [timestamp0, timestamp1]
             for sd in arr.arr:
                 adt = pa.array(sd.arr, type=sd.arrow_type)
                 names.append(sd.name)
@@ -115,7 +109,7 @@ class Unfolder(XcpLogFileUnfolder):
             result.append(table)
         return result
 
-    def on_daq_list(self, daq_list_num: int, timestamp0: float, timestamp1: float, measurements: list):
+    def on_daq_list(self, daq_list_num: int, timestamp0: int, timestamp1: int, measurements: list):
         sc = self.arrow_tables[daq_list_num]
         sc.ts0.append(timestamp0)
         sc.ts1.append(timestamp1)

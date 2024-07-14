@@ -67,10 +67,11 @@ class Storage:
 class StorageContainer:
     name: str
     arr: list[Storage] = field(default_factory=[])
-    #ts0: array[float] = field(default_factory=lambda: array("d"))
-    #ts1: array[float] = field(default_factory=lambda: array("d"))
-    ts0: List[float] = field(default_factory=lambda: array("Q"))
-    ts1: List[float] = field(default_factory=lambda: array("Q"))
+    # ts0: array[int] = field(default_factory=lambda: array("d"))
+    # ts1: array[int] = field(default_factory=lambda: array("d"))
+    ts0: List[int] = field(default_factory=lambda: array("Q"))
+    ts1: List[int] = field(default_factory=lambda: array("Q"))
+
 
 class Unfolder(XcpLogFileUnfolder):
 
@@ -119,7 +120,7 @@ class Unfolder(XcpLogFileUnfolder):
         print("Done.")
         return mdf4
 
-    def on_daq_list(self, daq_list_num: int, timestamp0: float, timestamp1: float, measurements: list):
+    def on_daq_list(self, daq_list_num: int, timestamp0: int, timestamp1: int, measurements: list):
         sc = self.tables[daq_list_num]
         sc.ts0.append(timestamp0)
         sc.ts1.append(timestamp1)
