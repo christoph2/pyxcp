@@ -4,14 +4,9 @@ import argparse
 import logging
 from array import array
 from dataclasses import dataclass, field
-from pathlib import Path
-
-# from pprint import pprint
 from typing import Any, List
 
 import pyarrow as pa
-
-# import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 from pyxcp.recorder import XcpLogFileDecoder
@@ -117,9 +112,6 @@ class Decoder(XcpLogFileDecoder):
             sto = sc.arr[idx]
             sto.arr.append(elem)
 
-
-logger.info(f"Processing {args.xmraw_file!r}")
-logger.info(f"Processing {Path(args.xmraw_file)!r}")
 
 decoder = Decoder(args.xmraw_file)
 res = decoder.run()

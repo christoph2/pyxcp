@@ -130,8 +130,5 @@ class Decoder(XcpLogFileDecoder):
         self.execute(insert_stmt, data)
 
 
-logger.info(f"Processing {args.xmraw_file!r}")
-logger.info(f"Processing {Path(args.xmraw_file)!r}")
-
 decoder = Decoder(args.xmraw_file)
 decoder.run()

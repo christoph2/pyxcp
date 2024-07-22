@@ -127,8 +127,5 @@ class Decoder(XcpLogFileDecoder):
             sto.arr.append(elem)
 
 
-logger.info(f"Processing {args.xmraw_file!r}")
-logger.info(f"Processing {Path(args.xmraw_file)!r}")
-
 decoder = Decoder(args.xmraw_file)
 res = decoder.run()
