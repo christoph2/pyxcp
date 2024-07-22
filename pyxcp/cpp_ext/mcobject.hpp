@@ -30,6 +30,40 @@ const std::map<const std::string, std::tuple<std::uint16_t, std::uint16_t>> TYPE
     #endif
 };
 
+enum class TypeCode : std::uint8_t {
+    U8,
+    I8,
+    U16,
+    I16,
+    U32,
+    I32,
+    U64,
+    I64,
+    F32,
+    F64,
+    F16,
+    BF16,
+};
+
+const std::map<const std::string, TypeCode> TYPE_TO_TYPE_CODE_MAP = {
+    { "U8",   TypeCode::U8   },
+    { "I8",   TypeCode::I8   },
+    { "U16",  TypeCode::U16  },
+    { "I16",  TypeCode::I16  },
+    { "U32",  TypeCode::U32  },
+    { "I32",  TypeCode::I32  },
+    { "U64",  TypeCode::U64  },
+    { "I64",  TypeCode::I64  },
+    { "F32",  TypeCode::F32  },
+    { "F64",  TypeCode::F64  },
+    #if HAS_FLOAT16
+    { "F16",  TypeCode::F16  },
+    #endif
+    #if HAS_BFLOAT16
+    { "BF16", TypeCode::BF16 },
+    #endif
+};
+
 const std::map<std::uint16_t, const std::string> TYPE_MAP_REV = {
     { 0,  "U8"   },
     { 1,  "I8"   },

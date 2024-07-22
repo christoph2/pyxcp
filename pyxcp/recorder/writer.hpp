@@ -15,14 +15,25 @@ class XcpLogFileWriter {
         } else {
             m_file_name = file_name;
         }
+        m_opened = false;
 
 #if defined(_WIN32)
         m_fd = CreateFileA(
             m_file_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, (LPSECURITY_ATTRIBUTES) nullptr, CREATE_ALWAYS,
             FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS, nullptr
         );
+        if (m_fd == INVALID_HANDLE_VALUE) {
+            throw std::runtime_error(error_string("XcpLogFileWriter::CreateFileA", get_last_error()));
+        } else {
+            m_opened = true;
+        }
 #else
         m_fd = open(m_file_name.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0666);
+        if (m_fd == -1) {
+            throw std::runtime_error(error_string("XcpLogFileWriter::open", get_last_error()));
+        } else {
+            m_opened = true;
+        }
 #endif
         m_hard_limit = megabytes(prealloc);
         resize(m_hard_limit);
@@ -53,6 +64,11 @@ class XcpLogFileWriter {
         if (!m_finalized) {
             m_finalized = true;
             stop_thread();
+
+            if (!m_opened) {
+                return;
+            }
+
             if (m_container_record_count) {
                 compress_frames();
             }
@@ -65,17 +81,17 @@ class XcpLogFileWriter {
             m_mmap->unmap();
             ec = mio::detail::last_error();
             if (ec.value() != 0) {
-                std::cout << error_string("mio::unmap", ec);
+                throw std::runtime_error(error_string("XcpLogFileWriter::mio::unmap", ec));
             }
 
             resize(m_offset);
 #if defined(_WIN32)
             if (!CloseHandle(m_fd)) {
-                std::cout << error_string("CloseHandle", get_last_error());
+                throw std::runtime_error(error_string("XcpLogFileWriter::CloseHandle", get_last_error()));
             }
 #else
             if (close(m_fd) == -1) {
-                std::cout << error_string("close", get_last_error());
+                throw std::runtime_error(error_string("XcpLogFileWriter::close", get_last_error()));
             }
 #endif
             delete m_mmap;
@@ -99,7 +115,7 @@ class XcpLogFileWriter {
             m_mmap->unmap();
             ec = mio::detail::last_error();
             if (ec.value() != 0) {
-                std::cout << error_string("mio::unmap", ec);
+                throw std::runtime_error(error_string("XcpLogFileWriter::mio::unmap", ec));
             }
         }
 
@@ -111,21 +127,21 @@ class XcpLogFileWriter {
             auto err = get_last_error();
 
             if (err.value() != NO_ERROR) {
-                std::cout << error_string("SetFilePointer", err);
+                throw std::runtime_error(error_string("XcpLogFileWriter::SetFilePointer", err));
             }
         }
         if (SetEndOfFile(m_fd) == 0) {
-            std::cout << error_string("SetEndOfFile", get_last_error());
+            throw std::runtime_error(error_string("XcpLogFileWriter::SetEndOfFile", get_last_error()));
         }
 #else
         if (ftruncate(m_fd, size) == -1) {
-            std::cout << error_string("ftruncate", get_last_error());
+            throw std::runtime_error(error_string("XcpLogFileWriter::ftruncate", get_last_error()));
         }
 #endif
         if (remap) {
             m_mmap->map(m_fd, 0, size, ec);
             if (ec.value() != 0) {
-                std::cout << error_string("mio::map", ec);
+                throw std::runtime_error(error_string("XcpLogFileWriter::mio::map", ec));
             }
         }
     }
@@ -153,7 +169,7 @@ class XcpLogFileWriter {
         );
 
         if (cp_size < 0) {
-            throw std::runtime_error("LZ4 compression failed.");
+            throw std::runtime_error("XcpLogFileWriter - LZ4 compression failed.");
         }
 
         if (m_offset > (m_hard_limit >> 1)) {
@@ -258,6 +274,7 @@ class XcpLogFileWriter {
     std::uint64_t         m_offset{ 0 };
     std::uint32_t         m_chunk_size{ 0 };
     std::string           m_metadata;
+    bool                  m_opened{ false };
     std::uint64_t         m_num_containers{ 0 };
     std::uint64_t         m_record_count{ 0UL };
     std::uint32_t         m_container_record_count{ 0UL };

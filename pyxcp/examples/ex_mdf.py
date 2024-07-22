@@ -67,8 +67,6 @@ class Storage:
 class StorageContainer:
     name: str
     arr: list[Storage] = field(default_factory=[])
-    # ts0: array[int] = field(default_factory=lambda: array("d"))
-    # ts1: array[int] = field(default_factory=lambda: array("d"))
     ts0: List[int] = field(default_factory=lambda: array("Q"))
     ts1: List[int] = field(default_factory=lambda: array("Q"))
 
@@ -79,7 +77,7 @@ class Unfolder(XcpLogFileUnfolder):
         super().__init__(recording_file_name)
         self.mdf_file_name = Path(recording_file_name).with_suffix(".mf4")
 
-    def initialize(self):
+    def initialize(self) -> None:
         self.tables = []
         for dl in self.daq_lists:
             result = []
@@ -120,7 +118,7 @@ class Unfolder(XcpLogFileUnfolder):
         print("Done.")
         return mdf4
 
-    def on_daq_list(self, daq_list_num: int, timestamp0: int, timestamp1: int, measurements: list):
+    def on_daq_list(self, daq_list_num: int, timestamp0: int, timestamp1: int, measurements: list) -> None:
         sc = self.tables[daq_list_num]
         sc.ts0.append(timestamp0)
         sc.ts1.append(timestamp1)

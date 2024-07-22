@@ -19,6 +19,7 @@
     #include <cstring>
     #include <ctime>
     #include <exception>
+    #include <filesystem>
     #include <functional>
     #include <optional>
     #include <sstream>

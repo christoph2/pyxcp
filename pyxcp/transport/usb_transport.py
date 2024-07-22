@@ -87,7 +87,7 @@ class Usb(BaseTransport):
             except (USBError, USBTimeoutError):
                 continue
         else:
-            raise Exception(f"Device with serial {self.serial_number!r} not found")
+            raise Exception(f"XCPonUSB - device with serial {self.serial_number!r} not found")
 
         current_configuration = self.device.get_active_configuration()
         if current_configuration.bConfigurationValue != self.configuration_number:

@@ -34,6 +34,7 @@ PYBIND11_MODULE(cpp_ext, m) {
         .def_property("ext", &McObject::get_ext, &McObject::set_ext)
         .def_property("length", &McObject::get_length, &McObject::set_length)
         .def_property("data_type", &McObject::get_data_type, &McObject::set_data_type)
+        .def_property_readonly("components", &McObject::get_components)
 
         .def("add_component", &McObject::add_component, "component"_a)
         .def("__repr__", [](const McObject& self) { return to_string(self); });
@@ -81,7 +82,7 @@ PYBIND11_MODULE(cpp_ext, m) {
 
     py::class_<TimestampInfo, PyTimestampInfo>(m, "TimestampInfo", py::dynamic_attr())
         .def(py::init<std::uint64_t>())
-        .def(py::init<std::uint64_t, const std::string &, std::int16_t, std::int16_t>())
+        .def(py::init<std::uint64_t, const std::string&, std::int16_t, std::int16_t>())
 
         .def_property_readonly("timestamp_ns", &TimestampInfo::get_timestamp_ns)
         .def_property("utc_offset", &TimestampInfo::get_utc_offset, &TimestampInfo::set_utc_offset)

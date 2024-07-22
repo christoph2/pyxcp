@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import io
 import json
+import logging
 import sys
 import typing
 from pathlib import Path
@@ -22,7 +23,7 @@ from traitlets import (
     Unicode,
     Union,
 )
-from traitlets.config import Application, Instance, SingletonConfigurable
+from traitlets.config import Application, Instance, SingletonConfigurable, default
 
 from pyxcp.config import legacy
 
@@ -821,7 +822,7 @@ if there is no response to a command.""",
 class General(SingletonConfigurable):
     """ """
 
-    loglevel = Unicode("INFO", help="Set the log level by value or name.").tag(config=True)
+    # loglevel = Unicode("INFO", help="Set the log level by value or name.").tag(config=True)
     disable_error_handling = Bool(False, help="Disable XCP error-handler for performance reasons.").tag(config=True)
     disconnect_response_optional = Bool(False, help="Ignore missing response on DISCONNECT request.").tag(config=True)
     seed_n_key_dll = Unicode("", allow_none=False, help="Dynamic library used for slave resource unlocking.").tag(config=True)
@@ -987,6 +988,10 @@ class PyXCP(Application):
             debug=({"PyXCP": {"log_level": 10}}, "Set loglevel to DEBUG"),
         )
     )
+
+    @default("log_level")
+    def _default_value(self):
+        return logging.INFO  # traitlets default is logging.WARN
 
     aliases = Dict(  # type:ignore[assignment]
         dict(

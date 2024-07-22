@@ -29,7 +29,7 @@ MAP_TO_ARROW = {
     "F32": pa.float32(),
     "F64": pa.float64(),
     "F16": pa.float16(),
-    # "BF16"
+    "BF16": pa.float16(),
 }
 
 MAP_TO_ARRAY = {
@@ -44,7 +44,7 @@ MAP_TO_ARRAY = {
     "F32": "f",
     "F64": "d",
     "F16": "f",
-    # "BF16"
+    "BF16": "f",
 }
 
 logger = logging.getLogger("PyXCP")
@@ -73,7 +73,7 @@ class StorageContainer:
 
 class Unfolder(XcpLogFileUnfolder):
 
-    def initialize(self):
+    def initialize(self) -> None:
         # print("initialize()")
         self.arrow_tables = []
         for dl in self.daq_lists:
@@ -109,7 +109,7 @@ class Unfolder(XcpLogFileUnfolder):
             result.append(table)
         return result
 
-    def on_daq_list(self, daq_list_num: int, timestamp0: int, timestamp1: int, measurements: list):
+    def on_daq_list(self, daq_list_num: int, timestamp0: int, timestamp1: int, measurements: list) -> None:
         sc = self.arrow_tables[daq_list_num]
         sc.ts0.append(timestamp0)
         sc.ts1.append(timestamp1)

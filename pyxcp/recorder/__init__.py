@@ -19,6 +19,7 @@ from pyxcp.recorder.rekorder import (  # noqa: F401
     DaqRecorderPolicy,
     Deserializer,
     MeasurementParameters,
+    NumpyDecoder,
     ValueHolder,
     XcpLogFileUnfolder,
     _PyXcpLogFileReader,
@@ -51,6 +52,10 @@ class XcpLogFileReader:
 
     def __init__(self, file_name):
         self._reader = _PyXcpLogFileReader(file_name)
+
+    @property
+    def header(self):
+        return self._reader.get_header()
 
     def get_header(self):
         return XcpLogFileHeader(*self._reader.get_header_as_tuple())

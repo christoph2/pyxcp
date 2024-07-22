@@ -50,7 +50,7 @@ class Eth(BaseTransport):
         bind_to_port = self.config.bind_to_port
         self._local_address = (address_to_bind, bind_to_port) if address_to_bind else None
         if self.ipv6 and not socket.has_ipv6:
-            msg = "IPv6 not supported by your platform."
+            msg = "XCPonEth - IPv6 not supported by your platform."
             self.logger.critical(msg)
             raise RuntimeError(msg)
         else:
@@ -69,7 +69,7 @@ class Eth(BaseTransport):
                 self.sockaddr,
             ) = addrinfo[0]
         except BaseException as ex:  # noqa: B036
-            msg = f"Failed to resolve address {self.host}:{self.port}"
+            msg = f"XCPonEth - Failed to resolve address {self.host}:{self.port}"
             self.logger.critical(msg)
             raise Exception(msg) from ex
         self.status = 0
@@ -87,7 +87,7 @@ class Eth(BaseTransport):
             try:
                 self.sock.bind(self._local_address)
             except BaseException as ex:  # noqa: B036
-                msg = f"Failed to bind socket to given address {self._local_address}"
+                msg = f"XCPonEth - Failed to bind socket to given address {self._local_address}"
                 self.logger.critical(msg)
                 raise Exception(msg) from ex
         self._packet_listener = threading.Thread(

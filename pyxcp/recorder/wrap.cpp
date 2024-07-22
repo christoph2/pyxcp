@@ -6,6 +6,7 @@
 
 #include <cstdint>
 
+#include "decoders.hpp"
 #include "rekorder.hpp"
 
 namespace py = pybind11;
@@ -181,6 +182,8 @@ PYBIND11_MODULE(rekorder, m) {
         .def("get_header", &XcpLogFileUnfolder::get_header)
         .def("initialize", &XcpLogFileUnfolder::initialize)
         .def("finalize", &XcpLogFileUnfolder::finalize);
+
+    py::class_<NumpyDecoder>(m, "NumpyDecoder").def(py::init<const std::string&>()).def("run", &NumpyDecoder::run);
 
     py::class_<ValueHolder>(m, "ValueHolder")
         //.def(py::init<const ValueHolder&>())

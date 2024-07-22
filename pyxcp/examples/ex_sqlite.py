@@ -11,9 +11,8 @@ from pathlib import Path
 from typing import Any, List
 
 from pyxcp.recorder import XcpLogFileUnfolder
+from pyxcp.recorder.converter import MAP_TO_ARRAY
 
-
-# sys.argv.append(r"D:\pyxcp\run_daq.xmraw")
 
 MAP_TO_SQL = {
     "U8": "INTEGER",
@@ -28,21 +27,6 @@ MAP_TO_SQL = {
     "F64": "FLOAT",
     "F16": "FLOAT",
     "BF16": "FLOAT",
-}
-
-MAP_TO_ARRAY = {
-    "U8": "B",
-    "I8": "b",
-    "U16": "H",
-    "I16": "h",
-    "U32": "L",
-    "I32": "l",
-    "U64": "Q",
-    "I64": "q",
-    "F32": "f",
-    "F64": "d",
-    "F16": "f",
-    # "BF16"
 }
 
 logger = logging.getLogger("PyXCP")
@@ -63,8 +47,6 @@ class Storage:
 class StorageContainer:
     name: str
     arr: List[Storage] = field(default_factory=[])
-    # ts0: array[int] = field(default_factory=lambda: array("d"))
-    # ts1: array[int] = field(default_factory=lambda: array("d"))
     ts0: List[int] = field(default_factory=lambda: array("Q"))
     ts1: List[int] = field(default_factory=lambda: array("Q"))
 
@@ -79,7 +61,7 @@ class Unfolder(XcpLogFileUnfolder):
         except Exception as e:
             print(e)
 
-    def initialize(self):
+    def initialize(self) -> None:
         # print("initialize()")
         self.create_database(self.sq3_file_name)
         self.arrow_tables = []
@@ -97,27 +79,40 @@ class Unfolder(XcpLogFileUnfolder):
             sc = StorageContainer(dl.name, result)
             self.create_table(sc)
             self.insert_stmt[sc.name] = (
-                f"INSERT INTO {sc.name}({', '.join(['ts0', 'ts1'] + [r.name for r in sc.arr])}) VALUES({', '.join(["?" for _ in range(len(sc.arr) + 2)])})"
+                f"""INSERT INTO {sc.name}({', '.join(['ts0', 'ts1'] + [r.name for r in sc.arr])}) VALUES({', '.join(["?" for _ in range(len(sc.arr) + 2)])})"""
             )
             self.arrow_tables.append(sc)
 
     def create_database(self, db_name: str) -> None:
         self.conn = sqlite3.Connection(db_name)
         self.cursor = self.conn.cursor()
-        self.cursor.execute("PRAGMA FOREIGN_KEYS=ON")
-        self.cursor.execute(f"PRAGMA PAGE_SIZE={PAGESIZE}")
-        self.cursor.execute("PRAGMA SYNCHRONOUS=OFF")
-        self.cursor.execute("PRAGMA LOCKING_MODE=EXCLUSIVE")
-        self.cursor.execute("PRAGMA TEMP_STORE=MEMORY")
+        self.execute("PRAGMA FOREIGN_KEYS=ON")
+        self.execute(f"PRAGMA PAGE_SIZE={PAGESIZE}")
+        self.execute("PRAGMA SYNCHRONOUS=OFF")
+        self.execute("PRAGMA LOCKING_MODE=EXCLUSIVE")
+        self.execute("PRAGMA TEMP_STORE=MEMORY")
+
+        timestamp_info = self.parameters.timestamp_info
+        self.execute(
+            "CREATE TABLE timestamp_info(timestamp_ns INTEGER, utc_offset INTEGER, dst_offset INTEGER, timezone VARCHAR(255))"
+        )
+        self.execute("CREATE TABLE table_names(name VARCHAR(255))")
+        self.execute(
+            "INSERT INTO timestamp_info VALUES(?, ?, ?, ?)",
+            [timestamp_info.timestamp_ns, timestamp_info.utc_offset, timestamp_info.dst_offset, timestamp_info.timezone],
+        )
 
     def create_table(self, sc: StorageContainer) -> None:
         columns = ["ts0 INTEGER", "ts1 INTEGER"]
         for elem in sc.arr:
             columns.append(f"{elem.name} {elem.arrow_type}")
         ddl = f"CREATE TABLE {sc.name}({', '.join(columns)})"
-        print(ddl)
+        self.execute(ddl)
+        self.execute("INSERT INTO table_names VALUES(?)", [sc.name])
+
+    def execute(self, stmt: str) -> None:
         try:
-            self.cursor.execute(ddl)
+            self.cursor.execute(stmt)
         except Exception as e:
             print(e)
 
@@ -125,16 +120,15 @@ class Unfolder(XcpLogFileUnfolder):
         self.conn.commit()
         self.conn.close()
 
-    def on_daq_list(self, daq_list_num: int, timestamp0: int, timestamp1: int, measurements: list):
+    def on_daq_list(self, daq_list_num: int, timestamp0: int, timestamp1: int, measurements: list) -> None:
         sc = self.arrow_tables[daq_list_num]
         insert_stmt = self.insert_stmt[sc.name]
         data = [timestamp0, timestamp1, *measurements]
-        self.cursor.execute(insert_stmt, data)
+        self.execute(insert_stmt, data)
 
 
 logger.info(f"Processing {args.xmraw_file!r}")
 logger.info(f"Processing {Path(args.xmraw_file)!r}")
 
 lfr = Unfolder(args.xmraw_file)
-res = lfr.run()
-print(res)
+lfr.run()

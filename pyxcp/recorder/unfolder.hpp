@@ -8,6 +8,7 @@
 #include <cstring>
 #include <iostream>
 #include <map>
+#include <stdfloat>
 #include <variant>
 
 #include "daqlist.hpp"
@@ -687,13 +688,13 @@ class Deserializer {
 
         ////
         timestamp_ns = from_binary<std::uint64_t>();
-		//std::cout << "TS: " << timestamp_ns << std::endl;
-        timezone     = from_binary_str();
-		//std::cout << "TZ: " << timezone << std::endl;
-        utc_offset   = from_binary<std::int16_t>();
-		//std::cout << "UTC:" << utc_offset << std::endl;
-        dst_offset   = from_binary<std::int16_t>();
-		//std::cout << "DST:" << dst_offset << std::endl;
+        // std::cout << "TS: " << timestamp_ns << std::endl;
+        timezone = from_binary_str();
+        // std::cout << "TZ: " << timezone << std::endl;
+        utc_offset = from_binary<std::int16_t>();
+        // std::cout << "UTC:" << utc_offset << std::endl;
+        dst_offset = from_binary<std::int16_t>();
+        // std::cout << "DST:" << dst_offset << std::endl;
 
         TimestampInfo timestamp_info{ timestamp_ns, timezone, utc_offset, dst_offset };
 
@@ -1087,7 +1088,6 @@ class DaqRecorderPolicy : public DAQPolicyBase {
     }
 
     void finalize() override {
-    std::cout << "DaqRecorderPolicy::finalize()\n";
         m_writer->finalize();
     }
 

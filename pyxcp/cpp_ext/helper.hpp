@@ -9,6 +9,7 @@
         #include <time.h>
     #endif
 
+    #include <bit>
     #include <iostream>
     #include <map>
     #include <utility>
@@ -32,6 +33,10 @@
         #define HAS_FLOAT16  (0)
         #define HAS_BFLOAT16 (0)
     #endif
+
+constexpr std::endian target_byteorder() {
+    return std::endian::native;
+}
 
 template<typename... Args>
 constexpr void DBG_PRINTN(Args &&...args) noexcept {
@@ -117,10 +122,10 @@ enum class TimestampType : std::uint8_t {
 class TimestampInfo {
    public:
 
-   TimestampInfo(const TimestampInfo&) = default;
-   TimestampInfo(TimestampInfo&&) = default;
-   TimestampInfo& operator=(const TimestampInfo&) = default;
-   TimestampInfo& operator=(TimestampInfo&&) = default;
+    TimestampInfo(const TimestampInfo &)            = default;
+    TimestampInfo(TimestampInfo &&)                 = default;
+    TimestampInfo &operator=(const TimestampInfo &) = default;
+    TimestampInfo &operator=(TimestampInfo &&)      = default;
 
     TimestampInfo() : m_timestamp_ns(0), m_timezone{}, m_utc_offset(0), m_dst_offset(0) {
     }

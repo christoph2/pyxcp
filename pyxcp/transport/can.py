@@ -247,8 +247,8 @@ class PythonCanWrapper:
             for daq_id in self.parent.daq_identifier:
                 can_filters.append(daq_id.create_filter_from_id())
         self.can_interface.set_filters(can_filters)
-        self.parent.logger.debug(f"Interface: {self.interface_name!r} -- {self.can_interface!s}")
-        self.parent.logger.debug(f"Filters used: {self.can_interface.filters}")
+        self.parent.logger.debug(f"XCPonCAN - Interface: {self.interface_name!r} -- {self.can_interface!s}")
+        self.parent.logger.debug(f"XCPonCAN - Filters used: {self.can_interface.filters}")
         self.connected = True
 
     def close(self):
@@ -322,9 +322,9 @@ class Can(BaseTransport):
         self.interface_name = self.config.interface
         self.interface_configuration = detect_available_configs(interfaces=[self.interface_name])
         parameters = self.get_interface_parameters()
-        self.logger.info(f"Opening {self.interface_name!r} CAN-interface {list(parameters.items())}")
+        self.logger.info(f"XCPonCAN - opening {self.interface_name!r} CAN-interface {list(parameters.items())}")
         self.logger.info(
-            f"Master-ID (Tx): 0x{self.can_id_master.id:08X}{self.can_id_master.type_str} -- "
+            f"XCPonCAN - Master-ID (Tx): 0x{self.can_id_master.id:08X}{self.can_id_master.type_str} -- "
             f"Slave-ID (Rx): 0x{self.can_id_slave.id:08X}{self.can_id_slave.type_str}"
         )
         self.can_interface = PythonCanWrapper(self, self.interface_name, **parameters)
@@ -344,7 +344,7 @@ class Can(BaseTransport):
                 if value is not None:
                     result[n] = value
             elif value is not None:
-                self.logger.warning(f"{self.interface_name!r} has no support for parameter {n!r}.")
+                self.logger.warning(f"XCPonCAN - {self.interface_name!r} has no support for parameter {n!r}.")
 
         # Parameter names that need to be mapped.
         for base_name, name in can_interface_config_class.CAN_PARAM_MAP.items():

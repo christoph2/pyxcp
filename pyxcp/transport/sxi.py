@@ -38,7 +38,7 @@ class SxI(BaseTransport):
         self.esc_sync = self.config.esc_sync
         self.esc_esc = self.config.esc_esc
         self.make_header()
-        self.logger.debug(f"Trying to open serial comm_port {self.port_name}.")
+        self.logger.info(f"XCPonSxI - trying to open serial comm_port {self.port_name}.")
         try:
             self.comm_port = serial.Serial(
                 port=self.port_name,
@@ -50,7 +50,7 @@ class SxI(BaseTransport):
                 write_timeout=self.timeout,
             )
         except serial.SerialException as e:
-            self.logger.critical(f"{e}")
+            self.logger.critical(f"XCPonSxI - {e}")
             raise
         self._packets = deque()
 
@@ -84,7 +84,7 @@ class SxI(BaseTransport):
         self.unpacker = unpacker
 
     def connect(self):
-        self.logger.info(f"Serial comm_port openend: {self.comm_port.portstr}@{self.baudrate} Bits/Sec.")
+        self.logger.info(f"XCPonSxI - serial comm_port openend: {self.comm_port.portstr}@{self.baudrate} Bits/Sec.")
         self.startListener()
 
     def output(self, enable):

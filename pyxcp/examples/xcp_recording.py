@@ -2,7 +2,7 @@ import argparse
 import sys
 from pprint import pprint
 
-from pyxcp.recorder import XcpLogFileReader, XcpLogFileUnfolder
+from pyxcp.recorder import NumpyDecoder, XcpLogFileReader, XcpLogFileUnfolder
 from pyxcp.utils import hexDump
 
 
@@ -38,6 +38,11 @@ print("=" * 80)
 print(lfr.daq_lists)
 print(lfr.parameters.timestamp_info)
 print("Wrap-arounds:", lfr.wraps)
+
+nnp = NumpyDecoder(args.xmraw_file)
+nnp.run()
+
+
 sys.exit()
 
 reader = XcpLogFileReader(args.xmraw_file)
