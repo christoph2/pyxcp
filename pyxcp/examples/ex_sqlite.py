@@ -10,7 +10,7 @@ from mmap import PAGESIZE
 from pathlib import Path
 from typing import Any, List
 
-from pyxcp.recorder import XcpLogFileUnfolder
+from pyxcp.recorder import XcpLogFileDecoder
 from pyxcp.recorder.converter import MAP_TO_ARRAY
 
 
@@ -51,7 +51,7 @@ class StorageContainer:
     ts1: List[int] = field(default_factory=lambda: array("Q"))
 
 
-class Unfolder(XcpLogFileUnfolder):
+class Decoder(XcpLogFileDecoder):
 
     def __init__(self, recording_file_name: str):
         super().__init__(recording_file_name)
@@ -74,14 +74,16 @@ class Unfolder(XcpLogFileUnfolder):
                 array_txpe = MAP_TO_ARRAY[type_str]
                 sql_type = MAP_TO_SQL[type_str]
                 sd = Storage(name, sql_type, array(array_txpe))
-                print(f"\t{name!r} {array_txpe} {sql_type}", sd)
+                # print(f"\t{name!r} {array_txpe} {sql_type}", sd)
                 result.append(sd)
             sc = StorageContainer(dl.name, result)
+            print(f"Creating table {sc.name!r}.")
             self.create_table(sc)
             self.insert_stmt[sc.name] = (
                 f"""INSERT INTO {sc.name}({', '.join(['ts0', 'ts1'] + [r.name for r in sc.arr])}) VALUES({', '.join(["?" for _ in range(len(sc.arr) + 2)])})"""
             )
             self.arrow_tables.append(sc)
+        print("\nInserting data...")
 
     def create_database(self, db_name: str) -> None:
         self.conn = sqlite3.Connection(db_name)
@@ -110,15 +112,16 @@ class Unfolder(XcpLogFileUnfolder):
         self.execute(ddl)
         self.execute("INSERT INTO table_names VALUES(?)", [sc.name])
 
-    def execute(self, stmt: str) -> None:
+    def execute(self, *args: List[str]) -> None:
         try:
-            self.cursor.execute(stmt)
+            self.cursor.execute(*args)
         except Exception as e:
             print(e)
 
-    def finalize(self) -> Any:
+    def finalize(self) -> None:
         self.conn.commit()
         self.conn.close()
+        print("Done.")
 
     def on_daq_list(self, daq_list_num: int, timestamp0: int, timestamp1: int, measurements: list) -> None:
         sc = self.arrow_tables[daq_list_num]
@@ -130,5 +133,5 @@ class Unfolder(XcpLogFileUnfolder):
 logger.info(f"Processing {args.xmraw_file!r}")
 logger.info(f"Processing {Path(args.xmraw_file)!r}")
 
-lfr = Unfolder(args.xmraw_file)
-lfr.run()
+decoder = Decoder(args.xmraw_file)
+decoder.run()

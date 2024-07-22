@@ -14,7 +14,7 @@ import pyarrow as pa
 # import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
-from pyxcp.recorder import XcpLogFileUnfolder
+from pyxcp.recorder import XcpLogFileDecoder
 
 
 MAP_TO_ARROW = {
@@ -71,7 +71,7 @@ class StorageContainer:
     ts1: List[int] = field(default_factory=lambda: array("Q"))
 
 
-class Unfolder(XcpLogFileUnfolder):
+class Decoder(XcpLogFileDecoder):
 
     def initialize(self) -> None:
         # print("initialize()")
@@ -121,6 +121,5 @@ class Unfolder(XcpLogFileUnfolder):
 logger.info(f"Processing {args.xmraw_file!r}")
 logger.info(f"Processing {Path(args.xmraw_file)!r}")
 
-lfr = Unfolder(args.xmraw_file)
-res = lfr.run()
-print(res)
+decoder = Decoder(args.xmraw_file)
+res = decoder.run()

@@ -71,7 +71,7 @@ class XcpLogFileWriter {
 
             if (m_container_record_count) {
                 compress_frames();
-            }
+            }lfr
 
             std::uint16_t options = m_metadata.empty() ? 0 : XMRAW_HAS_METADATA;
 

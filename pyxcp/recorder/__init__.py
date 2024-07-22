@@ -21,7 +21,7 @@ from pyxcp.recorder.rekorder import (  # noqa: F401
     MeasurementParameters,
     NumpyDecoder,
     ValueHolder,
-    XcpLogFileUnfolder,
+    XcpLogFileDecoder,
     _PyXcpLogFileReader,
     _PyXcpLogFileWriter,
     data_types,

@@ -1106,7 +1106,7 @@ class DaqOnlinePolicy : public DAQPolicyBase {
     DaqOnlinePolicy() = default;
 
     void set_parameters(const MeasurementParameters& params) noexcept {
-        m_unfolder = std::make_unique<DAQProcessor>(params);
+        m_decoder = std::make_unique<DAQProcessor>(params);
         DAQPolicyBase::set_parameters(params);
     }
 
@@ -1119,7 +1119,7 @@ class DaqOnlinePolicy : public DAQPolicyBase {
         if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
             return;
         }
-        auto result = m_unfolder->feed(timestamp, payload);
+        auto result = m_decoder->feed(timestamp, payload);
         if (result) {
             const auto& [daq_list, ts0, ts1, meas] = *result;
             on_daq_list(daq_list, ts0, ts1, meas);
@@ -1134,7 +1134,7 @@ class DaqOnlinePolicy : public DAQPolicyBase {
 
    private:
 
-    std::unique_ptr<DAQProcessor> m_unfolder;
+    std::unique_ptr<DAQProcessor> m_decoder;
 };
 
 struct ValueHolder {
@@ -1156,22 +1156,22 @@ struct ValueHolder {
     std::any m_value;
 };
 
-class XcpLogFileUnfolder {
+class XcpLogFileDecoder {
    public:
 
-    explicit XcpLogFileUnfolder(const std::string& file_name) : m_reader(file_name) {
+    explicit XcpLogFileDecoder(const std::string& file_name) : m_reader(file_name) {
         auto metadata = m_reader.get_metadata();
         if (metadata != "") {
             auto des   = Deserializer(metadata);
             m_params   = des.run();
-            m_unfolder = std::make_unique<DAQProcessor>(m_params);
+            m_decoder = std::make_unique<DAQProcessor>(m_params);
         } else {
             // cannot proceed!!!
         }
     }
 
-    XcpLogFileUnfolder()          = delete;
-    virtual ~XcpLogFileUnfolder() = default;
+    XcpLogFileDecoder()          = delete;
+    virtual ~XcpLogFileDecoder() = default;
 
     virtual void initialize() {
     }
@@ -1204,7 +1204,7 @@ class XcpLogFileUnfolder {
                 if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
                     continue;
                 }
-                auto result = m_unfolder->feed(timestamp, str_data);
+                auto result = m_decoder->feed(timestamp, str_data);
                 if (result) {
                     const auto& [daq_list, ts0, ts1, meas] = *result;
                     on_daq_list(daq_list, ts0, ts1, meas);
@@ -1234,7 +1234,7 @@ class XcpLogFileUnfolder {
    private:
 
     XcpLogFileReader              m_reader;
-    std::unique_ptr<DAQProcessor> m_unfolder;
+    std::unique_ptr<DAQProcessor> m_decoder;
     MeasurementParameters         m_params;
 };
 

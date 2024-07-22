@@ -12,7 +12,7 @@ from asammdf import MDF, Signal
 from asammdf.blocks.v4_blocks import HeaderBlock  # ChannelGroup
 from asammdf.blocks.v4_constants import FLAG_HD_TIME_OFFSET_VALID  # FLAG_HD_LOCAL_TIME,
 
-from pyxcp.recorder import XcpLogFileUnfolder
+from pyxcp.recorder import XcpLogFileDecoder
 
 
 MAP_TO_NP = {
@@ -71,7 +71,7 @@ class StorageContainer:
     ts1: List[int] = field(default_factory=lambda: array("Q"))
 
 
-class Unfolder(XcpLogFileUnfolder):
+class Decoder(XcpLogFileDecoder):
 
     def __init__(self, recording_file_name: str):
         super().__init__(recording_file_name)
@@ -130,5 +130,5 @@ class Unfolder(XcpLogFileUnfolder):
 logger.info(f"Processing {args.xmraw_file!r}")
 logger.info(f"Processing {Path(args.xmraw_file)!r}")
 
-lfr = Unfolder(args.xmraw_file)
-res = lfr.run()
+decoder = Decoder(args.xmraw_file)
+res = decoder.run()

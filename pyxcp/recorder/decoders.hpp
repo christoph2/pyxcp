@@ -110,12 +110,12 @@ class SequentialFileWriter {
     #endif
 };
 
-class NumpyDecoder : public XcpLogFileUnfolder {
+class NumpyDecoder : public XcpLogFileDecoder {
    public:
 
     using writer_t = std::unique_ptr<SequentialFileWriter>;
 
-    explicit NumpyDecoder(const std::string& file_name) : XcpLogFileUnfolder(file_name), m_path(file_name) {
+    explicit NumpyDecoder(const std::string& file_name) : XcpLogFileDecoder(file_name), m_path(file_name) {
         std::cout << "\n creating directory: " << m_path.stem() << std::endl;
         //        std::filesystem::create_directory(m_path.stem());
     }

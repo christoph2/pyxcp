@@ -2,7 +2,7 @@ import argparse
 import sys
 from pprint import pprint
 
-from pyxcp.recorder import NumpyDecoder, XcpLogFileReader, XcpLogFileUnfolder
+from pyxcp.recorder import NumpyDecoder, XcpLogFileDecoder, XcpLogFileReader
 from pyxcp.utils import hexDump
 
 
@@ -14,7 +14,7 @@ args = parser.parse_args()
 print(args.xmraw_file)
 
 
-class Unfolder(XcpLogFileUnfolder):
+class Decoder(XcpLogFileDecoder):
 
     prev = 0
     wraps = 0
@@ -26,18 +26,18 @@ class Unfolder(XcpLogFileUnfolder):
         self.prev = timestamp1
 
 
-lfr = Unfolder(args.xmraw_file)
+decoder = Decoder(args.xmraw_file)
 print("-" * 80)
-print(lfr.get_header())
+print(decoder.get_header())
 print("-" * 80)
-lfr.run()
-# print(lfr.parameters)
+decoder.run()
+# print(decoder.parameters)
 print("=" * 80)
 print("=" * 80)
 print("=" * 80)
-print(lfr.daq_lists)
-print(lfr.parameters.timestamp_info)
-print("Wrap-arounds:", lfr.wraps)
+print(decoder.daq_lists)
+print(decoder.parameters.timestamp_info)
+print("Wrap-arounds:", decoder.wraps)
 
 nnp = NumpyDecoder(args.xmraw_file)
 nnp.run()

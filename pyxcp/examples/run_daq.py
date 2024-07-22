@@ -156,7 +156,7 @@ with ap.run(policy=daq_parser) as x:
     print("start DAQ lists.")
     daq_parser.start()  # Start DAQ lists.
 
-    time.sleep(15.0 * 60.0)
+    time.sleep(3 * 15.0 * 60.0)
     # time.sleep(1 * 60.0 * 60.0)  # Arbitrary termination condition.ls *.
     # time.sleep(6 * 60.0 * 60.0)  # Arbitrary termination condition.ls *.
     print("Stop DAQ....")

@@ -49,24 +49,24 @@ class PyDaqRecorderPolicy : public DaqRecorderPolicy {
     }
 };
 
-class PyXcpLogFileUnfolder : public XcpLogFileUnfolder {
+class PyXcpLogFileDecoder : public XcpLogFileDecoder {
    public:
 
-    using XcpLogFileUnfolder::XcpLogFileUnfolder;
+    using XcpLogFileDecoder::XcpLogFileDecoder;
 
     void on_daq_list(
         std::uint16_t daq_list_num, std::uint64_t timestamp0, std::uint64_t timestamp1,
         const std::vector<measurement_value_t>& measurement
     ) override {
-        PYBIND11_OVERRIDE_PURE(void, XcpLogFileUnfolder, on_daq_list, daq_list_num, timestamp0, timestamp1, measurement);
+        PYBIND11_OVERRIDE_PURE(void, XcpLogFileDecoder, on_daq_list, daq_list_num, timestamp0, timestamp1, measurement);
     }
 
     void initialize() override {
-        PYBIND11_OVERRIDE(void, XcpLogFileUnfolder, initialize);
+        PYBIND11_OVERRIDE(void, XcpLogFileDecoder, initialize);
     }
 
     void finalize() override {
-        PYBIND11_OVERRIDE(void, XcpLogFileUnfolder, finalize);
+        PYBIND11_OVERRIDE(void, XcpLogFileDecoder, finalize);
     }
 };
 
@@ -173,15 +173,15 @@ PYBIND11_MODULE(rekorder, m) {
         .def("set_parameters", &DaqOnlinePolicy::set_parameters)
         .def("initialize", &DaqOnlinePolicy::initialize);
 
-    py::class_<XcpLogFileUnfolder, PyXcpLogFileUnfolder>(m, "XcpLogFileUnfolder", py::dynamic_attr())
+    py::class_<XcpLogFileDecoder, PyXcpLogFileDecoder>(m, "XcpLogFileDecoder", py::dynamic_attr())
         .def(py::init<const std::string&>())
-        .def("run", &XcpLogFileUnfolder::run)
-        .def("on_daq_list", &XcpLogFileUnfolder::on_daq_list)
-        .def_property_readonly("parameters", &XcpLogFileUnfolder::get_parameters)
-        .def_property_readonly("daq_lists", &XcpLogFileUnfolder::get_daq_lists)
-        .def("get_header", &XcpLogFileUnfolder::get_header)
-        .def("initialize", &XcpLogFileUnfolder::initialize)
-        .def("finalize", &XcpLogFileUnfolder::finalize);
+        .def("run", &XcpLogFileDecoder::run)
+        .def("on_daq_list", &XcpLogFileDecoder::on_daq_list)
+        .def_property_readonly("parameters", &XcpLogFileDecoder::get_parameters)
+        .def_property_readonly("daq_lists", &XcpLogFileDecoder::get_daq_lists)
+        .def("get_header", &XcpLogFileDecoder::get_header)
+        .def("initialize", &XcpLogFileDecoder::initialize)
+        .def("finalize", &XcpLogFileDecoder::finalize);
 
     py::class_<NumpyDecoder>(m, "NumpyDecoder").def(py::init<const std::string&>()).def("run", &NumpyDecoder::run);
 
