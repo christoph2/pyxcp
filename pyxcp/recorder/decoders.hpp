@@ -92,9 +92,9 @@ class SequentialFileWriter {
     #if defined(_WIN32) || defined(_WIN64)
         DWORD dwBytesWritten;
 
-        WriteFile(m_fd, str_value.c_str(), std::size(str_value), &dwBytesWritten, nullptr);
+        ::WriteFile(m_fd, str_value.c_str(), std::size(str_value), &dwBytesWritten, nullptr);
     #else
-        write(m_fd, str_value.c_str(), str_value.size());
+        ::write(m_fd, str_value.c_str(), str_value.size());
     #endif
     }
 
