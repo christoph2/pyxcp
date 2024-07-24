@@ -8,7 +8,9 @@
 #include <cstring>
 #include <iostream>
 #include <map>
+#if __has_include(<stdfloat>)
 #include <stdfloat>
+#endif
 #include <variant>
 
 #include "daqlist.hpp"
