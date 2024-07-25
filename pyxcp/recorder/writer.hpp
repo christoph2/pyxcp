@@ -104,6 +104,7 @@ class XcpLogFileWriter {
             delete m_mmap;
             delete[] m_intermediate_storage;
         }
+        std::cout << "Exit finalize...\n";
     }
 
     void add_frame(uint8_t category, uint16_t counter, std::uint64_t timestamp, uint16_t length, char const *data) {

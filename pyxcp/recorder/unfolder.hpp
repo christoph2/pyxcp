@@ -1064,12 +1064,14 @@ class DaqRecorderPolicy : public DAQPolicyBase {
    public:
 
     ~DaqRecorderPolicy() {
+        std::cout << "DaqRecorderPolicy::~DaqRecorderPolicy()\n";
         finalize();
     }
 
     DaqRecorderPolicy() = default;
 
     void set_parameters(const MeasurementParameters& params) noexcept override {
+    std::cout << "DaqRecorderPolicy::set_parameters()\n";
         m_params = params;
         DAQPolicyBase::set_parameters(params);
     }
@@ -1079,24 +1081,37 @@ class DaqRecorderPolicy : public DAQPolicyBase {
             // Only record DAQ frames for now.
             return;
         }
+        if (!m_valid) {
+            std::cerr << "DAQ recorder policy not initialized!" << std::endl;
+            return;
+        }
+        std::cout << "DAQ frame received: frame_cat=" << static_cast<int>(frame_cat) << ", counter=" << counter << ", timestamp=" << timestamp << std::endl;
         m_writer->add_frame(frame_cat, counter, timestamp, static_cast<std::uint16_t>(payload.size()), payload.c_str());
     }
 
     void create_writer(const std::string& file_name, std::uint32_t prealloc, std::uint32_t chunk_size, std::string_view metadata) {
+    std::cout << "DaqRecorderPolicy::create_writer()\n";
         m_writer = std::make_unique<XcpLogFileWriter>(file_name, prealloc, chunk_size, metadata);
+        if (m_writer) {
+            m_valid=true;
+        }
     }
 
     void initialize() override {
+    std::cout << "DaqRecorderPolicy::initialize()\n";
     }
 
     void finalize() override {
+    std::cout << "DaqRecorderPolicy::finalize()\n";
         m_writer->finalize();
+        m_valid=false;
     }
 
    private:
 
-    std::unique_ptr<XcpLogFileWriter> m_writer;
+    std::unique_ptr<XcpLogFileWriter> m_writer{nullptr};
     MeasurementParameters             m_params;
+    bool m_valid{false};
 };
 
 class DaqOnlinePolicy : public DAQPolicyBase {

@@ -69,6 +69,7 @@ constexpr auto megabytes(std::uint32_t value) -> std::uint32_t {
 
 constexpr std::uint16_t XCP_PAYLOAD_MAX = 0xFFFFUL;
 
+constexpr std::uint16_t XMRAW_RELATIVE_TIMESTAMPS = 0x0002UL;
 constexpr std::uint16_t XMRAW_HAS_METADATA = 0x0004UL;
 
     /*
