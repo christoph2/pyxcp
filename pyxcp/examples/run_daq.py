@@ -10,8 +10,8 @@ from pyxcp.daq_stim import DaqList, DaqRecorder, DaqToCsv  # noqa: F401
 
 ap = ArgumentParser(description="DAQ test")
 
-XCP_LITE = True
-# XCP_LITE = False
+# XCP_LITE = True
+XCP_LITE = False
 
 # Completly random configurations, only for illustrative purposes.
 #

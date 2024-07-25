@@ -167,7 +167,6 @@ class DaqProcessor:
 class DaqRecorder(DaqProcessor, _DaqRecorderPolicy):
 
     def __init__(self, daq_lists: List[DaqList], file_name: str, prealloc: int = 200, chunk_size: int = 1):
-        print("DaqRecorder::__init__()")
         DaqProcessor.__init__(self, daq_lists)
         _DaqRecorderPolicy.__init__(self)
         self.file_name = file_name
@@ -175,17 +174,14 @@ class DaqRecorder(DaqProcessor, _DaqRecorderPolicy):
         self.chunk_size = chunk_size
 
     def initialize(self):
-        print("DaqRecorder::initialize()")
         metadata = self.measurement_params.dumps()
         _DaqRecorderPolicy.create_writer(self, self.file_name, self.prealloc, self.chunk_size, metadata)
         _DaqRecorderPolicy.initialize(self)
 
     def finalize(self):
-        print("DaqRecorder::finalize()")
         _DaqRecorderPolicy.finalize(self)
 
     def start(self):
-        print("DaqRecorder::start()")
         DaqProcessor.start(self)
 
 

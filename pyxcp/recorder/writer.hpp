@@ -63,18 +63,13 @@ class XcpLogFileWriter {
 
     void finalize() {
         std::error_code ec;
-        std::cout << "Enter finalize...\n";
         if (!m_finalized) {
             m_finalized = true;
             stop_thread();
 
-            std::cout << "opened? ";
             if (!m_opened) {
-                std::cout << "No.\n";
                 return;
             }
-
-            std::cout << "Yes. continue\n";
 
             if (m_container_record_count) {
                 compress_frames();
@@ -104,7 +99,6 @@ class XcpLogFileWriter {
             delete m_mmap;
             delete[] m_intermediate_storage;
         }
-        std::cout << "Exit finalize...\n";
     }
 
     void add_frame(uint8_t category, uint16_t counter, std::uint64_t timestamp, uint16_t length, char const *data) {

@@ -16,9 +16,9 @@
     #include <variant>
 
     #if (__cplusplus >= 202302L) || (__STDC_VERSION__ >= 202302L)
-#if __has_include(<stdfloat>)
-        #include <stdfloat>
-#endif
+        #if __has_include(<stdfloat>)
+            #include <stdfloat>
+        #endif
         #if defined(__STDCPP_BFLOAT16_T__)
             #define HAS_BFLOAT16 (1)
         #else

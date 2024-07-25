@@ -9,7 +9,7 @@
 #include <iostream>
 #include <map>
 #if __has_include(<stdfloat>)
-#include <stdfloat>
+    #include <stdfloat>
 #endif
 #include <variant>
 
@@ -1064,14 +1064,12 @@ class DaqRecorderPolicy : public DAQPolicyBase {
    public:
 
     ~DaqRecorderPolicy() {
-        std::cout << "DaqRecorderPolicy::~DaqRecorderPolicy()\n";
         finalize();
     }
 
     DaqRecorderPolicy() = default;
 
     void set_parameters(const MeasurementParameters& params) noexcept override {
-    std::cout << "DaqRecorderPolicy::set_parameters()\n";
         m_params = params;
         DAQPolicyBase::set_parameters(params);
     }
@@ -1081,37 +1079,30 @@ class DaqRecorderPolicy : public DAQPolicyBase {
             // Only record DAQ frames for now.
             return;
         }
-        if (!m_valid) {
-            std::cerr << "DAQ recorder policy not initialized!" << std::endl;
-            return;
-        }
-        std::cout << "DAQ frame received: frame_cat=" << static_cast<int>(frame_cat) << ", counter=" << counter << ", timestamp=" << timestamp << std::endl;
         m_writer->add_frame(frame_cat, counter, timestamp, static_cast<std::uint16_t>(payload.size()), payload.c_str());
     }
 
     void create_writer(const std::string& file_name, std::uint32_t prealloc, std::uint32_t chunk_size, std::string_view metadata) {
-    std::cout << "DaqRecorderPolicy::create_writer()\n";
         m_writer = std::make_unique<XcpLogFileWriter>(file_name, prealloc, chunk_size, metadata);
-        if (m_writer) {
-            m_valid=true;
-        }
     }
 
     void initialize() override {
-    std::cout << "DaqRecorderPolicy::initialize()\n";
+        m_initialized = true;
     }
 
     void finalize() override {
-    std::cout << "DaqRecorderPolicy::finalize()\n";
+        if (!m_initialized) {
+            return;
+        }
         m_writer->finalize();
-        m_valid=false;
+        m_initialized = false;
     }
 
    private:
 
-    std::unique_ptr<XcpLogFileWriter> m_writer{nullptr};
+    std::unique_ptr<XcpLogFileWriter> m_writer{ nullptr };
     MeasurementParameters             m_params;
-    bool m_valid{false};
+    bool                              m_initialized{ false };
 };
 
 class DaqOnlinePolicy : public DAQPolicyBase {
@@ -1179,8 +1170,8 @@ class XcpLogFileDecoder {
     explicit XcpLogFileDecoder(const std::string& file_name) : m_reader(file_name) {
         auto metadata = m_reader.get_metadata();
         if (metadata != "") {
-            auto des   = Deserializer(metadata);
-            m_params   = des.run();
+            auto des  = Deserializer(metadata);
+            m_params  = des.run();
             m_decoder = std::make_unique<DAQProcessor>(m_params);
         } else {
             // cannot proceed!!!
