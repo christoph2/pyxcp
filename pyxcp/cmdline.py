@@ -25,10 +25,10 @@ class ArgumentParser:
         if callout is not None:
             warnings.warn("callout  argument is not supported anymore", DeprecationWarning, 2)
 
-    def run(self, policy=None):
+    def run(self, policy=None, transport_layer_interface=None):
         application = create_application()
         transport = application.transport.layer
-        master = Master(transport, config=application, policy=policy)
+        master = Master(transport, config=application, policy=policy, transport_layer_interface=transport_layer_interface)
         return master
 
     @property

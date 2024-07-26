@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 import abc
 import threading
-import typing
 from collections import deque
 
 # from datetime import datetime
 from time import sleep
+from typing import Any, Dict, Optional, Set, Type
 
 import pyxcp.types as types
 
@@ -35,11 +35,11 @@ class FrameAcquisitionPolicy:
                   ==> care only about DAQ frames.
     """
 
-    def __init__(self, filter_out: typing.Optional[typing.Set[types.FrameCategory]] = None):
+    def __init__(self, filter_out: Optional[Set[types.FrameCategory]] = None):
         self._frame_types_to_filter_out = filter_out or set()
 
     @property
-    def filtered_out(self) -> typing.Set[types.FrameCategory]:
+    def filtered_out(self) -> Set[types.FrameCategory]:
         return self._frame_types_to_filter_out
 
     def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: int, payload: bytes) -> None: ...  # noqa: E704
@@ -63,7 +63,7 @@ class LegacyFrameAcquisitionPolicy(FrameAcquisitionPolicy):
     Deprecated: Use only for compatibility reasons.
     """
 
-    def __init__(self, filter_out: typing.Optional[typing.Set[types.FrameCategory]] = None):
+    def __init__(self, filter_out: Optional[Set[types.FrameCategory]] = None):
         super().__init__(filter_out)
         self.reqQueue = deque()
         self.resQueue = deque()
@@ -87,7 +87,9 @@ class LegacyFrameAcquisitionPolicy(FrameAcquisitionPolicy):
     def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: int, payload: bytes) -> None:
         # print(f"{frame_type.name:8} {counter:6}  {timestamp:7.7f} {hexDump(payload)}")
         if frame_type not in self.filtered_out:
-            self.QUEUE_MAP.get(frame_type).append((counter, timestamp, payload))
+            queue = self.QUEUE_MAP.get(frame_type)
+            if queue:
+                queue.append((counter, timestamp, payload))
 
 
 class FrameRecorderPolicy(FrameAcquisitionPolicy):
@@ -96,7 +98,7 @@ class FrameRecorderPolicy(FrameAcquisitionPolicy):
     def __init__(
         self,
         file_name: str,
-        filter_out: typing.Optional[typing.Set[types.FrameCategory]] = None,
+        filter_out: Optional[Set[types.FrameCategory]] = None,
         prealloc: int = 10,
         chunk_size: int = 1,
     ):
@@ -114,7 +116,7 @@ class FrameRecorderPolicy(FrameAcquisitionPolicy):
 class StdoutPolicy(FrameAcquisitionPolicy):
     """Frame acquisition policy that prints frames to stdout."""
 
-    def __init__(self, filter_out: typing.Optional[typing.Set[types.FrameCategory]] = None):
+    def __init__(self, filter_out: Optional[Set[types.FrameCategory]] = None):
         super().__init__(filter_out)
 
     def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: int, payload: bytes) -> None:
@@ -138,59 +140,59 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     """
 
-    def __init__(self, config, policy: FrameAcquisitionPolicy = None):
+    def __init__(self, config, policy: Optional[FrameAcquisitionPolicy] = None, transport_layer_interface: Optional[Any] = None):
+        self.has_user_supplied_interface: bool = transport_layer_interface is not None
+        self.transport_layer_interface: Optional[Any] = transport_layer_interface
         self.parent = None
-        self.policy = policy or LegacyFrameAcquisitionPolicy()
-        self.closeEvent = threading.Event()
+        self.policy: FrameAcquisitionPolicy = policy or LegacyFrameAcquisitionPolicy()
+        self.closeEvent: threading.Event = threading.Event()
 
-        self.command_lock = threading.Lock()
-        self.policy_lock = threading.Lock()
+        self.command_lock: threading.Lock = threading.Lock()
+        self.policy_lock: threading.Lock = threading.Lock()
 
-        self.logger = config.log
-        self._debug = self.logger.level == 10
-
-        self.counterSend: int = 0
-        self.counterReceived: int = -1
-        self.create_daq_timestamps = config.create_daq_timestamps
+        self.logger: Any = config.log
+        self._debug: bool = self.logger.level == 10
+        if transport_layer_interface:
+            self.logger.info(f"User supplied transport layer interface '{transport_layer_interface!s}'.")
+        self.counter_send: int = 0
+        self.counter_received: int = -1
+        self.create_daq_timestamps: bool = config.create_daq_timestamps
         timestamp_mode = TimestampType.ABSOLUTE_TS if config.timestamp_mode == "ABSOLUTE" else TimestampType.RELATIVE_TS
         self.timestamp = Timestamp(timestamp_mode)
-        # Reference point for timestamping (may relative).
-        self._start_datetime = CurrentDatetime(self.timestamp.initial_value)
-        self.alignment = config.alignment
-        self.timeout = seconds_to_nanoseconds(config.timeout)
-        self.timer_restart_event = threading.Event()
-        self.timing = Timing()
-        self.resQueue = deque()
-        self.listener = threading.Thread(
+        self._start_datetime: CurrentDatetime = CurrentDatetime(self.timestamp.initial_value)
+        self.alignment: int = config.alignment
+        self.timeout: int = seconds_to_nanoseconds(config.timeout)
+        self.timer_restart_event: threading.Event = threading.Event()
+        self.timing: Timing = Timing()
+        self.resQueue: deque = deque()
+        self.listener: threading.Thread = threading.Thread(
             target=self.listen,
             args=(),
             kwargs={},
         )
 
-        self.first_daq_timestamp = None
-
+        self.first_daq_timestamp: Optional[int] = None
         # self.timestamp_origin = self.timestamp.value
         # self.datetime_origin = datetime.fromtimestamp(self.timestamp_origin)
-
-        self.pre_send_timestamp = self.timestamp.value
-        self.post_send_timestamp = self.timestamp.value
-        self.recv_timestamp = self.timestamp.value
+        self.pre_send_timestamp: int = self.timestamp.value
+        self.post_send_timestamp: int = self.timestamp.value
+        self.recv_timestamp: int = self.timestamp.value
 
     def __del__(self):
-        self.finishListener()
-        self.closeConnection()
+        self.finish_listener()
+        self.close_connection()
 
     def load_config(self, config):
         """Load configuration data."""
-        class_name = self.__class__.__name__.lower()
-        self.config = getattr(config, class_name)
+        class_name: str = self.__class__.__name__.lower()
+        self.config: Any = getattr(config, class_name)
 
     def close(self):
         """Close the transport-layer connection and event-loop."""
-        self.finishListener()
+        self.finish_listener()
         if self.listener.is_alive():
             self.listener.join()
-        self.closeConnection()
+        self.close_connection()
 
     @abc.abstractmethod
     def connect(self):
@@ -198,10 +200,10 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     def get(self):
         """Get an item from a deque considering a timeout condition."""
-        start = self.timestamp.value
+        start: int = self.timestamp.value
         while not self.resQueue:
             if self.timer_restart_event.is_set():
-                start = self.timestamp.value
+                start: int = self.timestamp.value
                 self.timer_restart_event.restart_event.clear()
             if self.timestamp.value - start > self.timeout:
                 raise EmptyFrameError
@@ -215,15 +217,15 @@ class BaseTransport(metaclass=abc.ABCMeta):
         """"""
         return self._start_datetime
 
-    def startListener(self):
+    def start_listener(self):
         if self.listener.is_alive():
-            self.finishListener()
+            self.finish_listener()
             self.listener.join()
 
         self.listener = threading.Thread(target=self.listen)
         self.listener.start()
 
-    def finishListener(self):
+    def finish_listener(self):
         if hasattr(self, "closeEvent"):
             self.closeEvent.set()
 
@@ -232,7 +234,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             frame = self._prepare_request(cmd, *data)
             self.timing.start()
             with self.policy_lock:
-                self.policy.feed(types.FrameCategory.CMD, self.counterSend, self.timestamp.value, frame)
+                self.policy.feed(types.FrameCategory.CMD, self.counter_send, self.timestamp.value, frame)
             self.send(frame)
             try:
                 xcpPDU = self.get()
@@ -240,7 +242,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 if not ignore_timeout:
                     MSG = f"Response timed out (timeout={self.timeout}s)"
                     with self.policy_lock:
-                        self.policy.feed(types.FrameCategory.METADATA, self.counterSend, self.timestamp.value, bytes(MSG, "ascii"))
+                        self.policy.feed(types.FrameCategory.METADATA, self.counter_send, self.timestamp.value, bytes(MSG, "ascii"))
                     raise types.XcpTimeoutError(MSG) from None
                 else:
                     self.timing.stop()
@@ -249,7 +251,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             pid = types.Response.parse(xcpPDU).type
             if pid == "ERR" and cmd.name != "SYNCH":
                 with self.policy_lock:
-                    self.policy.feed(types.FrameCategory.ERROR, self.counterReceived, self.timestamp.value, xcpPDU[1:])
+                    self.policy.feed(types.FrameCategory.ERROR, self.counter_received, self.timestamp.value, xcpPDU[1:])
                 err = types.XcpError.parse(xcpPDU[1:])
                 raise types.XcpResponseError(err)
             return xcpPDU[1:]
@@ -282,7 +284,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             with self.policy_lock:
                 self.policy.feed(
                     types.FrameCategory.CMD if int(cmd) >= 0xC0 else types.FrameCategory.STIM,
-                    self.counterSend,
+                    self.counter_send,
                     self.timestamp.value,
                     frame,
                 )
@@ -296,11 +298,11 @@ class BaseTransport(metaclass=abc.ABCMeta):
             self.logger.debug(cmd.name)
         self.parent._setService(cmd)
 
-        cmdlen = cmd.bit_length() // 8  # calculate bytes needed for cmd
-        packet = bytes(flatten(cmd.to_bytes(cmdlen, "big"), data))
+        cmd_len = cmd.bit_length() // 8  # calculate bytes needed for cmd
+        packet = bytes(flatten(cmd.to_bytes(cmd_len, "big"), data))
 
-        header = self.HEADER.pack(len(packet), self.counterSend)
-        self.counterSend = (self.counterSend + 1) & 0xFFFF
+        header = self.HEADER.pack(len(packet), self.counter_send)
+        self.counter_send = (self.counter_send + 1) & 0xFFFF
 
         frame = header + packet
 
@@ -348,7 +350,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def closeConnection(self):
+    def close_connection(self):
         """Does the actual connection shutdown.
         Needs to be implemented by any sub-class.
         """
@@ -365,13 +367,13 @@ class BaseTransport(metaclass=abc.ABCMeta):
         if ev_type == types.Event.EV_CMD_PENDING:
             self.timer_restart_event.set()
 
-    def processResponse(self, response, length, counter, recv_timestamp=None):
-        if counter == self.counterReceived:
+    def process_response(self, response: bytes, length: int, counter: int, recv_timestamp: int) -> None:
+        if counter == self.counter_received:
             self.logger.warning(f"Duplicate message counter {counter} received from the XCP slave")
             if self._debug:
                 self.logger.debug(f"<- L{length} C{counter} {hexDump(response[:512])}")
             return
-        self.counterReceived = counter
+        self.counter_received = counter
         pid = response[0]
         if pid >= 0xFC:
             if self._debug:
@@ -379,15 +381,15 @@ class BaseTransport(metaclass=abc.ABCMeta):
             if pid >= 0xFE:
                 self.resQueue.append(response)
                 with self.policy_lock:
-                    self.policy.feed(types.FrameCategory.RESPONSE, self.counterReceived, self.timestamp.value, response)
+                    self.policy.feed(types.FrameCategory.RESPONSE, self.counter_received, self.timestamp.value, response)
                 self.recv_timestamp = recv_timestamp
             elif pid == 0xFD:
                 self.process_event_packet(response)
                 with self.policy_lock:
-                    self.policy.feed(types.FrameCategory.EVENT, self.counterReceived, self.timestamp.value, response)
+                    self.policy.feed(types.FrameCategory.EVENT, self.counter_received, self.timestamp.value, response)
             elif pid == 0xFC:
                 with self.policy_lock:
-                    self.policy.feed(types.FrameCategory.SERV, self.counterReceived, self.timestamp.value, response)
+                    self.policy.feed(types.FrameCategory.SERV, self.counter_received, self.timestamp.value, response)
         else:
             if self._debug:
                 self.logger.debug(f"<- L{length} C{counter} ODT_Data[0:8] {hexDump(response[:8])}")
@@ -398,10 +400,19 @@ class BaseTransport(metaclass=abc.ABCMeta):
             else:
                 timestamp = 0.0
             with self.policy_lock:
-                self.policy.feed(types.FrameCategory.DAQ, self.counterReceived, timestamp, response)
+                self.policy.feed(types.FrameCategory.DAQ, self.counter_received, timestamp, response)
+
+    # @abc.abstractproperty
+    # @property
+    # def transport_layer_interface(self) -> Any:
+    #    pass
+
+    # @transport_layer_interface.setter
+    # def transport_layer_interface(self, value: Any) -> None:
+    #    self._transport_layer_interface = value
 
 
-def createTransport(name, *args, **kws):
+def create_transport(name: str, *args, **kws) -> BaseTransport:
     """Factory function for transports.
 
     Returns
@@ -409,15 +420,15 @@ def createTransport(name, *args, **kws):
     :class:`BaseTransport` derived instance.
     """
     name = name.lower()
-    transports = availableTransports()
+    transports = available_transports()
     if name in transports:
-        transportClass = transports[name]
+        transport_class: Type[BaseTransport] = transports[name]
     else:
         raise ValueError(f"{name!r} is an invalid transport -- please choose one of [{' | '.join(transports.keys())}].")
-    return transportClass(*args, **kws)
+    return transport_class(*args, **kws)
 
 
-def availableTransports():
+def available_transports() -> Dict[str, Type[BaseTransport]]:
     """List all subclasses of :class:`BaseTransport`.
 
     Returns

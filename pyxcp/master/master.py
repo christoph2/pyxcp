@@ -26,7 +26,7 @@ from pyxcp.constants import (
 )
 from pyxcp.daq_stim.stim import DaqEventInfo, Stim
 from pyxcp.master.errorhandler import SystemExit, disable_error_handling, wrapped
-from pyxcp.transport.base import createTransport
+from pyxcp.transport.base import create_transport
 from pyxcp.utils import SHORT_SLEEP, decode_bytes, delay
 
 
@@ -64,7 +64,7 @@ class Master:
     config: dict
     """
 
-    def __init__(self, transport_name: str, config, policy=None):
+    def __init__(self, transport_name: str, config, policy=None, transport_layer_interface=None):
         self.ctr = 0
         self.succeeded = True
         self.config = config.general
@@ -73,7 +73,7 @@ class Master:
         disable_error_handling(self.config.disable_error_handling)
         self.transport_name = transport_name.lower()
         transport_config = config.transport
-        self.transport = createTransport(transport_name, transport_config, policy)
+        self.transport = create_transport(transport_name, transport_config, policy, transport_layer_interface)
 
         self.stim = Stim(self.config.stim_support)
         self.stim.clear()
@@ -1794,7 +1794,7 @@ class Master:
 
         protection_status = self.getCurrentProtectionStatus()
         if any(protection_status.values()) and (not (self.seed_n_key_dll or self.seed_n_key_function)):
-            raise RuntimeError("Neither seed and key DLL nor function specified, cannot proceed.")  # TODO: ConfigurationError
+            raise RuntimeError("Neither seed-and-key DLL nor function specified, cannot proceed.")  # TODO: ConfigurationError
         if resources is None:
             result = []
             if self.slaveProperties["supportsCalpag"]:

@@ -5,6 +5,7 @@ import struct
 import threading
 from collections import deque
 from time import sleep
+from typing import Optional
 
 from pyxcp.transport.base import BaseTransport
 from pyxcp.utils import SHORT_SLEEP
@@ -38,8 +39,8 @@ class Eth(BaseTransport):
     HEADER = struct.Struct("<HH")
     HEADER_SIZE = HEADER.size
 
-    def __init__(self, config=None, policy=None):
-        super().__init__(config, policy)
+    def __init__(self, config=None, policy=None, transport_layer_interface: Optional[socket.socket] = None):
+        super().__init__(config, policy, transport_layer_interface)
         self.load_config(config)
         self.host = self.config.host
         self.port = self.config.port
@@ -101,11 +102,11 @@ class Eth(BaseTransport):
         if self.status == 0:
             self.sock.connect(self.sockaddr)
             self.logger.info(socket_to_str(self.sock))
-            self.startListener()
+            self.start_listener()
             self.status = 1  # connected
 
-    def startListener(self):
-        super().startListener()
+    def start_listener(self):
+        super().start_listener()
         if self._packet_listener.is_alive():
             self._packet_listener.join()
         self._packet_listener = threading.Thread(target=self._packet_listen)
@@ -113,12 +114,12 @@ class Eth(BaseTransport):
 
     def close(self):
         """Close the transport-layer connection and event-loop."""
-        self.finishListener()
+        self.finish_listener()
         if self.listener.is_alive():
             self.listener.join()
         if self._packet_listener.is_alive():
             self._packet_listener.join()
-        self.closeConnection()
+        self.close_connection()
 
     def _packet_listen(self):
         use_tcp = self.use_tcp
@@ -167,7 +168,7 @@ class Eth(BaseTransport):
     def listen(self):
         HEADER_UNPACK_FROM = self.HEADER.unpack_from
         HEADER_SIZE = self.HEADER_SIZE
-        processResponse = self.processResponse
+        process_response = self.process_response
         popleft = self._packets.popleft
 
         close_event_set = self.closeEvent.is_set
@@ -206,7 +207,7 @@ class Eth(BaseTransport):
                     else:
                         if current_size >= length:
                             response = data[current_position : current_position + length]
-                            processResponse(response, length, counter, timestamp)
+                            process_response(response, length, counter, timestamp)
 
                             current_size -= length
                             current_position += length
@@ -222,7 +223,7 @@ class Eth(BaseTransport):
         self.sock.send(frame)
         self.post_send_timestamp = self.timestamp.value
 
-    def closeConnection(self):
+    def close_connection(self):
         if not self.invalidSocket:
             # Seems to be problematic /w IPv6
             # if self.status == 1:

@@ -26,7 +26,7 @@ def banner(msg: str) -> None:
 def build_extension(debug: bool = False) -> None:
     print("CMakeBuild::build_extension()")
 
-    debug = int(os.environ.get("DEBUG", 0)) or debug
+    debug = bool(os.environ.get("DEBUG", 0)) or debug
     cfg = "Debug" if debug else "Release"
     print(f" BUILD-TYPE: {cfg!r}")
 

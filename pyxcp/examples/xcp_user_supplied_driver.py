@@ -30,7 +30,7 @@ class MyCI(CanInterfaceBase):
     def close(self):
         pass
 
-    def getTimestampResolution(self):
+    def get_timestamp_resolution(self):
         pass
 
     def read(self):

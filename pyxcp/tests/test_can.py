@@ -6,109 +6,109 @@ from pyxcp.transport.can import (
     MAX_29_BIT_IDENTIFIER,
     Identifier,
     IdentifierOutOfRangeError,
-    calculateFilter,
-    isExtendedIdentifier,
-    padFrame,
-    setDLC,
+    calculate_filter,
+    is_extended_identifier,
+    pad_frame,
+    set_DLC,
     stripIdentifier,
 )
 
 
 def testSet0():
-    assert setDLC(0) == 0
+    assert set_DLC(0) == 0
 
 
 def testSet4():
-    assert setDLC(4) == 4
+    assert set_DLC(4) == 4
 
 
 def testSet8():
-    assert setDLC(8) == 8
+    assert set_DLC(8) == 8
 
 
 def testSet9():
-    assert setDLC(9) == 12
+    assert set_DLC(9) == 12
 
 
 def testSet12():
-    assert setDLC(12) == 12
+    assert set_DLC(12) == 12
 
 
 def testSet13():
-    assert setDLC(13) == 16
+    assert set_DLC(13) == 16
 
 
 def testSet16():
-    assert setDLC(16) == 16
+    assert set_DLC(16) == 16
 
 
 def testSet17():
-    assert setDLC(17) == 20
+    assert set_DLC(17) == 20
 
 
 def testSet20():
-    assert setDLC(20) == 20
+    assert set_DLC(20) == 20
 
 
 def testSet23():
-    assert setDLC(23) == 24
+    assert set_DLC(23) == 24
 
 
 def testSet24():
-    assert setDLC(24) == 24
+    assert set_DLC(24) == 24
 
 
 def testSet25():
-    assert setDLC(25) == 32
+    assert set_DLC(25) == 32
 
 
 def testSet32():
-    assert setDLC(32) == 32
+    assert set_DLC(32) == 32
 
 
 def testSet33():
-    assert setDLC(33) == 48
+    assert set_DLC(33) == 48
 
 
 def testSet48():
-    assert setDLC(48) == 48
+    assert set_DLC(48) == 48
 
 
 def testSet49():
-    assert setDLC(49) == 64
+    assert set_DLC(49) == 64
 
 
 def testSet64():
-    assert setDLC(64) == 64
+    assert set_DLC(64) == 64
 
 
 def testSet128():
     with pytest.raises(ValueError):
-        setDLC(128)
+        set_DLC(128)
 
 
 def testNegative():
     with pytest.raises(ValueError):
-        setDLC(-1)
+        set_DLC(-1)
 
 
 def testfilter1():
-    assert calculateFilter([0x101, 0x102, 0x103]) == (0x100, 0x7FC)
+    assert calculate_filter([0x101, 0x102, 0x103]) == (0x100, 0x7FC)
 
 
 def testfilter2():
-    assert calculateFilter([0x101, 0x102 | CAN_EXTENDED_ID, 0x103]) == (
+    assert calculate_filter([0x101, 0x102 | CAN_EXTENDED_ID, 0x103]) == (
         0x100,
         0x1FFFFFFC,
     )
 
 
 def testfilter3():
-    assert calculateFilter([0x1567 | CAN_EXTENDED_ID]) == (0x1567, 0x1FFFFFFF)
+    assert calculate_filter([0x1567 | CAN_EXTENDED_ID]) == (0x1567, 0x1FFFFFFF)
 
 
 def testfilter4():
-    assert calculateFilter(
+    assert calculate_filter(
         [
             0x1560 | CAN_EXTENDED_ID,
             0x1561,
@@ -131,18 +131,18 @@ def testfilter4():
 
 
 def testfilter5():
-    assert calculateFilter([0x1560 | CAN_EXTENDED_ID, 0x1561, 0x1562, 0x1563, 0x1564, 0x1565, 0x1566, 0x1567]) == (
+    assert calculate_filter([0x1560 | CAN_EXTENDED_ID, 0x1561, 0x1562, 0x1563, 0x1564, 0x1565, 0x1566, 0x1567]) == (
         0x1560,
         0x1FFFFFF8,
     )
 
 
 def testIsExtendedIdentifier1():
-    assert isExtendedIdentifier(0x280) is False
+    assert is_extended_identifier(0x280) is False
 
 
 def testIsExtendedIdentifier2():
-    assert isExtendedIdentifier(0x280 | CAN_EXTENDED_ID) is True
+    assert is_extended_identifier(0x280 | CAN_EXTENDED_ID) is True
 
 
 def testStripIdentifier1():
@@ -247,145 +247,145 @@ def test_filter_for_identifier_extended(capsys):
 def test_pad_frame_no_padding_1():
     frame = bytearray(b"\xaa")
     padded_frame = bytearray(b"\xaa")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_2():
     frame = bytearray(b"\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_3():
     frame = bytearray(b"\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_4():
     frame = bytearray(b"\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_5():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_6():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_7():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_8():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_9():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_10():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_11():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_12():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_13():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_14():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_15():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_16():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_17():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_18():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_19():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_20():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_21():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_22():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_23():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_24():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_25():
@@ -393,7 +393,7 @@ def test_pad_frame_no_padding_25():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_26():
@@ -401,7 +401,7 @@ def test_pad_frame_no_padding_26():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_27():
@@ -411,7 +411,7 @@ def test_pad_frame_no_padding_27():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_28():
@@ -421,7 +421,7 @@ def test_pad_frame_no_padding_28():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_29():
@@ -431,7 +431,7 @@ def test_pad_frame_no_padding_29():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_30():
@@ -441,7 +441,7 @@ def test_pad_frame_no_padding_30():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_31():
@@ -451,7 +451,7 @@ def test_pad_frame_no_padding_31():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_32():
@@ -461,7 +461,7 @@ def test_pad_frame_no_padding_32():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_33():
@@ -471,7 +471,7 @@ def test_pad_frame_no_padding_33():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_34():
@@ -481,7 +481,7 @@ def test_pad_frame_no_padding_34():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_35():
@@ -491,7 +491,7 @@ def test_pad_frame_no_padding_35():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_36():
@@ -501,7 +501,7 @@ def test_pad_frame_no_padding_36():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_37():
@@ -511,7 +511,7 @@ def test_pad_frame_no_padding_37():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_38():
@@ -521,7 +521,7 @@ def test_pad_frame_no_padding_38():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_39():
@@ -531,7 +531,7 @@ def test_pad_frame_no_padding_39():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_40():
@@ -541,7 +541,7 @@ def test_pad_frame_no_padding_40():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_41():
@@ -551,7 +551,7 @@ def test_pad_frame_no_padding_41():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_42():
@@ -561,7 +561,7 @@ def test_pad_frame_no_padding_42():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_43():
@@ -571,7 +571,7 @@ def test_pad_frame_no_padding_43():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_44():
@@ -581,7 +581,7 @@ def test_pad_frame_no_padding_44():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_45():
@@ -591,7 +591,7 @@ def test_pad_frame_no_padding_45():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_46():
@@ -601,7 +601,7 @@ def test_pad_frame_no_padding_46():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_47():
@@ -611,7 +611,7 @@ def test_pad_frame_no_padding_47():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_48():
@@ -621,7 +621,7 @@ def test_pad_frame_no_padding_48():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_49():
@@ -631,7 +631,7 @@ def test_pad_frame_no_padding_49():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_50():
@@ -641,7 +641,7 @@ def test_pad_frame_no_padding_50():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_51():
@@ -651,7 +651,7 @@ def test_pad_frame_no_padding_51():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_52():
@@ -661,7 +661,7 @@ def test_pad_frame_no_padding_52():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_53():
@@ -671,7 +671,7 @@ def test_pad_frame_no_padding_53():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_54():
@@ -681,7 +681,7 @@ def test_pad_frame_no_padding_54():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_55():
@@ -691,7 +691,7 @@ def test_pad_frame_no_padding_55():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_56():
@@ -701,7 +701,7 @@ def test_pad_frame_no_padding_56():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_57():
@@ -711,7 +711,7 @@ def test_pad_frame_no_padding_57():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_58():
@@ -721,7 +721,7 @@ def test_pad_frame_no_padding_58():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_59():
@@ -731,7 +731,7 @@ def test_pad_frame_no_padding_59():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_60():
@@ -741,7 +741,7 @@ def test_pad_frame_no_padding_60():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_61():
@@ -751,7 +751,7 @@ def test_pad_frame_no_padding_61():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_62():
@@ -761,7 +761,7 @@ def test_pad_frame_no_padding_62():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_63():
@@ -771,7 +771,7 @@ def test_pad_frame_no_padding_63():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_no_padding_64():
@@ -781,151 +781,151 @@ def test_pad_frame_no_padding_64():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
     )
-    assert padFrame(frame, False, 0x00) == padded_frame
+    assert pad_frame(frame, False, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_1():
     frame = bytearray(b"\xaa")
     padded_frame = bytearray(b"\xaa\x00\x00\x00\x00\x00\x00\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_2():
     frame = bytearray(b"\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\x00\x00\x00\x00\x00\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_3():
     frame = bytearray(b"\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\x00\x00\x00\x00\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_4():
     frame = bytearray(b"\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\x00\x00\x00\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_5():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\x00\x00\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_6():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_7():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_8():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_9():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_10():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_11():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_12():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_13():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_14():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_15():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_16():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_17():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_18():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_19():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_20():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_21():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_22():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_23():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_24():
     frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
     padded_frame = bytearray(b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa")
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_25():
@@ -933,7 +933,7 @@ def test_pad_frame_padded_25():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_26():
@@ -941,7 +941,7 @@ def test_pad_frame_padded_26():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_27():
@@ -951,7 +951,7 @@ def test_pad_frame_padded_27():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_28():
@@ -961,7 +961,7 @@ def test_pad_frame_padded_28():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_29():
@@ -971,7 +971,7 @@ def test_pad_frame_padded_29():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_30():
@@ -981,7 +981,7 @@ def test_pad_frame_padded_30():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_31():
@@ -991,7 +991,7 @@ def test_pad_frame_padded_31():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_32():
@@ -1001,7 +1001,7 @@ def test_pad_frame_padded_32():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_33():
@@ -1011,7 +1011,7 @@ def test_pad_frame_padded_33():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_34():
@@ -1021,7 +1021,7 @@ def test_pad_frame_padded_34():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_35():
@@ -1031,7 +1031,7 @@ def test_pad_frame_padded_35():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_36():
@@ -1041,7 +1041,7 @@ def test_pad_frame_padded_36():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_37():
@@ -1051,7 +1051,7 @@ def test_pad_frame_padded_37():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_38():
@@ -1061,7 +1061,7 @@ def test_pad_frame_padded_38():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_39():
@@ -1071,7 +1071,7 @@ def test_pad_frame_padded_39():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_40():
@@ -1081,7 +1081,7 @@ def test_pad_frame_padded_40():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_41():
@@ -1091,7 +1091,7 @@ def test_pad_frame_padded_41():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_42():
@@ -1101,7 +1101,7 @@ def test_pad_frame_padded_42():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_43():
@@ -1111,7 +1111,7 @@ def test_pad_frame_padded_43():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_44():
@@ -1121,7 +1121,7 @@ def test_pad_frame_padded_44():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_45():
@@ -1131,7 +1131,7 @@ def test_pad_frame_padded_45():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_46():
@@ -1141,7 +1141,7 @@ def test_pad_frame_padded_46():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_47():
@@ -1151,7 +1151,7 @@ def test_pad_frame_padded_47():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_48():
@@ -1161,7 +1161,7 @@ def test_pad_frame_padded_48():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_49():
@@ -1171,7 +1171,7 @@ def test_pad_frame_padded_49():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_50():
@@ -1181,7 +1181,7 @@ def test_pad_frame_padded_50():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_51():
@@ -1191,7 +1191,7 @@ def test_pad_frame_padded_51():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_52():
@@ -1201,7 +1201,7 @@ def test_pad_frame_padded_52():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_53():
@@ -1211,7 +1211,7 @@ def test_pad_frame_padded_53():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_54():
@@ -1221,7 +1221,7 @@ def test_pad_frame_padded_54():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_55():
@@ -1231,7 +1231,7 @@ def test_pad_frame_padded_55():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_56():
@@ -1241,7 +1241,7 @@ def test_pad_frame_padded_56():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_57():
@@ -1251,7 +1251,7 @@ def test_pad_frame_padded_57():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_58():
@@ -1261,7 +1261,7 @@ def test_pad_frame_padded_58():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_59():
@@ -1271,7 +1271,7 @@ def test_pad_frame_padded_59():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_60():
@@ -1281,7 +1281,7 @@ def test_pad_frame_padded_60():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_61():
@@ -1291,7 +1291,7 @@ def test_pad_frame_padded_61():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_62():
@@ -1301,7 +1301,7 @@ def test_pad_frame_padded_62():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_63():
@@ -1311,7 +1311,7 @@ def test_pad_frame_padded_63():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\x00"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame
 
 
 def test_pad_frame_padded_64():
@@ -1321,4 +1321,4 @@ def test_pad_frame_padded_64():
     padded_frame = bytearray(
         b"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
     )
-    assert padFrame(frame, True, 0x00) == padded_frame
+    assert pad_frame(frame, True, 0x00) == padded_frame

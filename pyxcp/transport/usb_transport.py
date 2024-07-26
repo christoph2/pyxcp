@@ -3,7 +3,8 @@ import struct
 import threading
 from array import array
 from collections import deque
-from time import perf_counter, sleep
+from time import sleep
+from typing import Optional
 
 import usb.backend.libusb0 as libusb0
 import usb.backend.libusb1 as libusb1
@@ -19,14 +20,17 @@ from pyxcp.utils import SHORT_SLEEP
 RECV_SIZE = 16384
 
 
+FIVE_MS = 5_000_000  # Five milliseconds in nanoseconds.
+
+
 class Usb(BaseTransport):
     """"""
 
     HEADER = struct.Struct("<2H")
     HEADER_SIZE = HEADER.size
 
-    def __init__(self, config=None, policy=None):
-        super().__init__(config, policy)
+    def __init__(self, config=None, policy=None, transport_layer_interface: Optional[usb.core.Device] = None):
+        super().__init__(config, policy, transport_layer_interface)
         self.load_config(config)
         self.serial_number = self.config.serial_number
         self.vendor_id = self.config.vendor_id
@@ -99,11 +103,11 @@ class Usb(BaseTransport):
         self.out_ep = interface[self.out_ep_number]
         self.in_ep = interface[self.in_ep_number]
 
-        self.startListener()
+        self.start_listener()
         self.status = 1  # connected
 
-    def startListener(self):
-        super().startListener()
+    def start_listener(self):
+        super().start_listener()
         if self._packet_listener.is_alive():
             self._packet_listener.join()
         self._packet_listener = threading.Thread(target=self._packet_listen)
@@ -111,22 +115,19 @@ class Usb(BaseTransport):
 
     def close(self):
         """Close the transport-layer connection and event-loop."""
-        self.finishListener()
+        self.finish_listener()
         if self.listener.is_alive():
             self.listener.join()
         if self._packet_listener.is_alive():
             self._packet_listener.join()
-        self.closeConnection()
+        self.close_connection()
 
     def _packet_listen(self):
         close_event_set = self.closeEvent.is_set
-
         _packets = self._packets
         read = self.in_ep.read
-
         buffer = array("B", bytes(RECV_SIZE))
         buffer_view = memoryview(buffer)
-
         while True:
             try:
                 if close_event_set():
@@ -150,42 +151,31 @@ class Usb(BaseTransport):
     def listen(self):
         HEADER_UNPACK_FROM = self.HEADER.unpack_from
         HEADER_SIZE = self.HEADER_SIZE
-
         popleft = self._packets.popleft
-
-        processResponse = self.processResponse
+        process_response = self.process_response
         close_event_set = self.closeEvent.is_set
-
         _packets = self._packets
         length, counter = None, None
-
         data = bytearray(b"")
-
-        last_sleep = perf_counter()
+        last_sleep = self.timestamp.value
 
         while True:
             if close_event_set():
                 return
-
             count = len(_packets)
-
             if not count:
                 sleep(SHORT_SLEEP)
-                last_sleep = perf_counter()
+                last_sleep = self.timestamp.value
                 continue
-
             for _ in range(count):
                 bts, timestamp = popleft()
-
                 data += bts
                 current_size = len(data)
                 current_position = 0
-
                 while True:
-                    if perf_counter() - last_sleep >= 0.005:
+                    if self.timestamp.value - last_sleep >= FIVE_MS:
                         sleep(SHORT_SLEEP)
-                        last_sleep = perf_counter()
-
+                        last_sleep = self.timestamp.value
                     if length is None:
                         if current_size >= HEADER_SIZE:
                             length, counter = HEADER_UNPACK_FROM(data, current_position)
@@ -197,13 +187,10 @@ class Usb(BaseTransport):
                     else:
                         if current_size >= length:
                             response = data[current_position : current_position + length]
-                            processResponse(response, length, counter, timestamp)
-
+                            process_response(response, length, counter, timestamp)
                             current_size -= length
                             current_position += length
-
                             length = None
-
                         else:
                             data = data[current_position:]
                             break
@@ -220,6 +207,6 @@ class Usb(BaseTransport):
             pass
         self.post_send_timestamp = self.timestamp.value
 
-    def closeConnection(self):
+    def close_connection(self):
         if self.device is not None:
             usb.util.dispose_resources(self.device)

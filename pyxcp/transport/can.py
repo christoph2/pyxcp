@@ -5,10 +5,10 @@
 import functools
 import operator
 from bisect import bisect_left
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Type
 
 from can import CanError, CanInitializationError, Message, detect_available_configs
-from can.interface import _get_class_for_interface
+from can.interface import BusABC, _get_class_for_interface
 from rich.console import Console
 
 from pyxcp.config import CAN_INTERFACE_MAP
@@ -32,7 +32,7 @@ class IdentifierOutOfRangeError(Exception):
     pass
 
 
-def isExtendedIdentifier(identifier: int) -> bool:
+def is_extended_identifier(identifier: int) -> bool:
     """Check for extendend CAN identifier.
 
     Parameters
@@ -80,7 +80,7 @@ def samplePointToTsegs(tqs: int, samplePoint: float) -> tuple:
     return (tseg1, tseg2)
 
 
-def padFrame(frame: bytes, pad_frame: bool, padding_value: int) -> bytes:
+def pad_frame(frame: bytes, pad_frame: bool, padding_value: int) -> bytes:
     """Pad frame to next discrete DLC value (CAN-FD) or on request (CAN-Classic).
 
     References:
@@ -117,7 +117,7 @@ class Identifier:
     def __init__(self, raw_id: int):
         self._raw_id = raw_id
         self._id = stripIdentifier(raw_id)
-        self._is_extended = isExtendedIdentifier(raw_id)
+        self._is_extended = is_extended_identifier(raw_id)
         if self._is_extended:
             if self._id > MAX_29_BIT_IDENTIFIER:
                 raise IdentifierOutOfRangeError(f"29-bit identifier {self._id!r} is out of range")
@@ -229,19 +229,19 @@ class Frame:
 class PythonCanWrapper:
     """Wrapper around python-can - github.com/hardbyte/python-can"""
 
-    def __init__(self, parent, interface_name: str, **parameters):
+    def __init__(self, parent, interface_name: str, **parameters) -> None:
         self.parent = parent
-        self.interface_name = interface_name
+        self.interface_name: str = interface_name
         self.parameters = parameters
-        self.can_interface_class = _get_class_for_interface(self.interface_name)
-        self.connected = False
+        self.can_interface_class: Type[BusABC] = _get_class_for_interface(self.interface_name)
+        self.connected: bool = False
 
     def connect(self):
         if self.connected:
             return
         can_filters = []
         can_filters.append(self.parent.can_id_slave.create_filter_from_id())  # Primary CAN filter.
-        self.can_interface = self.can_interface_class(interface=self.interface_name, **self.parameters)
+        self.can_interface: BusABC = self.can_interface_class(interface=self.interface_name, **self.parameters)
         if self.parent.daq_identifier:
             # Add filters for DAQ identifiers.
             for daq_id in self.parent.daq_identifier:
@@ -284,7 +284,7 @@ class PythonCanWrapper:
                 timestamp=seconds_to_nanoseconds(frame.timestamp),
             )
 
-    def getTimestampResolution(self) -> int:
+    def get_timestamp_resolution(self) -> int:
         return 10 * 1000
 
 
@@ -302,8 +302,8 @@ class Can(BaseTransport):
     HEADER = EmptyHeader()
     HEADER_SIZE = 0
 
-    def __init__(self, config, policy=None):
-        super().__init__(config, policy)
+    def __init__(self, config, policy=None, transport_layer_interface: Optional[BusABC] = None):
+        super().__init__(config, policy, transport_layer_interface)
         self.load_config(config)
         self.useDefaultListener = self.config.use_default_listener
         self.can_id_master = Identifier(self.config.can_id_master)
@@ -336,8 +336,8 @@ class Can(BaseTransport):
         can_interface_config_class = CAN_INTERFACE_MAP[self.interface_name]
 
         # Optional base class parameters.
-        optional = [(p, p.removeprefix("has_")) for p in can_interface_config_class.OPTIONAL_BASE_PARAMS]
-        for o, n in optional:
+        optional_parameters = [(p, p.removeprefix("has_")) for p in can_interface_config_class.OPTIONAL_BASE_PARAMS]
+        for o, n in optional_parameters:
             opt = getattr(can_interface_config_class, o)
             value = getattr(self.config, n)
             if opt:
@@ -360,11 +360,11 @@ class Can(BaseTransport):
                 result[name] = value
         return result
 
-    def dataReceived(self, payload: bytes, recv_timestamp: int = None):
-        self.processResponse(
+    def data_received(self, payload: bytes, recv_timestamp: int):
+        self.process_response(
             payload,
             len(payload),
-            counter=(self.counterReceived + 1) & 0xFFFF,
+            counter=(self.counter_received + 1) & 0xFFFF,
             recv_timestamp=recv_timestamp,
         )
 
@@ -374,11 +374,11 @@ class Can(BaseTransport):
                 return
             frame = self.can_interface.read()
             if frame:
-                self.dataReceived(frame.data, frame.timestamp)
+                self.data_received(frame.data, frame.timestamp)
 
     def connect(self):
         if self.useDefaultListener:
-            self.startListener()
+            self.start_listener()
         try:
             self.can_interface.connect()
         except CanInitializationError:
@@ -391,19 +391,19 @@ class Can(BaseTransport):
     def send(self, frame: bytes) -> None:
         # send the request
         self.pre_send_timestamp = self.timestamp.value
-        self.can_interface.transmit(payload=padFrame(frame, self.max_dlc_required, self.padding_value))
+        self.can_interface.transmit(payload=pad_frame(frame, self.max_dlc_required, self.padding_value))
         self.post_send_timestamp = self.timestamp.value
 
-    def closeConnection(self):
+    def close_connection(self):
         if hasattr(self, "can_interface"):
             self.can_interface.close()
 
     def close(self):
-        self.finishListener()
-        self.closeConnection()
+        self.finish_listener()
+        self.close_connection()
 
 
-def setDLC(length: int):
+def set_DLC(length: int):
     """Return DLC value according to CAN-FD.
 
     :param length: Length value to be mapped to a valid CAN-FD DLC.
@@ -422,14 +422,14 @@ def setDLC(length: int):
         raise ValueError("DLC could be at most 64.")
 
 
-def calculateFilter(ids: list):
+def calculate_filter(ids: list):
     """
     :param ids: An iterable (usually list or tuple) containing CAN identifiers.
 
     :return: Calculated filter and mask.
     :rtype: tuple (int, int)
     """
-    any_extended_ids = any(isExtendedIdentifier(i) for i in ids)
+    any_extended_ids = any(is_extended_identifier(i) for i in ids)
     raw_ids = [stripIdentifier(i) for i in ids]
     cfilter = functools.reduce(operator.and_, raw_ids)
     cmask = functools.reduce(operator.or_, raw_ids) ^ cfilter

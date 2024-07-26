@@ -191,7 +191,7 @@ class Kvaser(SingletonConfigurable, CanBase):
 
     accept_virtual = Bool(default_value=None, allow_none=True, help="If virtual channels should be accepted.").tag(config=True)
     no_samp = Enum(
-        [1, 3],
+        values=[1, 3],
         default_value=None,
         allow_none=True,
         help="""Either 1 or 3. Some CAN controllers can also sample each bit three times.
@@ -274,17 +274,17 @@ The constructor searches all connected interfaces and initializes the
 first one that matches the parameter value. If no device is found,
 an exception is raised.""",
     ).tag(config=True)
-    state = Instance(can.BusState, default_value=None, allow_none=True, help="BusState of the channel.").tag(config=True)
+    state = Instance(klass=can.BusState, default_value=None, allow_none=True, help="BusState of the channel.").tag(config=True)
 
     f_clock = Enum(
-        [20000000, 24000000, 30000000, 40000000, 60000000, 80000000],
+        values=[20000000, 24000000, 30000000, 40000000, 60000000, 80000000],
         default_value=None,
         allow_none=True,
         help="""Ignored if not using CAN-FD.
 Pass either f_clock or f_clock_mhz.""",
     ).tag(config=True)
     f_clock_mhz = Enum(
-        [20, 24, 30, 40, 60, 80],
+        values=[20, 24, 30, 40, 60, 80],
         default_value=None,
         allow_none=True,
         help="""Ignored if not using CAN-FD.
@@ -338,11 +338,11 @@ class SeeedStudio(SingletonConfigurable, CanBase):
 
     timeout = Float(default_value=None, allow_none=True, help="Timeout for the serial device in seconds.").tag(config=True)
     baudrate = Integer(default_value=None, allow_none=True, help="Baud rate of the serial device in bit/s.").tag(config=True)
-    frame_type = Enum(["STD", "EXT"], default_value=None, allow_none=True, help="To select standard or extended messages.").tag(
-        config=True
-    )
+    frame_type = Enum(
+        values=["STD", "EXT"], default_value=None, allow_none=True, help="To select standard or extended messages."
+    ).tag(config=True)
     operation_mode = Enum(
-        ["normal", "loopback", "silent", "loopback_and_silent"], default_value=None, allow_none=True, help=""" """
+        values=["normal", "loopback", "silent", "loopback_and_silent"], default_value=None, allow_none=True, help=""" """
     ).tag(config=True)
 
 
@@ -413,7 +413,7 @@ class Systec(SingletonConfigurable, CanBase):
 
     has_receive_own_messages = True
 
-    state = Instance(can.BusState, default_value=None, allow_none=True, help="BusState of the channel.").tag(config=True)
+    state = Instance(klass=can.BusState, default_value=None, allow_none=True, help="BusState of the channel.").tag(config=True)
     device_number = Integer(min=0, max=254, default_value=None, allow_none=True, help="The device number of the USB-CAN.").tag(
         config=True
     )
@@ -548,9 +548,9 @@ CAN_INTERFACE_MAP = {
 class Can(SingletonConfigurable):
     VALID_INTERFACES = can.interfaces.VALID_INTERFACES
 
-    interface = Enum(VALID_INTERFACES, default_value=None, allow_none=True, help="CAN interface supported by python-can").tag(
-        config=True
-    )
+    interface = Enum(
+        values=VALID_INTERFACES, default_value=None, allow_none=True, help="CAN interface supported by python-can"
+    ).tag(config=True)
     channel = Any(
         default_value=None, allow_none=True, help="Channel identification. Expected type and value is backend dependent."
     ).tag(config=True)
@@ -592,7 +592,7 @@ class Can(SingletonConfigurable):
     tseg1_dbr = Integer(default_value=None, allow_none=True, help="Bus timing value tseg1 (data).").tag(config=True)
     tseg2_dbr = Integer(default_value=None, allow_none=True, help="Bus timing value tseg2 (data).").tag(config=True)
     timing = Union(
-        [Instance(can.BitTiming)],  # , Instance(can.BitTimingFd)
+        trait_types=[Instance(klass=can.BitTiming), Instance(klass=can.BitTimingFd)],
         default_value=None,
         allow_none=True,
         help="""Custom bit timing settings.
@@ -669,7 +669,7 @@ class Eth(SingletonConfigurable):
 
     host = Unicode("localhost", help="Hostname or IP address of XCP slave.").tag(config=True)
     port = Integer(5555, help="TCP/UDP port to connect.").tag(config=True)
-    protocol = Enum(["TCP", "UDP"], default_value="UDP", help="").tag(config=True)
+    protocol = Enum(values=["TCP", "UDP"], default_value="UDP", help="").tag(config=True)
     ipv6 = Bool(False, help="Use IPv6 if `True` else IPv4.").tag(config=True)
     tcp_nodelay = Bool(False, help="*** Expert option *** -- Disable Nagle's algorithm if `True`.").tag(config=True)
     bind_to_address = Unicode(default_value=None, allow_none=True, help="Bind to specific local address.").tag(config=True)
@@ -681,11 +681,11 @@ class SxI(SingletonConfigurable):
 
     port = Unicode("COM1", help="Name of communication interface.").tag(config=True)
     bitrate = Integer(38400, help="Connection bitrate").tag(config=True)
-    bytesize = Enum([5, 6, 7, 8], default_value=8, help="Size of byte.").tag(config=True)
-    parity = Enum(["N", "E", "O", "M", "S"], default_value="N", help="Paritybit calculation.").tag(config=True)
-    stopbits = Enum([1, 1.5, 2], default_value=1, help="Number of stopbits.").tag(config=True)
+    bytesize = Enum(values=[5, 6, 7, 8], default_value=8, help="Size of byte.").tag(config=True)
+    parity = Enum(values=["N", "E", "O", "M", "S"], default_value="N", help="Paritybit calculation.").tag(config=True)
+    stopbits = Enum(values=[1, 1.5, 2], default_value=1, help="Number of stopbits.").tag(config=True)
     mode = Enum(
-        [
+        values=[
             "ASYNCH_FULL_DUPLEX_MODE",
             "SYNCH_FULL_DUPLEX_MODE_BYTE",
             "SYNCH_FULL_DUPLEX_MODE_WORD",
@@ -698,7 +698,7 @@ class SxI(SingletonConfigurable):
         help="Asynchronous (SCI) or synchronous (SPI) communication mode.",
     ).tag(config=True)
     header_format = Enum(
-        [
+        values=[
             "HEADER_LEN_BYTE",
             "HEADER_LEN_CTR_BYTE",
             "HEADER_LEN_FILL_BYTE",
@@ -721,7 +721,7 @@ HEADER_LEN_FILL_WORD    |   2   X   2
 """,
     ).tag(config=True)
     tail_format = Enum(
-        ["NO_CHECKSUM", "CHECKSUM_BYTE", "CHECKSUM_WORD"], default_value="NO_CHECKSUM", help="XCPonSxI tail format."
+        values=["NO_CHECKSUM", "CHECKSUM_BYTE", "CHECKSUM_WORD"], default_value="NO_CHECKSUM", help="XCPonSxI tail format."
     ).tag(config=True)
     framing = Bool(False, help="Enable SCI framing mechanism (ESC chars).").tag(config=True)
     esc_sync = Integer(0x01, min=0, max=255, help="SCI framing protocol character SYNC.").tag(config=True)
@@ -738,7 +738,7 @@ class Usb(SingletonConfigurable):
     product_id = Integer(0, help="USB product ID.").tag(config=True)
     library = Unicode("", help="Absolute path to USB shared library.").tag(config=True)
     header_format = Enum(
-        [
+        values=[
             "HEADER_LEN_BYTE",
             "HEADER_LEN_CTR_BYTE",
             "HEADER_LEN_FILL_BYTE",
@@ -751,34 +751,36 @@ class Usb(SingletonConfigurable):
     ).tag(config=True)
     in_ep_number = Integer(1, help="Ingoing USB reply endpoint number (IN-EP for RES/ERR, DAQ, and EV/SERV).").tag(config=True)
     in_ep_transfer_type = Enum(
-        ["BULK_TRANSFER", "INTERRUPT_TRANSFER"], default_value="BULK_TRANSFER", help="Ingoing: Supported USB transfer types."
+        values=["BULK_TRANSFER", "INTERRUPT_TRANSFER"], default_value="BULK_TRANSFER", help="Ingoing: Supported USB transfer types."
     ).tag(config=True)
     in_ep_max_packet_size = Integer(512, help="Ingoing: Maximum packet size of endpoint in bytes.").tag(config=True)
     in_ep_polling_interval = Integer(0, help="Ingoing: Polling interval of endpoint.").tag(config=True)
     in_ep_message_packing = Enum(
-        ["MESSAGE_PACKING_SINGLE", "MESSAGE_PACKING_MULTIPLE", "MESSAGE_PACKING_STREAMING"],
+        values=["MESSAGE_PACKING_SINGLE", "MESSAGE_PACKING_MULTIPLE", "MESSAGE_PACKING_STREAMING"],
         default_value="MESSAGE_PACKING_SINGLE",
         help="Ingoing: Packing of XCP Messages.",
     ).tag(config=True)
     in_ep_alignment = Enum(
-        ["ALIGNMENT_8_BIT", "ALIGNMENT_16_BIT", "ALIGNMENT_32_BIT", "ALIGNMENT_64_BIT"],
+        values=["ALIGNMENT_8_BIT", "ALIGNMENT_16_BIT", "ALIGNMENT_32_BIT", "ALIGNMENT_64_BIT"],
         default_value="ALIGNMENT_8_BIT",
         help="Ingoing: Alignment border.",
     ).tag(config=True)
     in_ep_recommended_host_bufsize = Integer(0, help="Ingoing: Recommended host buffer size.").tag(config=True)
     out_ep_number = Integer(0, help="Outgoing USB command endpoint number (OUT-EP for CMD and STIM).").tag(config=True)
     out_ep_transfer_type = Enum(
-        ["BULK_TRANSFER", "INTERRUPT_TRANSFER"], default_value="BULK_TRANSFER", help="Outgoing: Supported USB transfer types."
+        values=["BULK_TRANSFER", "INTERRUPT_TRANSFER"],
+        default_value="BULK_TRANSFER",
+        help="Outgoing: Supported USB transfer types.",
     ).tag(config=True)
     out_ep_max_packet_size = Integer(512, help="Outgoing: Maximum packet size of endpoint in bytes.").tag(config=True)
     out_ep_polling_interval = Integer(0, help="Outgoing: Polling interval of endpoint.").tag(config=True)
     out_ep_message_packing = Enum(
-        ["MESSAGE_PACKING_SINGLE", "MESSAGE_PACKING_MULTIPLE", "MESSAGE_PACKING_STREAMING"],
+        values=["MESSAGE_PACKING_SINGLE", "MESSAGE_PACKING_MULTIPLE", "MESSAGE_PACKING_STREAMING"],
         default_value="MESSAGE_PACKING_SINGLE",
         help="Outgoing: Packing of XCP Messages.",
     ).tag(config=True)
     out_ep_alignment = Enum(
-        ["ALIGNMENT_8_BIT", "ALIGNMENT_16_BIT", "ALIGNMENT_32_BIT", "ALIGNMENT_64_BIT"],
+        values=["ALIGNMENT_8_BIT", "ALIGNMENT_16_BIT", "ALIGNMENT_32_BIT", "ALIGNMENT_64_BIT"],
         default_value="ALIGNMENT_8_BIT",
         help="Outgoing: Alignment border.",
     ).tag(config=True)
@@ -791,11 +793,14 @@ class Transport(SingletonConfigurable):
     classes = List([Can, Eth, SxI, Usb])
 
     layer = Enum(
-        ["CAN", "ETH", "SXI", "USB"], default_value=None, allow_none=True, help="Choose one of the supported XCP transport layers."
+        values=["CAN", "ETH", "SXI", "USB"],
+        default_value=None,
+        allow_none=True,
+        help="Choose one of the supported XCP transport layers.",
     ).tag(config=True)
     create_daq_timestamps = Bool(False, help="Record time of frame reception or set timestamp to 0.").tag(config=True)
     timestamp_mode = Enum(
-        ["ABSOLUTE", "RELATIVE"],
+        values=["ABSOLUTE", "RELATIVE"],
         default_value="ABSOLUTE",
         help="""Either absolute timestamps since some epoch or program start, both values are in nano-seconds.""",
     ).tag(config=True)
@@ -804,7 +809,7 @@ class Transport(SingletonConfigurable):
         help="""raise `XcpTimeoutError` after `timeout` seconds
 if there is no response to a command.""",
     ).tag(config=True)
-    alignment = Enum([1, 2, 4, 8], default_value=1).tag(config=True)
+    alignment = Enum(values=[1, 2, 4, 8], default_value=1).tag(config=True)
 
     can = Instance(Can).tag(config=True)
     eth = Instance(Eth).tag(config=True)

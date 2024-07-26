@@ -23,7 +23,7 @@ class SeedNKeyError(Exception):
     """"""
 
 
-LOADER = Path(sys.modules["pyxcp"].__file__).parent / "asamkeydll"  # Absolute path to DLL loader.
+LOADER = Path(str(sys.modules["pyxcp"].__file__)).parent / "asamkeydll"  # Absolute path to DLL loader.
 
 bwidth, _ = platform.architecture()
 
@@ -36,15 +36,15 @@ else:
     raise RuntimeError(f"Platform {sys.platform!r} currently not supported.")
 
 
-def getKey(logger, dllName: str, privilege: int, seed: str, assume_same_bit_width: bool):
+def getKey(logger, dllName: str, privilege: int, seed: bytes, assume_same_bit_width: bool):
     dllName = str(Path(dllName).absolute())  # Fix loader issues.
 
-    use_ctypes = False
+    use_ctypes: bool = False
     if assume_same_bit_width:
         use_ctypes = True
     if use_ctypes:
         try:
-            lib = ctypes.cdll.LoadLibrary(dllName)
+            lib: ctypes.CDLL = ctypes.cdll.LoadLibrary(dllName)
         except OSError:
             logger.error(f"Could not load DLL {dllName!r} -- Probably an 64bit vs 32bit issue?")
             return (SeedNKeyResult.ERR_COULD_NOT_LOAD_DLL, None)
@@ -57,9 +57,9 @@ def getKey(logger, dllName: str, privilege: int, seed: str, assume_same_bit_widt
             ctypes.POINTER(ctypes.c_uint8),
             ctypes.c_char_p,
         ]
-        key_buffer = ctypes.create_string_buffer(b"\000" * 128)
-        key_length = ctypes.c_uint8(128)
-        ret_code = func(
+        key_buffer: ctypes.Array[ctypes.c_char] = ctypes.create_string_buffer(b"\000" * 128)
+        key_length: ctypes.c_uint8 = ctypes.c_uint8(128)
+        ret_code: int = func(
             privilege,
             len(seed),
             ctypes.c_char_p(seed),
@@ -80,8 +80,10 @@ def getKey(logger, dllName: str, privilege: int, seed: str, assume_same_bit_widt
         except OSError as exc:
             logger.error(f"Cannot execute {LOADER!r} -- {exc}")
             return (SeedNKeyResult.ERR_COULD_NOT_LOAD_DLL, None)
-        key = p0.stdout.read()
-        p0.stdout.close()
+        key: bytes = bytes(b"")
+        if p0.stdout:
+            key = p0.stdout.read()
+            p0.stdout.close()
         p0.kill()
         p0.wait()
         if not key:

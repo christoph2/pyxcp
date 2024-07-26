@@ -4,10 +4,10 @@ import pyxcp.transport.base as tr
 
 
 def test_factory_works():
-    assert isinstance(tr.createTransport("eth"), tr.BaseTransport)
-    assert isinstance(tr.createTransport("sxi"), tr.BaseTransport)
+    assert isinstance(tr.create_transport("eth"), tr.BaseTransport)
+    assert isinstance(tr.create_transport("sxi"), tr.BaseTransport)
     assert isinstance(
-        tr.createTransport(
+        tr.create_transport(
             "can",
             config={
                 "CAN_ID_MASTER": 1,
@@ -20,10 +20,10 @@ def test_factory_works():
 
 
 def test_factory_works_case_insensitive():
-    assert isinstance(tr.createTransport("ETH"), tr.BaseTransport)
-    assert isinstance(tr.createTransport("SXI"), tr.BaseTransport)
+    assert isinstance(tr.create_transport("ETH"), tr.BaseTransport)
+    assert isinstance(tr.create_transport("SXI"), tr.BaseTransport)
     assert isinstance(
-        tr.createTransport(
+        tr.create_transport(
             "CAN",
             config={
                 "CAN_ID_MASTER": 1,
@@ -37,11 +37,11 @@ def test_factory_works_case_insensitive():
 
 def test_factory_invalid_transport_name_raises():
     with pytest.raises(ValueError):
-        tr.createTransport("xCp")
+        tr.create_transport("xCp")
 
 
 def test_transport_names():
-    transports = tr.availableTransports()
+    transports = tr.available_transports()
 
     assert "can" in transports
     assert "eth" in transports
@@ -49,7 +49,7 @@ def test_transport_names():
 
 
 def test_transport_names_are_lower_case_only():
-    transports = tr.availableTransports()
+    transports = tr.available_transports()
 
     assert "CAN" not in transports
     assert "ETH" not in transports
@@ -57,7 +57,7 @@ def test_transport_names_are_lower_case_only():
 
 
 def test_transport_classes():
-    transports = tr.availableTransports()
+    transports = tr.available_transports()
 
     assert issubclass(transports.get("can"), tr.BaseTransport)
     assert issubclass(transports.get("eth"), tr.BaseTransport)

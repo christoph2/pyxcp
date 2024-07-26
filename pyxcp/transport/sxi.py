@@ -3,6 +3,7 @@
 import struct
 from collections import deque
 from dataclasses import dataclass
+from typing import Optional
 
 import serial
 
@@ -23,8 +24,8 @@ RECV_SIZE = 16384
 class SxI(BaseTransport):
     """"""
 
-    def __init__(self, config=None, policy=None):
-        super().__init__(config, policy)
+    def __init__(self, config=None, policy=None, transport_layer_interface: Optional[serial.Serial] = None):
+        super().__init__(config, policy, transport_layer_interface)
         self.load_config(config)
         self.port_name = self.config.port
         self.baudrate = self.config.bitrate
@@ -55,7 +56,7 @@ class SxI(BaseTransport):
         self._packets = deque()
 
     def __del__(self):
-        self.closeConnection()
+        self.close_connection()
 
     def make_header(self):
         def unpack_len(args):
@@ -85,7 +86,7 @@ class SxI(BaseTransport):
 
     def connect(self):
         self.logger.info(f"XCPonSxI - serial comm_port openend: {self.comm_port.portstr}@{self.baudrate} Bits/Sec.")
-        self.startListener()
+        self.start_listener()
 
     def output(self, enable):
         if enable:
@@ -98,8 +99,8 @@ class SxI(BaseTransport):
     def flush(self):
         self.comm_port.flush()
 
-    def startListener(self):
-        super().startListener()
+    def start_listener(self):
+        super().start_listener()
 
     def listen(self):
         while True:
@@ -117,13 +118,13 @@ class SxI(BaseTransport):
 
             if len(response) != length:
                 raise types.FrameSizeError("Size mismatch.")
-            self.processResponse(response, length, counter, recv_timestamp)
+            self.process_response(response, length, counter, recv_timestamp)
 
     def send(self, frame):
         self.pre_send_timestamp = self.timestamp.value
         self.comm_port.write(frame)
         self.post_send_timestamp = self.timestamp.value
 
-    def closeConnection(self):
+    def close_connection(self):
         if hasattr(self, "comm_port") and self.comm_port.isOpen():
             self.comm_port.close()

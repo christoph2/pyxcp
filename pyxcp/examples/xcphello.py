@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Very basic hello-world example.
 """
-import json
 from pprint import pprint
 
 from pyxcp.cmdline import ArgumentParser
@@ -44,8 +43,6 @@ with ap.run() as x:
         print(f"    {k:6s}: {v}")
     daq = x.getDaqInfo()
     pprint(daq)
-    with open("daq.json", "wt") as of:
-        json.dump(daq, of)
     if daq_info:
         dqp = x.getDaqProcessorInfo()
         print("\nDAQ Processor Info:")
