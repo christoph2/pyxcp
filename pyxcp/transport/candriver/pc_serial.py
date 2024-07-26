@@ -24,4 +24,4 @@ class Serial(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(Serial, self).__init__(bustype="serial")
+        super(Serial, self).__init__(interface="serial")

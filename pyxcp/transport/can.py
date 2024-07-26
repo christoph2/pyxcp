@@ -317,7 +317,7 @@ class Can(BaseTransport):
                 break
             self.daq_list_can_ids.append(Identifier(daq_identifier))
             n += 1  # Increment to check for the next DAQ
-            
+
         self.canInterface.loadConfig(config)
         self.canInterface.init(self, self.dataReceived)
         #
@@ -332,13 +332,13 @@ class Can(BaseTransport):
         self.processResponse(
             payload,
             len(payload),
-            counter=(self.counterReceived + 1) & 0xffff,
+            counter=(self.counterReceived + 1) & 0xFFFF,
             recv_timestamp=recv_timestamp,
         )
 
     def listen(self):
         while True:
-            if self.closeEvent.isSet():
+            if self.closeEvent.is_set():
                 return
             frame = self.canInterface.read()
             if frame:

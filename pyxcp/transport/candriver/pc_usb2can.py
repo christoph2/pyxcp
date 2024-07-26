@@ -27,4 +27,4 @@ class Usb2Can(python_can.PythonCAN, can.CanInterfaceBase):
     """
 
     def __init__(self):
-        super(Usb2Can, self).__init__(bustype="usb2can")
+        super(Usb2Can, self).__init__(interface="usb2can")

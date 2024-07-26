@@ -4,6 +4,7 @@
 """
 import enum
 from collections import namedtuple
+
 from pyxcp.types import Command
 from pyxcp.types import XcpError
 

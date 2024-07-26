@@ -8,8 +8,8 @@ from time import perf_counter
 from time import sleep
 from time import time
 
-import usb.backend.libusb1 as libusb1
 import usb.backend.libusb0 as libusb0
+import usb.backend.libusb1 as libusb1
 import usb.backend.openusb as openusb
 import usb.core
 import usb.util
@@ -32,7 +32,7 @@ class Usb(BaseTransport):
         "reply_endpoint_number": (int, True, 1),
         "vendor_id": (int, False, 0),
         "product_id": (int, False, 0),
-        "library": (str, False, "")  # absolute path to USB shared library
+        "library": (str, False, ""),  # absolute path to USB shared library
     }
     HEADER = struct.Struct("<2H")
     HEADER_SIZE = HEADER.size
@@ -122,7 +122,7 @@ class Usb(BaseTransport):
 
     def _packet_listen(self):
 
-        close_event_set = self.closeEvent.isSet
+        close_event_set = self.closeEvent.is_set
 
         _packets = self._packets
         read = self.reply_endpoint.read
@@ -158,7 +158,7 @@ class Usb(BaseTransport):
         popleft = self._packets.popleft
 
         processResponse = self.processResponse
-        close_event_set = self.closeEvent.isSet
+        close_event_set = self.closeEvent.is_set
 
         _packets = self._packets
         length, counter = None, None

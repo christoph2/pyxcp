@@ -3,7 +3,6 @@
 """
 Support for python-can - github.com/hardbyte/python-can
 """
-import pyxcp.transport.can as can
 import re
 from collections import OrderedDict
 
@@ -11,14 +10,16 @@ from can import Bus
 from can import CanError
 from can import Message
 
+import pyxcp.transport.can as can
+
 NUMBER = re.compile(r"(?P<hex>0[x|X])?(?P<number>[0-9]+)", re.VERBOSE)
 
 
 class PythonCAN:
     """"""
 
-    def __init__(self, bustype):
-        self.bustype = bustype
+    def __init__(self, interface):
+        self.interface = interface
         self.connected = False
 
     def init(self, parent, receive_callback):
@@ -39,9 +40,9 @@ class PythonCAN:
             "can_mask": can.MAX_29_BIT_IDENTIFIER if can_id.is_extended else can.MAX_11_BIT_IDENTIFIER,
             "extended": can_id.is_extended,
         }
-        self.bus = Bus(bustype=self.bustype, **self.kwargs)
+        self.bus = Bus(interface=self.interface, **self.kwargs)
         self.bus.set_filters([can_filter])
-        self.parent.logger.debug("Python-CAN driver: {} - {}]".format(self.bustype, self.bus))
+        self.parent.logger.debug("Python-CAN driver: {} - {}]".format(self.interface, self.bus))
         self.connected = True
 
     def _fetch_kwargs(self, local):
@@ -86,8 +87,12 @@ class PythonCAN:
         except CanError:
             return None
         else:
-            if frame is None or frame.arbitration_id != self.parent.can_id_master.id or not len(frame.data):
-                return None  # Timeout condition.
+            if frame is None:
+                return None  # Timeout or other condition causing a None frame
+
+            if frame.arbitration_id not in [self.parent.can_id_master.id] + [id_.id for id_ in self.parent.daq_list_can_ids]:
+                self.parent.logger.debug("Received frame with unexpected arbitration ID: {}".format(frame.arbitration_id))
+                return None
             extended = frame.is_extended_id
             identifier = can.Identifier.make_identifier(frame.arbitration_id, extended)
             return can.Frame(

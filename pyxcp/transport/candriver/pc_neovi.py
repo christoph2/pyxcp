@@ -28,4 +28,4 @@ class Neovi(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(Neovi, self).__init__(bustype="neovi")
+        super(Neovi, self).__init__(interface="neovi")

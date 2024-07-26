@@ -20,4 +20,4 @@ class NiCan(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(NiCan, self).__init__(bustype="nican")
+        super(NiCan, self).__init__(interface="nican")

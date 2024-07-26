@@ -26,4 +26,4 @@ class Systec(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(Systec, self).__init__(bustype="systec")
+        super(Systec, self).__init__(interface="systec")

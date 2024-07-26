@@ -3,10 +3,11 @@
 import struct
 import time
 from collections import deque
+from unittest import mock
+
 from pyxcp import types
 from pyxcp.master import Master
 from pyxcp.transport.can import CanInterfaceBase
-from unittest import mock
 
 
 class MockSocket:

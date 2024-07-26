@@ -3,10 +3,10 @@
 """
 python-can driver for Peak System interfaces.
 """
+from can import BusState
+
 import pyxcp.transport.can as can
 import pyxcp.transport.candriver.python_can as python_can
-
-from can import BusState
 
 
 class PCan(python_can.PythonCAN, can.CanInterfaceBase):
@@ -22,4 +22,4 @@ class PCan(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(PCan, self).__init__(bustype="pcan")
+        super(PCan, self).__init__(interface="pcan")

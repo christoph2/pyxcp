@@ -22,7 +22,7 @@ class Seeed(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(Seeed, self).__init__(bustype="seeedstudio")
+        super(Seeed, self).__init__(interface="seeedstudio")
 
 
 # from can.interfaces.seeedstudio import SeeedBus

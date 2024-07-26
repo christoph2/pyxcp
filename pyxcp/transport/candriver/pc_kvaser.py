@@ -36,4 +36,4 @@ class Kvaser(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(Kvaser, self).__init__(bustype="kvaser")
+        super(Kvaser, self).__init__(interface="kvaser")

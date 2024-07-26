@@ -20,4 +20,4 @@ class GsUsb(python_can.PythonCAN, can.CanInterfaceBase):
     """
 
     def __init__(self):
-        super(GsUsb, self).__init__(bustype="gs_usb")
+        super(GsUsb, self).__init__(interface="gs_usb")

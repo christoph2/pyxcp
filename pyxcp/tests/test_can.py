@@ -1,3 +1,5 @@
+import pytest
+
 from pyxcp.transport.can import calculateFilter
 from pyxcp.transport.can import CAN_EXTENDED_ID
 from pyxcp.transport.can import Identifier
@@ -7,8 +9,6 @@ from pyxcp.transport.can import MAX_11_BIT_IDENTIFIER
 from pyxcp.transport.can import MAX_29_BIT_IDENTIFIER
 from pyxcp.transport.can import setDLC
 from pyxcp.transport.can import stripIdentifier
-
-import pytest
 
 
 def testSet0():
@@ -180,6 +180,7 @@ def test_identifier_max_works2():
     assert i.id == MAX_11_BIT_IDENTIFIER
     assert i.is_extended is False
     assert i.raw_id == MAX_11_BIT_IDENTIFIER
+
 
 @pytest.mark.skip
 def test_identifier_outof_range_raises1():

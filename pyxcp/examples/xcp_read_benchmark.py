@@ -3,11 +3,12 @@
 """Very basic hello-world example.
 """
 import time
-from pyxcp.cmdline import ArgumentParser
 
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+
+from pyxcp.cmdline import ArgumentParser
 
 sns.set()
 

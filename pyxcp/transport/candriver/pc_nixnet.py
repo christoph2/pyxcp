@@ -20,4 +20,4 @@ class NiXnet(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(NiXnet, self).__init__(bustype="nixnet")
+        super(NiXnet, self).__init__(interface="nixnet")

@@ -20,4 +20,4 @@ class SocketCAN(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(SocketCAN, self).__init__(bustype="socketcan")
+        super(SocketCAN, self).__init__(interface="socketcan")

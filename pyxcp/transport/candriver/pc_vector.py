@@ -31,4 +31,4 @@ class Vector(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(Vector, self).__init__(bustype="vector")
+        super(Vector, self).__init__(interface="vector")

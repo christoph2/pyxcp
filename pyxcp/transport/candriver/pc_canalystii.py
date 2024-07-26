@@ -24,4 +24,4 @@ class Canalystii(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(Canalystii, self).__init__(bustype="canalystii")
+        super(Canalystii, self).__init__(interface="canalystii")

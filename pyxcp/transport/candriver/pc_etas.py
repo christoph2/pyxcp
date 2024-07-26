@@ -22,4 +22,4 @@ class Etas(python_can.PythonCAN, can.CanInterfaceBase):
     }
 
     def __init__(self):
-        super(Etas, self).__init__(bustype="etas")
+        super(Etas, self).__init__(interface="etas")
