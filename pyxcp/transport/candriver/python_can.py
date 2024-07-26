@@ -86,8 +86,12 @@ class PythonCAN:
         except CanError:
             return None
         else:
-            if frame is None or frame.arbitration_id != self.parent.can_id_master.id or not len(frame.data):
-                return None  # Timeout condition.
+            if frame is None:
+                return None  # Timeout or other condition causing a None frame
+
+            if frame.arbitration_id not in [self.parent.can_id_master.id] + [id_.id for id_ in self.parent.daq_list_can_ids]:
+                self.parent.logger.debug("Received frame with unexpected arbitration ID: {}".format(frame.arbitration_id))
+                return None
             extended = frame.is_extended_id
             identifier = can.Identifier.make_identifier(frame.arbitration_id, extended)
             return can.Frame(
