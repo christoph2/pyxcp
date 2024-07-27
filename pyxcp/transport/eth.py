@@ -4,11 +4,10 @@ import socket
 import struct
 import threading
 from collections import deque
-from time import sleep
 from typing import Optional
 
 from pyxcp.transport.base import BaseTransport
-from pyxcp.utils import SHORT_SLEEP
+from pyxcp.utils import short_sleep
 
 
 DEFAULT_XCP_PORT = 5555
@@ -39,16 +38,16 @@ class Eth(BaseTransport):
     HEADER = struct.Struct("<HH")
     HEADER_SIZE = HEADER.size
 
-    def __init__(self, config=None, policy=None, transport_layer_interface: Optional[socket.socket] = None):
+    def __init__(self, config=None, policy=None, transport_layer_interface: Optional[socket.socket] = None) -> None:
         super().__init__(config, policy, transport_layer_interface)
         self.load_config(config)
-        self.host = self.config.host
-        self.port = self.config.port
-        self.protocol = self.config.protocol
-        self.ipv6 = self.config.ipv6
-        self.use_tcp_no_delay = self.config.tcp_nodelay
-        address_to_bind = self.config.bind_to_address
-        bind_to_port = self.config.bind_to_port
+        self.host: str = self.config.host
+        self.port: int = self.config.port
+        self.protocol: int = self.config.protocol
+        self.ipv6: bool = self.config.ipv6
+        self.use_tcp_no_delay: bool = self.config.tcp_nodelay
+        address_to_bind: str = self.config.bind_to_address
+        bind_to_port: int = self.config.bind_to_port
         self._local_address = (address_to_bind, bind_to_port) if address_to_bind else None
         if self.ipv6 and not socket.has_ipv6:
             msg = "XCPonEth - IPv6 not supported by your platform."
@@ -73,7 +72,7 @@ class Eth(BaseTransport):
             msg = f"XCPonEth - Failed to resolve address {self.host}:{self.port}"
             self.logger.critical(msg)
             raise Exception(msg) from ex
-        self.status = 0
+        self.status: int = 0
         self.sock = socket.socket(self.address_family, self.socktype, self.proto)
         self.selector = selectors.DefaultSelector()
         self.selector.register(self.sock, selectors.EVENT_READ)
@@ -98,21 +97,21 @@ class Eth(BaseTransport):
         )
         self._packets = deque()
 
-    def connect(self):
+    def connect(self) -> None:
         if self.status == 0:
             self.sock.connect(self.sockaddr)
             self.logger.info(socket_to_str(self.sock))
             self.start_listener()
             self.status = 1  # connected
 
-    def start_listener(self):
+    def start_listener(self) -> None:
         super().start_listener()
         if self._packet_listener.is_alive():
             self._packet_listener.join()
         self._packet_listener = threading.Thread(target=self._packet_listen)
         self._packet_listener.start()
 
-    def close(self):
+    def close(self) -> None:
         """Close the transport-layer connection and event-loop."""
         self.finish_listener()
         if self.listener.is_alive():
@@ -121,21 +120,17 @@ class Eth(BaseTransport):
             self._packet_listener.join()
         self.close_connection()
 
-    def _packet_listen(self):
-        use_tcp = self.use_tcp
+    def _packet_listen(self) -> None:
+        use_tcp: bool = self.use_tcp
         EVENT_READ = selectors.EVENT_READ
-
         close_event_set = self.closeEvent.is_set
         socket_fileno = self.sock.fileno
         select = self.selector.select
-
         _packets = self._packets
-
         if use_tcp:
             sock_recv = self.sock.recv
         else:
             sock_recv = self.sock.recvfrom
-
         while True:
             try:
                 if close_event_set() or socket_fileno() == -1:
@@ -144,7 +139,6 @@ class Eth(BaseTransport):
                 for _, events in sel:
                     if events & EVENT_READ:
                         recv_timestamp = self.timestamp.value
-
                         if use_tcp:
                             response = sock_recv(RECV_SIZE)
                             if not response:
@@ -165,36 +159,29 @@ class Eth(BaseTransport):
                 self.status = 0  # disconnected
                 break
 
-    def listen(self):
+    def listen(self) -> None:
         HEADER_UNPACK_FROM = self.HEADER.unpack_from
         HEADER_SIZE = self.HEADER_SIZE
         process_response = self.process_response
         popleft = self._packets.popleft
-
         close_event_set = self.closeEvent.is_set
         socket_fileno = self.sock.fileno
-
         _packets = self._packets
-        length, counter = None, None
-
-        data = bytearray(b"")
-
+        length: Optional[int] = None
+        counter: int = 0
+        data: bytearray = bytearray(b"")
         while True:
             if close_event_set() or socket_fileno() == -1:
                 return
-
-            count = len(_packets)
-
+            count: int = len(_packets)
             if not count:
-                sleep(SHORT_SLEEP)
+                short_sleep()
                 continue
-
             for _ in range(count):
                 bts, timestamp = popleft()
                 data += bts
-                current_size = len(data)
-                current_position = 0
-
+                current_size: int = len(data)
+                current_position: int = 0
                 while True:
                     if length is None:
                         if current_size >= HEADER_SIZE:
@@ -208,22 +195,19 @@ class Eth(BaseTransport):
                         if current_size >= length:
                             response = data[current_position : current_position + length]
                             process_response(response, length, counter, timestamp)
-
                             current_size -= length
                             current_position += length
-
                             length = None
-
                         else:
                             data = data[current_position:]
                             break
 
-    def send(self, frame):
+    def send(self, frame) -> None:
         self.pre_send_timestamp = self.timestamp.value
         self.sock.send(frame)
         self.post_send_timestamp = self.timestamp.value
 
-    def close_connection(self):
+    def close_connection(self) -> None:
         if not self.invalidSocket:
             # Seems to be problematic /w IPv6
             # if self.status == 1:
@@ -231,5 +215,5 @@ class Eth(BaseTransport):
             self.sock.close()
 
     @property
-    def invalidSocket(self):
+    def invalidSocket(self) -> bool:
         return not hasattr(self, "sock") or self.sock.fileno() == -1

@@ -8,7 +8,8 @@ from bisect import bisect_left
 from typing import Any, Dict, Optional, Type
 
 from can import CanError, CanInitializationError, Message, detect_available_configs
-from can.interface import BusABC, _get_class_for_interface
+from can.bus import BusABC
+from can.interface import _get_class_for_interface
 from rich.console import Console
 
 from pyxcp.config import CAN_INTERFACE_MAP
@@ -169,7 +170,7 @@ class Identifier:
         return "E" if self.is_extended else "S"
 
     @staticmethod
-    def make_identifier(identifier: int, extended: bool) -> int:
+    def make_identifier(identifier: int, extended: bool) -> "Identifier":
         """Factory method.
 
         Parameters
@@ -201,26 +202,26 @@ class Identifier:
             "extended": self.is_extended,
         }
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return (self.id == other.id) and (self.is_extended == other.is_extended)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Identifier(id = 0x{self.id:08x}, is_extended = {self.is_extended})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Identifier(0x{self.raw_id:08x})"
 
 
 class Frame:
     """"""
 
-    def __init__(self, id_: Identifier, dlc: int, data: bytes, timestamp: int):
-        self.id = id_
-        self.dlc = dlc
-        self.data = data
-        self.timestamp = timestamp
+    def __init__(self, id_: Identifier, dlc: int, data: bytes, timestamp: int) -> None:
+        self.id: Identifier = id_
+        self.dlc: int = dlc
+        self.data: bytes = data
+        self.timestamp: int = timestamp
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Frame(id = 0x{self.id:08x}, dlc = {self.dlc}, data = {self.data}, timestamp = {self.timestamp})"
 
     __str__ = __repr__
@@ -229,11 +230,13 @@ class Frame:
 class PythonCanWrapper:
     """Wrapper around python-can - github.com/hardbyte/python-can"""
 
-    def __init__(self, parent, interface_name: str, **parameters) -> None:
+    def __init__(self, parent, interface_name: str, timeout: int, **parameters) -> None:
         self.parent = parent
         self.interface_name: str = interface_name
+        self.timeout: int = timeout
         self.parameters = parameters
         self.can_interface_class: Type[BusABC] = _get_class_for_interface(self.interface_name)
+        self.can_interface: BusABC
         self.connected: bool = False
 
     def connect(self):
@@ -241,18 +244,22 @@ class PythonCanWrapper:
             return
         can_filters = []
         can_filters.append(self.parent.can_id_slave.create_filter_from_id())  # Primary CAN filter.
-        self.can_interface: BusABC = self.can_interface_class(interface=self.interface_name, **self.parameters)
+        if self.parent.has_user_supplied_interface:
+            self.can_interface = self.parent.transport_layer_interface
+        else:
+            self.can_interface = self.can_interface_class(interface=self.interface_name, **self.parameters)
         if self.parent.daq_identifier:
             # Add filters for DAQ identifiers.
             for daq_id in self.parent.daq_identifier:
                 can_filters.append(daq_id.create_filter_from_id())
         self.can_interface.set_filters(can_filters)
-        self.parent.logger.debug(f"XCPonCAN - Interface: {self.interface_name!r} -- {self.can_interface!s}")
-        self.parent.logger.debug(f"XCPonCAN - Filters used: {self.can_interface.filters}")
+        self.parent.logger.info(f"XCPonCAN - Using Interface: '{self.can_interface!s}'")
+        self.parent.logger.info(f"XCPonCAN - Filters used: {self.can_interface.filters}")
+        self.parent.logger.info(f"XCPonCAN - State: {self.can_interface.state!s}")
         self.connected = True
 
     def close(self):
-        if self.connected:
+        if self.connected and not self.parent.has_user_supplied_interface:
             self.can_interface.shutdown()
         self.connected = False
 
@@ -322,13 +329,12 @@ class Can(BaseTransport):
         self.interface_name = self.config.interface
         self.interface_configuration = detect_available_configs(interfaces=[self.interface_name])
         parameters = self.get_interface_parameters()
-        self.logger.info(f"XCPonCAN - opening {self.interface_name!r} CAN-interface {list(parameters.items())}")
+        self.can_interface = PythonCanWrapper(self, self.interface_name, config.timeout, **parameters)
+        self.logger.info(f"XCPonCAN - Interface-Type: {self.interface_name!r} Parameters: {list(parameters.items())}")
         self.logger.info(
             f"XCPonCAN - Master-ID (Tx): 0x{self.can_id_master.id:08X}{self.can_id_master.type_str} -- "
             f"Slave-ID (Rx): 0x{self.can_id_slave.id:08X}{self.can_id_slave.type_str}"
         )
-        self.can_interface = PythonCanWrapper(self, self.interface_name, **parameters)
-        self.can_interface.timeout = config.timeout  # c.Transport.timeout
 
     def get_interface_parameters(self) -> Dict[str, Any]:
         result = dict(channel=self.config.channel)

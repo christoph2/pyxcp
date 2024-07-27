@@ -3,7 +3,6 @@ import struct
 import threading
 from array import array
 from collections import deque
-from time import sleep
 from typing import Optional
 
 import usb.backend.libusb0 as libusb0
@@ -14,12 +13,10 @@ import usb.util
 from usb.core import USBError, USBTimeoutError
 
 from pyxcp.transport.base import BaseTransport
-from pyxcp.utils import SHORT_SLEEP
+from pyxcp.utils import short_sleep
 
 
 RECV_SIZE = 16384
-
-
 FIVE_MS = 5_000_000  # Five milliseconds in nanoseconds.
 
 
@@ -32,27 +29,27 @@ class Usb(BaseTransport):
     def __init__(self, config=None, policy=None, transport_layer_interface: Optional[usb.core.Device] = None):
         super().__init__(config, policy, transport_layer_interface)
         self.load_config(config)
-        self.serial_number = self.config.serial_number
-        self.vendor_id = self.config.vendor_id
-        self.product_id = self.config.product_id
-        self.configuration_number = self.config.configuration_number
-        self.interface_number = self.config.interface_number
-        self.library = self.config.library
-        self.header_format = self.config.header_format
+        self.serial_number: str = self.config.serial_number
+        self.vendor_id: int = self.config.vendor_id
+        self.product_id: int = self.config.product_id
+        self.configuration_number: int = self.config.configuration_number
+        self.interface_number: int = self.config.interface_number
+        self.library: str = self.config.library
+        self.header_format: str = self.config.header_format
 
         ## IN-EP (RES/ERR, DAQ, and EV/SERV) Parameters.
-        self.in_ep_number = self.config.in_ep_number
+        self.in_ep_number: int = self.config.in_ep_number
         self.in_ep_transfer_type = self.config.in_ep_transfer_type
-        self.in_ep_max_packet_size = self.config.in_ep_max_packet_size
-        self.in_ep_polling_interval = self.config.in_ep_polling_interval
+        self.in_ep_max_packet_size: int = self.config.in_ep_max_packet_size
+        self.in_ep_polling_interval: int = self.config.in_ep_polling_interval
         self.in_ep_message_packing = self.config.in_ep_message_packing
         self.in_ep_alignment = self.config.in_ep_alignment
-        self.in_ep_recommended_host_bufsize = self.config.in_ep_recommended_host_bufsize
+        self.in_ep_recommended_host_bufsize: int = self.config.in_ep_recommended_host_bufsize
 
         ## OUT-EP (CMD and STIM) Parameters.
-        self.out_ep_number = self.config.out_ep_number
+        self.out_ep_number: int = self.config.out_ep_number
 
-        self.device = None
+        self.device: Optional[usb.core.Device] = None
         self.status = 0
 
         self._packet_listener = threading.Thread(
@@ -141,7 +138,7 @@ class Usb(BaseTransport):
                         _packets.append((buffer.tobytes(), recv_timestamp))
                 except (USBError, USBTimeoutError):
                     # print(format_exc())
-                    sleep(SHORT_SLEEP)
+                    short_sleep()
                     continue
             except BaseException:  # noqa: B036
                 # Note: catch-all only permitted if the intention is re-raising.
@@ -155,26 +152,27 @@ class Usb(BaseTransport):
         process_response = self.process_response
         close_event_set = self.closeEvent.is_set
         _packets = self._packets
-        length, counter = None, None
-        data = bytearray(b"")
-        last_sleep = self.timestamp.value
+        length: Optional[int] = None
+        counter: int = 0
+        data: bytearray = bytearray(b"")
+        last_sleep: int = self.timestamp.value
 
         while True:
             if close_event_set():
                 return
-            count = len(_packets)
+            count: int = len(_packets)
             if not count:
-                sleep(SHORT_SLEEP)
+                short_sleep()
                 last_sleep = self.timestamp.value
                 continue
             for _ in range(count):
                 bts, timestamp = popleft()
                 data += bts
-                current_size = len(data)
-                current_position = 0
+                current_size: int = len(data)
+                current_position: int = 0
                 while True:
                     if self.timestamp.value - last_sleep >= FIVE_MS:
-                        sleep(SHORT_SLEEP)
+                        short_sleep()
                         last_sleep = self.timestamp.value
                     if length is None:
                         if current_size >= HEADER_SIZE:

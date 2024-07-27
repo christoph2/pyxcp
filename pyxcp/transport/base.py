@@ -2,9 +2,6 @@
 import abc
 import threading
 from collections import deque
-
-# from datetime import datetime
-from time import sleep
 from typing import Any, Dict, Optional, Set, Type
 
 import pyxcp.types as types
@@ -13,11 +10,11 @@ from ..cpp_ext import Timestamp, TimestampType
 from ..recorder import XcpLogFileWriter
 from ..timing import Timing
 from ..utils import (
-    SHORT_SLEEP,
     CurrentDatetime,
     flatten,
     hexDump,
     seconds_to_nanoseconds,
+    short_sleep,
 )
 
 
@@ -44,7 +41,7 @@ class FrameAcquisitionPolicy:
 
     def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: int, payload: bytes) -> None: ...  # noqa: E704
 
-    def finalize(self, *args) -> None:
+    def finalize(self) -> None:
         """
         Finalize the frame acquisition policy (if required).
         """
@@ -153,7 +150,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.logger: Any = config.log
         self._debug: bool = self.logger.level == 10
         if transport_layer_interface:
-            self.logger.info(f"User supplied transport layer interface '{transport_layer_interface!s}'.")
+            self.logger.info(f"Transport - User Supplied Transport-Layer Interface: '{transport_layer_interface!s}'")
         self.counter_send: int = 0
         self.counter_received: int = -1
         self.create_daq_timestamps: bool = config.create_daq_timestamps
@@ -207,7 +204,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 self.timer_restart_event.restart_event.clear()
             if self.timestamp.value - start > self.timeout:
                 raise EmptyFrameError
-            sleep(SHORT_SLEEP)
+            short_sleep()
         item = self.resQueue.popleft()
         # print("Q", item)
         return item
@@ -342,7 +339,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             else:
                 if self.timestamp.value - start > self.timeout:
                     raise types.XcpTimeoutError("Response timed out [block_receive].") from None
-                sleep(SHORT_SLEEP)
+                short_sleep()
         return block_response
 
     @abc.abstractmethod
@@ -398,7 +395,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             if self.create_daq_timestamps:
                 timestamp = recv_timestamp
             else:
-                timestamp = 0.0
+                timestamp = 0
             with self.policy_lock:
                 self.policy.feed(types.FrameCategory.DAQ, self.counter_received, timestamp, response)
 

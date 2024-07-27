@@ -9,7 +9,7 @@ from time import perf_counter
 import chardet
 import pytz
 
-from pyxcp.cpp_ext import TimestampInfo
+from pyxcp.cpp_ext import TimestampInfo, sleep_ns
 
 
 def hexDump(arr):
@@ -69,7 +69,10 @@ def decode_bytes(byte_str: bytes) -> str:
 
 
 PYTHON_VERSION = getPythonVersion()
-SHORT_SLEEP = 0.0005
+
+
+def short_sleep():
+    sleep_ns(500000)  # Sleep for 500µs.
 
 
 def delay(amount: float):

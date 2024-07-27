@@ -2328,28 +2328,6 @@ docs = ["furo (>=2023.7.26)", "proselint (>=0.13)", "sphinx (>=7.1.2,!=7.3)", "s
 test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess (>=1)", "flaky (>=3.7)", "packaging (>=23.1)", "pytest (>=7.4)", "pytest-env (>=0.8.2)", "pytest-freezer (>=0.4.8)", "pytest-mock (>=3.11.1)", "pytest-randomly (>=3.12)", "pytest-timeout (>=2.1)", "setuptools (>=68)", "time-machine (>=2.10)"]
 
 [[package]]
-name = "win-precise-time"
-version = "1.4.2"
-description = ""
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "win-precise-time-1.4.2.tar.gz", hash = "sha256:89274785cbc5f2997e01675206da3203835a442c60fd97798415c6b3c179c0b9"},
-    {file = "win_precise_time-1.4.2-cp310-cp310-win32.whl", hash = "sha256:7fa13a2247c2ef41cd5e9b930f40716eacc7fc1f079ea72853bd5613fe087a1a"},
-    {file = "win_precise_time-1.4.2-cp310-cp310-win_amd64.whl", hash = "sha256:bb8e44b0fc35fde268e8a781cdcd9f47d47abcd8089465d2d1d1063976411c8e"},
-    {file = "win_precise_time-1.4.2-cp311-cp311-win32.whl", hash = "sha256:59272655ad6f36910d0b585969402386fa627fca3be24acc9a21be1d550e5db8"},
-    {file = "win_precise_time-1.4.2-cp311-cp311-win_amd64.whl", hash = "sha256:0897bb055f19f3b4336e2ba6bee0115ac20fd7ec615a6d736632e2df77f8851a"},
-    {file = "win_precise_time-1.4.2-cp312-cp312-win32.whl", hash = "sha256:0210dcea88a520c91de1708ae4c881e3c0ddc956daa08b9eabf2b7c35f3109f5"},
-    {file = "win_precise_time-1.4.2-cp312-cp312-win_amd64.whl", hash = "sha256:85670f77cc8accd8f1e6d05073999f77561c23012a9ee988cbd44bb7ce655062"},
-    {file = "win_precise_time-1.4.2-cp37-cp37m-win32.whl", hash = "sha256:3e23693201a0fc6ca39f016871e2581e20c91123734bd48a69259f8c8724eedb"},
-    {file = "win_precise_time-1.4.2-cp37-cp37m-win_amd64.whl", hash = "sha256:07ef644d1bb7705039bc54abfe4b45e99e8dc326dfd1dad5831dab19670508cb"},
-    {file = "win_precise_time-1.4.2-cp38-cp38-win32.whl", hash = "sha256:0a953b00772f205602fa712ef68387b8fb213a30b267ae310aa56bf17605e11b"},
-    {file = "win_precise_time-1.4.2-cp38-cp38-win_amd64.whl", hash = "sha256:b5d83420925beca302b386b19c3e7414ada84b47b42f0680207f1508917a1731"},
-    {file = "win_precise_time-1.4.2-cp39-cp39-win32.whl", hash = "sha256:50d11a6ff92e1be96a8d4bee99ff6dc07a0ea0e2a392b0956bb2192e334f41ba"},
-    {file = "win_precise_time-1.4.2-cp39-cp39-win_amd64.whl", hash = "sha256:3f510fa92d9c39ea533c983e1d62c7bc66fdf0a3e3c3bdda48d4ebb634ff7034"},
-]
-
-[[package]]
 name = "wrapt"
 version = "1.16.0"
 description = "Module for decorators, wrappers and monkey patching."
@@ -2473,4 +2451,4 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "8a979a0f5f5e9158ba542535bc159d5a698854e0229f960c9d8738153cef2431"
+content-hash = "2afd9ffcdd5ad1a6dbc0ef02a986f769bf99859fc19fb4e96e2e1e73f1773a29"

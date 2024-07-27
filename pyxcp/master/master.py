@@ -10,7 +10,6 @@ import functools
 import struct
 import traceback
 import warnings
-from time import sleep
 from typing import Any, Callable, Collection, Dict, List, Optional, Tuple
 
 from pyxcp import checksum, types
@@ -27,7 +26,7 @@ from pyxcp.constants import (
 from pyxcp.daq_stim.stim import DaqEventInfo, Stim
 from pyxcp.master.errorhandler import SystemExit, disable_error_handling, wrapped
 from pyxcp.transport.base import create_transport
-from pyxcp.utils import SHORT_SLEEP, decode_bytes, delay
+from pyxcp.utils import decode_bytes, delay, short_sleep
 
 
 def broadcasted(func: Callable):
@@ -446,7 +445,7 @@ class Master:
                     response += data[1 : rem + 1]
                     rem = byte_count - len(response)
                 else:
-                    sleep(SHORT_SLEEP)
+                    short_sleep()
         return response
 
     @wrapped
