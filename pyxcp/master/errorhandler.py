@@ -7,6 +7,7 @@ import threading
 import time
 import types
 from collections import namedtuple
+from typing import Generic, List, Optional, TypeVar
 
 import can
 
@@ -120,12 +121,14 @@ class Arguments:
                 self.args = tuple(args)
         self.kwargs = kwargs or {}
 
-    def __str__(self):
+    def __str__(self) -> str:
         res = f"{self.__class__.__name__}(ARGS = {self.args}, KWS = {self.kwargs})"
         return res
 
-    def __eq__(self, other):
-        return (self.args == other.args if other is not None else ()) and (self.kwargs == other.kwargs if other is not None else {})
+    def __eq__(self, other) -> bool:
+        return (self.args == other.args if other is not None else False) and (
+            self.kwargs == other.kwargs if other is not None else False
+        )
 
     __repr__ = __str__
 
@@ -187,7 +190,9 @@ class Handler:
             self.func = func
         self.arguments = arguments
         self.service = self.instance.service
-        self.error_code = error_code
+        self._error_code: int = 0
+        if error_code is not None:
+            self._error_code = error_code
         self._repeater = None
         self.logger = logging.getLogger("PyXCP")
 
@@ -198,6 +203,14 @@ class Handler:
         if other is None:
             return False
         return (self.instance == other.instance) and (self.func == other.func) and (self.arguments == other.arguments)
+
+    @property
+    def error_code(self) -> int:
+        return self._error_code
+
+    @error_code.setter
+    def error_code(self, value: int) -> None:
+        self._error_code = value
 
     @property
     def repeater(self):
@@ -283,39 +296,43 @@ class Handler:
         return result_pre_actions, result_actions, Repeater(repetitionCount)
 
 
-class HandlerStack:
+T = TypeVar("T")
+
+
+class HandlerStack(Generic[T]):
     """"""
 
-    def __init__(self):
-        self._stack = []
+    def __init__(self) -> None:
+        self._stack: List[T] = []
 
-    def push(self, handler):
-        if handler != self.tos():
-            self._stack.append(handler)
+    def push(self, value: T):
+        if value != self.tos():
+            self._stack.append(value)
 
-    def pop(self):
+    def pop(self) -> None:
         if len(self) > 0:
             self._stack.pop()
 
-    def tos(self):
+    def tos(self) -> Optional[T]:
         if len(self) > 0:
             return self._stack[-1]
         else:
             return None
+            # raise ValueError("empty stack.")
 
-    def empty(self):
+    def empty(self) -> bool:
         return self._stack == []
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._stack)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         result = []
         for idx in range(len(self)):
             result.append(str(self[idx]))
         return "\n".join(result)
 
-    def __getitem__(self, ndx):
+    def __getitem__(self, ndx: int) -> T:
         return self._stack[ndx]
 
     __str__ = __repr__
@@ -339,7 +356,6 @@ class Executor(SingletonBase):
         self.arguments = arguments
         handler = Handler(inst, func, arguments)
         self.handlerStack.push(handler)
-        # print("\tENTER handler:", hex(id(handler)))
         try:
             while True:
                 try:

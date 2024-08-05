@@ -27,8 +27,9 @@ class ArgumentParser:
 
     def run(self, policy=None, transport_layer_interface=None):
         application = create_application()
-        transport = application.transport.layer
-        master = Master(transport, config=application, policy=policy, transport_layer_interface=transport_layer_interface)
+        master = Master(
+            application.transport.layer, config=application, policy=policy, transport_layer_interface=transport_layer_interface
+        )
         return master
 
     @property

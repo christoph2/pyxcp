@@ -80,7 +80,7 @@ def getKey(logger, dllName: str, privilege: int, seed: bytes, assume_same_bit_wi
         except OSError as exc:
             logger.error(f"Cannot execute {LOADER!r} -- {exc}")
             return (SeedNKeyResult.ERR_COULD_NOT_LOAD_DLL, None)
-        key: bytes = bytes(b"")
+        key: bytes = b""
         if p0.stdout:
             key = p0.stdout.read()
             p0.stdout.close()

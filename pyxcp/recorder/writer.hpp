@@ -17,8 +17,6 @@ class XcpLogFileWriter {
         }
         m_opened = false;
 
-        std::cout << "Writer::c_tor()\n";
-
 #if defined(_WIN32)
         m_fd = CreateFileA(
             m_file_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, (LPSECURITY_ATTRIBUTES) nullptr, CREATE_ALWAYS,

@@ -4,12 +4,12 @@ import functools
 import operator
 import sys
 from binascii import hexlify
-from time import perf_counter
+from time import perf_counter, sleep
 
 import chardet
 import pytz
 
-from pyxcp.cpp_ext import TimestampInfo, sleep_ns
+from pyxcp.cpp_ext import TimestampInfo
 
 
 def hexDump(arr):
@@ -72,7 +72,7 @@ PYTHON_VERSION = getPythonVersion()
 
 
 def short_sleep():
-    sleep_ns(500000)  # Sleep for 500µs.
+    sleep(0.0005)
 
 
 def delay(amount: float):

@@ -60,7 +60,7 @@ class LegacyFrameAcquisitionPolicy(FrameAcquisitionPolicy):
     Deprecated: Use only for compatibility reasons.
     """
 
-    def __init__(self, filter_out: Optional[Set[types.FrameCategory]] = None):
+    def __init__(self, filter_out: Optional[Set[types.FrameCategory]] = None) -> None:
         super().__init__(filter_out)
         self.reqQueue = deque()
         self.resQueue = deque()
@@ -98,7 +98,7 @@ class FrameRecorderPolicy(FrameAcquisitionPolicy):
         filter_out: Optional[Set[types.FrameCategory]] = None,
         prealloc: int = 10,
         chunk_size: int = 1,
-    ):
+    ) -> None:
         super().__init__(filter_out)
         self.recorder = XcpLogFileWriter(file_name, prealloc=prealloc, chunk_size=chunk_size)
 
@@ -113,7 +113,7 @@ class FrameRecorderPolicy(FrameAcquisitionPolicy):
 class StdoutPolicy(FrameAcquisitionPolicy):
     """Frame acquisition policy that prints frames to stdout."""
 
-    def __init__(self, filter_out: Optional[Set[types.FrameCategory]] = None):
+    def __init__(self, filter_out: Optional[Set[types.FrameCategory]] = None) -> None:
         super().__init__(filter_out)
 
     def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: int, payload: bytes) -> None:
@@ -175,16 +175,16 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.post_send_timestamp: int = self.timestamp.value
         self.recv_timestamp: int = self.timestamp.value
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.finish_listener()
         self.close_connection()
 
-    def load_config(self, config):
+    def load_config(self, config) -> None:
         """Load configuration data."""
         class_name: str = self.__class__.__name__.lower()
         self.config: Any = getattr(config, class_name)
 
-    def close(self):
+    def close(self) -> None:
         """Close the transport-layer connection and event-loop."""
         self.finish_listener()
         if self.listener.is_alive():
@@ -192,7 +192,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.close_connection()
 
     @abc.abstractmethod
-    def connect(self):
+    def connect(self) -> None:
         pass
 
     def get(self):
@@ -201,7 +201,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         while not self.resQueue:
             if self.timer_restart_event.is_set():
                 start: int = self.timestamp.value
-                self.timer_restart_event.restart_event.clear()
+                self.timer_restart_event.clear()
             if self.timestamp.value - start > self.timeout:
                 raise EmptyFrameError
             short_sleep()

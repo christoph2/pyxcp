@@ -169,3 +169,21 @@ build-verbosity = 3
 build = "cp3{7,8,9,10,11,12}-*"
 skip = ["*-manylinux_i686", "*-musllinux_x86_64", "*-musllinux_i686"] # Skip Linux 32bit and MUSL builds.
 build-frontend = "build"
+
+[tool.pyright]
+include = ["pyxcp", "build_ext.py"]
+ignore = ["pyxcp/conf_test.py", "pyxcp/config_new.py", "pyxcp/config_tr.py", "pyxcp/examples/memxfer.py",
+	"pyxcp/examples/ts_tester.py", "pyxcp/recorder/converter/**", "pyxcp/transport/candriver/**", "pyxcp/recorder/simdjson/**",
+	"pyxcp/recorder/mio/**", "pyxcp/recorder/lz4/**"]
+#defineConstant = { DEBUG = true }
+#stubPath = "src/stubs"
+
+reportMissingImports = true
+reportMissingTypeStubs = false
+
+#executionEnvironments = [
+#  { root = "src/web", pythonVersion = "3.5", pythonPlatform = "Windows", extraPaths = [ "src/service_libs" ] },
+#  { root = "src/sdk", pythonVersion = "3.0", extraPaths = [ "src/backend" ] },
+#  { root = "src/tests", extraPaths = ["src/tests/e2e", "src/sdk" ]},
+#  { root = "src" }
+#]

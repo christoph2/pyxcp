@@ -41,7 +41,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL  "Windows")
 	message("Platform is WINDOWS")
 	SET(MSVC_EXTRA_OPTIONS "")
 elseif (CMAKE_SYSTEM_NAME STREQUAL  "Linux")
-	SET(GCC_N_CLANG_EXTRA_OPTIONS "-fvisibility=hidden -g0") # -fcoroutines 
+	SET(GCC_N_CLANG_EXTRA_OPTIONS "-fvisibility=hidden -g0") # -fcoroutines
 	message("Platform is LINUX")
 endif()
 

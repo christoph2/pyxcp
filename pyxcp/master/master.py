@@ -63,7 +63,9 @@ class Master:
     config: dict
     """
 
-    def __init__(self, transport_name: str, config, policy=None, transport_layer_interface=None):
+    def __init__(self, transport_name: Optional[str], config, policy=None, transport_layer_interface=None):
+        if transport_name is None:
+            raise ValueError("No transport-layer selected")  # Never reached -- to keep type-checkers happy.
         self.ctr = 0
         self.succeeded = True
         self.config = config.general
