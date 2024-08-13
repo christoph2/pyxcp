@@ -23,8 +23,8 @@ class PyTimestampInfo : public TimestampInfo {
 PYBIND11_MODULE(cpp_ext, m) {
     m.doc() = "C++ extensions for pyXCP.";
 
-    m.def("sleep_ms", &sleep_ms, "milliseconds"_a);
-    m.def("sleep_ns", &sleep_ns, "nanoseconds"_a);
+    //m.def("sleep_ms", &sleep_ms, "milliseconds"_a);
+    //m.def("sleep_ns", &sleep_ns, "nanoseconds"_a);
 
     py::class_<McObject>(m, "McObject")
         .def(

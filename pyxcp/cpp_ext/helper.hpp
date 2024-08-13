@@ -247,6 +247,7 @@ class Timestamp {
     std::uint64_t m_initial;
 };
 
+#if 0
 inline void sleep_ms(std::uint64_t milliseconds) {
     std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 }
@@ -254,5 +255,6 @@ inline void sleep_ms(std::uint64_t milliseconds) {
 inline void sleep_ns(std::uint64_t nanoseconds) {
     std::this_thread::sleep_for(std::chrono::nanoseconds(nanoseconds));
 }
+#endif
 
 #endif  // __HELPER_HPP
