@@ -3,13 +3,14 @@
     #define __HELPER_HPP
 
     #if defined(_WIN32) || defined(_WIN64)
-        #include <chrono>
+
     #else
         #include <sys/time.h>
         #include <time.h>
     #endif
 
     #include <bit>
+    #include <chrono>
     #include <iostream>
     #include <map>
     #include <utility>
