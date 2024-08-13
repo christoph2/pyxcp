@@ -17,6 +17,8 @@ def main():
         # TODO: error-handling.
         file_name = x.identifier(XcpGetIdType.FILENAME)
         content = x.identifier(XcpGetIdType.FILE_TO_UPLOAD)
+        if not content:
+            sys.exit(f"Empty response from ID '{XcpGetIdType.FILE_TO_UPLOAD!r}'.")
         x.disconnect()
         if not file_name.lower().endswith(".a2l"):
             file_name += ".a2l"

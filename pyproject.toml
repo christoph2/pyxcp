@@ -56,7 +56,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-	"Programming Language :: Python :: 3.12"
+	"Programming Language :: Python :: 3.13"
 ]
 build = "build_ext.py"
 include = [
@@ -166,7 +166,7 @@ exclude = '''
 build-verbosity = 3
 #test-command = "pytest {package}/tests"
 #test-command = "pytest -svv pyxcp/tests"
-build = "cp3{7,8,9,10,11,12}-*"
+build = "cp3{7,8,9,10,11,12,13}-*"
 skip = ["*-manylinux_i686", "*-musllinux_x86_64", "*-musllinux_i686"] # Skip Linux 32bit and MUSL builds.
 build-frontend = "build"
 

@@ -154,8 +154,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.counter_send: int = 0
         self.counter_received: int = -1
         self.create_daq_timestamps: bool = config.create_daq_timestamps
-        timestamp_mode = TimestampType.ABSOLUTE_TS if config.timestamp_mode == "ABSOLUTE" else TimestampType.RELATIVE_TS
-        self.timestamp = Timestamp(timestamp_mode)
+        self.timestamp = Timestamp(TimestampType.ABSOLUTE_TS)
         self._start_datetime: CurrentDatetime = CurrentDatetime(self.timestamp.initial_value)
         self.alignment: int = config.alignment
         self.timeout: int = seconds_to_nanoseconds(config.timeout)

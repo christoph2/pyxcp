@@ -1,6 +1,11 @@
 Configuration
 =============
 
+pyXCP has many configuration options...
+
+make shure to use `.py` as an extension.
+
+
 Parameters live in `JSON` or `TOML` :file:`pyxcp/examples` contains some example configurations.
 
 General pyXCP Parameters

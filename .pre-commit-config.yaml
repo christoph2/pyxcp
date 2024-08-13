@@ -19,6 +19,7 @@ repos:
         entry: ruff
         language: system
         types: [python]
+        args: ["check"]
         require_serial: true
       - id: check-added-large-files
         name: Check for added large files

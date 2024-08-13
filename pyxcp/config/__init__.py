@@ -799,11 +799,6 @@ class Transport(SingletonConfigurable):
         help="Choose one of the supported XCP transport layers.",
     ).tag(config=True)
     create_daq_timestamps = Bool(False, help="Record time of frame reception or set timestamp to 0.").tag(config=True)
-    timestamp_mode = Enum(
-        values=["ABSOLUTE", "RELATIVE"],
-        default_value="ABSOLUTE",
-        help="""Either absolute timestamps since some epoch or program start, both values are in nano-seconds.""",
-    ).tag(config=True)
     timeout = Float(
         2.0,
         help="""raise `XcpTimeoutError` after `timeout` seconds

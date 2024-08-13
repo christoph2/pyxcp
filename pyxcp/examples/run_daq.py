@@ -10,8 +10,8 @@ from pyxcp.daq_stim import DaqList, DaqRecorder, DaqToCsv  # noqa: F401
 
 ap = ArgumentParser(description="DAQ test")
 
-# XCP_LITE = True
-XCP_LITE = False
+XCP_LITE = True
+# XCP_LITE = False
 
 # Completly random configurations, only for illustrative purposes.
 #
@@ -26,10 +26,10 @@ if XCP_LITE:
             False,
             False,
             [
-                ("byteCounter", 0x31698, 0, "U8"),
-                ("wordCounter", 0x3169A, 0, "U16"),
-                ("dwordCounter", 0x3169C, 0, "U32"),
-                ("sbyteCounter", 0x316A0, 0, "I8"),
+                ("byteCounter", 0x203EA, 0, "U8"),
+                ("wordCounter", 0x203EC, 0, "U16"),
+                ("dwordCounter", 0x20410, 0, "U32"),
+                ("sbyteCounter", 0x203EB, 0, "I8"),
             ],
         ),
         DaqList(
@@ -38,11 +38,11 @@ if XCP_LITE:
             False,
             False,
             [
-                ("swordCounter", 0x316A2, 0, "I16"),
-                ("sdwordCounter", 0x316A4, 0, "I32"),
-                ("channel1", 0x30280, 0, "F64"),
-                ("channel2", 0x30288, 0, "F64"),
-                ("channel3", 0x30290, 0, "F64"),
+                ("swordCounter", 0x20414, 0, "I16"),
+                ("sdwordCounter", 0x20418, 0, "I32"),
+                ("channel1", 0x203F8, 0, "F64"),
+                ("channel2", 0x20400, 0, "F64"),
+                ("channel3", 0x20408, 0, "F64"),
             ],
         ),
     ]
@@ -156,7 +156,7 @@ with ap.run(policy=daq_parser) as x:
     print("start DAQ lists.")
     daq_parser.start()  # Start DAQ lists.
 
-    time.sleep(3 * 15.0 * 60.0)
+    time.sleep(1 * 15.0 * 60.0)
     # time.sleep(1 * 60.0 * 60.0)  # Arbitrary termination condition.ls *.
     # time.sleep(6 * 60.0 * 60.0)  # Arbitrary termination condition.ls *.
     print("Stop DAQ....")

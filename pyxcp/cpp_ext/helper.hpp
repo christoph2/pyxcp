@@ -127,6 +127,7 @@ class TimestampInfo {
     TimestampInfo(TimestampInfo &&)                 = default;
     TimestampInfo &operator=(const TimestampInfo &) = default;
     TimestampInfo &operator=(TimestampInfo &&)      = default;
+    virtual ~TimestampInfo() {}
 
     TimestampInfo() : m_timestamp_ns(0), m_timezone{}, m_utc_offset(0), m_dst_offset(0) {
     }
