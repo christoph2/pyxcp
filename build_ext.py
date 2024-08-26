@@ -2,6 +2,7 @@
 
 import multiprocessing as mp
 import os
+import platform
 import re
 import subprocess  # nosec
 import sys
@@ -10,6 +11,11 @@ from tempfile import TemporaryDirectory
 
 
 TOP_DIR = Path(__file__).parent
+
+print("Platform", platform.system())
+uname = platform.uname()
+if uname.system == "Darwin":
+    os.environ["MACOSX_DEPLOYMENT_TARGET"] = "11.0"
 
 
 def banner(msg: str) -> None:

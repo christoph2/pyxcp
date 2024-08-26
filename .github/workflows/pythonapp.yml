@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, windows-latest, ubuntu-latest]
+        os: [macos-13, windows-latest] # , ubuntu-latest
         cibw_archs: ["auto"]
         include:
           - os: ubuntu-latest
@@ -66,18 +66,3 @@ jobs:
         with:
           user: __token__
           password: ${{ secrets.PYPI_PASSWORD }}
-    # To test: repository_url: https://test.pypi.org/legacy/
-    #
-    #      - name: Upload to PyPI
-    #uses: pypa/gh-action-pypi-publish@v1.4.2
-    #with:
-    #    user: ${{ secrets.PYPI_USER_NAME }}
-    #    password: ${{ secrets.PYPI_PASSWORD }}
-    #- name: Build and publish
-    #  env:
-    #    TWINE_USERNAME: ${{ secrets.PYPI_USER_NAME }}
-    #    TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-    #  if: env.TWINE_USERNAME != null
-    #  run: |
-    #    python setup.py bdist_wheel
-    #    twine upload dist/*
