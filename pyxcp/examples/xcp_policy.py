@@ -1,18 +1,17 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""Demostrates how to use frame recording policies.
+"""Demostrates how to use frame recording policies including recorder extension.
 """
 from pprint import pprint
 
 from pyxcp.cmdline import ArgumentParser
-from pyxcp.transport.base import FrameRecorderAcquisitionPolicy
-from pyxcp.transport.base import StdoutPolicy
+from pyxcp.transport.base import FrameRecorderPolicy, StdoutPolicy  # noqa: F401
+
 
 ap = ArgumentParser(description="pyXCP frame recording policy example.")
 
 LOG_FILE = "pyxcp"
 
-policy = FrameRecorderAcquisitionPolicy(LOG_FILE)
+policy = FrameRecorderPolicy(LOG_FILE)
 use_recorder = True
 
 # policy = StdoutPolicy()  # You may also try this one.
@@ -25,7 +24,7 @@ with ap.run(policy=policy) as x:
     identifier = x.identifier(0x01)
     print("\nSlave Properties:")
     print("=================")
-    print(f"ID: '{identifier}'")
+    print(f"ID: {identifier!r}")
     pprint(x.slaveProperties)
     x.disconnect()
 
@@ -34,7 +33,7 @@ if use_recorder:
     from pyxcp.utils import hexDump
 
     try:
-        import pandas
+        import pandas  # noqa: F401
     except ImportError:
         has_pandas = False
     else:

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Lowlevel API reflecting available XCP services.
 
 .. note:: For technical reasons the API is split into two parts;
@@ -8,37 +7,26 @@
 .. [1] XCP Specification, Part 2 - Protocol Layer Specification
 """
 import functools
-import logging
 import struct
 import traceback
 import warnings
-from time import sleep
-from typing import Callable
-from typing import Collection
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Union
+from typing import Any, Callable, Collection, Dict, List, Optional, Tuple
 
-from pyxcp import checksum
-from pyxcp import types
-from pyxcp.config import Configuration
-from pyxcp.constants import makeBytePacker
-from pyxcp.constants import makeByteUnpacker
-from pyxcp.constants import makeDLongPacker
-from pyxcp.constants import makeDLongUnpacker
-from pyxcp.constants import makeDWordPacker
-from pyxcp.constants import makeDWordUnpacker
-from pyxcp.constants import makeWordPacker
-from pyxcp.constants import makeWordUnpacker
-from pyxcp.constants import PackerType
-from pyxcp.constants import UnpackerType
-from pyxcp.master.errorhandler import disable_error_handling
-from pyxcp.master.errorhandler import wrapped
-from pyxcp.transport.base import createTransport
-from pyxcp.utils import decode_bytes
-from pyxcp.utils import delay
-from pyxcp.utils import SHORT_SLEEP
+from pyxcp import checksum, types
+from pyxcp.constants import (
+    makeBytePacker,
+    makeByteUnpacker,
+    makeDLongPacker,
+    makeDLongUnpacker,
+    makeDWordPacker,
+    makeDWordUnpacker,
+    makeWordPacker,
+    makeWordUnpacker,
+)
+from pyxcp.daq_stim.stim import DaqEventInfo, Stim
+from pyxcp.master.errorhandler import SystemExit, disable_error_handling, wrapped
+from pyxcp.transport.base import create_transport
+from pyxcp.utils import decode_bytes, delay, short_sleep
 
 
 def broadcasted(func: Callable):
@@ -50,7 +38,7 @@ class SlaveProperties(dict):
     """Container class for fixed parameters, like byte-order, maxCTO, ..."""
 
     def __init__(self, *args, **kws):
-        super(SlaveProperties, self).__init__(*args, **kws)
+        super().__init__(*args, **kws)
 
     def __getattr__(self, name):
         return self[name]
@@ -70,38 +58,35 @@ class Master:
 
     Parameters
     ----------
-    transportName : str
+    transport_name : str
         XCP transport layer name ['can', 'eth', 'sxi']
     config: dict
     """
 
-    PARAMETER_MAP = {
-        #            Type Req'd  Default
-        "LOGLEVEL": (str, False, "WARN"),
-        "DISABLE_ERROR_HANDLING": (
-            bool,
-            False,
-            False,
-        ),  # Bypass error-handling for performance reasons.
-        "SEED_N_KEY_DLL": (str, False, ""),
-        "SEED_N_KEY_DLL_SAME_BIT_WIDTH": (bool, False, False),
-        "DISCONNECT_RESPONSE_OPTIONAL": (bool, False, False),
-    }
-
-    def __init__(self, transportName, config=None, policy=None):
+    def __init__(self, transport_name: Optional[str], config, policy=None, transport_layer_interface=None):
+        if transport_name is None:
+            raise ValueError("No transport-layer selected")  # Never reached -- to keep type-checkers happy.
         self.ctr = 0
         self.succeeded = True
-        self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
-        self.logger = logging.getLogger("pyXCP")
-        self.logger.setLevel(self.config.get("LOGLEVEL"))
-        disable_error_handling(self.config.get("DISABLE_ERROR_HANDLING"))
+        self.config = config.general
+        self.logger = config.log
 
-        self.transport = createTransport(transportName, config, policy)
-        self.transport_name = transportName
+        disable_error_handling(self.config.disable_error_handling)
+        self.transport_name = transport_name.lower()
+        transport_config = config.transport
+        self.transport = create_transport(transport_name, transport_config, policy, transport_layer_interface)
+
+        self.stim = Stim(self.config.stim_support)
+        self.stim.clear()
+        self.stim.set_policy_feeder(self.transport.policy.feed)
+        self.stim.set_frame_sender(self.transport.block_request)
 
         # In some cases the transport-layer needs to communicate with us.
         self.transport.parent = self
         self.service = None
+
+        # Policies may issue XCP commands on there own.
+        self.transport.policy.xcp_master = self
 
         # (D)Word (un-)packers are byte-order dependent
         # -- byte-order is returned by CONNECT_Resp (COMM_MODE_BASIC)
@@ -119,11 +104,13 @@ class Master:
         self.mta = types.MtaType(None, None)
         self.currentDaqPtr = None
         self.currentProtectionStatus = None
-        self.seedNKeyDLL = self.config.get("SEED_N_KEY_DLL")
-        self.seedNKeyDLL_same_bit_width = self.config.get("SEED_N_KEY_DLL_SAME_BIT_WIDTH")
-        self.disconnect_response_optional = self.config.get("DISCONNECT_RESPONSE_OPTIONAL")
+        self.seed_n_key_dll = self.config.seed_n_key_dll
+        self.seed_n_key_function = self.config.seed_n_key_function
+        self.seed_n_key_dll_same_bit_width = self.config.seed_n_key_dll_same_bit_width
+        self.disconnect_response_optional = self.config.disconnect_response_optional
         self.slaveProperties = SlaveProperties()
         self.slaveProperties.pgmProcessor = SlaveProperties()
+        self.slaveProperties.transport_layer = self.transport_name.upper()
 
     def __enter__(self):
         """Context manager entry part."""
@@ -460,7 +447,7 @@ class Master:
                     response += data[1 : rem + 1]
                     rem = byte_count - len(response)
                 else:
-                    sleep(SHORT_SLEEP)
+                    short_sleep()
         return response
 
     @wrapped
@@ -580,7 +567,7 @@ class Master:
         address is not included because of services implicitly setting address information like :meth:`getID` .
         """
         if limitPayload and limitPayload < 8:
-            raise ValueError("Payload must be at least 8 bytes - given: {}".format(limitPayload))
+            raise ValueError(f"Payload must be at least 8 bytes - given: {limitPayload}")
 
         slaveBlockMode = self.slaveProperties.slaveBlockMode
         if slaveBlockMode:
@@ -977,14 +964,15 @@ class Master:
     # DAQ
 
     @wrapped
-    def setDaqPtr(self, daqListNumber, odtNumber, odtEntryNumber):
+    def setDaqPtr(self, daqListNumber: int, odtNumber: int, odtEntryNumber: int):
         self.currentDaqPtr = types.DaqPtr(daqListNumber, odtNumber, odtEntryNumber)  # Needed for errorhandling.
         daqList = self.WORD_pack(daqListNumber)
         response = self.transport.request(types.Command.SET_DAQ_PTR, 0, *daqList, odtNumber, odtEntryNumber)
+        self.stim.setDaqPtr(daqListNumber, odtNumber, odtEntryNumber)
         return response
 
     @wrapped
-    def clearDaqList(self, daqListNumber):
+    def clearDaqList(self, daqListNumber: int):
         """Clear DAQ list configuration.
 
         Parameters
@@ -992,10 +980,12 @@ class Master:
         daqListNumber : int
         """
         daqList = self.WORD_pack(daqListNumber)
-        return self.transport.request(types.Command.CLEAR_DAQ_LIST, 0, *daqList)
+        result = self.transport.request(types.Command.CLEAR_DAQ_LIST, 0, *daqList)
+        self.stim.clearDaqList(daqListNumber)
+        return result
 
     @wrapped
-    def writeDaq(self, bitOffset, entrySize, addressExt, address):
+    def writeDaq(self, bitOffset: int, entrySize: int, addressExt: int, address: int):
         """Write element in ODT entry.
 
         Parameters
@@ -1008,12 +998,15 @@ class Master:
         address : int
         """
         addr = self.DWORD_pack(address)
-        return self.transport.request(types.Command.WRITE_DAQ, bitOffset, entrySize, addressExt, *addr)
+        result = self.transport.request(types.Command.WRITE_DAQ, bitOffset, entrySize, addressExt, *addr)
+        self.stim.writeDaq(bitOffset, entrySize, addressExt, address)
+        return result
 
     @wrapped
     def setDaqListMode(self, mode, daqListNumber, eventChannelNumber, prescaler, priority):
         dln = self.WORD_pack(daqListNumber)
         ecn = self.WORD_pack(eventChannelNumber)
+        self.stim.setDaqListMode(mode, daqListNumber, eventChannelNumber, prescaler, priority)
         return self.transport.request(types.Command.SET_DAQ_LIST_MODE, mode, *dln, *ecn, prescaler, priority)
 
     @wrapped
@@ -1033,7 +1026,7 @@ class Master:
         return types.GetDaqListModeResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
-    def startStopDaqList(self, mode, daqListNumber):
+    def startStopDaqList(self, mode: int, daqListNumber: int):
         """Start /stop/select DAQ list.
 
         Parameters
@@ -1046,7 +1039,10 @@ class Master:
         """
         dln = self.WORD_pack(daqListNumber)
         response = self.transport.request(types.Command.START_STOP_DAQ_LIST, mode, *dln)
-        return types.StartStopDaqListResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+        self.stim.startStopDaqList(mode, daqListNumber)
+        firstPid = types.StartStopDaqListResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+        self.stim.set_first_pid(daqListNumber, firstPid.firstPid)
+        return firstPid
 
     @wrapped
     def startStopSynch(self, mode):
@@ -1059,7 +1055,9 @@ class Master:
             1 = start selected
             2 = stop selected
         """
-        return self.transport.request(types.Command.START_STOP_SYNCH, mode)
+        res = self.transport.request(types.Command.START_STOP_SYNCH, mode)
+        self.stim.startStopSynch(mode)
+        return res
 
     @wrapped
     def writeDaqMultiple(self, daqElements):
@@ -1070,7 +1068,7 @@ class Master:
         daqElements : list of `dict` containing the following keys: *bitOffset*, *size*, *address*, *addressExt*.
         """
         if len(daqElements) > self.slaveProperties.maxWriteDaqMultipleElements:
-            raise ValueError("At most {} daqElements are permitted.".format(self.slaveProperties.maxWriteDaqMultipleElements))
+            raise ValueError(f"At most {self.slaveProperties.maxWriteDaqMultipleElements} daqElements are permitted.")
         data = bytearray()
         data.append(len(daqElements))
 
@@ -1217,10 +1215,12 @@ class Master:
     @wrapped
     def freeDaq(self):
         """Clear dynamic DAQ configuration."""
-        return self.transport.request(types.Command.FREE_DAQ)
+        result = self.transport.request(types.Command.FREE_DAQ)
+        self.stim.freeDaq()
+        return result
 
     @wrapped
-    def allocDaq(self, daqCount):
+    def allocDaq(self, daqCount: int):
         """Allocate DAQ lists.
 
         Parameters
@@ -1229,17 +1229,23 @@ class Master:
             number of DAQ lists to be allocated
         """
         dq = self.WORD_pack(daqCount)
-        return self.transport.request(types.Command.ALLOC_DAQ, 0, *dq)
+        result = self.transport.request(types.Command.ALLOC_DAQ, 0, *dq)
+        self.stim.allocDaq(daqCount)
+        return result
 
     @wrapped
-    def allocOdt(self, daqListNumber, odtCount):
+    def allocOdt(self, daqListNumber: int, odtCount: int):
         dln = self.WORD_pack(daqListNumber)
-        return self.transport.request(types.Command.ALLOC_ODT, 0, *dln, odtCount)
+        result = self.transport.request(types.Command.ALLOC_ODT, 0, *dln, odtCount)
+        self.stim.allocOdt(daqListNumber, odtCount)
+        return result
 
     @wrapped
-    def allocOdtEntry(self, daqListNumber, odtNumber, odtEntriesCount):
+    def allocOdtEntry(self, daqListNumber: int, odtNumber: int, odtEntriesCount: int):
         dln = self.WORD_pack(daqListNumber)
-        return self.transport.request(types.Command.ALLOC_ODT_ENTRY, 0, *dln, odtNumber, odtEntriesCount)
+        result = self.transport.request(types.Command.ALLOC_ODT_ENTRY, 0, *dln, odtNumber, odtEntriesCount)
+        self.stim.allocOdtEntry(daqListNumber, odtNumber, odtEntriesCount)
+        return result
 
     # PGM
     @wrapped
@@ -1621,12 +1627,13 @@ class Master:
     @broadcasted
     @wrapped
     def getSlaveID(self, mode: int):
-        self.transportLayerCmd(types.TransportLayerCommands.GET_SLAVE_ID, "X", "C", "P", mode)
+        response = self.transportLayerCmd(types.TransportLayerCommands.GET_SLAVE_ID, ord("X"), ord("C"), ord("P"), mode)
+        return types.GetSlaveIdResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     def getDaqId(self, daqListNumber: int):
         response = self.transportLayerCmd(types.TransportLayerCommands.GET_DAQ_ID, *self.WORD_pack(daqListNumber))
-        if response:
-            return types.GetDaqIdResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+        # if response:
+        return types.GetDaqIdResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     def setDaqId(self, daqListNumber: int, identifier: int):
         response = self.transportLayerCmd(
@@ -1650,11 +1657,11 @@ class Master:
         """
         self.setMta(addr)
         cs = self.buildChecksum(length)
-        self.logger.debug("BuildChecksum return'd: 0x{:08X} [{}]".format(cs.checksum, cs.checksumType))
+        self.logger.debug(f"BuildChecksum return'd: 0x{cs.checksum:08X} [{cs.checksumType}]")
         self.setMta(addr)
         data = self.fetch(length)
         cc = checksum.check(data, cs.checksumType)
-        self.logger.debug("Our checksum          : 0x{:08X}".format(cc))
+        self.logger.debug(f"Our checksum          : 0x{cc:08X}")
         return cs.checksum == cc
 
     def getDaqInfo(self):
@@ -1696,10 +1703,18 @@ class Master:
             },
         }
         result["resolution"] = resolutionInfo
-
         channels = []
+        daq_events = []
         for ecn in range(dpi.maxEventChannel):
             eci = self.getDaqEventInfo(ecn)
+            cycle = eci["eventChannelTimeCycle"]
+            maxDaqList = eci["maxDaqList"]
+            priority = eci["eventChannelPriority"]
+            time_unit = eci["eventChannelTimeUnit"]
+            consistency = eci["daqEventProperties"]["consistency"]
+            daq_supported = eci["daqEventProperties"]["daq"]
+            stim_supported = eci["daqEventProperties"]["stim"]
+            packed_supported = eci["daqEventProperties"]["packed"]
             name = self.fetch(eci.eventChannelNameLength)
             if name:
                 name = decode_bytes(name)
@@ -1710,14 +1725,27 @@ class Master:
                 "cycle": eci["eventChannelTimeCycle"],
                 "maxDaqList": eci["maxDaqList"],
                 "properties": {
-                    "consistency": eci["daqEventProperties"]["consistency"],
-                    "daq": eci["daqEventProperties"]["daq"],
-                    "stim": eci["daqEventProperties"]["stim"],
-                    "packed": eci["daqEventProperties"]["packed"],
+                    "consistency": consistency,
+                    "daq": daq_supported,
+                    "stim": stim_supported,
+                    "packed": packed_supported,
                 },
             }
+            daq_event_info = DaqEventInfo(
+                name,
+                types.EVENT_CHANNEL_TIME_UNIT_TO_EXP[time_unit],
+                cycle,
+                maxDaqList,
+                priority,
+                consistency,
+                daq_supported,
+                stim_supported,
+                packed_supported,
+            )
+            daq_events.append(daq_event_info)
             channels.append(channel)
         result["channels"] = channels
+        self.stim.setDaqEventInfo(daq_events)
         return result
 
     def getCurrentProtectionStatus(self):
@@ -1760,12 +1788,14 @@ class Master:
             In case of DLL related issues.
         """
         import re
-        from pyxcp.dllif import getKey, SeedNKeyResult, SeedNKeyError
+
+        from pyxcp.dllif import SeedNKeyError, SeedNKeyResult, getKey
 
         MAX_PAYLOAD = self.slaveProperties["maxCto"] - 2
 
-        if not self.seedNKeyDLL:
-            raise RuntimeError("No seed and key DLL specified, cannot proceed.")
+        protection_status = self.getCurrentProtectionStatus()
+        if any(protection_status.values()) and (not (self.seed_n_key_dll or self.seed_n_key_function)):
+            raise RuntimeError("Neither seed-and-key DLL nor function specified, cannot proceed.")  # TODO: ConfigurationError
         if resources is None:
             result = []
             if self.slaveProperties["supportsCalpag"]:
@@ -1777,11 +1807,10 @@ class Master:
             if self.slaveProperties["supportsPgm"]:
                 result.append("pgm")
             resources = ",".join(result)
-        protection_status = self.getCurrentProtectionStatus()
         resource_names = [r.lower() for r in re.split(r"[ ,]", resources) if r]
         for name in resource_names:
             if name not in types.RESOURCE_VALUES:
-                raise ValueError("Invalid resource name '{}'.".format(name))
+                raise ValueError(f"Invalid resource name {name!r}.")
             if not protection_status[name]:
                 continue
             resource_value = types.RESOURCE_VALUES[name]
@@ -1795,25 +1824,33 @@ class Master:
                 while remaining > 0:
                     result = self.getSeed(types.XcpGetSeedMode.REMAINING, resource_value)
                     seed.extend(list(result.seed))
-                    remaining = result.length
-            result, key = getKey(
-                self.logger,
-                self.seedNKeyDLL,
-                resource_value,
-                bytes(seed),
-                self.seedNKeyDLL_same_bit_width,
-            )
+                    remaining -= result.length
+            self.logger.debug(f"Got seed {seed!r} for resource {resource_value!r}.")
+            if self.seed_n_key_function:
+                key = self.seed_n_key_function(resource_value, bytes(seed))
+                self.logger.debug(f"Using seed and key function {self.seed_n_key_function.__name__!r}().")
+                result = SeedNKeyResult.ACK
+            elif self.seed_n_key_dll:
+                self.logger.debug(f"Using seed and key DLL {self.seed_n_key_dll!r}.")
+                result, key = getKey(
+                    self.logger,
+                    self.seed_n_key_dll,
+                    resource_value,
+                    bytes(seed),
+                    self.seed_n_key_dll_same_bit_width,
+                )
             if result == SeedNKeyResult.ACK:
                 key = list(key)
-                total_length = len(key)
-                offset = 0
-                while offset < total_length:
-                    data = key[offset : offset + MAX_PAYLOAD]
-                    key_length = len(data)
-                    offset += key_length
-                    self.unlock(key_length, data)
+                self.logger.debug(f"Unlocking resource {resource_value!r} with key {key!r}.")
+                remaining = len(key)
+                while key:
+                    data = key[:MAX_PAYLOAD]
+                    key_len = len(data)
+                    self.unlock(remaining, data)
+                    key = key[MAX_PAYLOAD:]
+                    remaining -= key_len
             else:
-                raise SeedNKeyError("SeedAndKey DLL returned: {}".format(SeedNKeyResult(result).name))
+                raise SeedNKeyError(f"SeedAndKey DLL returned: {SeedNKeyResult(result).name!r}")
 
     def identifier(self, id_value: int) -> str:
         """Return the identifier for the given value.
@@ -1891,17 +1928,60 @@ class Master:
 
         gen = make_generator(scan_ranges)
         for id_value, name in gen:
-            response = b""
-            try:
-                response = self.identifier(id_value)
-            except types.XcpResponseError:
-                # don't depend on confirming implementation, i.e.: ID not implemented ==> empty response.
-                pass
-            except Exception:
-                raise
-            if response:
+            status, response = self.try_command(self.identifier, id_value)
+            if status == types.TryCommandResult.OK and response:
                 result[name] = response
+            elif status == types.TryCommandResult.XCP_ERROR and response.error_code == types.XcpError.ERR_CMD_UNKNOWN:
+                break  # Nothing to do here.
+            elif status == types.TryCommandResult.OTHER_ERROR:
+                raise RuntimeError(f"Error while scanning for ID {id_value}: {response!r}")
         return result
+
+    @property
+    def start_datetime(self) -> int:
+        """"""
+        return self.transport.start_datetime
+
+    def try_command(self, cmd: Callable, *args, **kws) -> Tuple[types.TryCommandResult, Any]:
+        """Call master functions and handle XCP errors more gracefuly.
+
+        Parameter
+        ---------
+        cmd: Callable
+        args: list
+            variable length arguments to `cmd`.
+        kws: dict
+            keyword arguments to `cmd`.
+
+            `extra_msg`: str
+                Additional info to log message (not passed to `cmd`).
+
+        Returns
+        -------
+
+        Note
+        ----
+        Mainly used for plug-and-play applications, e.g. `id_scanner` may confronted with `ERR_OUT_OF_RANGE` errors, which
+        is normal for this kind of applications -- or to test for optional commands.
+        Use carefuly not to hide serious error causes.
+        """
+        try:
+            extra_msg: Optional[str] = kws.get("extra_msg")
+            if extra_msg:
+                kws.pop("extra_msg")
+            res = cmd(*args, **kws)
+        except SystemExit as e:
+            if e.error_code == types.XcpError.ERR_CMD_UNKNOWN:
+                # This is a rather common use-case, so let the user know that there is some functionality missing.
+                if extra_msg:
+                    self.logger.warning(f"Optional command {cmd.__name__!r} not implemented -- {extra_msg!r}")
+                else:
+                    self.logger.warning(f"Optional command {cmd.__name__!r} not implemented.")
+            return (types.TryCommandResult.XCP_ERROR, e)
+        except Exception as e:
+            return (types.TryCommandResult.OTHER_ERROR, e)
+        else:
+            return (types.TryCommandResult.OK, res)
 
 
 def ticks_to_seconds(ticks, resolution):
@@ -1916,6 +1996,7 @@ def ticks_to_seconds(ticks, resolution):
     warnings.warn(
         "ticks_to_seconds() deprecated, use factory :func:`make_tick_converter` instead.",
         Warning,
+        stacklevel=1,
     )
     return (10 ** types.DAQ_TIMESTAMP_UNIT_TO_EXP[resolution.timestampMode.unit]) * resolution.timestampTicks * ticks
 

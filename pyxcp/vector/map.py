@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-from enum import IntEnum
 
 MAP_NAMES = {
     1: "BorlandC 16 Bit",
@@ -81,4 +79,4 @@ MAP name
 
 
 def mapfile_name(name, counter, fmt):
-    return "{:2d}{:d}{:s}.map".format(fmt, counter, name)
+    return f"{fmt:2d}{counter:d}{name:s}.map"

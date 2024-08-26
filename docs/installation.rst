@@ -10,4 +10,3 @@ Installation and Getting Started
 
 Prerequisites
 -------------
-

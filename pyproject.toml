@@ -1,44 +1,50 @@
+
 [build-system]
-requires = ["pdm", "pdm-pep517", "pybind11<3.0.0,>=2.9.0", "wheel", "build", "twine", "setuptools"]
-build-backend = "pdm.pep517.api"
+requires = ["poetry-core>=1.0.0", "setuptools>=68.0.0", "pybind11>=2.12.0",  "pybind11[global]>=2.12.0"]
+build-backend = "poetry.core.masonry.api"
 
-[tool.pdm]
-includes = []
-build = "build_ext.py"
-license-expression = "LGPL-3.0-or-later"
-license-files.paths = ["LICENSE"]
 
-[tool.pdm.dev-dependencies]
-dev = [
-    "pytest<7.0.0,>=6.2.5",
-    "pytest-runner<6.0.0,>=5.3.1",
-    "pytest-cov<4.0.0,>=3.0.0",
+[tool.poetry.dev-dependencies]
+Pygments = ">=2.10.0"
+bandit = ">=1.7.4"
+black = ">=21.10b0"
+coverage = {extras = ["toml"], version = ">=6.2"}
+darglint = ">=1.8.1"
+flake8 = ">=4.0.1"
+flake8-bugbear = ">=21.9.2"
+flake8-docstrings = ">=1.6.0"
+flake8-rst-docstrings = ">=0.2.5"
+furo = ">=2021.11.12"
+isort = ">=5.10.1"
+mypy = ">=0.930"
+pep8-naming = ">=0.12.1"
+pre-commit = ">=2.16.0"
+pre-commit-hooks = ">=4.1.0"
+pytest = ">=6.2.5"
+pyupgrade = ">=2.29.1"
+safety = ">=1.10.3"
+sphinx = ">=4.3.2"
+sphinx-autobuild = ">=2021.3.14"
+sphinx-click = ">=3.0.2"
+typeguard = ">=2.13.3"
+xdoctest = {extras = ["colors"], version = ">=0.15.10"}
+myst-parser = {version = ">=0.16.1"}
 
-]
 [project]
-authors = [
-    {name = "Christoph Schueler"},
-    {email = "cpu12.gems@googlemail.com"}
-]
-requires-python = ">=3.7"
-dependencies = [
-    "setuptools-cpp<1.0.0,>=0.1.0",
-    "Mako<2.0.0,>=1.1.6",
-    "construct<3.0.0,>=2.10.67",
-    "pyserial<4.0,>=3.5",
-    "pyusb<2.0.0,>=1.2.1",
-    "toml<1.0.0,>=0.10.2",
-    "python-can>=4.0.0",
-    "uptime>=3.0.1",
-    "chardet>=5.2.0",
-    "traitlets>=5.9.0",
-]
 name = "pyxcp"
-version = "0.21.9"
+version = "0.22.0"
+dynamic = ["license", "readme", "authors", "requires-python", "description", "classifiers", "scripts", "dependencies", "optional-dependencies"]
+
+
+[tool.poetry]
+authors = ["Christoph Schueler <cpu.gems@googlemail.com>"]
+name = "pyxcp"
+version = "0.21.6"
 readme = "README.md"
 description = "Universal Calibration Protocol for Python"
 keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
-license = {file = "LICENSE"}
+homepage = "https://github.com/christoph2/pyxcp"
+license = "LGPLv3"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers", "Topic :: Software Development",
@@ -49,31 +55,68 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12"
+    "Programming Language :: Python :: 3.12",
+	"Programming Language :: Python :: 3.13"
 ]
-dynamic = ["entry-points"]
-
-[project.urls]
-homepage = "https://github.com/christoph2/pyxcp"
-
-[project.optional-dependencies]
-doc = [
-    "sphinx",
-    "sphinxcontrib-napoleon"
+build = "build_ext.py"
+include = [
+    { path = "pyxcp/cpp_ext/*.so", format = "wheel" },
+    { path = "pyxcp/cpp_ext/*.pyd", format = "wheel" },
+    { path = "pyxcp/daq_stim/*.so", format = "wheel" },
+    { path = "pyxcp/daq_stim/*.pyd", format = "wheel" },
+    { path = "pyxcp/recorder/*.so", format = "wheel" },
+    { path = "pyxcp/recorder/*.pyd", format = "wheel" },
+    { path = "pyxcp/*.exe", format = "wheel" },
+    { path = "CMakeLists.txt", format = "wheel" },
 ]
 
-[project.scripts]
+[tool.poetry.dependencies]
+python = "^3.8.1"
+construct = "^2.10.68"
+mako = "^1.2.4"
+pyserial = "^3.5"
+pyusb = "^1.2.1"
+python-can = "^4.2.2"
+uptime = "^3.0.1"
+rich = "^13.6.0"
+chardet = "^5.2.0"
+traitlets = "<=5.11.2"
+line-profiler-pycharm = "^1.1.0"
+
+toml = "^0.10.2"
+bandit = "^1.7.8"
+tomlkit = "^0.12.5"
+pytz = "^2024.1"
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.1.0"
+
+pre-commit-hooks = "^4.6.0"
+darglint = "^1.8.1"
+[tool.poetry.scripts]
 pyxcp-probe-can-drivers = "pyxcp.scripts.pyxcp_probe_can_drivers:main"
 xcp-id-scanner = "pyxcp.scripts.xcp_id_scanner:main"
 xcp-fetch-a2l = "pyxcp.scripts.xcp_fetch_a2l:main"
 xcp-info = "pyxcp.scripts.xcp_info:main"
+xcp-profile = "pyxcp.scripts.xcp_profile:main"
 
 [tool.pytest]
 addopts = "--verbose --tb=short --junitxml=result.xml -o junit_family=xunit2"
 testpaths = "pyxcp/tests"
 
+[tool.isort]
+profile = "black"
+force_single_line = false
+lines_after_imports = 2
+
+[tool.mypy]
+strict = false
+warn_unreachable = true
+pretty = true
+show_column_numbers = true
+show_error_context = true
+
 [tool.flake8]
-ignore = ["D203", "E203", "E266", "E501", "W503", "F403", "F401", "BLK100"]
+ignore = ["F403", "D203", "E203", "E266", "E501", "W503", "E501", "F401", "BLK100"]
 exclude = '''
 /(
     \.git
@@ -96,6 +139,11 @@ statistics = true
 show-source = true
 max-line-length = 132
 select = ["B","C","E","F","W","T4","B9"]
+extend-select = "B950"
+extend-ignore = ["E203", "E501", "E701"]
+
+[tool.ruff]
+line-length = 132
 
 [tool.black]
 line-length=132
@@ -120,7 +168,24 @@ exclude = '''
 build-verbosity = 3
 #test-command = "pytest {package}/tests"
 #test-command = "pytest -svv pyxcp/tests"
-build = "cp3{7,8,9,10,11,12}-*"
+build = "cp3{7,8,9,10,11,12,13}-*"
 skip = ["*-manylinux_i686", "*-musllinux_x86_64", "*-musllinux_i686"] # Skip Linux 32bit and MUSL builds.
 build-frontend = "build"
 
+[tool.pyright]
+include = ["pyxcp", "build_ext.py"]
+ignore = ["pyxcp/conf_test.py", "pyxcp/config_new.py", "pyxcp/config_tr.py", "pyxcp/examples/memxfer.py",
+	"pyxcp/examples/ts_tester.py", "pyxcp/recorder/converter/**", "pyxcp/transport/candriver/**", "pyxcp/recorder/simdjson/**",
+	"pyxcp/recorder/mio/**", "pyxcp/recorder/lz4/**"]
+#defineConstant = { DEBUG = true }
+#stubPath = "src/stubs"
+
+reportMissingImports = true
+reportMissingTypeStubs = false
+
+#executionEnvironments = [
+#  { root = "src/web", pythonVersion = "3.5", pythonPlatform = "Windows", extraPaths = [ "src/service_libs" ] },
+#  { root = "src/sdk", pythonVersion = "3.0", extraPaths = [ "src/backend" ] },
+#  { root = "src/tests", extraPaths = ["src/tests/e2e", "src/sdk" ]},
+#  { root = "src" }
+#]

@@ -1,4 +1,4 @@
-from pyxcp.transport.can import padFrame
+from pyxcp.transport.can import pad_frame
 
 
 def test_frame_padding_no_padding_length():
@@ -71,7 +71,7 @@ def test_frame_padding_no_padding_length():
     )
     for frame_len in range(65):
         frame = bytes(frame_len)
-        padded_frame = padFrame(frame, padding_value=0, padding_len=0)
+        padded_frame = pad_frame(frame, padding_value=0, padding_len=0)
         frame_len = len(padded_frame)
         _, expected_len = EXPECTED[frame_len]
         assert frame_len == expected_len
@@ -147,7 +147,7 @@ def test_frame_padding_padding_length32():
     )
     for frame_len in range(65):
         frame = bytes(frame_len)
-        padded_frame = padFrame(frame, padding_value=0, padding_len=32)
+        padded_frame = pad_frame(frame, padding_value=0, padding_len=32)
         frame_len = len(padded_frame)
         _, expected_len = EXPECTED[frame_len]
         assert frame_len == expected_len

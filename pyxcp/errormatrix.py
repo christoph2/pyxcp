@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Types and structures to support error-handling as specified by XCP.
 """
 import enum
 from collections import namedtuple
-from pyxcp.types import Command
-from pyxcp.types import XcpError
+
+from pyxcp.types import Command, XcpError
+
 
 Handler = namedtuple("Handler", "preAction  action")
 
@@ -257,6 +257,7 @@ ERROR_MATRIX = {
         ),
     },
     Command.TRANSPORT_LAYER_CMD: {
+        XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_PGM_ACTIVE: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
@@ -268,6 +269,7 @@ ERROR_MATRIX = {
         ),
     },
     Command.USER_CMD: {
+        XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.DISPLAY_ERROR),
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
         XcpError.ERR_PGM_ACTIVE: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),

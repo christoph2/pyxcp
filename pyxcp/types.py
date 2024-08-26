@@ -1,28 +1,30 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import enum
 from collections import namedtuple
 
 import construct
-from construct import BitsInteger
-from construct import BitStruct
-from construct import Enum
-from construct import Flag
-from construct import GreedyBytes
-from construct import GreedyRange
-from construct import If
-from construct import IfThenElse
-from construct import Int16ub
-from construct import Int16ul
-from construct import Int32ub
-from construct import Int32ul
-from construct import Int64ub
-from construct import Int64ul
-from construct import Int8ul
-from construct import Padding
-from construct import Struct
-from construct import Switch
-from construct import this
+from construct import (
+    BitsInteger,
+    BitStruct,
+    Bytes,
+    Enum,
+    Flag,
+    GreedyBytes,
+    GreedyRange,
+    If,
+    IfThenElse,
+    Int8ul,
+    Int16ub,
+    Int16ul,
+    Int32ub,
+    Int32ul,
+    Int64ub,
+    Int64ul,
+    Padding,
+    Struct,
+    Switch,
+    this,
+)
 
 
 if construct.version < (2, 8):
@@ -735,6 +737,11 @@ GetEventChannelInfoResponse = Struct(
     "eventChannelPriority" / Int8ul,
 )
 
+GetSlaveIdResponse = Struct(
+    "magic" / Bytes(3),
+    "identifier" / Int32u,
+)
+
 GetDaqIdResponse = Struct(
     "canIdFixed"
     / Enum(
@@ -909,6 +916,7 @@ DbgGetTriDescTblResponse = Struct("mode" / Int8ul, Padding(2), "length" / Int32u
 
 DbgLlbtResponse = Struct(Padding(1), "length" / Int16u, "data" / Int8ul[this.length])
 
+# Convert to seconds.
 DAQ_TIMESTAMP_UNIT_TO_EXP = {
     "DAQ_TIMESTAMP_UNIT_1PS": -12,
     "DAQ_TIMESTAMP_UNIT_10PS": -11,
@@ -923,6 +931,39 @@ DAQ_TIMESTAMP_UNIT_TO_EXP = {
     "DAQ_TIMESTAMP_UNIT_10MS": -2,
     "DAQ_TIMESTAMP_UNIT_100MS": -1,
     "DAQ_TIMESTAMP_UNIT_1S": 0,
+}
+
+# Convert to nano-seconds.
+DAQ_TIMESTAMP_UNIT_TO_NS = {
+    "DAQ_TIMESTAMP_UNIT_1PS": 0.001,
+    "DAQ_TIMESTAMP_UNIT_10PS": 0.01,
+    "DAQ_TIMESTAMP_UNIT_100PS": 0.1,
+    "DAQ_TIMESTAMP_UNIT_1NS": 1,
+    "DAQ_TIMESTAMP_UNIT_10NS": 10,
+    "DAQ_TIMESTAMP_UNIT_100NS": 100,
+    "DAQ_TIMESTAMP_UNIT_1US": 1000,
+    "DAQ_TIMESTAMP_UNIT_10US": 10 * 1000,
+    "DAQ_TIMESTAMP_UNIT_100US": 100 * 1000,
+    "DAQ_TIMESTAMP_UNIT_1MS": 1000 * 1000,
+    "DAQ_TIMESTAMP_UNIT_10MS": 10 * 1000 * 1000,
+    "DAQ_TIMESTAMP_UNIT_100MS": 100 * 1000 * 1000,
+    "DAQ_TIMESTAMP_UNIT_1S": 1000 * 1000 * 1000,
+}
+
+EVENT_CHANNEL_TIME_UNIT_TO_EXP = {
+    "EVENT_CHANNEL_TIME_UNIT_1PS": -12,
+    "EVENT_CHANNEL_TIME_UNIT_10PS": -11,
+    "EVENT_CHANNEL_TIME_UNIT_100PS": -10,
+    "EVENT_CHANNEL_TIME_UNIT_1NS": -9,
+    "EVENT_CHANNEL_TIME_UNIT_10NS": -8,
+    "EVENT_CHANNEL_TIME_UNIT_100NS": -7,
+    "EVENT_CHANNEL_TIME_UNIT_1US": -6,
+    "EVENT_CHANNEL_TIME_UNIT_10US": -5,
+    "EVENT_CHANNEL_TIME_UNIT_100US": -4,
+    "EVENT_CHANNEL_TIME_UNIT_1MS": -3,
+    "EVENT_CHANNEL_TIME_UNIT_10MS": -2,
+    "EVENT_CHANNEL_TIME_UNIT_100MS": -1,
+    "EVENT_CHANNEL_TIME_UNIT_1S": 0,
 }
 
 
@@ -942,3 +983,11 @@ class FrameCategory(enum.IntEnum):
     SERV = 5
     DAQ = 6
     STIM = 7
+
+
+class TryCommandResult(enum.IntEnum):
+    """ """
+
+    OK = 0
+    XCP_ERROR = 1
+    OTHER_ERROR = 2

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """User supplied CAN driver.
 
 Run as:
@@ -31,7 +30,7 @@ class MyCI(CanInterfaceBase):
     def close(self):
         pass
 
-    def getTimestampResolution(self):
+    def get_timestamp_resolution(self):
         pass
 
     def read(self):

@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import binascii
 import ctypes
 import enum
 import platform
 import re
-import subprocess
+import subprocess  # nosec
 import sys
 from pathlib import Path
 
@@ -24,31 +23,30 @@ class SeedNKeyError(Exception):
     """"""
 
 
-LOADER = Path(sys.modules["pyxcp"].__file__).parent / "asamkeydll"  # Absolute path to DLL loader.
+LOADER = Path(str(sys.modules["pyxcp"].__file__)).parent / "asamkeydll"  # Absolute path to DLL loader.
 
 bwidth, _ = platform.architecture()
 
-if sys.platform in ("win32", "linux"):
+if sys.platform in ("win32", "linux", "darwin"):
     if bwidth == "64bit":
         use_ctypes = False
     elif bwidth == "32bit":
         use_ctypes = True
 else:
-    raise RuntimeError("Platform '{}' currently not supported.".format(sys.platform))
+    raise RuntimeError(f"Platform {sys.platform!r} currently not supported.")
 
 
-def getKey(logger, dllName: str, privilege: int, seed: str, assume_same_bit_width: bool):
-
+def getKey(logger, dllName: str, privilege: int, seed: bytes, assume_same_bit_width: bool):
     dllName = str(Path(dllName).absolute())  # Fix loader issues.
 
-    use_ctypes = False
+    use_ctypes: bool = False
     if assume_same_bit_width:
         use_ctypes = True
     if use_ctypes:
         try:
-            lib = ctypes.cdll.LoadLibrary(dllName)
+            lib: ctypes.CDLL = ctypes.cdll.LoadLibrary(dllName)
         except OSError:
-            logger.error(f"Could not load DLL '{dllName}' -- Probably an 64bit vs 32bit issue?")
+            logger.error(f"Could not load DLL {dllName!r} -- Probably an 64bit vs 32bit issue?")
             return (SeedNKeyResult.ERR_COULD_NOT_LOAD_DLL, None)
         func = lib.XCP_ComputeKeyFromSeed
         func.restype = ctypes.c_uint32
@@ -59,9 +57,9 @@ def getKey(logger, dllName: str, privilege: int, seed: str, assume_same_bit_widt
             ctypes.POINTER(ctypes.c_uint8),
             ctypes.c_char_p,
         ]
-        key_buffer = ctypes.create_string_buffer(b"\000" * 128)
-        key_length = ctypes.c_uint8(128)
-        ret_code = func(
+        key_buffer: ctypes.Array[ctypes.c_char] = ctypes.create_string_buffer(b"\000" * 128)
+        key_length: ctypes.c_uint8 = ctypes.c_uint8(128)
+        ret_code: int = func(
             privilege,
             len(seed),
             ctypes.c_char_p(seed),
@@ -75,16 +73,21 @@ def getKey(logger, dllName: str, privilege: int, seed: str, assume_same_bit_widt
                 [LOADER, dllName, str(privilege), binascii.hexlify(seed).decode("ascii")],
                 stdout=subprocess.PIPE,
                 shell=False,
-            )
+            )  # nosec
         except FileNotFoundError as exc:
-            logger.error(f"Could not find executable '{LOADER}' -- {exc}")
+            logger.error(f"Could not find executable {LOADER!r} -- {exc}")
             return (SeedNKeyResult.ERR_COULD_NOT_LOAD_DLL, None)
         except OSError as exc:
-            logger.error(f"Cannot execute {LOADER} -- {exc}")
+            logger.error(f"Cannot execute {LOADER!r} -- {exc}")
             return (SeedNKeyResult.ERR_COULD_NOT_LOAD_DLL, None)
-        key = p0.stdout.read()
+        key: bytes = b""
+        if p0.stdout:
+            key = p0.stdout.read()
+            p0.stdout.close()
+        p0.kill()
+        p0.wait()
         if not key:
-            logger.error(f"Something went wrong while calling seed-and-key-DLL '{dllName}'")
+            logger.error(f"Something went wrong while calling seed-and-key-DLL {dllName!r}")
             return (SeedNKeyResult.ERR_COULD_NOT_LOAD_DLL, None)
         res = re.split(b"\r?\n", key)
         returnCode = int(res[0])

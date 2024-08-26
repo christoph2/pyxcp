@@ -3,28 +3,24 @@
 
 #include "rekorder.hpp"
 
-
-void some_records(XcpLogFileWriter& writer)
-{
-    const auto COUNT = 1024 * 100 * 5;
-    unsigned filler = 0x00;
-    char buffer[1024];
+void some_records(XcpLogFileWriter& writer) {
+    const auto COUNT  = 1024 * 100 * 5;
+    unsigned   filler = 0x00;
+    char       buffer[1024];
 
     for (auto idx = 0; idx < COUNT; ++idx) {
-        auto fr = frame_header_t{};
-        fr.category = 1;
-        fr.counter = idx;
+        auto fr      = frame_header_t{};
+        fr.category  = 1;
+        fr.counter   = idx;
         fr.timestamp = std::clock();
-        fr.length = 10 + (rand() % 240);
-        filler = (filler + 1) % 16;
+        fr.length    = 10 + (rand() % 240);
+        filler       = (filler + 1) % 16;
         memset(buffer, filler, fr.length);
-        writer.add_frame(fr.category, fr.counter, fr.timestamp, fr.length, std::bit_cast<char const*>(&buffer));
+        writer.add_frame(fr.category, fr.counter, fr.timestamp, fr.length, std::bit_cast<char const *>(&buffer));
     }
 }
 
-
-int main()
-{
+int main() {
     srand(42);
 
     printf("\nWRITER\n");
@@ -49,15 +45,15 @@ int main()
     printf("size/uncompressed:  %u\n", header.size_uncompressed);
     printf("compression ratio:  %.2f\n", static_cast<float>(header.size_uncompressed) / static_cast<float>(header.size_compressed));
 
-	while (true) {
-		const auto& frames = reader.next_block();
-	    if (!frames) {
-	        break;
-	    }
-        for (const auto& frame: frames.value()) {
+    while (true) {
+        const auto& frames = reader.next_block();
+        if (!frames) {
+            break;
+        }
+        for (const auto& frame : frames.value()) {
             auto const& [category, counter, timestamp, length, payload] = frame;
         }
-	}
+    }
     printf("---\n");
     printf("Finished.\n");
 }

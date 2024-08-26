@@ -110,7 +110,6 @@ int main(int argc, char ** argv)
     }
 
     res = GetKey((char *)&dllname, privilege, seedlen, (BYTE *)&seedBuffer, &keylen, (BYTE *)&keyBuffer);
-    printf("%lu\n", res);
     if (res == 0) {
         hexlify(keyBuffer, keylen);
     }

@@ -79,4 +79,3 @@
         FIXED_OUT 0x02 /* uses Endpoint 2 OUT. */
     /end DAQ_LIST_USB_ENDPOINT
 /end XCP_ON_USB
-

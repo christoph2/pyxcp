@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Very basic hello-world example.
 """
 from pyxcp.cmdline import ArgumentParser
+
 
 """
 """

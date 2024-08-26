@@ -1,8 +1,7 @@
 from time import perf_counter
 
-from pyxcp.recorder import FrameCategory
-from pyxcp.recorder import XcpLogFileReader
-from pyxcp.recorder import XcpLogFileWriter
+from pyxcp.recorder import FrameCategory, XcpLogFileReader, XcpLogFileWriter
+
 
 # Pre-allocate a 100MB file -- Note: due to the nature of memory-mapped files, this is a HARD limit.
 # Chunk size is 1MB (i.e. compression granularity).

@@ -18,4 +18,3 @@ begin XCP_ON_CAN
         FIXED 0x330
     /end DAQ_LIST_CAN_ID
 /end XCP_ON_CAN
-

@@ -1,12 +1,11 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """XCP Frame Recording Facility.
 """
 from dataclasses import dataclass
-from enum import IntEnum
 from typing import Union
 
 from pyxcp.types import FrameCategory
+
 
 try:
     import pandas as pd
@@ -15,13 +14,28 @@ except ImportError:
 else:
     HAS_PANDAS = True
 
-import rekorder as rec
+from pyxcp.recorder.rekorder import DaqOnlinePolicy  # noqa: F401
+from pyxcp.recorder.rekorder import (
+    DaqRecorderPolicy,
+    Deserializer,
+    MeasurementParameters,
+    ValueHolder,
+    XcpLogFileDecoder,
+    _PyXcpLogFileReader,
+    _PyXcpLogFileWriter,
+    data_types,
+)
+
+
+DATA_TYPES = data_types()
 
 
 @dataclass
 class XcpLogFileHeader:
     """ """
 
+    version: int
+    options: int
     num_containers: int
     record_count: int
     size_uncompressed: int
@@ -36,10 +50,17 @@ class XcpLogFileReader:
     """ """
 
     def __init__(self, file_name):
-        self._reader = rec._PyXcpLogFileReader(file_name)
+        self._reader = _PyXcpLogFileReader(file_name)
+
+    @property
+    def header(self):
+        return self._reader.get_header()
 
     def get_header(self):
         return XcpLogFileHeader(*self._reader.get_header_as_tuple())
+
+    def get_metadata(self):
+        return self._reader.get_metadata()
 
     def __iter__(self):
         while True:
@@ -66,8 +87,8 @@ class XcpLogFileReader:
 class XcpLogFileWriter:
     """ """
 
-    def __init__(self, file_name: str, prealloc=10, chunk_size=1):
-        self._writer = rec._PyXcpLogFileWriter(file_name, prealloc, chunk_size)
+    def __init__(self, file_name: str, prealloc=500, chunk_size=1):
+        self._writer = _PyXcpLogFileWriter(file_name, prealloc, chunk_size)
         self._finalized = False
 
     def __del__(self):

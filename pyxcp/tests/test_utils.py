@@ -1,9 +1,6 @@
-from pyxcp.utils import flatten
-from pyxcp.utils import getPythonVersion
-from pyxcp.utils import hexDump
-from pyxcp.utils import PYTHON_VERSION
-from pyxcp.utils import slicer
 from sys import version_info
+
+from pyxcp.utils import PYTHON_VERSION, flatten, getPythonVersion, hexDump, slicer
 
 
 def test_hexdump(capsys):

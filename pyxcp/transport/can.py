@@ -1,18 +1,24 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 """
-import abc
+
 import functools
 import operator
 from bisect import bisect_left
-from collections import OrderedDict
-from time import perf_counter
-from time import time
+from typing import Any, Dict, Optional, Type
 
-from pyxcp.config import Configuration
+from can import CanError, CanInitializationError, Message, detect_available_configs
+from can.bus import BusABC
+from can.interface import _get_class_for_interface
+from rich.console import Console
+
+from pyxcp.config import CAN_INTERFACE_MAP
 from pyxcp.transport.base import BaseTransport
 
+from ..utils import seconds_to_nanoseconds
+
+
+console = Console()
 
 CAN_EXTENDED_ID = 0x80000000
 MAX_11_BIT_IDENTIFIER = (1 << 11) - 1
@@ -27,7 +33,7 @@ class IdentifierOutOfRangeError(Exception):
     pass
 
 
-def isExtendedIdentifier(identifier: int) -> bool:
+def is_extended_identifier(identifier: int) -> bool:
     """Check for extendend CAN identifier.
 
     Parameters
@@ -75,8 +81,8 @@ def samplePointToTsegs(tqs: int, samplePoint: float) -> tuple:
     return (tseg1, tseg2)
 
 
-def padFrame(frame: bytes, padding_value: int, padding_len: int = 0) -> bytes:
-    """Pad frame to next discrete DLC value.
+def pad_frame(frame: bytes, pad_frame: bool, padding_value: int) -> bytes:
+    """Pad frame to next discrete DLC value (CAN-FD) or on request (CAN-Classic).
 
     References:
     -----------
@@ -85,9 +91,9 @@ def padFrame(frame: bytes, padding_value: int, padding_len: int = 0) -> bytes:
     AUTOSAR CP Release 4.3.0, Specification of CAN Driver; [SWS_CAN_00502], [ECUC_Can_00485]
     AUTOSAR CP Release 4.3.0, Requirements on CAN; [SRS_Can_01073], [SRS_Can_01086], [SRS_Can_01160]
     """
-    frame_len = max(len(frame), padding_len)
+    frame_len = len(frame)
     if frame_len <= MAX_DLC_CLASSIC:
-        actual_len = MAX_DLC_CLASSIC
+        actual_len = MAX_DLC_CLASSIC if pad_frame else frame_len
     else:
         actual_len = CAN_FD_DLCS[bisect_left(CAN_FD_DLCS, frame_len)]
     # append fill bytes up to MAX_DLC resp. next discrete FD DLC.
@@ -112,13 +118,13 @@ class Identifier:
     def __init__(self, raw_id: int):
         self._raw_id = raw_id
         self._id = stripIdentifier(raw_id)
-        self._is_extended = isExtendedIdentifier(raw_id)
+        self._is_extended = is_extended_identifier(raw_id)
         if self._is_extended:
             if self._id > MAX_29_BIT_IDENTIFIER:
-                raise IdentifierOutOfRangeError("29-bit identifier '{}' is out of range".format(self._id))
+                raise IdentifierOutOfRangeError(f"29-bit identifier {self._id!r} is out of range")
         else:
             if self._id > MAX_11_BIT_IDENTIFIER:
-                raise IdentifierOutOfRangeError("11-bit identifier '{}' is out of range".format(self._id))
+                raise IdentifierOutOfRangeError(f"11-bit identifier {self._id!r} is out of range")
 
     @property
     def id(self) -> int:
@@ -151,8 +157,20 @@ class Identifier:
         """
         return self._is_extended
 
+    @property
+    def type_str(self) -> str:
+        """
+
+        Returns
+        -------
+        str
+            - "S" - 11-bit identifier.
+            - "E" - 29-bit identifier.
+        """
+        return "E" if self.is_extended else "S"
+
     @staticmethod
-    def make_identifier(identifier: int, extended: bool) -> int:
+    def make_identifier(identifier: int, extended: bool) -> "Identifier":
         """Factory method.
 
         Parameters
@@ -174,81 +192,107 @@ class Identifier:
         """
         return Identifier(identifier if not extended else (identifier | CAN_EXTENDED_ID))
 
-    def __eq__(self, other):
+    def create_filter_from_id(self) -> Dict:
+        """Create a single CAN filter entry.
+        s. https://python-can.readthedocs.io/en/stable/bus.html#filtering
+        """
+        return {
+            "can_id": self.id,
+            "can_mask": MAX_29_BIT_IDENTIFIER if self.is_extended else MAX_11_BIT_IDENTIFIER,
+            "extended": self.is_extended,
+        }
+
+    def __eq__(self, other) -> bool:
         return (self.id == other.id) and (self.is_extended == other.is_extended)
 
-    def __str__(self):
-        return "Identifier(id = 0x{:08x}, is_extended = {})".format(self.id, self.is_extended)
+    def __str__(self) -> str:
+        return f"Identifier(id = 0x{self.id:08x}, is_extended = {self.is_extended})"
 
-    def __repr__(self):
-        return "Identifier(0x{:08x})".format(self.raw_id)
+    def __repr__(self) -> str:
+        return f"Identifier(0x{self.raw_id:08x})"
 
 
 class Frame:
     """"""
 
-    def __init__(self, id_: Identifier, dlc: int, data: bytes, timestamp: int):
-        self.id = id_
-        self.dlc = dlc
-        self.data = data
-        self.timestamp = timestamp
+    def __init__(self, id_: Identifier, dlc: int, data: bytes, timestamp: int) -> None:
+        self.id: Identifier = id_
+        self.dlc: int = dlc
+        self.data: bytes = data
+        self.timestamp: int = timestamp
 
-    def __repr__(self):
-        return "Frame(id = 0x{:08x}, dlc = {}, data = {}, timestamp = {})".format(self.id, self.dlc, self.data, self.timestamp)
+    def __repr__(self) -> str:
+        return f"Frame(id = 0x{self.id:08x}, dlc = {self.dlc}, data = {self.data}, timestamp = {self.timestamp})"
 
     __str__ = __repr__
 
 
-class CanInterfaceBase(metaclass=abc.ABCMeta):
-    """
-    Abstract CAN interface handler that can be implemented for any actual CAN device driver
-    """
+class PythonCanWrapper:
+    """Wrapper around python-can - github.com/hardbyte/python-can"""
 
-    PARAMETER_MAP = {}
+    def __init__(self, parent, interface_name: str, timeout: int, **parameters) -> None:
+        self.parent = parent
+        self.interface_name: str = interface_name
+        self.timeout: int = timeout
+        self.parameters = parameters
+        self.can_interface_class: Type[BusABC] = _get_class_for_interface(self.interface_name)
+        self.can_interface: BusABC
+        self.connected: bool = False
 
-    @abc.abstractmethod
-    def init(self, parent, receive_callback):
-        """
-        Must implement any required action for initing the can interface
-
-        Parameters
-        ----------
-        parent: :class:`Can`
-            Refers to owner.
-        receive_callback: callable
-            Receive callback function to register with the following argument: payload: bytes
-        """
-
-    @abc.abstractmethod
-    def transmit(self, payload: bytes):
-        """
-        Must transmit the given payload on the master can id.
-
-        Parameters
-        ----------
-        payload: bytes
-            payload to transmit
-        """
-
-    @abc.abstractmethod
-    def close(self):
-        """Must implement any required action for disconnecting from the can interface"""
-
-    @abc.abstractmethod
     def connect(self):
-        """Open connection to can interface"""
+        if self.connected:
+            return
+        can_filters = []
+        can_filters.append(self.parent.can_id_slave.create_filter_from_id())  # Primary CAN filter.
+        if self.parent.has_user_supplied_interface:
+            self.can_interface = self.parent.transport_layer_interface
+        else:
+            self.can_interface = self.can_interface_class(interface=self.interface_name, **self.parameters)
+        if self.parent.daq_identifier:
+            # Add filters for DAQ identifiers.
+            for daq_id in self.parent.daq_identifier:
+                can_filters.append(daq_id.create_filter_from_id())
+        self.can_interface.set_filters(can_filters)
+        self.parent.logger.info(f"XCPonCAN - Using Interface: '{self.can_interface!s}'")
+        self.parent.logger.info(f"XCPonCAN - Filters used: {self.can_interface.filters}")
+        self.parent.logger.info(f"XCPonCAN - State: {self.can_interface.state!s}")
+        self.connected = True
 
-    @abc.abstractmethod
-    def read(self):
-        """Read incoming data"""
+    def close(self):
+        if self.connected and not self.parent.has_user_supplied_interface:
+            self.can_interface.shutdown()
+        self.connected = False
 
-    @abc.abstractmethod
-    def getTimestampResolution(self):
-        """Get timestamp resolution in nano seconds."""
+    def transmit(self, payload: bytes) -> None:
+        frame = Message(
+            arbitration_id=self.parent.can_id_master.id,
+            is_extended_id=True if self.parent.can_id_master.is_extended else False,
+            is_fd=self.parent.fd,
+            data=payload,
+        )
+        self.can_interface.send(frame)
 
-    def loadConfig(self, config):
-        """Load configuration data."""
-        self.config = Configuration(self.PARAMETER_MAP or {}, config or {})
+    def read(self) -> Optional[Frame]:
+        if not self.connected:
+            return None
+        try:
+            frame = self.can_interface.recv(self.timeout)
+        except CanError:
+            return None
+        else:
+            if frame is None or not len(frame.data):
+                return None  # Timeout condition.
+            extended = frame.is_extended_id
+            identifier = Identifier.make_identifier(frame.arbitration_id, extended)
+            return Frame(
+                id_=identifier,
+                dlc=frame.dlc,
+                data=frame.data,
+                timestamp=seconds_to_nanoseconds(frame.timestamp),
+            )
+
+    def get_timestamp_resolution(self) -> int:
+        return 10 * 1000
 
 
 class EmptyHeader:
@@ -258,106 +302,114 @@ class EmptyHeader:
         return b""
 
 
-# can.detect_available_configs()
-
-
 class Can(BaseTransport):
     """"""
-
-    PARAMETER_MAP = {
-        #                           Type            Req'd   Default
-        "CAN_DRIVER": (str, True, None),
-        "CHANNEL": (str, False, ""),
-        "MAX_DLC_REQUIRED": (bool, False, False),
-        "MAX_CAN_FD_DLC": (int, False, 64),
-        "PADDING_VALUE": (int, False, 0),
-        "CAN_USE_DEFAULT_LISTENER": (bool, False, True),
-        # defaults to True, in this case the default listener thread is used.
-        # If the canInterface implements a listener service, this parameter
-        # can be set to False, and the default listener thread won't be started.
-        "CAN_ID_MASTER": (int, True, None),
-        "CAN_ID_SLAVE": (int, True, None),
-        "CAN_ID_BROADCAST": (int, False, None),
-        "BITRATE": (int, False, 250000),
-        "RECEIVE_OWN_MESSAGES": (bool, False, False),
-    }
-
-    PARAMETER_TO_KW_ARG_MAP = {
-        "RECEIVE_OWN_MESSAGES": "receive_own_messages",
-        "CHANNEL": "channel",
-        "BITRATE": "bitrate",
-    }
 
     MAX_DATAGRAM_SIZE = 7
     HEADER = EmptyHeader()
     HEADER_SIZE = 0
 
-    def __init__(self, config=None, policy=None):
-        """init for CAN transport
-        :param config: configuration
-        """
-        super().__init__(config, policy)
-        self.loadConfig(config)
-        drivers = registered_drivers()
-        interfaceName = self.config.get("CAN_DRIVER")
-        if interfaceName not in drivers:
-            raise ValueError("{} is an invalid driver name -- choose from {}".format(interfaceName, [x for x in drivers.keys()]))
-        canInterfaceClass = drivers[interfaceName]
-        self.canInterface = canInterfaceClass()
-        self.useDefaultListener = self.config.get("CAN_USE_DEFAULT_LISTENER")
-        self.can_id_master = Identifier(self.config.get("CAN_ID_MASTER"))
-        self.can_id_slave = Identifier(self.config.get("CAN_ID_SLAVE"))
-        self.canInterface.loadConfig(config)
-        self.canInterface.init(self, self.dataReceived)
-        #
+    def __init__(self, config, policy=None, transport_layer_interface: Optional[BusABC] = None):
+        super().__init__(config, policy, transport_layer_interface)
+        self.load_config(config)
+        self.useDefaultListener = self.config.use_default_listener
+        self.can_id_master = Identifier(self.config.can_id_master)
+        self.can_id_slave = Identifier(self.config.can_id_slave)
+
         # Regarding CAN-FD s. AUTOSAR CP Release 4.3.0, Requirements on CAN; [SRS_Can_01160] Padding of bytes due to discrete CAN FD DLC]:
         #   "... If a PDU does not exactly match these configurable sizes the unused bytes shall be padded."
         #
-        self.max_dlc_required = self.config.get("MAX_DLC_REQUIRED") or self.canInterface.is_fd
-        self.padding_value = self.config.get("PADDING_VALUE")
-        self.padding_len = self.config.get("MAX_CAN_FD_DLC") if self.canInterface.is_fd else MAX_DLC_CLASSIC
+        self.fd = self.config.fd
+        self.daq_identifier = []
+        if self.config.daq_identifier:
+            for daq_id in self.config.daq_identifier:
+                self.daq_identifier.append(Identifier(daq_id))
+        self.max_dlc_required = self.config.max_dlc_required
+        self.padding_value = self.config.padding_value
+        self.interface_name = self.config.interface
+        self.interface_configuration = detect_available_configs(interfaces=[self.interface_name])
+        parameters = self.get_interface_parameters()
+        self.can_interface = PythonCanWrapper(self, self.interface_name, config.timeout, **parameters)
+        self.logger.info(f"XCPonCAN - Interface-Type: {self.interface_name!r} Parameters: {list(parameters.items())}")
+        self.logger.info(
+            f"XCPonCAN - Master-ID (Tx): 0x{self.can_id_master.id:08X}{self.can_id_master.type_str} -- "
+            f"Slave-ID (Rx): 0x{self.can_id_slave.id:08X}{self.can_id_slave.type_str}"
+        )
 
-    def dataReceived(self, payload: bytes, recv_timestamp: float = None):
-        self.processResponse(
+    def get_interface_parameters(self) -> Dict[str, Any]:
+        result = dict(channel=self.config.channel)
+
+        can_interface_config_class = CAN_INTERFACE_MAP[self.interface_name]
+
+        # Optional base class parameters.
+        optional_parameters = [(p, p.removeprefix("has_")) for p in can_interface_config_class.OPTIONAL_BASE_PARAMS]
+        for o, n in optional_parameters:
+            opt = getattr(can_interface_config_class, o)
+            value = getattr(self.config, n)
+            if opt:
+                if value is not None:
+                    result[n] = value
+            elif value is not None:
+                self.logger.warning(f"XCPonCAN - {self.interface_name!r} has no support for parameter {n!r}.")
+
+        # Parameter names that need to be mapped.
+        for base_name, name in can_interface_config_class.CAN_PARAM_MAP.items():
+            value = getattr(self.config, base_name)
+            if value is not None:
+                result[name] = value
+
+        # Interface specific parameters.
+        cxx = getattr(self.config, self.interface_name)
+        for name in can_interface_config_class.class_own_traits().keys():
+            value = getattr(cxx, name)
+            if value is not None:
+                result[name] = value
+        return result
+
+    def data_received(self, payload: bytes, recv_timestamp: int):
+        self.process_response(
             payload,
             len(payload),
-            counter=(self.counterReceived + 1) & 0xffff,
+            counter=(self.counter_received + 1) & 0xFFFF,
             recv_timestamp=recv_timestamp,
         )
 
     def listen(self):
         while True:
-            if self.closeEvent.isSet():
+            if self.closeEvent.is_set():
                 return
-            frame = self.canInterface.read()
+            frame = self.can_interface.read()
             if frame:
-                self.dataReceived(frame.data, frame.timestamp)
+                self.data_received(frame.data, frame.timestamp)
 
     def connect(self):
         if self.useDefaultListener:
-            self.startListener()
-        self.canInterface.connect()
+            self.start_listener()
+        try:
+            self.can_interface.connect()
+        except CanInitializationError:
+            console.print("[red]\nThere may be a problem with the configuration of your CAN-interface.\n")
+            console.print(f"[grey]Current configuration of interface {self.interface_name!r}:")
+            console.print(self.interface_configuration)
+            raise
         self.status = 1  # connected
 
-    def send(self, frame):
-        # XCP on CAN trailer: if required, FILL bytes must be appended
-        if self.max_dlc_required:
-            frame = padFrame(frame, self.padding_value, self.padding_len)
+    def send(self, frame: bytes) -> None:
         # send the request
-        self.pre_send_timestamp = time()
-        self.canInterface.transmit(payload=frame)
-        self.post_send_timestamp = time()
+        self.pre_send_timestamp = self.timestamp.value
+        self.can_interface.transmit(payload=pad_frame(frame, self.max_dlc_required, self.padding_value))
+        self.post_send_timestamp = self.timestamp.value
 
-    def closeConnection(self):
-        if hasattr(self, "canInterface"):
-            self.canInterface.close()
+    def close_connection(self):
+        if hasattr(self, "can_interface"):
+            self.can_interface.close()
 
     def close(self):
-        self.finishListener()
-        self.closeConnection()
+        self.finish_listener()
+        self.close_connection()
 
 
-def setDLC(length: int):
+def set_DLC(length: int):
     """Return DLC value according to CAN-FD.
 
     :param length: Length value to be mapped to a valid CAN-FD DLC.
@@ -376,41 +428,16 @@ def setDLC(length: int):
         raise ValueError("DLC could be at most 64.")
 
 
-def calculateFilter(ids: list):
+def calculate_filter(ids: list):
     """
     :param ids: An iterable (usually list or tuple) containing CAN identifiers.
 
     :return: Calculated filter and mask.
     :rtype: tuple (int, int)
     """
-    any_extended_ids = any(isExtendedIdentifier(i) for i in ids)
+    any_extended_ids = any(is_extended_identifier(i) for i in ids)
     raw_ids = [stripIdentifier(i) for i in ids]
     cfilter = functools.reduce(operator.and_, raw_ids)
     cmask = functools.reduce(operator.or_, raw_ids) ^ cfilter
     cmask ^= 0x1FFFFFFF if any_extended_ids else 0x7FF
     return (cfilter, cmask)
-
-
-def try_to_install_system_supplied_drivers():
-    """Register available pyxcp CAN drivers."""
-    import importlib
-    import pkgutil
-    import pyxcp.transport.candriver as cdr
-
-    for _, modname, _ in pkgutil.walk_packages(cdr.__path__, "{}.".format(cdr.__name__)):
-        try:
-            importlib.import_module(modname)
-        except Exception:
-            pass
-
-
-def registered_drivers():
-    """
-    Returns
-    -------
-    dict (name, class)
-        Dictionary containing CAN driver names and classes of all
-        available drivers (pyxcp supplied and user-defined).
-    """
-    sub_classes = CanInterfaceBase.__subclasses__()
-    return OrderedDict(zip(([c.__name__ for c in sub_classes]), sub_classes))

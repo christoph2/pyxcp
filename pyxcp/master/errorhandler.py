@@ -1,28 +1,24 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Implements error-handling according to XCP spec.
 """
 import functools
 import logging
-import os
 import threading
 import time
 import types
 from collections import namedtuple
-from pyxcp.errormatrix import Action
-from pyxcp.errormatrix import ERROR_MATRIX
-from pyxcp.errormatrix import PreAction
-from pyxcp.types import COMMAND_CATEGORIES
-from pyxcp.types import XcpError
-from pyxcp.types import XcpResponseError
-from pyxcp.types import XcpTimeoutError
+from typing import Generic, List, Optional, TypeVar
+
+import can
+
+from pyxcp.errormatrix import ERROR_MATRIX, Action, PreAction
+from pyxcp.types import COMMAND_CATEGORIES, XcpError, XcpResponseError, XcpTimeoutError
 
 
 handle_errors = True  # enable/disable XCP error-handling.
 
-logger = logging.getLogger("pyxcp.errorhandler")
 
-class SingletonBase(object):
+class SingletonBase:
     _lock = threading.Lock()
 
     def __new__(cls, *args, **kws):
@@ -31,7 +27,7 @@ class SingletonBase(object):
             try:
                 cls._lock.acquire()
                 if not hasattr(cls, "_instance"):
-                    cls._instance = super(SingletonBase, cls).__new__(cls)
+                    cls._instance = super().__new__(cls)
             finally:
                 cls._lock.release()
         return cls._instance
@@ -44,8 +40,18 @@ class InternalError(Exception):
     """Indicates an internal error, like invalid service."""
 
 
-class UnhandledError(Exception):
+class SystemExit(Exception):
     """"""
+
+    def __init__(self, msg: str, error_code: int = None, *args, **kws):
+        super().__init__(*args, **kws)
+        self.error_code = error_code
+        self.msg = msg
+
+    def __str__(self):
+        return f"SystemExit(error_code={self.error_code}, message={self.msg!r})"
+
+    __repr__ = __str__
 
 
 class UnrecoverableError(Exception):
@@ -78,10 +84,10 @@ def getActions(service, error_code):
         eh = getErrorHandler(service)
         if eh is None:
             raise InternalError(f"Invalid Service 0x{service:02x}")
-        print(f"Try to handle error -- Service: {service.name} Error-Code: {error_code}")
+        # print(f"Try to handle error -- Service: {service.name} Error-Code: {error_code}")
         handler = eh.get(error_str)
         if handler is None:
-            raise UnhandledError(f"Service '{service.name}' has no handler for '{error_code}'.")
+            raise SystemExit(f"Service {service.name!r} has no handler for {error_code}.", error_code=error_code)
         preActions, actions = handler
     return preActions, actions
 
@@ -89,8 +95,7 @@ def getActions(service, error_code):
 def actionIter(actions):
     """Iterate over action from :file:`errormatrix.py`"""
     if isinstance(actions, (tuple, list)):
-        for item in actions:
-            yield item
+        yield from actions
     else:
         yield actions
 
@@ -116,12 +121,14 @@ class Arguments:
                 self.args = tuple(args)
         self.kwargs = kwargs or {}
 
-    def __str__(self):
+    def __str__(self) -> str:
         res = f"{self.__class__.__name__}(ARGS = {self.args}, KWS = {self.kwargs})"
         return res
 
-    def __eq__(self, other):
-        return (self.args == other.args if other is not None else ()) and (self.kwargs == other.kwargs if other is not None else {})
+    def __eq__(self, other) -> bool:
+        return (self.args == other.args if other is not None else False) and (
+            self.kwargs == other.kwargs if other is not None else False
+        )
 
     __repr__ = __str__
 
@@ -144,7 +151,7 @@ class Repeater:
 
     def __init__(self, initial_value: int):
         self._counter = initial_value
-        #print("\tREPEATER ctor", hex(id(self)))
+        # print("\tREPEATER ctor", hex(id(self)))
 
     def repeat(self):
         """Check if repetition is required.
@@ -153,7 +160,7 @@ class Repeater:
         -------
             bool
         """
-        #print("\t\tCOUNTER:", hex(id(self)), self._counter)
+        # print("\t\tCOUNTER:", hex(id(self)), self._counter)
         if self._counter == Repeater.INFINITE:
             return True
         elif self._counter > 0:
@@ -174,8 +181,6 @@ def display_error():
 class Handler:
     """"""
 
-    logger = logger
-
     def __init__(self, instance, func, arguments, error_code=None):
         self.instance = instance
         if hasattr(func, "__closure__") and func.__closure__:
@@ -185,11 +190,14 @@ class Handler:
             self.func = func
         self.arguments = arguments
         self.service = self.instance.service
-        self.error_code = error_code
+        self._error_code: int = 0
+        if error_code is not None:
+            self._error_code = error_code
         self._repeater = None
+        self.logger = logging.getLogger("PyXCP")
 
     def __str__(self):
-        return f"Handler(func = {func_name(self.func)} arguments = {self.arguments} service = {self.service} error_code = {self.error_code})"
+        return f"Handler(func = {func_name(self.func)} -- {self.arguments} service = {self.service} error_code = {self.error_code})"
 
     def __eq__(self, other):
         if other is None:
@@ -197,17 +205,25 @@ class Handler:
         return (self.instance == other.instance) and (self.func == other.func) and (self.arguments == other.arguments)
 
     @property
+    def error_code(self) -> int:
+        return self._error_code
+
+    @error_code.setter
+    def error_code(self, value: int) -> None:
+        self._error_code = value
+
+    @property
     def repeater(self):
-        #print("\tGet repeater", hex(id(self._repeater)), self._repeater is None)
+        # print("\tGet repeater", hex(id(self._repeater)), self._repeater is None)
         return self._repeater
 
     @repeater.setter
     def repeater(self, value):
-        #print("\tSet repeater", hex(id(value)))
+        # print("\tSet repeater", hex(id(value)))
         self._repeater = value
 
     def execute(self):
-        self.logger.debug(f"EXECUTE func = {func_name(self.func)} arguments = {self.arguments})")
+        self.logger.debug(f"Execute({func_name(self.func)} -- {self.arguments})")
         if isinstance(self.func, types.MethodType):
             return self.func(*self.arguments.args, **self.arguments.kwargs)
         else:
@@ -227,40 +243,42 @@ class Handler:
                 fn = Function(self.instance.synch, Arguments())
                 result_pre_actions.append(fn)
             elif item == PreAction.GET_SEED_UNLOCK:
-                raise NotImplementedError("GET_SEED_UNLOCK")
+                raise NotImplementedError("Pre-action GET_SEED_UNLOCK")
             elif item == PreAction.SET_MTA:
                 fn = Function(self.instance.setMta, Arguments(self.instance.mta))
                 result_pre_actions.append(fn)
             elif item == PreAction.SET_DAQ_PTR:
                 fn = Function(self.instance.setDaqPtr, Arguments(self.instance.currentDaqPtr))
             elif item == PreAction.START_STOP_X:
-                raise NotImplementedError("START_STOP_X")
+                raise NotImplementedError("Pre-action START_STOP_X")
             elif item == PreAction.REINIT_DAQ:
-                raise NotImplementedError("REINIT_DAQ")
+                raise NotImplementedError("Pre-action REINIT_DAQ")
             elif item == PreAction.DISPLAY_ERROR:
                 pass
             elif item == PreAction.DOWNLOAD:
-                raise NotImplementedError("DOWNLOAD")
+                raise NotImplementedError("Pre-action DOWNLOAD")
             elif item == PreAction.PROGRAM:
-                raise NotImplementedError("PROGRAM")
+                raise NotImplementedError("Pre-action PROGRAM")
             elif item == PreAction.UPLOAD:
-                raise NotImplementedError("UPLOAD")
+                raise NotImplementedError("Pre-action UPLOAD")
             elif item == PreAction.UNLOCK_SLAVE:
                 resource = COMMAND_CATEGORIES.get(self.instance.service)  # noqa: F841
-                raise NotImplementedError("UNLOCK_SLAVE")
+                raise NotImplementedError("Pre-action UNLOCK_SLAVE")
         for item in actionIter(actions):
             if item == Action.NONE:
                 pass
             elif item == Action.DISPLAY_ERROR:
-                raise UnhandledError("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error (DISPLAY_ERROR).", self.error_code)
             elif item == Action.RETRY_SYNTAX:
-                raise UnhandledError("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error (RETRY_SYNTAX).", self.error_code)
             elif item == Action.RETRY_PARAM:
-                raise UnhandledError("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error (RETRY_PARAM).", self.error_code)
             elif item == Action.USE_A2L:
-                raise UnhandledError("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error (USE_A2L).", self.error_code)
             elif item == Action.USE_ALTERATIVE:
-                raise UnhandledError("Could not proceed due to unhandled error.")  # TODO: check alternatives.
+                raise SystemExit(
+                    "Could not proceed due to unhandled error (USE_ALTERATIVE).", self.error_code
+                )  # TODO: check alternatives.
             elif item == Action.REPEAT:
                 repetitionCount = Repeater.REPEAT
             elif item == Action.REPEAT_2_TIMES:
@@ -268,49 +286,53 @@ class Handler:
             elif item == Action.REPEAT_INF_TIMES:
                 repetitionCount = Repeater.INFINITE
             elif item == Action.RESTART_SESSION:
-                raise UnhandledError("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error (RESTART_SESSION).", self.error_code)
             elif item == Action.TERMINATE_SESSION:
-                raise UnhandledError("Could not proceed due to unhandled error.")
+                raise SystemExit("Could not proceed due to unhandled error (TERMINATE_SESSION).", self.error_code)
             elif item == Action.SKIP:
                 pass
             elif item == Action.NEW_FLASH_WARE:
-                raise UnhandledError("Could not proceed due to unhandled error")
+                raise SystemExit("Could not proceed due to unhandled error (NEW_FLASH_WARE)", self.error_code)
         return result_pre_actions, result_actions, Repeater(repetitionCount)
 
 
-class HandlerStack:
+T = TypeVar("T")
+
+
+class HandlerStack(Generic[T]):
     """"""
 
-    def __init__(self):
-        self._stack = []
+    def __init__(self) -> None:
+        self._stack: List[T] = []
 
-    def push(self, handler):
-        if handler != self.tos():
-            self._stack.append(handler)
+    def push(self, value: T):
+        if value != self.tos():
+            self._stack.append(value)
 
-    def pop(self):
+    def pop(self) -> None:
         if len(self) > 0:
             self._stack.pop()
 
-    def tos(self):
+    def tos(self) -> Optional[T]:
         if len(self) > 0:
             return self._stack[-1]
         else:
             return None
+            # raise ValueError("empty stack.")
 
-    def empty(self):
+    def empty(self) -> bool:
         return self._stack == []
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._stack)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         result = []
         for idx in range(len(self)):
             result.append(str(self[idx]))
         return "\n".join(result)
 
-    def __getitem__(self, ndx):
+    def __getitem__(self, ndx: int) -> T:
         return self._stack[ndx]
 
     __str__ = __repr__
@@ -319,43 +341,52 @@ class HandlerStack:
 class Executor(SingletonBase):
     """"""
 
-    handlerStack = HandlerStack()
-    repeater = None
-    logger = logger
-    previous_error_code = None
-    error_code = None
-    func = None
-    arguments = None
+    def __init__(self):
+        self.handlerStack = HandlerStack()
+        self.repeater = None
+        self.logger = logging.getLogger("PyXCP")
+        self.previous_error_code = None
+        self.error_code = None
+        self.func = None
+        self.arguments = None
 
     def __call__(self, inst, func, arguments):
-        self.logger.debug(f"__call__({func.__qualname__})")
         self.inst = inst
         self.func = func
         self.arguments = arguments
         handler = Handler(inst, func, arguments)
         self.handlerStack.push(handler)
-        #print("\tENTER handler:", hex(id(handler)))
         try:
             while True:
                 try:
                     handler = self.handlerStack.tos()
-                    #print("\t\tEXEC", hex(id(handler)))
                     res = handler.execute()
                 except XcpResponseError as e:
-                    self.logger.error(f"XcpResponseError [{str(e)}]")
+                    # self.logger.critical(f"XcpResponseError [{e.get_error_code()}]")
                     self.error_code = e.get_error_code()
-                except XcpTimeoutError as e:
-                    self.logger.error(f"XcpTimeoutError [{str(e)}]")
+                    handler.error_code = self.error_code
+                except XcpTimeoutError:
+                    # self.logger.error(f"XcpTimeoutError [{str(e)}]")
                     self.error_code = XcpError.ERR_TIMEOUT
-                except Exception as e:
-                    raise UnrecoverableError(f"Don't know how to handle exception '{repr(e)}'") from e
+                    handler.error_code = self.error_code
+                except TimeoutError:
+                    raise
+                except can.CanError:
+                    # self.logger.critical(f"Exception raised by Python CAN [{str(e)}]")
+                    raise
+                except Exception:
+                    # self.logger.critical(f"Exception [{str(e)}]")
+                    raise
                 else:
                     self.error_code = None
-                    # print("\t\t\t*** SUCCESS ***")
                     self.handlerStack.pop()
                     if self.handlerStack.empty():
-                        # print("OK, all handlers passed: '{}'.".format(res))
                         return res
+
+                if self.error_code == XcpError.ERR_CMD_SYNCH:
+                    # Don't care about SYNCH for now...
+                    self.inst.logger.info("SYNCH received.")
+                    continue
 
                 if self.error_code is not None:
                     preActions, actions, repeater = handler.actions(*getActions(inst.service, self.error_code))
@@ -368,7 +399,9 @@ class Executor(SingletonBase):
                     if handler.repeater.repeat():
                         continue
                     else:
-                        raise UnrecoverableError(f"Max. repetition count reached while trying to execute service '{handler.func.__name__}'.")
+                        raise UnrecoverableError(
+                            f"Max. repetition count reached while trying to execute service {handler.func.__name__!r}."
+                        )
         finally:
             # cleanup of class variables
             self.previous_error_code = None

@@ -1,107 +1,131 @@
 repos:
-- repo: local
-  hooks:
-  - id: check-yaml
-    name: check-yaml
-    entry: check-yaml
-    language: python
-    types: [yaml]
-    stages: [commit]
-  - id: check-json
-    name: check-json
-    entry: check-json
-    language: python
-    types: [json]
-    stages: [commit]
-  - id: check-toml
-    name: check-toml
-    entry: check-toml
-    language: python
-    types: [toml]
-    stages: [commit]
-  - id: check-ast
-    name: check-ast
-    entry: check-ast
-    language: python
-    types: [python]
-    stages: [commit]
-    #- id: autopep8
-    #name: autopep8
-    #entry: autopep8
-    #language: python
-    #types: [python]
-    #args: [-a, -i]
-    #stages: [commit]
-  - id: check-builtin-literals
-    name: check-builtin-literals
-    entry: check-builtin-literals
-    language: python
-    types: [python]
-    stages: [commit]
-  - id: check-case-conflict
-    name: check-case-conflict
-    entry: check-case-conflict
-    language: python
-    types: [python]
-    stages: [commit]
-  - id: check-merge-conflict
-    name: check-merge-conflict
-    entry: check-merge-conflict
-    language: python
-    types: [text]
-    stages: [commit]
-  - id: fix-byte-order-marker
-    name: fix-byte-order-marker
-    entry: fix-byte-order-marker
-    language: python
-    types: [python]
-    stages: [commit]
-  - id: mixed-line-ending
-    name: mixed-line-ending
-    entry: mixed-line-ending
-    language: python
-    types_or: [c, c++, python]
-    stages: [commit]
-  - id: end-of-file-fixer
-    name: end-of-file-fixer
-    entry: end-of-file-fixer
-    language: python
-    types_or: [c, c++, python]
-    stages: [commit]
-  - id: trailing-whitespace-fixer
-    name: trailing-whitespace-fixer
-    entry: trailing-whitespace-fixer
-    language: python
-    types_or: [c, c++, python]
-    stages: [commit]
-  - id: reorder-python-imports
-    name: reorder-python-imports
-    entry: reorder-python-imports
-    language: python
-    types: [python]
-    stages: [commit]
-  - id: black
-    name: black
-    entry: black
-    language: python
-    types: [python]
-    stages: [commit]
-  - id: selective_tests
-    name: selective_tests
-    entry: ./selective_tests.py
-    language: python
-    types: [python]
-    stages: [commit]
-  - id: flake8
-    name: flake8
-    entry: flake8
-    language: python
-    types: [python]
-    stages: [commit]
-  - id: pytest-check
-    name: pytest-check
-    entry: pytest
-    language: system
-    pass_filenames: false
-    always_run: true
-    stages: [push]
+  - repo: local
+    hooks:
+      - id: bandit
+        name: bandit
+        entry: bandit
+        language: system
+        types: [python]
+        require_serial: true
+        args: ["-c", "bandit.yml"]
+      - id: black
+        name: black
+        entry: black
+        language: system
+        types: [python]
+        require_serial: true
+      - id: ruff
+        name: ruff
+        entry: ruff
+        language: system
+        types: [python]
+        args: ["check"]
+        require_serial: true
+      - id: check-added-large-files
+        name: Check for added large files
+        entry: check-added-large-files
+        language: system
+      - id: check-toml
+        name: Check Toml
+        entry: check-toml
+        language: system
+        types: [toml]
+      - id: check-json
+        name: check-json
+        entry: check-json
+        language: python
+        types: [json]
+      - id: check-yaml
+        name: Check Yaml
+        entry: check-yaml
+        language: system
+        types: [yaml]
+      - id: check-ast
+        name: check-ast
+        entry: check-ast
+        language: python
+        types: [python]
+        stages: [commit]
+      - id: check-builtin-literals
+        name: check-builtin-literals
+        entry: check-builtin-literals
+        language: python
+        types: [python]
+        stages: [commit]
+      - id: check-case-conflict
+        name: check-case-conflict
+        entry: check-case-conflict
+        language: python
+        types: [python]
+        stages: [commit]
+      - id: check-merge-conflict
+        name: check-merge-conflict
+        entry: check-merge-conflict
+        language: python
+        types: [text]
+        stages: [commit]
+      - id: fix-byte-order-marker
+        name: fix-byte-order-marker
+        entry: fix-byte-order-marker
+        language: python
+        types: [python]
+        stages: [commit]
+      - id: mixed-line-ending
+        name: mixed-line-ending
+        entry: mixed-line-ending
+        language: python
+        types_or: [c, c++, python]
+        stages: [commit]
+      - id: end-of-file-fixer
+        name: end-of-file-fixer
+        entry: end-of-file-fixer
+        language: python
+        types_or: [python]
+        stages: [commit]
+      - id: darglint
+        name: darglint
+        entry: darglint
+        language: system
+        types: [python]
+        stages: [manual]
+      - id: end-of-file-fixer
+        name: Fix End of Files
+        entry: end-of-file-fixer
+        language: system
+        types: [text]
+        stages: [commit, push, manual]
+      - id: flake8
+        name: flake8
+        entry: flake8
+        language: system
+        types: [python]
+        require_serial: true
+        args: [--darglint-ignore-regex, .*]
+      - id: isort
+        name: isort
+        entry: isort
+        require_serial: true
+        language: system
+        types_or: [cython, pyi, python]
+        args: ["--filter-files"]
+      - id: pyupgrade
+        name: pyupgrade
+        description: Automatically upgrade syntax for newer versions.
+        entry: pyupgrade
+        language: system
+        types: [python]
+        args: [--py38-plus]
+      - id: trailing-whitespace
+        name: Trim Trailing Whitespace
+        entry: trailing-whitespace-fixer
+        language: system
+        types: [text]
+        stages: [commit, push, manual]
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v2.6.0
+    hooks:
+      - id: prettier
+        #- repo: https://github.com/necaris/pre-commit-pyright
+        #rev: '1.1.53'
+        #hooks:
+        #- id: pyright

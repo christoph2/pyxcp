@@ -1,17 +1,18 @@
-import os
-import subprocess
-
-from distutils.core import Extension
+import subprocess  # nosec
 from distutils.core import setup
-from pybind11.setup_helpers import build_ext
-from pybind11.setup_helpers import naive_recompile
-from pybind11.setup_helpers import ParallelCompile
-from pybind11.setup_helpers import Pybind11Extension
+
+from pybind11.setup_helpers import (
+    ParallelCompile,
+    Pybind11Extension,
+    build_ext,
+    naive_recompile,
+)
+
 
 # ParallelCompile("NPY_NUM_BUILD_JOBS").install()
 ParallelCompile("NPY_NUM_BUILD_JOBS", needs_recompile=naive_recompile).install()
 
-INCLUDE_DIRS = subprocess.getoutput("pybind11-config --include")
+INCLUDE_DIRS = subprocess.getoutput("pybind11-config --include")  # nosec
 
 # os.environ ["CFLAGS"] = ''
 
@@ -23,7 +24,7 @@ ext_modules = [
     Pybind11Extension(
         EXT_NAMES[0],
         include_dirs=[INCLUDE_DIRS],
-        sources=["lz4.cpp", "wrap.cpp"],
+        sources=["lz4.c", "wrap.cpp"],
         define_macros=[("EXTENSION_NAME", EXT_NAMES[0])],
         cxx_std=20,  # Extension will use C++20 generators/coroutines.
     ),

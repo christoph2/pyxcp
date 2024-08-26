@@ -1,8 +1,6 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Use this as a copy-and-paste template for your own scripts.
 """
-from pprint import pprint
 
 from pyxcp.cmdline import ArgumentParser
 

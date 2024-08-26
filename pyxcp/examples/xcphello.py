@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """Very basic hello-world example.
 """
 from pprint import pprint
 
 from pyxcp.cmdline import ArgumentParser
 from pyxcp.utils import decode_bytes
+
 
 daq_info = False
 
@@ -33,13 +33,16 @@ with ap.run() as x:
     identifier = x.identifier(0x01)
     print("\nSlave Properties:")
     print("=================")
-    print(f"ID: '{identifier}'")
+    print(f"ID: {identifier!r}")
     pprint(x.slaveProperties)
+    x.cond_unlock()
     cps = x.getCurrentProtectionStatus()
     print("\nProtection Status")
     print("=================")
     for k, v in cps.items():
         print(f"    {k:6s}: {v}")
+    daq = x.getDaqInfo()
+    pprint(daq)
     if daq_info:
         dqp = x.getDaqProcessorInfo()
         print("\nDAQ Processor Info:")
@@ -54,7 +57,7 @@ with ap.run() as x:
             dq = "DAQ" if evt.daqEventProperties.daq else ""
             st = "STIM" if evt.daqEventProperties.stim else ""
             dq_st = dq + " " + st
-            print(f'    [{idx:04}] "{name:s}"')
+            print(f"    [{idx:04}] {name:r}")
             print(f"        dir:            {dq_st}")
             print(f"        packed:         {evt.daqEventProperties.packed}")
             PFX_CONS = "CONSISTENCY_"

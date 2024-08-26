@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 import struct
+
 
 INTEL = "<"
 MOTOROLA = ">"
@@ -15,7 +15,7 @@ MOTOROLA = ">"
 """
 
 
-class AsamBaseType(object):
+class AsamBaseType:
     """Base class for ASAM codecs.
 
     Note
@@ -51,7 +51,7 @@ class AsamBaseType(object):
         bytes
           Encoded value.
         """
-        return struct.pack("{}{}".format(self.byteorder, self.FMT), value)
+        return struct.pack(f"{self.byteorder}{self.FMT}", value)
 
     def decode(self, value):
         """Decode a value.
@@ -68,7 +68,7 @@ class AsamBaseType(object):
         data-type
           data-type is determined by derived class.
         """
-        return struct.unpack("{}{}".format(self.byteorder, self.FMT), bytes(value))[0]
+        return struct.unpack(f"{self.byteorder}{self.FMT}", bytes(value))[0]
 
 
 class A_Uint8(AsamBaseType):

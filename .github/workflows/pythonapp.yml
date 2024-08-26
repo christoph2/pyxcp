@@ -14,46 +14,42 @@ jobs:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-        fail-fast: false
-        matrix:
-            os: [
-              macos-13,
-              windows-latest,
-              ubuntu-latest
-            ]
-            cibw_archs: ["auto"]
-            include:
-              - os: ubuntu-latest
-                cibw_archs: "aarch64"
+      fail-fast: false
+      matrix:
+        os: [macos-13, windows-latest, ubuntu-latest]
+        cibw_archs: ["auto"]
+        include:
+          - os: ubuntu-latest
+            cibw_archs: "aarch64"
     steps:
       - uses: actions/checkout@v2
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: nightly
-            override: true
-            components: rustfmt, clippy
+          toolchain: nightly
+          override: true
+          components: rustfmt, clippy
       - name: Build wheel
         uses: pypa/cibuildwheel@v2.16
 
       - uses: actions/upload-artifact@v2
         with:
-            path: ./wheelhouse/*.whl
+          path: ./wheelhouse/*.whl
 
   build_sdist:
     name: Build source distribution
     runs-on: ubuntu-latest
     steps:
-        - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-        - name: Build sdist
-          run: |
-            pip install -U build
-            python -m build --sdist
+      - name: Build sdist
+        run: |
+          pip install -U build
+          python -m build --sdist
 
-        - uses: actions/upload-artifact@v2
-          with:
-            path: dist/*.tar.gz
+      - uses: actions/upload-artifact@v2
+        with:
+          path: dist/*.tar.gz
   upload_pypi:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
@@ -61,27 +57,27 @@ jobs:
     # alternatively, to publish when a GitHub Release is created, use the following rule:
     # if: github.event_name == 'release' && github.event.action == 'published'
     steps:
-    - uses: actions/download-artifact@v2
-      with:
-        name: artifact
-        path: dist
+      - uses: actions/download-artifact@v2
+        with:
+          name: artifact
+          path: dist
 
-    - uses: pypa/gh-action-pypi-publish@v1.4.2
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_PASSWORD }}
+      - uses: pypa/gh-action-pypi-publish@v1.4.2
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_PASSWORD }}
     # To test: repository_url: https://test.pypi.org/legacy/
     #
-        #      - name: Upload to PyPI
-        #uses: pypa/gh-action-pypi-publish@v1.4.2
-        #with:
-        #    user: ${{ secrets.PYPI_USER_NAME }}
-        #    password: ${{ secrets.PYPI_PASSWORD }}
-      #- name: Build and publish
-      #  env:
-      #    TWINE_USERNAME: ${{ secrets.PYPI_USER_NAME }}
-      #    TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      #  if: env.TWINE_USERNAME != null
-      #  run: |
-      #    python setup.py bdist_wheel
-      #    twine upload dist/*
+    #      - name: Upload to PyPI
+    #uses: pypa/gh-action-pypi-publish@v1.4.2
+    #with:
+    #    user: ${{ secrets.PYPI_USER_NAME }}
+    #    password: ${{ secrets.PYPI_PASSWORD }}
+    #- name: Build and publish
+    #  env:
+    #    TWINE_USERNAME: ${{ secrets.PYPI_USER_NAME }}
+    #    TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+    #  if: env.TWINE_USERNAME != null
+    #  run: |
+    #    python setup.py bdist_wheel
+    #    twine upload dist/*

@@ -406,4 +406,3 @@ taggedstruct Common_Parameters {
     block "PGM" struct Pgm;
     block "DAQ_EVENT" taggedunion Daq_Event;
 }; /******************** end of Common Parameters *****************************/
-
