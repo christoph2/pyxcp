@@ -18,7 +18,7 @@ def banner(msg: str) -> None:
     print("=" * 80)
 
 
-def build_extension(debug: bool = False) -> None:
+def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
     print("CMakeBuild::build_extension()")
 
     debug = bool(os.environ.get("DEBUG", 0)) or debug
@@ -37,8 +37,10 @@ def build_extension(debug: bool = False) -> None:
         if archs:
             cmake_args += ["-DCMAKE_OSX_ARCHITECTURES={}".format(";".join(archs))]
 
-    build_temp = Path(TemporaryDirectory(suffix=".build-temp").name) / "extension_it_in"
-    # build_temp = Path(".") / "build"
+    if use_temp_dir:
+        build_temp = Path(TemporaryDirectory(suffix=".build-temp").name) / "extension_it_in"
+    else:
+        build_temp = Path(".") / "build"
     # print("cwd:", os.getcwd(), "build-dir:", build_temp, "top:", str(TOP_DIR))
     if not build_temp.exists():
         build_temp.mkdir(parents=True)
