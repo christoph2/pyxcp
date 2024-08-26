@@ -31,14 +31,12 @@ myst-parser = {version = ">=0.16.1"}
 
 [project]
 name = "pyxcp"
-version = "0.22.1"
 dynamic = ["license", "readme", "authors", "requires-python", "description", "classifiers", "scripts", "dependencies", "optional-dependencies"]
-
 
 [tool.poetry]
 authors = ["Christoph Schueler <cpu.gems@googlemail.com>"]
 name = "pyxcp"
-version = "0.21.6"
+version = "0.22.1"
 readme = "README.md"
 description = "Universal Calibration Protocol for Python"
 keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
