@@ -168,7 +168,7 @@ build-verbosity = 3
 #test-command = "pytest -svv pyxcp/tests"
 build = "cp3{8,9,10,11,12,13}-*"
 skip = ["*-manylinux_i686", "*-musllinux_x86_64", "*-musllinux_i686"] # Skip Linux 32bit and MUSL builds.
-build-frontend = "poetry"
+build-frontend = "pip"
 
 [tool.pyright]
 include = ["pyxcp", "build_ext.py"]
