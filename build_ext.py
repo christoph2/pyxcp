@@ -40,7 +40,7 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
     if use_temp_dir:
         build_temp = Path(TemporaryDirectory(suffix=".build-temp").name) / "extension_it_in"
     else:
-        build_temp = Path(".") / "build"
+        build_temp = Path(".")
     # print("cwd:", os.getcwd(), "build-dir:", build_temp, "top:", str(TOP_DIR))
     if not build_temp.exists():
         build_temp.mkdir(parents=True)
