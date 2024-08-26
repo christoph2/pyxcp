@@ -31,7 +31,7 @@ myst-parser = {version = ">=0.16.1"}
 
 [project]
 name = "pyxcp"
-version = "0.22.0"
+version = "0.22.1"
 dynamic = ["license", "readme", "authors", "requires-python", "description", "classifiers", "scripts", "dependencies", "optional-dependencies"]
 
 
