@@ -88,7 +88,10 @@ target_compile_options(cpp_ext PUBLIC "-DEXTENSION_NAME=pyxcp.cpp_ext.cpp_ext")
 target_compile_options(stim PUBLIC "-DEXTENSION_NAME=pyxcp.daq_stim.stim")
 
 add_executable(asamkeydll ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/asamkeydll.c)
-# set_target_properties(MyTarget PROPERTIES COMPILE_FLAGS "-m32" LINK_FLAGS "-m32")
+if (CMAKE_SYSTEM_NAME STREQUAL  "Linux")
+	target_link_libraries(asamkeydll PRIVATE dl)
+endif()
+
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)
     # CMAKE_SYSTEM_NAME STREQUAL  "Windows"

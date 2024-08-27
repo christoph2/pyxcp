@@ -162,17 +162,31 @@ exclude = '''
 
 [tool.cibuildwheel]
 build-verbosity = 3
+
 #test-command = "pytest {package}/tests"
 #test-command = "pytest -svv pyxcp/tests"
 build = "cp3{8,9,10,11,12,13}-*"
+manylinux-x86_64-image = "manylinux_2_28"
 skip = ["*-manylinux_i686", "*-musllinux_x86_64", "*-musllinux_i686"] # Skip Linux 32bit and MUSL builds.
 build-frontend = "pip"
 
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "universal2", "arm64"]
+
+[tool.cibuildwheel.windows]
+archs = ["AMD64", "ARM64"]
+
+[[tool.cibuildwheel.overrides]]
+select = "cp3?-*"
+manylinux-x86_64-image = "manylinux2014"
+
+[tool.cibuildwheel.linux]
+archs = ["auto", "aarch64"]
+before-all = "yum install -y libffi openssl openssl-devel"
+
 [tool.pyright]
 include = ["pyxcp", "build_ext.py"]
-ignore = ["pyxcp/conf_test.py", "pyxcp/config_new.py", "pyxcp/config_tr.py", "pyxcp/examples/memxfer.py",
-	"pyxcp/examples/ts_tester.py", "pyxcp/recorder/converter/**", "pyxcp/transport/candriver/**", "pyxcp/recorder/simdjson/**",
-	"pyxcp/recorder/mio/**", "pyxcp/recorder/lz4/**"]
+ignore = ["pyxcp/recorder/converter/**", "pyxcp/recorder/simdjson/**","pyxcp/recorder/mio/**", "pyxcp/recorder/lz4/**"]
 #defineConstant = { DEBUG = true }
 #stubPath = "src/stubs"
 

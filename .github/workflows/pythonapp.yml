@@ -16,8 +16,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, windows-latest] # , ubuntu-latest
-        cibw_archs: ["auto"]
+        os: [windows-latest, ubuntu-latest, macos-13, macos-14]
+        # cibw_archs: ["x86_64", ""]
         #include:
         #  - os: ubuntu-latest
         #    cibw_archs: "aarch64"
@@ -30,7 +30,7 @@ jobs:
           override: true
           components: rustfmt, clippy
       - name: Build wheel
-        uses: pypa/cibuildwheel@v2.16
+        uses: pypa/cibuildwheel@v2.20
 
       - uses: actions/upload-artifact@v2
         with:
