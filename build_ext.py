@@ -6,17 +6,22 @@ import platform
 import re
 import subprocess  # nosec
 import sys
+import sysconfig
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-print("ENV:", os.environ)
+print("PY_EXE", sys.executable)
+print("PY_INCLUDE", sysconfig.get_path('include'))
+print("PY_LIBDIR", sysconfig.get_config_var('LIBDIR'))
+print("PY_LDLIBRARY", sysconfig.get_config_var('LDLIBRARY'))
+         
          
 TOP_DIR = Path(__file__).parent
 
 print("Platform", platform.system())
 uname = platform.uname()
 if uname.system == "Darwin":
-    os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.11"      
+    os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.13"
 
 def banner(msg: str) -> None:
     print("=" * 80)
