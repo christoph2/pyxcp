@@ -9,16 +9,14 @@ import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-
+print("ENV:", os.environ)
+         
 TOP_DIR = Path(__file__).parent
 
 print("Platform", platform.system())
 uname = platform.uname()
 if uname.system == "Darwin":
-    os.environ["MACOSX_DEPLOYMENT_TARGET"] = "11.0"
-
-print("ENV:", os.environ)
-
+    os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.11"      
 
 def banner(msg: str) -> None:
     print("=" * 80)
@@ -33,7 +31,7 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
     cfg = "Debug" if debug else "Release"
     print(f" BUILD-TYPE: {cfg!r}")
     cmake_args = [
-        f"-DPYTHON_EXECUTABLE={sys.executable}",
+        # f"-DPYTHON_EXECUTABLE={sys.executable}",
         f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
     ]
     build_args = ["--config Release", "--verbose"]
