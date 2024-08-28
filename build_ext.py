@@ -37,13 +37,13 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
     print(f" BUILD-TYPE: {cfg!r}")
     
     cmake_args = [
-        # f"-DPYTHON_EXECUTABLE={sys.executable}",
+        f"-DPython3_EXECUTABLE={sys.executable}",
         f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
     ]
     
     # if uname.system == 'Linux' and 'CIBUILDWHEEL' in os.environ:
-    #    cmake_args += [f"-DPYTHON_INCLUDE_DIR={sysconfig.get_path('include')}"]
-    #    cmake_args += [f"-DPYTHON_LIBRARY={str(Path(sysconfig.get_config_var('LIBDIR')) / Path(sysconfig.get_config_var('LDLIBRARY')))}"]
+    #    cmake_args += [f"-DPython3_INCLUDE_DIR={sysconfig.get_path('include')}"]
+    #    cmake_args += [f"-DPython3_LIBRARY={str(Path(sysconfig.get_config_var('LIBDIR')) / Path(sysconfig.get_config_var('LDLIBRARY')))}"]
     
     build_args = ["--config Release", "--verbose"]
     # cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 /path/to/src
@@ -63,13 +63,13 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
         build_temp.mkdir(parents=True)
 
     banner("Step #1: Configure")
-    cmake_args += ["--debug-output"]    ###
+    # cmake_args += ["--debug-output"]
     subprocess.run(["cmake", str(TOP_DIR), *cmake_args], cwd=build_temp, check=True)  # nosec
 
     cmake_args += [f"--parallel {mp.cpu_count()}"]
 
     banner("Step #2: Build")
-    build_args += ["-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON"]  ###
+    # build_args += ["-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON"]
     subprocess.run(["cmake", "--build", str(build_temp), *build_args], cwd=TOP_DIR, check=True)  # nosec
 
     # banner("Step #3: Install")

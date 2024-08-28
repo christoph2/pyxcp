@@ -1,8 +1,10 @@
 
-cmake_minimum_required(VERSION 3.7...3.29)
+cmake_minimum_required(VERSION 3.20...3.30)
 project(pyxcp_extensions LANGUAGES C CXX)
 
-find_package(Python COMPONENTS Interpreter Development)
+message(STATUS "Buildtype: " ${CMAKE_BUILD_TYPE})
+
+find_package(Python3 COMPONENTS Interpreter Development)
 find_package(pybind11 CONFIG)
 
 SET(CMAKE_C_STANDARD 17)
