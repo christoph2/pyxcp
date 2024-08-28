@@ -1,7 +1,7 @@
 
 cmake_minimum_required(VERSION 3.20...3.30)
 project(pyxcp_extensions LANGUAGES C CXX)
-
+cmake_policy(SET CMP0094 NEW)
 message(STATUS "Buildtype: " ${CMAKE_BUILD_TYPE})
 
 find_package(Python3 COMPONENTS Interpreter Development)
@@ -109,7 +109,7 @@ ELSEIF (CMAKE_C_COMPILER_ID MATCHES "MSVC")
 ENDIF()
 
 IF (CMAKE_SYSTEM_NAME STREQUAL  "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-	SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}" -fuse-ld=lld)
+	# SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}" -fuse-ld=lld)
 ENDIF()
 
 # target_include_directories(preprocessor PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/pya2l/extensions>)
