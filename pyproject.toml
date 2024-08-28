@@ -182,7 +182,7 @@ manylinux-x86_64-image = "manylinux2014"
 
 [tool.cibuildwheel.linux]
 archs = ["auto", "aarch64"]
-before-all = "yum install -y libffi openssl openssl-devel gcc-toolset-13"
+before-all = "yum install -y libffi openssl openssl-devel gcc"
 
 [tool.pyright]
 include = ["pyxcp", "build_ext.py"]
