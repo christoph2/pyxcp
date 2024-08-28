@@ -173,15 +173,11 @@ exclude = '''
 
 [tool.cibuildwheel]
 build-verbosity = 3
-
 #test-command = "pytest {package}/tests"
-#test-command = "pytest -svv pyxcp/tests"
+
 build = "cp3{8,9,10,11,12,13}-*"
 manylinux-x86_64-image = "manylinux_2_28"
-skip = ["*-manylinux_i686", "*-musllinux_x86_64", "*-musllinux_i686"]
-skip = ["cp311-win_amd64"]
-skip = ["cp38-manylinux*", "cp39-manylinux*"]
-# Skip Linux 32bit and MUSL builds.
+skip = ["*-manylinux_i686", "*-musllinux_x86_64", "*-musllinux_i686", "cp311-win_amd64", "cp38-manylinux*", "cp39-manylinux*"]
 build-frontend = "build"
 
 [tool.cibuildwheel.macos]
