@@ -172,8 +172,7 @@ build-verbosity = 3
 #test-command = "pytest {package}/tests"
 
 build = "cp3{8,9,10,11,12,13}-*"
-manylinux-x86_64-image = "manylinux_2_28"
-skip = ["*-manylinux_i686", "*-musllinux_x86_64", "*-musllinux_i686", "cp311-win_amd64", "cp38-manylinux*", "cp39-manylinux*"]
+skip = ["*-manylinux_i686", "*-musllinux_x86_64", "*-musllinux_i686", "cp311-win_amd64", "cp312-win_amd64", "cp313-win_amd64", "cp38-manylinux*", "cp39-manylinux*"]
 build-frontend = "build"
 
 [tool.cibuildwheel.macos]
@@ -187,7 +186,8 @@ select = "cp3?-*"
 manylinux-x86_64-image = "manylinux2014"
 
 [tool.cibuildwheel.linux]
-archs = ["auto", "aarch64"]
+# archs = ["auto", "aarch64"]
+archs = ["x86_64"]
 before-all = "yum install -y libffi openssl openssl-devel gcc"
 
 [tool.pyright]

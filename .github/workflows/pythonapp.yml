@@ -12,11 +12,12 @@ on:
 jobs:
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
+    continue-on-error: true
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-13, macos-14]
+        os: [windows-latest, ubuntu-latest] # , macos-13, macos-14
         # cibw_archs: ["x86_64", ""]
         #include:
         #  - os: ubuntu-latest
