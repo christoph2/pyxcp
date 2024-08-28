@@ -41,9 +41,9 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
         f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
     ]
     
-    if uname.system == 'Linux' and 'CIBUILDWHEEL' in os.environ:
-        cmake_args += [f"-DPYTHON_INCLUDE_DIR={sysconfig.get_path('include')}"]
-        cmake_args += [f"-DPYTHON_LIBRARY={str(Path(sysconfig.get_config_var('LIBDIR')) / Path(sysconfig.get_config_var('LDLIBRARY')))}"]
+    # if uname.system == 'Linux' and 'CIBUILDWHEEL' in os.environ:
+    #    cmake_args += [f"-DPYTHON_INCLUDE_DIR={sysconfig.get_path('include')}"]
+    #    cmake_args += [f"-DPYTHON_LIBRARY={str(Path(sysconfig.get_config_var('LIBDIR')) / Path(sysconfig.get_config_var('LDLIBRARY')))}"]
     
     build_args = ["--config Release", "--verbose"]
     # cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 /path/to/src

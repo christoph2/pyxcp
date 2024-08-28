@@ -168,7 +168,7 @@ build-verbosity = 3
 build = "cp3{8,9,10,11,12,13}-*"
 manylinux-x86_64-image = "manylinux_2_28"
 skip = ["*-manylinux_i686", "*-musllinux_x86_64", "*-musllinux_i686"] # Skip Linux 32bit and MUSL builds.
-build-frontend = "pip"
+build-frontend = "build"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "universal2", "arm64"]
