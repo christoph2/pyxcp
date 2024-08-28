@@ -30,7 +30,7 @@ def banner(msg: str) -> None:
 
 
 def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
-    print("CMakeBuild::build_extension()")
+    print("build_ext::build_extension()")
 
     debug = bool(os.environ.get("DEBUG", 0)) or debug
     cfg = "Debug" if debug else "Release"
@@ -63,14 +63,14 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
         build_temp.mkdir(parents=True)
 
     banner("Step #1: Configure")
-    # cmake_args += ["--debug-output"]
+    cmake_args += ["--debug-output"]    ###
     subprocess.run(["cmake", str(TOP_DIR), *cmake_args], cwd=build_temp, check=True)  # nosec
 
     cmake_args += [f"--parallel {mp.cpu_count()}"]
 
     banner("Step #2: Build")
-    # build_args += ["-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON"]
-    subprocess.run(["cmake", "--build", build_temp, *build_args], cwd=TOP_DIR, check=True)  # nosec
+    build_args += ["-DCMAKE_VERBOSE_MAKEFILE:BOOL=ON"]  ###
+    subprocess.run(["cmake", "--build", str(build_temp), *build_args], cwd=TOP_DIR, check=True)  # nosec
 
     # banner("Step #3: Install")
     # subprocess.run(["cmake", "--install", "."], cwd=build_temp, check=True)  # nosec
@@ -79,5 +79,6 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
 
 if __name__ == "__main__":
     includes = subprocess.getoutput("pybind11-config --cmakedir")  # nosec
+    print("pybind11_DIR:", includes)
     os.environ["pybind11_DIR"] = includes
     build_extension(False)
