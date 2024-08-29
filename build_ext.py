@@ -24,6 +24,27 @@ uname = platform.uname()
 if uname.system == "Darwin":
     os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.13"
 
+VARS = sysconfig.get_config_vars()
+
+def get_python_base() -> str:
+    # Applies in this form only to Windows.
+    if "base" in VARS and VARS["base"]:
+        return VARS["base"]
+    if "installed_base" in VARS and VARS["installed_base"]:
+        return VARS["installed_base"]
+
+def get_py_config() -> dict:
+    pynd = VARS["py_version_nodot"]         # Should always be present.
+    include = sysconfig.get_path('include') # Seems to be cross-platform.
+    if uname.system == "Windows":
+        base = get_python_base()
+        libdir = str(Path(base) / "libs")
+        library = f"python{pynd}.lib"
+    else:
+        libdir = VARS["LIBDIR"]
+        library = VARS["LDLIBRARY"] 
+    
+    return dict(exe=sys.executable, include=include, libdir=libdir, library=library)
 
 def banner(msg: str) -> None:
     print("=" * 80)
@@ -38,8 +59,12 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
     cfg = "Debug" if debug else "Release"
     print(f" BUILD-TYPE: {cfg!r}")
 
+    py_cfg = get_py_config()
+
     cmake_args = [
-        f"-DPython3_EXECUTABLE={sys.executable}",
+        f"-DPython3_EXECUTABLE={py_cfg['exe']}",
+        f"-DPython3_INCLUDE_DIR={py_cfg['include']}",
+        f"-DPython3_LIBRARY={str(Path(py_cfg['libdir']) / Path(py_cfg['library']))}",
         f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
     ]
 
