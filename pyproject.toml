@@ -172,14 +172,14 @@ build-verbosity = 3
 #test-command = "pytest {package}/tests"
 
 build = "cp3{8,9,10,11,12,13}-*"
-skip = ["*-manylinux_i686", "*-musllinux_x86_64", "*-musllinux_i686", "cp311-win_amd64", "cp312-win_amd64", "cp313-win_amd64", "cp38-manylinux*", "cp39-manylinux*"]
+skip = ["*-manylinux_i686", "*-musllinux_x86_64", "*-musllinux_i686", "cp38-manylinux*", "cp39-manylinux*"]	# "cp311-win_amd64", "cp312-win_amd64", "cp313-win_amd64",
 build-frontend = "build"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "universal2", "arm64"]
 
 [tool.cibuildwheel.windows]
-archs = ["AMD64", "ARM64"]
+archs = ["AMD64"]	# , "ARM64"
 
 [[tool.cibuildwheel.overrides]]
 select = "cp3?-*"
