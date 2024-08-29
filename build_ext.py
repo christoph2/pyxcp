@@ -10,18 +10,20 @@ import sysconfig
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+
 print("PY_EXE", sys.executable)
-print("PY_INCLUDE", sysconfig.get_path('include'))
-print("PY_LIBDIR", sysconfig.get_config_var('LIBDIR'))
-print("PY_LDLIBRARY", sysconfig.get_config_var('LDLIBRARY'))
-         
-         
+print("PY_INCLUDE", sysconfig.get_path("include"))
+print("PY_LIBDIR", sysconfig.get_config_var("LIBDIR"))
+print("PY_LDLIBRARY", sysconfig.get_config_var("LDLIBRARY"))
+
+
 TOP_DIR = Path(__file__).parent
 
 print("Platform", platform.system())
 uname = platform.uname()
 if uname.system == "Darwin":
     os.environ["MACOSX_DEPLOYMENT_TARGET"] = "10.13"
+
 
 def banner(msg: str) -> None:
     print("=" * 80)
@@ -35,16 +37,16 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
     debug = bool(os.environ.get("DEBUG", 0)) or debug
     cfg = "Debug" if debug else "Release"
     print(f" BUILD-TYPE: {cfg!r}")
-    
+
     cmake_args = [
         f"-DPython3_EXECUTABLE={sys.executable}",
         f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
     ]
-    
+
     # if uname.system == 'Linux' and 'CIBUILDWHEEL' in os.environ:
     #    cmake_args += [f"-DPython3_INCLUDE_DIR={sysconfig.get_path('include')}"]
     #    cmake_args += [f"-DPython3_LIBRARY={str(Path(sysconfig.get_config_var('LIBDIR')) / Path(sysconfig.get_config_var('LDLIBRARY')))}"]
-    
+
     build_args = ["--config Release", "--verbose"]
     # cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 /path/to/src
 

@@ -1,6 +1,6 @@
 
 [build-system]
-requires = ["poetry-core>=1.0.0", "setuptools>=68.0.0", "pybind11>=2.12.0",  "pybind11[global]>=2.12.0"]
+requires = ["poetry-core>=1.0.0", "pybind11>=2.12.0",  "pybind11[global]>=2.12.0"]	# "setuptools>=68.0.0",
 build-backend = "poetry.core.masonry.api"
 
 
@@ -64,13 +64,13 @@ include = [
     { path = "pyxcp/recorder/*.pyd", format = "wheel" },
     { path = "pyxcp/*.exe", format = "wheel" },
     { path = "CMakeLists.txt", format = "sdist" },
-	
+
 	{ path = "pyxcp/cpp_ext/*hpp", format = "sdist" },
-	{ path = "pyxcp/cpp_ext/*cpp", format = "sdist" },	
+	{ path = "pyxcp/cpp_ext/*cpp", format = "sdist" },
 	{ path = "pyxcp/daq_stim/*hpp", format = "sdist" },
-	{ path = "pyxcp/daq_stim/*cpp", format = "sdist" },	
+	{ path = "pyxcp/daq_stim/*cpp", format = "sdist" },
 	{ path = "pyxcp/recorder/*hpp", format = "sdist" },
-	{ path = "pyxcp/recorder/*cpp", format = "sdist" },	
+	{ path = "pyxcp/recorder/*cpp", format = "sdist" },
 ]
 
 [tool.poetry.dependencies]
