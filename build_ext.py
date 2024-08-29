@@ -33,13 +33,37 @@ def get_python_base() -> str:
     if "installed_base" in VARS and VARS["installed_base"]:
         return VARS["installed_base"]
 
+def alternate_libdir(pth: str):
+    base = Path(pth).parent
+    print("ALT:", os.listdir(base))
+    libdir = Path(base) / "libs"
+    if libdir.exists():
+        available_libs = os.listdir(libdir)
+        print(available_libs)
+        return str(libdir)
+    else:
+        print("ALT libs not found")
+        return ""
+            
+
 def get_py_config() -> dict:
     pynd = VARS["py_version_nodot"]         # Should always be present.
     include = sysconfig.get_path('include') # Seems to be cross-platform.
+    library = f"python{pynd}.lib"
     if uname.system == "Windows":
         base = get_python_base()
-        libdir = str(Path(base) / "libs")
-        library = f"python{pynd}.lib"
+        libdir = Path(base) / "libs"
+        if libdir.exists():
+            available_libs = os.listdir(libdir)
+            print(available_libs)            
+            if library in available_libs:
+                print("OK")
+                libdir = str(libdir)
+            else:
+                print("NOT-OK")
+                libdir = ""
+        else:
+            libdir = alternate_libdir(include)
     else:
         libdir = VARS["LIBDIR"]
         library = VARS["LDLIBRARY"] 
