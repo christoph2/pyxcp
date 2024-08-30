@@ -11,12 +11,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 
-print("PY_EXE", sys.executable)
-print("PY_INCLUDE", sysconfig.get_path("include"))
-print("PY_LIBDIR", sysconfig.get_config_var("LIBDIR"))
-print("PY_LDLIBRARY", sysconfig.get_config_var("LDLIBRARY"))
-
-
 TOP_DIR = Path(__file__).parent
 
 print("Platform", platform.system())
@@ -26,6 +20,7 @@ if uname.system == "Darwin":
 
 VARS = sysconfig.get_config_vars()
 
+
 def get_python_base() -> str:
     # Applies in this form only to Windows.
     if "base" in VARS and VARS["base"]:
@@ -33,42 +28,38 @@ def get_python_base() -> str:
     if "installed_base" in VARS and VARS["installed_base"]:
         return VARS["installed_base"]
 
+
 def alternate_libdir(pth: str):
     base = Path(pth).parent
-    print("ALT:", os.listdir(base))
     libdir = Path(base) / "libs"
     if libdir.exists():
-        available_libs = os.listdir(libdir)
-        print(available_libs)
+        # available_libs = os.listdir(libdir)
         return str(libdir)
     else:
-        print("ALT libs not found")
         return ""
-            
+
 
 def get_py_config() -> dict:
-    pynd = VARS["py_version_nodot"]         # Should always be present.
-    include = sysconfig.get_path('include') # Seems to be cross-platform.
+    pynd = VARS["py_version_nodot"]  # Should always be present.
+    include = sysconfig.get_path("include")  # Seems to be cross-platform.
     library = f"python{pynd}.lib"
     if uname.system == "Windows":
         base = get_python_base()
         libdir = Path(base) / "libs"
         if libdir.exists():
             available_libs = os.listdir(libdir)
-            print(available_libs)            
             if library in available_libs:
-                print("OK")
                 libdir = str(libdir)
             else:
-                print("NOT-OK")
                 libdir = ""
         else:
             libdir = alternate_libdir(include)
     else:
         libdir = VARS["LIBDIR"]
-        library = VARS["LDLIBRARY"] 
-    
+        library = VARS["LDLIBRARY"]
+
     return dict(exe=sys.executable, include=include, libdir=libdir, library=library)
+
 
 def banner(msg: str) -> None:
     print("=" * 80)
@@ -91,10 +82,6 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
         f"-DPython3_LIBRARY={str(Path(py_cfg['libdir']) / Path(py_cfg['library']))}",
         f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
     ]
-
-    # if uname.system == 'Linux' and 'CIBUILDWHEEL' in os.environ:
-    #    cmake_args += [f"-DPython3_INCLUDE_DIR={sysconfig.get_path('include')}"]
-    #    cmake_args += [f"-DPython3_LIBRARY={str(Path(sysconfig.get_config_var('LIBDIR')) / Path(sysconfig.get_config_var('LDLIBRARY')))}"]
 
     build_args = ["--config Release", "--verbose"]
     # cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 /path/to/src
@@ -130,6 +117,5 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
 
 if __name__ == "__main__":
     includes = subprocess.getoutput("pybind11-config --cmakedir")  # nosec
-    print("pybind11_DIR:", includes)
     os.environ["pybind11_DIR"] = includes
     build_extension(False)
