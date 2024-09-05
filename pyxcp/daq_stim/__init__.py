@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-# from pprint import pprint
 from time import time_ns
 from typing import Dict, List, Optional, TextIO, Union
 
@@ -13,7 +12,6 @@ from pyxcp.recorder import DaqOnlinePolicy as _DaqOnlinePolicy
 from pyxcp.recorder import DaqRecorderPolicy as _DaqRecorderPolicy
 from pyxcp.recorder import MeasurementParameters
 from pyxcp.utils import CurrentDatetime
-
 
 DAQ_ID_FIELD_SIZE = {
     "IDF_ABS_ODT_NUMBER": 1,
@@ -144,7 +142,6 @@ class DaqProcessor:
         # arm DAQ lists -- this is technically a function on its own.
         first_daq_list = 0 if config_static else self.min_daq
         for i, daq_list in enumerate(self.daq_lists, first_daq_list):
-            print(daq_list.name, daq_list.event_num, daq_list.stim)
             mode = 0x00
             if self.supports_timestampes and (self.ts_fixed or (self.selectable_timestamps and daq_list.enable_timestamps)):
                 mode = 0x10
@@ -192,7 +189,7 @@ class DaqProcessor:
                     "DAQ stop skipped due to previous fatal OS error (e.g., disk full or out-of-memory). Closing transport."
                 )
             except Exception:
-                pass
+                pass  # nosec
             try:
                 # Best-effort: stop listener and close transport so threads finish cleanly.
                 if hasattr(self.xcp_master, "transport") and self.xcp_master.transport is not None:
@@ -201,12 +198,12 @@ class DaqProcessor:
                         if hasattr(self.xcp_master.transport, "closeEvent"):
                             self.xcp_master.transport.closeEvent.set()
                     except Exception:
-                        pass
+                        pass  # nosec
                     # Close transport connection
                     try:
                         self.xcp_master.transport.close()
                     except Exception:
-                        pass
+                        pass  # nosec
             finally:
                 return
         self.xcp_master.startStopSynch(0x00)
@@ -274,27 +271,27 @@ class DaqToCsv(DaqOnlinePolicy):
             try:
                 self.log.critical(f"DAQ file write failed: {ex.__class__.__name__}: {ex}. Initiating graceful shutdown.")
             except Exception:
-                pass
+                pass  # nosec
             # Stop listener to prevent more DAQ traffic and avoid thread crashes.
             try:
                 if hasattr(self.xcp_master, "transport") and self.xcp_master.transport is not None:
                     if hasattr(self.xcp_master.transport, "closeEvent"):
                         self.xcp_master.transport.closeEvent.set()
             except Exception:
-                pass
+                pass  # nosec
             # Best-effort: close any opened files to flush buffers and release resources.
             try:
                 for f in getattr(self, "files", {}).values():
                     try:
                         f.flush()
                     except Exception:
-                        pass
+                        pass  # nosec
                     try:
                         f.close()
                     except Exception:
-                        pass
+                        pass  # nosec
             except Exception:
-                pass
+                pass  # nosec
             # Do not re-raise; allow the system to continue to a controlled shutdown.
             return
 

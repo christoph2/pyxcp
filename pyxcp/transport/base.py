@@ -3,128 +3,23 @@ import abc
 import logging
 import threading
 from collections import deque
-from typing import Any, Dict, Optional, Set, Type
-
-import pyxcp.types as types
-from pyxcp.cpp_ext.cpp_ext import (
-    ChecksumType,
-    Timestamp,
-    TimestampType,
-    XcpFraming,
-    XcpFramingConfig,
-    XcpTransportLayerType,
-)
-from pyxcp.recorder import XcpLogFileWriter
+from typing import Any, Dict, Optional, Type
 from pyxcp.timing import Timing
+import pyxcp.types as types
+
+from pyxcp.cpp_ext.cpp_ext import Timestamp, TimestampType, XcpFraming, XcpFramingConfig
+
+from pyxcp.transport.transport_ext import (
+    FrameAcquisitionPolicy,
+    FrameCategory,
+    LegacyFrameAcquisitionPolicy,
+)
 from pyxcp.utils import (
     CurrentDatetime,
-    flatten,
     hexDump,
     seconds_to_nanoseconds,
     short_sleep,
 )
-
-
-class FrameAcquisitionPolicy:
-    """
-    Base class for all frame acquisition policies.
-
-    Parameters
-    ---------
-    filter_out: set or None
-        A set of frame types to filter out.
-        If None, all frame types are accepted for further processing.
-
-        Example: (FrameType.REQUEST, FrameType.RESPONSE, FrameType.EVENT, FrameType.SERV)
-                  ==> care only about DAQ frames.
-    """
-
-    def __init__(self, filter_out: Optional[Set[types.FrameCategory]] = None):
-        self._frame_types_to_filter_out = filter_out or set()
-
-    @property
-    def filtered_out(self) -> Set[types.FrameCategory]:
-        return self._frame_types_to_filter_out
-
-    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: int, payload: bytes) -> None: ...  # noqa: E704
-
-    def finalize(self) -> None:
-        """
-        Finalize the frame acquisition policy (if required).
-        """
-        ...
-
-
-class NoOpPolicy(FrameAcquisitionPolicy):
-    """
-    No operation / do nothing policy.
-    """
-
-
-class LegacyFrameAcquisitionPolicy(FrameAcquisitionPolicy):
-    """Dequeue based frame acquisition policy.
-
-    Deprecated: Use only for compatibility reasons.
-    """
-
-    def __init__(self, filter_out: Optional[Set[types.FrameCategory]] = None) -> None:
-        super().__init__(filter_out)
-        self.reqQueue = deque()
-        self.resQueue = deque()
-        self.daqQueue = deque()
-        self.evQueue = deque()
-        self.servQueue = deque()
-        self.metaQueue = deque()
-        self.errorQueue = deque()
-        self.stimQueue = deque()
-        self.QUEUE_MAP = {
-            types.FrameCategory.CMD: self.reqQueue,
-            types.FrameCategory.RESPONSE: self.resQueue,
-            types.FrameCategory.EVENT: self.evQueue,
-            types.FrameCategory.SERV: self.servQueue,
-            types.FrameCategory.DAQ: self.daqQueue,
-            types.FrameCategory.METADATA: self.metaQueue,
-            types.FrameCategory.ERROR: self.errorQueue,
-            types.FrameCategory.STIM: self.stimQueue,
-        }
-
-    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: int, payload: bytes) -> None:
-        if frame_type not in self.filtered_out:
-            queue = self.QUEUE_MAP.get(frame_type)
-            if queue is not None:
-                queue.append((counter, timestamp, payload))
-
-
-class FrameRecorderPolicy(FrameAcquisitionPolicy):
-    """Frame acquisition policy that records frames."""
-
-    def __init__(
-        self,
-        file_name: str,
-        filter_out: Optional[Set[types.FrameCategory]] = None,
-        prealloc: int = 10,
-        chunk_size: int = 1,
-    ) -> None:
-        super().__init__(filter_out)
-        self.recorder = XcpLogFileWriter(file_name, prealloc=prealloc, chunk_size=chunk_size)
-
-    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: int, payload: bytes) -> None:
-        if frame_type not in self.filtered_out:
-            self.recorder.add_frame(frame_type, counter, timestamp, payload)
-
-    def finalize(self) -> None:
-        self.recorder.finalize()
-
-
-class StdoutPolicy(FrameAcquisitionPolicy):
-    """Frame acquisition policy that prints frames to stdout."""
-
-    def __init__(self, filter_out: Optional[Set[types.FrameCategory]] = None) -> None:
-        super().__init__(filter_out)
-
-    def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: int, payload: bytes) -> None:
-        if frame_type not in self.filtered_out:
-            print(f"{frame_type.name:8} {counter:6}  {timestamp:8d} {hexDump(payload)}")
 
 
 class EmptyFrameError(Exception):
@@ -275,7 +170,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             frame = self._prepare_request(cmd, *data)
             self.timing.start()
             with self.policy_lock:
-                self.policy.feed(types.FrameCategory.CMD, self.framing.counter_send, self.timestamp.value, frame)
+                self.policy.feed(FrameCategory.CMD, self.framing.counter_send, self.timestamp.value, frame)
             self.send(frame)
             try:
                 xcpPDU = self.get()
@@ -284,7 +179,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                     MSG = f"Response timed out (timeout={self.timeout / 1_000_000_000}s)"
                     with self.policy_lock:
                         self.policy.feed(
-                            types.FrameCategory.METADATA, self.framing.counter_send, self.timestamp.value, bytes(MSG, "ascii")
+                            FrameCategory.METADATA, self.framing.counter_send, self.timestamp.value, bytes(MSG, "ascii")
                         ) if self._diagnostics_enabled() else ""
                     self.logger.debug("XCP request timeout", extra={"event": "timeout", "command": cmd.name})
                     raise types.XcpTimeoutError(MSG) from None
@@ -295,7 +190,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             pid = types.Response.parse(xcpPDU).type
             if pid == "ERR" and cmd.name != "SYNCH":
                 with self.policy_lock:
-                    self.policy.feed(types.FrameCategory.ERROR, self.counter_received, self.timestamp.value, xcpPDU[1:])
+                    self.policy.feed(FrameCategory.ERROR, self.counter_received, self.timestamp.value, xcpPDU[1:])
                 err = types.XcpError.parse(xcpPDU[1:])
                 raise types.XcpResponseError(err)
             return xcpPDU[1:]
@@ -327,7 +222,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             frame = self._prepare_request(cmd, *data)
             with self.policy_lock:
                 self.policy.feed(
-                    types.FrameCategory.CMD if int(cmd) >= 0xC0 else types.FrameCategory.STIM,
+                    FrameCategory.CMD if int(cmd) >= 0xC0 else FrameCategory.STIM,
                     self.framing.counter_send,
                     self.timestamp.value,
                     frame,
@@ -378,7 +273,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                     if waited is not None:
                         msg += f" after {waited:.3f}s"
                     # Attach diagnostics
-                    diag = self._build_diagnostics_dump() if self._diagnostics_enabled() else ""
+                    # diag = self._build_diagnostics_dump() if self._diagnostics_enabled() else ""
                     self.logger.debug("XCP block_receive timeout", extra={"event": "timeout"})
                     raise types.XcpTimeoutError(msg) from None
                 short_sleep()
@@ -420,11 +315,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             # Record incoming non-DAQ frames for diagnostics
             self._record_pdu(
                 "in",
-                (
-                    types.FrameCategory.RESPONSE
-                    if pid >= 0xFE
-                    else types.FrameCategory.SERV if pid == 0xFC else types.FrameCategory.EVENT
-                ),
+                (FrameCategory.RESPONSE if pid >= 0xFE else FrameCategory.SERV if pid == 0xFC else FrameCategory.EVENT),
                 counter,
                 recv_timestamp,
                 response,
@@ -433,15 +324,15 @@ class BaseTransport(metaclass=abc.ABCMeta):
             if pid >= 0xFE:
                 self.resQueue.append(response)
                 with self.policy_lock:
-                    self.policy.feed(types.FrameCategory.RESPONSE, self.counter_received, self.timestamp.value, response)
+                    self.policy.feed(FrameCategory.RESPONSE, self.counter_received, self.timestamp.value, response)
                 self.recv_timestamp = recv_timestamp
             elif pid == 0xFD:
                 self.process_event_packet(response)
                 with self.policy_lock:
-                    self.policy.feed(types.FrameCategory.EVENT, self.counter_received, self.timestamp.value, response)
+                    self.policy.feed(FrameCategory.EVENT, self.counter_received, self.timestamp.value, response)
             elif pid == 0xFC:
                 with self.policy_lock:
-                    self.policy.feed(types.FrameCategory.SERV, self.counter_received, self.timestamp.value, response)
+                    self.policy.feed(FrameCategory.SERV, self.counter_received, self.timestamp.value, response)
         else:
             # DAQ traffic: Some transports reuse or do not advance the counter for DAQ frames.
             # Do not drop DAQ frames on duplicate counters to avoid losing measurements.
@@ -461,17 +352,17 @@ class BaseTransport(metaclass=abc.ABCMeta):
             else:
                 timestamp = 0
             # Record DAQ frame (only keep small prefix in payload string later)
-            self._record_pdu("in", types.FrameCategory.DAQ, counter, timestamp, response, length)
+            self._record_pdu("in", FrameCategory.DAQ, counter, timestamp, response, length)
             # DAQ activity indicates the slave is alive/busy; keep extending the wait window for any
             # outstanding request, similar to EV_CMD_PENDING behavior on stacks that don't emit it.
             self.timer_restart_event.set()
             with self.policy_lock:
-                self.policy.feed(types.FrameCategory.DAQ, self.counter_received, timestamp, response)
+                self.policy.feed(FrameCategory.DAQ, self.counter_received, timestamp, response)
 
     def _record_pdu(
         self,
         direction: str,
-        category: types.FrameCategory,
+        category: FrameCategory,
         counter: int,
         timestamp: int,
         payload: bytes,
@@ -484,11 +375,11 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 "ctr": int(counter),
                 "ts": int(timestamp),
                 "len": int(length if length is not None else len(payload)),
-                "data": hexDump(payload if category != types.FrameCategory.DAQ else payload[:8])[:512],
+                "data": hexDump(payload if category != FrameCategory.DAQ else payload[:8])[:512],
             }
             self._last_pdus.append(entry)
         except Exception:
-            pass
+            pass  # nosec
 
     def _build_diagnostics_dump(self) -> str:
         import json as _json
@@ -514,27 +405,15 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 try:
                     tp[key] = getattr(cfg, key)
                 except Exception:
-                    pass
-        # negotiated properties
-        negotiated = None
-        try:
-            master = getattr(self, "parent", None)
-            if master is not None and hasattr(master, "slaveProperties"):
-                sp = getattr(master, "slaveProperties")
-                negotiated = getattr(sp, "__dict__", None) or str(sp)
-        except Exception:
-            negotiated = None
-        # last PDUs
-        general = None
+                    pass  # nosec
         last_n = 20
         try:
             app = getattr(self.config, "parent", None)
             app = getattr(app, "parent", None)
             if app is not None and hasattr(app, "general") and hasattr(app.general, "diagnostics_last_pdus"):
                 last_n = int(app.general.diagnostics_last_pdus or last_n)
-                general = app.general
         except Exception:
-            pass
+            pass  # nosec
         pdus = list(self._last_pdus)[-last_n:]
         payload = {
             "transport_params": tp,

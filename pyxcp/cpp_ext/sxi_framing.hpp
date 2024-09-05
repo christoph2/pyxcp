@@ -133,8 +133,6 @@ class RestartableTimer {
                     m_running = false;  // Stop the timer thread after firing
                 }
             }
-            // If wait_for returns due to notification (from start/reset/stop),
-            // the loop condition (m_running) is re-evaluated.
         }
     }
 
@@ -297,7 +295,7 @@ class SxiReceiver {
         std::cerr << "SXI checksum error: Calculated " << std::hex << "0x" << static_cast<int>(calculated)
                   << ", but received " << "0x" << static_cast<int>(received) << "." << std::dec << std::endl;
         std::cerr << "Packet dump (" << packet_len << " bytes):" << std::endl;
-
+        std::cerr << "[";
         std::ios_base::fmtflags flags(std::cerr.flags()); // save flags
         for (uint16_t i = 0; i < packet_len; ++i) {
             std::cerr << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(buffer_[i]) << " ";
@@ -305,7 +303,7 @@ class SxiReceiver {
                 std::cerr << std::endl;
             }
         }
-        std::cerr << std::endl;
+        std::cerr << "]" << std::endl;
         std::cerr.flags(flags); // restore flags
     }
 

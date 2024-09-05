@@ -17,9 +17,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="1febaf4b-3911-495c-8b89-d73da684e6d5" name="Changes" comment="framing.hpp: Fix offset issue.">
+      <change afterPath="$PROJECT_DIR$/pyxcp/transport/transport_ext.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyxcp/cpp_ext/extension_wrapper.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/extension_wrapper.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyxcp/cpp_ext/framing.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/framing.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/cpp_ext/sxi_framing.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/sxi_framing.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/daq_stim/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/daq_stim/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/examples/xcp_policy.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/examples/xcp_policy.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/recorder/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/recorder/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/tests/test_framing.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/tests/test_framing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/transport/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/transport/base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/transport/transport_wrapper.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/transport/transport_wrapper.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/types.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/types.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -144,7 +152,7 @@
     &quot;cf.advertisement.text.overridden&quot;: &quot;true&quot;,
     &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
     &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;framing__cpp&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;Cherry-picking in framing__cpp&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
     &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
     &quot;last_opened_file_path&quot;: &quot;C:/Users/Chris/PycharmProjects/pyxcp&quot;,

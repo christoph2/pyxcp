@@ -978,19 +978,6 @@ class XcpGetSeedMode(enum.IntEnum):
     REMAINING = 1
 
 
-class FrameCategory(enum.IntEnum):
-    """XCP frame categories."""
-
-    METADATA = 0
-    CMD = 1
-    RESPONSE = 2
-    ERROR = 3
-    EVENT = 4
-    SERV = 5
-    DAQ = 6
-    STIM = 7
-
-
 class TryCommandResult(enum.IntEnum):
     """ """
 
