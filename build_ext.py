@@ -74,7 +74,7 @@ def get_py_config() -> dict:
             else:
                 print("PF?", uname.system)
             for fp in full_path:
-                print("Trying '{fp}'")
+                print(f"Trying '{fp}'")
                 if fp.exists():
                     print(f"found Python library: '{fp}'")
                     libdir = str(fp.parent)
