@@ -42,9 +42,9 @@ def alternate_libdir(pth: str):
 def get_py_config() -> dict:
     pynd = VARS["py_version_nodot"]  # Should always be present.
     include = sysconfig.get_path("include")  # Seems to be cross-platform.
-    library = f"python{pynd}.lib"
     if uname.system == "Windows":
         base = get_python_base()
+        library = f"python{pynd}.lib"
         libdir = Path(base) / "libs"
         if libdir.exists():
             available_libs = os.listdir(libdir)
@@ -55,9 +55,28 @@ def get_py_config() -> dict:
         else:
             libdir = alternate_libdir(include)
     else:
-        libdir = VARS["LIBDIR"]
-        library = VARS["LDLIBRARY"]
-
+        library = VARS["LIBRARY"]
+        DIR_VARS = ("LIBDIR", "BINLIBDEST", "DESTLIB", "LIBDEST", "MACHDESTLIB", "DESTSHARED", "LIBPL")
+        arch = None
+        if uname.system == "Linux":
+            arch = VARS.get("MULTIARCH", "")
+        for dir_var in DIR_VARS:
+            dir_name = VARS.get(dir_var)
+            if not dir_name:
+                continue
+            if uname.system == "Darwin":
+                full_path = [Path(dir_name) / library]
+            elif uname.system == "Linux":
+                full_path = [Path(dir_name) / arch / library, Path(dir_name) / library]
+            else:
+                print("PF?", uname.system)
+            for fp in full_path:
+                if fp.exists():
+                    print(f"found Python library: '{full_path}'")
+                    libdir = dir_name
+                    break
+                # else:
+                #    print(f"NOT found: '{full_path}'")
     return dict(exe=sys.executable, include=include, libdir=libdir, library=library)
 
 
