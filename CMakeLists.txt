@@ -2,7 +2,10 @@
 cmake_minimum_required(VERSION 3.20...3.30)
 project(pyxcp_extensions LANGUAGES C CXX)
 
-cmake_policy(SET CMP0135 NEW)
+
+if(POLICY CMP0135)
+  cmake_policy(SET CMP0135 NEW)
+endif()
 cmake_policy(SET CMP0094 NEW)
 
 find_package(Python3 COMPONENTS Interpreter Development)
