@@ -101,6 +101,7 @@ xcp-id-scanner = "pyxcp.scripts.xcp_id_scanner:main"
 xcp-fetch-a2l = "pyxcp.scripts.xcp_fetch_a2l:main"
 xcp-info = "pyxcp.scripts.xcp_info:main"
 xcp-profile = "pyxcp.scripts.xcp_profile:main"
+xcp-examples = "pyxcp.scripts.xcp_examples:main"
 
 [tool.pytest]
 addopts = "--verbose --tb=short --junitxml=result.xml -o junit_family=xunit2"
@@ -143,7 +144,7 @@ show-source = true
 max-line-length = 132
 select = ["B","C","E","F","W","T4","B9"]
 # extend-select = "B950"
-# extend-ignore = ["E203", "E501", "E701"]
+extend-ignore = ["E203", "E501", "E701"]
 
 [tool.ruff]
 line-length = 132
