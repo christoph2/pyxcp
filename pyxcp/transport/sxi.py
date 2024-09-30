@@ -109,7 +109,7 @@ class SxI(BaseTransport):
         while True:
             if self.closeEvent.is_set():
                 return
-            if not self.comm_port.in_waiting():
+            if not self.comm_port.in_waiting:
                 continue
 
             recv_timestamp = self.timestamp.value
@@ -129,5 +129,5 @@ class SxI(BaseTransport):
         self.post_send_timestamp = self.timestamp.value
 
     def close_connection(self) -> None:
-        if hasattr(self, "comm_port") and self.comm_port.is_open() and not self.has_user_supplied_interface:
+        if hasattr(self, "comm_port") and self.comm_port.is_open and not self.has_user_supplied_interface:
             self.comm_port.close()
