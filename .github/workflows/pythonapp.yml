@@ -35,11 +35,11 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          # path: ./wheelhouse/*.whl
+          # path: ./dist/*.whl
           # include-hidden-files: true
           # retention-days: 1
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
-          path: ./wheelhouse/*.whl
+          path: ./dist/*.whl
 
   build_sdist:
     name: Build source distribution
@@ -54,7 +54,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          path: wheelhouse/*.tar.gz
+          path: dist/*.tar.gz
           include-hidden-files: true
           retention-days: 1
 
@@ -68,9 +68,9 @@ jobs:
       - uses: actions/download-artifact@v4.1.7
         with:
           # name: artifact
-          path: wheelhouse
+          path: dist
           merge-multiple: true
-          # pattern: wheelhouse/*
+          # pattern: dist/*
 
       - uses: pypa/gh-action-pypi-publish@v1.4.2
         with:
