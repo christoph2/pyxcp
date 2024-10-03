@@ -121,10 +121,10 @@ repos:
         language: system
         types: [text]
         stages: [commit, push, manual]
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8
-    hooks:
-      - id: prettier
+        #- repo: https://github.com/pre-commit/mirrors-prettier
+        #rev: v4.0.0-alpha.8
+        # hooks:
+        #- id: prettier
         #- repo: https://github.com/necaris/pre-commit-pyright
         #rev: '1.1.53'
         #hooks:
