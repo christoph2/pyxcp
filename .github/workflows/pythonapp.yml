@@ -70,7 +70,7 @@ jobs:
           # name: artifact
           path: wheelhouse
           merge-multiple: true
-          pattern: wheelhouse/*
+          # pattern: wheelhouse/*
 
       - uses: pypa/gh-action-pypi-publish@v1.4.2
         with:
