@@ -7,6 +7,7 @@
 #include <charconv>
 #include <cstring>
 #include <iostream>
+#include <limits>
 #include <map>
 #if __has_include(<stdfloat>)
     #include <stdfloat>
@@ -637,6 +638,33 @@ struct MeasurementParameters {
         return m_first_pids;
     }
 
+#undef max  // Thanks to Windows.
+
+    auto get_overflow_value() const {
+        std::uint64_t ov_value{};
+        switch (m_ts_size) {
+            case 1:
+                ov_value = std::numeric_limits<std::uint8_t>::max();
+                break;
+            case 2:
+                ov_value = std::numeric_limits<std::uint16_t>::max();
+                break;
+            case 4:
+                ov_value = std::numeric_limits<std::uint32_t>::max();
+                break;
+//            case 8:
+//                ov_value = std::numeric_limits<std::uint64_t>::max() + 1;
+//                break;
+            default:
+                throw std::runtime_error("Invalid timestamp size");
+        }
+        ov_value++;
+        std::cout << "TS-V: " << ov_value << " scale: " << m_ts_scale_factor << std::endl;
+        ov_value = static_cast<std::uint64_t>(ov_value * m_ts_scale_factor);
+        std::cout << "OVRF-Value: " << ov_value << std::endl;
+        return ov_value;
+    }
+
     std::uint8_t               m_byte_order;
     std::uint8_t               m_id_field_size;
     bool                       m_timestamps_supported;
@@ -1050,6 +1078,9 @@ class DAQPolicyBase {
     }
 
     virtual void set_parameters(const MeasurementParameters& params) noexcept {
+        m_overflow_value = params.get_overflow_value();
+        m_overflow_counter = 0ULL;
+        std::cout << "Overflow value: " << m_overflow_value << ", Overflow counter: " << m_overflow_counter << std::endl;
         initialize();
     }
 
@@ -1058,6 +1089,9 @@ class DAQPolicyBase {
     virtual void initialize() = 0;
 
     virtual void finalize() = 0;
+ private:
+    std::uint64_t m_overflow_value{};
+    std::uint64_t m_overflow_counter{};
 };
 
 class DaqRecorderPolicy : public DAQPolicyBase {
@@ -1164,6 +1198,38 @@ struct ValueHolder {
     std::any m_value;
 };
 
+class Overflow {
+public:
+
+    Overflow(std::uint64_t overflow_value) : m_overflow_value(overflow_value), m_overflow_counter(0ULL), m_previous_timestamp(0ULL) {
+    }
+
+    auto get_previous_timestamp() const noexcept {
+        return m_previous_timestamp;
+    }
+
+    void set_previous_timestamp(std::uint64_t timestamp) noexcept {
+        m_previous_timestamp = timestamp;
+    }
+
+    void inc_overflow_counter() noexcept {
+        m_overflow_counter++;
+    }
+
+    auto get_overflow_counter() const noexcept {
+        return m_overflow_counter;
+    }
+
+    auto get_value() const noexcept {
+        return m_overflow_value * m_overflow_counter;
+    }
+
+private:
+    std::uint64_t m_overflow_value{};
+    std::uint64_t m_overflow_counter{};
+    std::uint64_t m_previous_timestamp{};
+};
+
 class XcpLogFileDecoder {
    public:
 
@@ -1172,6 +1238,11 @@ class XcpLogFileDecoder {
         if (metadata != "") {
             auto des  = Deserializer(metadata);
             m_params  = des.run();
+
+            for (auto idx=0; idx < m_params.get_daq_lists().size(); ++idx) {
+                m_overflows.emplace_back(Overflow(m_params.get_overflow_value()));
+            }
+
             m_decoder = std::make_unique<DAQProcessor>(m_params);
         } else {
             // cannot proceed!!!
@@ -1215,7 +1286,18 @@ class XcpLogFileDecoder {
                 auto result = m_decoder->feed(timestamp, str_data);
                 if (result) {
                     const auto& [daq_list, ts0, ts1, meas] = *result;
-                    on_daq_list(daq_list, ts0, ts1, meas);
+
+                    auto& overflow = m_overflows[daq_list];
+
+                    if (overflow.get_previous_timestamp() > ts1) {
+                        overflow.inc_overflow_counter();
+                        // Maybe on debug-level?
+                        // std::cout << "Overflow detected, counter: " << overflow.get_overflow_counter() << " " << overflow.get_previous_timestamp() << " " << ts1 << std::endl;
+                    }
+
+                    on_daq_list(daq_list, ts0, ts1 + overflow.get_value(), meas);
+
+                    overflow.set_previous_timestamp(ts1);
                 }
             }
         }
@@ -1244,6 +1326,7 @@ class XcpLogFileDecoder {
     XcpLogFileReader              m_reader;
     std::unique_ptr<DAQProcessor> m_decoder;
     MeasurementParameters         m_params;
+    std::vector<Overflow>           m_overflows;
 };
 
 #endif  // RECORDER_UNFOLDER_HPP
