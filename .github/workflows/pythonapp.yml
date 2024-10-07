@@ -30,6 +30,10 @@ jobs:
           toolchain: nightly
           override: true
           components: rustfmt, clippy
+      - name: Setup Python3-Dev
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          apt-get install -y python3-dev
       - name: Build wheel
         uses: pypa/cibuildwheel@v2.20
 
