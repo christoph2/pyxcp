@@ -45,43 +45,43 @@ repos:
         entry: check-ast
         language: python
         types: [python]
-        stages: [Nonepre-commitNone]
+        stages: [pre-commit]
       - id: check-builtin-literals
         name: check-builtin-literals
         entry: check-builtin-literals
         language: python
         types: [python]
-        stages: [Nonepre-commitNone]
+        stages: [pre-commit]
       - id: check-case-conflict
         name: check-case-conflict
         entry: check-case-conflict
         language: python
         types: [python]
-        stages: [Nonepre-commitNone]
+        stages: [pre-commit]
       - id: check-merge-conflict
         name: check-merge-conflict
         entry: check-merge-conflict
         language: python
         types: [text]
-        stages: [Nonepre-commitNone]
+        stages: [pre-commit]
       - id: fix-byte-order-marker
         name: fix-byte-order-marker
         entry: fix-byte-order-marker
         language: python
         types: [python]
-        stages: [Nonepre-commitNone]
+        stages: [pre-commit]
       - id: mixed-line-ending
         name: mixed-line-ending
         entry: mixed-line-ending
         language: python
         types_or: [c, c++, python]
-        stages: [Nonepre-commitNone]
+        stages: [pre-commit]
       - id: end-of-file-fixer
         name: end-of-file-fixer
         entry: end-of-file-fixer
         language: python
         types_or: [python]
-        stages: [Nonepre-commitNone]
+        stages: [pre-commit]
       - id: darglint
         name: darglint
         entry: darglint
@@ -93,7 +93,7 @@ repos:
         entry: end-of-file-fixer
         language: system
         types: [text]
-        stages: [Nonepre-commitNone, Nonepre-pushNone, manual]
+        stages: [pre-commit, pre-push, manual]
       - id: flake8
         name: flake8
         entry: flake8
@@ -120,7 +120,7 @@ repos:
         entry: trailing-whitespace-fixer
         language: system
         types: [text]
-        stages: [Nonepre-commitNone, Nonepre-pushNone, manual]
+        stages: [pre-commit, pre-push, manual]
         #- repo: https://github.com/pre-commit/mirrors-prettier
         #rev: v4.0.0-alpha.8
         # hooks:

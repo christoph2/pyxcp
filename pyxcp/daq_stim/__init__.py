@@ -2,7 +2,7 @@
 
 # from pprint import pprint
 from time import time_ns
-from typing import Dict, List, TextIO
+from typing import Dict, List, Optional, TextIO
 
 from pyxcp import types
 from pyxcp.config import get_application
@@ -35,7 +35,7 @@ class DaqProcessor:
         self.daq_lists = daq_lists
         self.log = get_application().log
 
-    def setup(self, start_datetime: CurrentDatetime | None = None, write_multiple: bool = True):
+    def setup(self, start_datetime: Optional[CurrentDatetime] = None, write_multiple: bool = True):
         self.daq_info = self.xcp_master.getDaqInfo()
         if start_datetime is None:
             start_datetime = CurrentDatetime(time_ns())
