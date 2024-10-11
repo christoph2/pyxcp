@@ -189,7 +189,7 @@ class McObject {
                (std::equal(m_components.begin(), m_components.end(), other.m_components.begin(), other.m_components.end()));
     }
 
-    std::string dumps() const {
+    std::string dumps() const noexcept {
         std::stringstream ss;
 
         ss << to_binary(m_name);
@@ -205,6 +205,11 @@ class McObject {
             ss << obj.dumps();
         }
         return ss.str();
+    }
+
+    auto get_hash() const noexcept {
+        std::hash<std::string> hash_fn;
+        return hash_fn(dumps());
     }
 
    private:

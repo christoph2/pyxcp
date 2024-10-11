@@ -89,4 +89,3 @@ This is really nice, if one is installing .... like `csvkit`
 See:
 - [externally managed environments](https://packaging.python.org/en/latest/specifications/externally-managed-environments/#externally-managed-environments)
 - [PEP-668 (historical)](https://peps.python.org/pep-0668/)
-

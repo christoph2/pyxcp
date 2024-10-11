@@ -589,7 +589,7 @@ class Master:
 
     pull = fetch  # fetch() may be completely replaced by pull() someday.
 
-    def push(self, address: int, data: bytes, callback=None):
+    def push(self, address: int, address_ext: int, data: bytes, callback=None):
         """Convenience function for data-transfer from master to slave.
         (Not part of the XCP Specification).
 
@@ -605,6 +605,7 @@ class Master:
         """
         self._generalized_downloader(
             address=address,
+            address_ext=address_ext,
             data=data,
             maxCto=self.slaveProperties.maxCto,
             maxBs=self.slaveProperties.maxBs,
@@ -644,6 +645,7 @@ class Master:
     def _generalized_downloader(
         self,
         address: int,
+        address_ext: int,
         data: bytes,
         maxCto: int,
         maxBs: int,
@@ -654,7 +656,7 @@ class Master:
         callback=None,
     ):
         """ """
-        self.setMta(address)
+        self.setMta(address, address_ext)
         minSt /= 10000.0
         block_downloader = functools.partial(
             self._block_downloader,

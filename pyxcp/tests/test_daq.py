@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from pyxcp.daq_stim import Daq, DaqList
+from pyxcp.daq_stim import DaqList, DaqProcessor
 
 
 DAQ_INFO = {
@@ -154,35 +154,40 @@ class MockMaster:
 
 DAQ_LISTS = [
     DaqList(
+        "list1",
         1,
+        False,
+        True,
         [
-            ("channel1", 0x1BD004, 0, 4, "U32"),
-            ("channel2", 0x1BD008, 0, 4, "U32"),
-            ("PWMFiltered", 0x1BDDE2, 0, 1, "U8"),
-            ("PWM", 0x1BDDDF, 0, 1, "U8"),
-            ("Triangle", 0x1BDDDE, 0, 1, "U8"),
+            ("channel1", 0x1BD004, 0, "U32"),
+            ("channel2", 0x1BD008, 0, "U32"),
+            ("PWMFiltered", 0x1BDDE2, 0, "U8"),
+            ("PWM", 0x1BDDDF, 0, "U8"),
+            ("Triangle", 0x1BDDDE, 0, "U8"),
         ],
     ),
     DaqList(
+        "list2",
         3,
+        False,
+        True,
         [
-            ("TestWord_001", 0x1BE120, 0, 2, "U16"),
-            ("TestWord_003", 0x1BE128, 0, 2, "U16"),
-            ("TestWord_004", 0x1BE12C, 0, 2, "U16"),
-            ("TestWord_005", 0x1BE134, 0, 2, "U16"),
-            ("TestWord_006", 0x1BE134, 0, 2, "U16"),
-            ("TestWord_007", 0x1BE138, 0, 2, "U16"),
-            ("TestWord_008", 0x1BE13C, 0, 2, "U16"),
-            ("TestWord_009", 0x1BE140, 0, 2, "U16"),
-            ("TestWord_011", 0x1BE148, 0, 2, "U16"),
-            # ("", ),
+            ("TestWord_002", 0x1BE124, 0, "U16"),
+            ("TestWord_003", 0x1BE128, 0, "U16"),
+            ("TestWord_001", 0x1BE120, 0, "U16"),
+            ("TestWord_003", 0x1BE128, 0, "U16"),
+            ("TestWord_004", 0x1BE12C, 0, "U16"),
+            ("TestWord_005", 0x1BE134, 0, "U16"),
+            ("TestWord_006", 0x1BE134, 0, "U16"),
+            ("TestWord_007", 0x1BE138, 0, "U16"),
+            ("TestWord_008", 0x1BE13C, 0, "U16"),
+            ("TestWord_009", 0x1BE140, 0, "U16"),
+            ("TestWord_011", 0x1BE148, 0, "U16"),
         ],
     ),
 ]
 
-daq = Daq()
-daq.set_master(MockMaster())
-
-daq.add_daq_lists(DAQ_LISTS)
-daq.setup()
-daq.start()
+# daq = DaqProcessor(DAQ_LISTS)
+# daq.set_master(MockMaster())
+# daq.setup()
+# daq.start()
