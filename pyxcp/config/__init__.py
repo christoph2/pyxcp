@@ -932,11 +932,11 @@ class PyXCP(Application):
             self.subapp.start()
             exit(2)
         else:
-            self._read_configuration(self.config_file)
             if logging.getLogger().hasHandlers():
                 self.log = logging.getLogger()
             else:
                 self._setup_logger()
+            self._read_configuration(self.config_file)
 
     def _setup_logger(self):
         from pyxcp.types import Command

@@ -640,9 +640,11 @@ struct MeasurementParameters {
 
 #undef max  // Thanks to Windows.
 
-    auto get_overflow_value() const {
+    auto get_overflow_value() const -> std::uint64_t {
         std::uint64_t ov_value{};
         switch (m_ts_size) {
+            case 0:
+                return 0ULL;
             case 1:
                 ov_value = std::numeric_limits<std::uint8_t>::max();
                 break;
@@ -659,9 +661,7 @@ struct MeasurementParameters {
                 throw std::runtime_error("Invalid timestamp size");
         }
         ov_value++;
-        std::cout << "TS-V: " << ov_value << " scale: " << m_ts_scale_factor << std::endl;
         ov_value = static_cast<std::uint64_t>(ov_value * m_ts_scale_factor);
-        std::cout << "OVRF-Value: " << ov_value << std::endl;
         return ov_value;
     }
 
@@ -1080,7 +1080,7 @@ class DAQPolicyBase {
     virtual void set_parameters(const MeasurementParameters& params) noexcept {
         m_overflow_value = params.get_overflow_value();
         m_overflow_counter = 0ULL;
-        std::cout << "Overflow value: " << m_overflow_value << ", Overflow counter: " << m_overflow_counter << std::endl;
+        // std::cout << "Overflow value: " << m_overflow_value << ", Overflow counter: " << m_overflow_counter << std::endl;
         initialize();
     }
 

@@ -33,11 +33,11 @@ class XcpLogFileReader {
         if (detail::VERSION != m_header.version) {
             throw std::runtime_error("File version mismatch.");
         }
-
+#if 0
         if (m_header.num_containers < 1) {
             throw std::runtime_error("At least one container required.");
         }
-
+#endif
         m_offset += detail::FILE_HEADER_SIZE;
 
         if ((m_header.options & XMRAW_HAS_METADATA) == XMRAW_HAS_METADATA) {

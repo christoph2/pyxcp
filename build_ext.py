@@ -92,10 +92,20 @@ def banner(msg: str) -> None:
     print("=" * 80)
 
 
+def get_env_int(name: str, default: int = 0) -> int:
+    return int(os.environ.get(name, default))
+
+
+def get_env_bool(name: str, default: int = 0) -> bool:
+    return get_env_int(name, default)
+
+
 def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
     print("build_ext::build_extension()")
 
-    debug = bool(os.environ.get("DEBUG", 0)) or debug
+    use_temp_dir = use_temp_dir or get_env_bool("BUILD_TEMP")
+    debug = debug or get_env_bool("BUILD_DEBUG")
+
     cfg = "Debug" if debug else "Release"
     print(f" BUILD-TYPE: {cfg!r}")
 
@@ -144,4 +154,4 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
 if __name__ == "__main__":
     includes = subprocess.getoutput("pybind11-config --cmakedir")  # nosec
     os.environ["pybind11_DIR"] = includes
-    build_extension(False)
+    build_extension()

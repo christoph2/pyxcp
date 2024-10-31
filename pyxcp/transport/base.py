@@ -82,10 +82,9 @@ class LegacyFrameAcquisitionPolicy(FrameAcquisitionPolicy):
         }
 
     def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: int, payload: bytes) -> None:
-        # print(f"{frame_type.name:8} {counter:6}  {timestamp:7.7f} {hexDump(payload)}")
         if frame_type not in self.filtered_out:
             queue = self.QUEUE_MAP.get(frame_type)
-            if queue:
+            if queue is not None:
                 queue.append((counter, timestamp, payload))
 
 
@@ -118,7 +117,7 @@ class StdoutPolicy(FrameAcquisitionPolicy):
 
     def feed(self, frame_type: types.FrameCategory, counter: int, timestamp: int, payload: bytes) -> None:
         if frame_type not in self.filtered_out:
-            print(f"{frame_type.name:8} {counter:6}  {timestamp:8u} {hexDump(payload)}")
+            print(f"{frame_type.name:8} {counter:6}  {timestamp:8d} {hexDump(payload)}")
 
 
 class EmptyFrameError(Exception):
@@ -210,7 +209,12 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     @property
     def start_datetime(self) -> int:
-        """"""
+        """datetime of program start.
+
+        Returns
+        -------
+        int
+        """
         return self._start_datetime
 
     def start_listener(self):
