@@ -37,6 +37,10 @@ class DaqList {
         return m_event_num;
     }
 
+    void set_event_num(std::uint16_t event_num) {
+        m_event_num = event_num;
+    }
+
     bool get_stim() const {
         return m_stim;
     }
@@ -75,7 +79,6 @@ class DaqList {
 
     void set_measurements_opt(const std::vector<Bin>& measurements_opt) {
         m_measurements_opt = measurements_opt;
-
         auto odt_count     = 0u;
         auto total_entries = 0u;
         auto total_length  = 0u;

@@ -64,7 +64,7 @@ PYBIND11_MODULE(cpp_ext, m) {
         )
         .def("__repr__", [](const DaqList& self) { return self.to_string(); })
         .def_property("name", &DaqList::get_name, nullptr)
-        .def_property("event_num", &DaqList::get_event_num, nullptr)
+        .def_property("event_num", &DaqList::get_event_num, &DaqList::set_event_num)
         .def_property("stim", &DaqList::get_stim, nullptr)
         .def_property("enable_timestamps", &DaqList::get_enable_timestamps, nullptr)
         .def_property("measurements", &DaqList::get_measurements, nullptr)
