@@ -190,7 +190,7 @@ manylinux-aarch64-image = "manylinux_2_35"
 [tool.cibuildwheel.linux]
 # archs = ["auto", "aarch64"]
 archs = ["x86_64", "aarch64"]
-before-all = "apt install -y libffi openssl openssl-devel gcc libpython3-dev"
+# before-all = "yum install -y libffi openssl openssl-devel gcc libpython3-dev"
 
 [tool.pyright]
 include = ["pyxcp", "build_ext.py"]
