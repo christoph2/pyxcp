@@ -172,7 +172,7 @@ exclude = '''
 build-verbosity = 3
 #test-command = "pytest {package}/tests"
 
-build = "cp3{8,9,10,11,12,13}-*"
+build = "cp3{9,10,11,12,13}-*"
 skip = ["*-manylinux_i686", "*-musllinux_x86_64", "*-musllinux_i686", "cp38-manylinux*", "cp39-manylinux*"]
 build-frontend = "build"
 
