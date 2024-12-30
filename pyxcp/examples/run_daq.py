@@ -22,23 +22,23 @@ if XCP_LITE:
             False,
             False,
             [
-                ("byteCounter", 0x203EA, 0, "U8"),
-                ("wordCounter", 0x203EC, 0, "U16"),
-                ("dwordCounter", 0x20410, 0, "U32"),
-                ("sbyteCounter", 0x203EB, 0, "I8"),
+                ("byteCounter", 0x00023648, 0, "U8"),
+                ("wordCounter", 0x0002364C, 0, "U16"),
+                ("dwordCounter", 0x00023650, 0, "U32"),
+                ("sbyteCounter", 0x00023649, 0, "I8"),
             ],
         ),
         DaqList(
             "part_2",
-            0,
+            7,
             False,
             False,
             [
-                ("swordCounter", 0x20414, 0, "I16"),
-                ("sdwordCounter", 0x20418, 0, "I32"),
-                ("channel1", 0x203F8, 0, "F64"),
-                ("channel2", 0x20400, 0, "F64"),
-                ("channel3", 0x20408, 0, "F64"),
+                ("swordCounter", 0x00023654, 0, "I16"),
+                ("sdwordCounter", 0x00023658, 0, "I32"),
+                ("channel1", 0x00023630, 0, "F64"),
+                ("channel2", 0x00023638, 0, "F64"),
+                ("channel3", 0x00023640, 0, "F64"),
             ],
         ),
     ]
@@ -117,8 +117,8 @@ else:
         ),
     ]
 
-# daq_parser = DaqToCsv(DAQ_LISTS)  # Record to CSV file(s).
-daq_parser = DaqRecorder(DAQ_LISTS, "run_daq", 2)  # Record to ".xmraw" file.
+daq_parser = DaqToCsv(DAQ_LISTS)  # Record to CSV file(s).
+# daq_parser = DaqRecorder(DAQ_LISTS, "run_daq", 2)  # Record to ".xmraw" file.
 
 with ap.run(policy=daq_parser) as x:
     x.connect()
@@ -127,12 +127,14 @@ with ap.run(policy=daq_parser) as x:
 
     x.cond_unlock("DAQ")  # DAQ resource is locked in many cases.
 
+    DAQ_LISTS[1].event_num = 0
+
     print("setup DAQ lists.")
     daq_parser.setup()  # Execute setup procedures.
     print("start DAQ lists.")
     daq_parser.start()  # Start DAQ lists.
 
-    time.sleep(15.0 * 60.0)  # Run for 15 minutes.
+    time.sleep(5.0 * 60.0)  # Run for 15 minutes.
 
     print("Stop DAQ....")
     daq_parser.stop()  # Stop DAQ lists.

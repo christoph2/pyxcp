@@ -9,7 +9,7 @@ from time import perf_counter, sleep
 import chardet
 import pytz
 
-from pyxcp.cpp_ext import TimestampInfo
+from pyxcp.cpp_ext.cpp_ext import TimestampInfo
 
 
 def hexDump(arr):

@@ -5,11 +5,10 @@ from collections import deque
 from typing import Any, Dict, Optional, Set, Type
 
 import pyxcp.types as types
-
-from ..cpp_ext import Timestamp, TimestampType
-from ..recorder import XcpLogFileWriter
-from ..timing import Timing
-from ..utils import (
+from pyxcp.cpp_ext.cpp_ext import Timestamp, TimestampType
+from pyxcp.recorder import XcpLogFileWriter
+from pyxcp.timing import Timing
+from pyxcp.utils import (
     CurrentDatetime,
     flatten,
     hexDump,

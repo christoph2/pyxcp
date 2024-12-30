@@ -29,13 +29,13 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	if (MSVC)
 		SET(MSVC_BASE_OPTIONS "${MSVC_BASE_OPTIONS}  /Od /fsanitize=address /Zi")
 	else()
-		SET(MSVC_BASE_OPTIONS "${MSVC_BASE_OPTIONS} -Og -g3 -ggdb --fno-omit-frame-pointer -fsanitize=address -fsanitize=undefined -fsanitize=bounds")	# -fsanitize=hwaddress
+		SET(GCC_N_CLANG_BASE_OPTIONS "${GCC_N_CLANG_BASE_OPTIONS} -Og -g3 -ggdb --fno-omit-frame-pointer -fsanitize=address -fsanitize=undefined -fsanitize=bounds")	# -fsanitize=hwaddress
 	endif()
 else ()
 	if (MSVC)
 		SET(MSVC_BASE_OPTIONS "${MSVC_BASE_OPTIONS} /Ox")
 	else()
-		SET(MSVC_BASE_OPTIONS "${MSVC_BASE_OPTIONS} -O3 --fomit-frame-pointer")
+		SET(GCC_N_CLANG_BASE_OPTIONS "${GCC_N_CLANG_BASE_OPTIONS} -O3 --fomit-frame-pointer")
 	endif()
  endif ()
 

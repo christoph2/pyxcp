@@ -251,6 +251,22 @@ class Timestamp {
     std::uint64_t m_initial;
 };
 
+template<typename T, typename V>
+T variant_get(V&& value) {
+
+    T result;
+
+    const T* value_ptr = std::get_if<T>(&value);
+    if (value_ptr == nullptr) {
+        result = T{};
+    }
+    else {
+        result = *value_ptr;
+    }
+
+    return result;
+}
+
 #if 0
 inline void sleep_ms(std::uint64_t milliseconds) {
     std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));

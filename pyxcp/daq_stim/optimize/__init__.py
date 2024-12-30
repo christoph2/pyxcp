@@ -5,7 +5,7 @@ from itertools import groupby
 from operator import attrgetter
 from typing import List
 
-from pyxcp.cpp_ext import McObject
+from pyxcp.cpp_ext.cpp_ext import McObject
 
 
 def make_continuous_blocks(chunks: List[McObject], upper_bound=None, upper_bound_initial=None) -> List[McObject]:

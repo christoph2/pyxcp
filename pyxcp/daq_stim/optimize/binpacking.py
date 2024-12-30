@@ -3,7 +3,7 @@
 """
 from typing import List, Optional
 
-from pyxcp.cpp_ext import Bin
+from pyxcp.cpp_ext.cpp_ext import Bin
 
 
 def first_fit_decreasing(items, bin_size: int, initial_bin_size: Optional[int] = None) -> List[Bin]:

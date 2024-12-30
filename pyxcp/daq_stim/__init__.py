@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, TextIO
 
 from pyxcp import types
 from pyxcp.config import get_application
-from pyxcp.cpp_ext import DaqList
+from pyxcp.cpp_ext.cpp_ext import DaqList
 from pyxcp.daq_stim.optimize import make_continuous_blocks
 from pyxcp.daq_stim.optimize.binpacking import first_fit_decreasing
 from pyxcp.recorder import DaqOnlinePolicy as _DaqOnlinePolicy
