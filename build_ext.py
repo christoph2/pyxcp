@@ -149,10 +149,10 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
 
     banner("Step #3: Install")
     subprocess.run(["cmake", "--install", "."], cwd=build_temp, check=True)  # nosec
-    subprocess.run(["cmake", "--install", build_temp], cwd=TOP_DIR, check=True)  # nosec
+    # subprocess.run(["cmake", "--install", build_temp], cwd=TOP_DIR, check=True)  # nosec
 
 
 if __name__ == "__main__":
     includes = subprocess.getoutput("pybind11-config --cmakedir")  # nosec
     os.environ["pybind11_DIR"] = includes
-    build_extension(use_temp_dir=True)
+    build_extension(use_temp_dir=False)
