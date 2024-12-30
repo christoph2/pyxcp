@@ -148,8 +148,8 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
     subprocess.run(["cmake", "--build", str(build_temp), *build_args], cwd=TOP_DIR, check=True)  # nosec
 
     banner("Step #3: Install")
-    subprocess.run(["cmake", "--install", "."], cwd=build_temp, check=True)  # nosec
-    # subprocess.run(["cmake", "--install", build_temp], cwd=TOP_DIR, check=True)  # nosec
+    # subprocess.run(["cmake", "--install", "."], cwd=build_temp, check=True)  # nosec
+    subprocess.run(["cmake", "--install", build_temp], cwd=TOP_DIR, check=True)  # nosec
 
 
 if __name__ == "__main__":
