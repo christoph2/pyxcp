@@ -119,8 +119,7 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
     if py_cfg["libdir"]:
         cmake_args.append(f"-DPython3_LIBRARY={str(Path(py_cfg['libdir']) / Path(py_cfg['library']))}")
 
-    build_args = []
-    #    build_args = ["--config Release", "--verbose"]
+    build_args = ["--config Release", "--verbose"]
     # cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 /path/to/src
 
     if sys.platform.startswith("darwin"):
