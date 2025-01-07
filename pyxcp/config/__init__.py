@@ -1098,3 +1098,4 @@ def reset_application() -> None:
     global application
     del application
     application = None
+
