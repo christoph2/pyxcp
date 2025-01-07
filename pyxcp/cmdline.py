@@ -8,7 +8,7 @@ import warnings
 from dataclasses import dataclass
 from typing import List
 
-from pyxcp.config import create_application
+from pyxcp.config import create_application, reset_application  # noqa: F401
 from pyxcp.master import Master
 
 

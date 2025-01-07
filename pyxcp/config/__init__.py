@@ -1076,7 +1076,9 @@ def create_application(options: typing.Optional[typing.List[typing.Any]] = None)
     if options is None:
         options = []
     if application is not None:
+        print("Return existing App")
         return application
+    print("Create New APP")
     application = PyXCP()
     application.initialize(sys.argv)
     application.start()
@@ -1090,3 +1092,10 @@ def get_application(options: typing.Optional[typing.List[typing.Any]] = None) ->
     if application is None:
         application = create_application(options)
     return application
+
+
+def reset_application() -> None:
+    print("Reset APP")
+    global application
+    del application
+    application = None
