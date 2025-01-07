@@ -1095,7 +1095,6 @@ def get_application(options: typing.Optional[typing.List[typing.Any]] = None) ->
 
 
 def reset_application() -> None:
-    print("Reset APP")
     global application
     del application
     application = None
