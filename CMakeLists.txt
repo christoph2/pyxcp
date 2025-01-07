@@ -8,7 +8,7 @@ if(POLICY CMP0135)
 endif()
 cmake_policy(SET CMP0094 NEW)
 
-find_package(Python3 COMPONENTS Interpreter Development)
+find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
 find_package(pybind11 CONFIG)
 
 SET(CMAKE_C_STANDARD 17)
