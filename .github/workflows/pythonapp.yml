@@ -31,15 +31,11 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
+          # path: ./dist/*.whl
+          # include-hidden-files: true
+          # retention-days: 1
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
-<<<<<<< Updated upstream
           path: ./wheelhouse/*.whl
-||||||| Stash base
-          path: ./dist/*.whl
-=======
-          path: ./wheelhouse/*.whl
-          if-no-files-found: warn
->>>>>>> Stashed changes
 
   build_sdist:
     name: Build source distribution
@@ -51,14 +47,12 @@ jobs:
         run: |
           pip install -U build
           python -m build --sdist
-          
-      - name: Upload sdist result
-        uses: actions/upload-artifact@v4
+
+      - uses: actions/upload-artifact@v4
         with:
-          name: cibw-sdist
           path: dist/*.tar.gz
-          if-no-files-found: warn
-          
+          include-hidden-files: true
+          retention-days: 1
 
   upload_pypi:
     needs: [build_wheels, build_sdist] # , build_sdist
