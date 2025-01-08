@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import abc
+import logging
 import threading
 from collections import deque
 from typing import Any, Dict, Optional, Set, Type
@@ -145,7 +146,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.command_lock: threading.Lock = threading.Lock()
         self.policy_lock: threading.Lock = threading.Lock()
 
-        self.logger: Any = config.log
+        self.logger = logging.getLogger("PyXCP")
         self._debug: bool = self.logger.level == 10
         if transport_layer_interface:
             self.logger.info(f"Transport - User Supplied Transport-Layer Interface: '{transport_layer_interface!s}'")

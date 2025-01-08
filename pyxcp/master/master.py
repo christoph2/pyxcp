@@ -70,12 +70,10 @@ class Master:
         self.succeeded = True
         self.config = config.general
         self.logger = config.log
-
         disable_error_handling(self.config.disable_error_handling)
         self.transport_name = transport_name.lower()
         transport_config = config.transport
         self.transport = create_transport(transport_name, transport_config, policy, transport_layer_interface)
-
         self.stim = Stim(self.config.stim_support)
         self.stim.clear()
         self.stim.set_policy_feeder(self.transport.policy.feed)

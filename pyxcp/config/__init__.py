@@ -23,7 +23,7 @@ from traitlets import (
     Unicode,
     Union,
 )
-from traitlets.config import Application, Instance, SingletonConfigurable, default
+from traitlets.config import Application, Configurable, Instance, default
 
 from pyxcp.config import legacy
 
@@ -55,7 +55,7 @@ class CanBase:
     }
 
 
-class CanAlystii(SingletonConfigurable, CanBase):
+class CanAlystii(Configurable, CanBase):
     """CANalyst-II is a USB to CAN Analyzer device produced by Chuangxin Technology."""
 
     interface_name = "canalystii"
@@ -71,7 +71,7 @@ messages (for all channels) before older messages are dropped """,
     ).tag(config=True)
 
 
-class CanTact(SingletonConfigurable, CanBase):
+class CanTact(Configurable, CanBase):
     """Interface for CANtact devices from Linklayer Labs"""
 
     interface_name = "cantact"
@@ -84,7 +84,7 @@ class CanTact(SingletonConfigurable, CanBase):
     )
 
 
-class Etas(SingletonConfigurable, CanBase):
+class Etas(Configurable, CanBase):
     """ETAS"""
 
     interface_name = "etas"
@@ -94,7 +94,7 @@ class Etas(SingletonConfigurable, CanBase):
     has_receive_own_messages = True
 
 
-class Gs_Usb(SingletonConfigurable, CanBase):
+class Gs_Usb(Configurable, CanBase):
     """Geschwister Schneider USB/CAN devices and candleLight USB CAN interfaces."""
 
     interface_name = "gs_usb"
@@ -113,7 +113,7 @@ If specified, bus/address shall not be provided.""",
     )
 
 
-class Neovi(SingletonConfigurable, CanBase):
+class Neovi(Configurable, CanBase):
     """Intrepid Control Systems (ICS) neoVI interfaces."""
 
     interface_name = "neovi"
@@ -133,7 +133,7 @@ class Neovi(SingletonConfigurable, CanBase):
     ).tag(config=True)
 
 
-class IsCan(SingletonConfigurable, CanBase):
+class IsCan(Configurable, CanBase):
     """Interface for isCAN from Thorsis Technologies GmbH, former ifak system GmbH."""
 
     interface_name = "iscan"
@@ -141,7 +141,7 @@ class IsCan(SingletonConfigurable, CanBase):
     has_poll_interval = True
 
 
-class Ixxat(SingletonConfigurable, CanBase):
+class Ixxat(Configurable, CanBase):
     """IXXAT Virtual Communication Interface"""
 
     interface_name = "ixxat"
@@ -174,7 +174,7 @@ class Ixxat(SingletonConfigurable, CanBase):
     }
 
 
-class Kvaser(SingletonConfigurable, CanBase):
+class Kvaser(Configurable, CanBase):
     """Kvaser's CANLib"""
 
     interface_name = "kvaser"
@@ -208,7 +208,7 @@ This can be set if reading and/or writing is done from one thread. """,
     ).tag(config=True)
 
 
-class NeouSys(SingletonConfigurable, CanBase):
+class NeouSys(Configurable, CanBase):
     """Neousys CAN Interface"""
 
     interface_name = "neousys"
@@ -216,7 +216,7 @@ class NeouSys(SingletonConfigurable, CanBase):
     device = Integer(default_value=None, allow_none=True, help="Device number").tag(config=True)
 
 
-class NiCan(SingletonConfigurable, CanBase):
+class NiCan(Configurable, CanBase):
     """National Instruments NI-CAN"""
 
     interface_name = "nican"
@@ -230,7 +230,7 @@ the error. """,
     ).tag(config=True)
 
 
-class NixNet(SingletonConfigurable, CanBase):
+class NixNet(Configurable, CanBase):
     """National Instruments NI-XNET"""
 
     interface_name = "nixnet"
@@ -247,7 +247,7 @@ class NixNet(SingletonConfigurable, CanBase):
     can_termination = Bool(default_value=None, allow_none=True, help="Enable bus termination.")
 
 
-class PCan(SingletonConfigurable, CanBase):
+class PCan(Configurable, CanBase):
     """PCAN Basic API"""
 
     interface_name = "pcan"
@@ -317,7 +317,7 @@ it will not be responsive.""",
     ).tag(config=True)
 
 
-class Robotell(SingletonConfigurable, CanBase):
+class Robotell(Configurable, CanBase):
     """Interface for Chinese Robotell compatible interfaces"""
 
     interface_name = "robotell"
@@ -331,7 +331,7 @@ class Robotell(SingletonConfigurable, CanBase):
     rtscts = Bool(default_value=None, allow_none=True, help="turn hardware handshake (RTS/CTS) on and off.").tag(config=True)
 
 
-class SeeedStudio(SingletonConfigurable, CanBase):
+class SeeedStudio(Configurable, CanBase):
     """Seeed USB-Can analyzer interface."""
 
     interface_name = "seeedstudio"
@@ -346,7 +346,7 @@ class SeeedStudio(SingletonConfigurable, CanBase):
     ).tag(config=True)
 
 
-class Serial(SingletonConfigurable, CanBase):
+class Serial(Configurable, CanBase):
     """A text based interface."""
 
     interface_name = "serial"
@@ -358,7 +358,7 @@ class Serial(SingletonConfigurable, CanBase):
     baudrate = Integer(default_value=None, allow_none=True, help="Baud rate of the serial device in bit/s.").tag(config=True)
 
 
-class SlCan(SingletonConfigurable, CanBase):
+class SlCan(Configurable, CanBase):
     """CAN over Serial / SLCAN."""
 
     interface_name = "slcan"
@@ -374,7 +374,7 @@ class SlCan(SingletonConfigurable, CanBase):
     ).tag(config=True)
 
 
-class SocketCan(SingletonConfigurable, CanBase):
+class SocketCan(Configurable, CanBase):
     """Linux SocketCAN."""
 
     interface_name = "socketcan"
@@ -395,7 +395,7 @@ See https://www.kernel.org/doc/html/latest/networking/can.html#socketcan-local-l
     ).tag(config=True)
 
 
-class SocketCanD(SingletonConfigurable, CanBase):
+class SocketCanD(Configurable, CanBase):
     """Network-to-CAN bridge as a Linux damon."""
 
     interface_name = "socketcand"
@@ -406,7 +406,7 @@ class SocketCanD(SingletonConfigurable, CanBase):
     port = Integer(default_value=None, allow_none=True, help=""" """).tag(config=True)
 
 
-class Systec(SingletonConfigurable, CanBase):
+class Systec(Configurable, CanBase):
     """SYSTEC interface"""
 
     interface_name = "systec"
@@ -425,7 +425,7 @@ class Systec(SingletonConfigurable, CanBase):
     ).tag(config=True)
 
 
-class Udp_Multicast(SingletonConfigurable, CanBase):
+class Udp_Multicast(Configurable, CanBase):
     """A virtual interface for CAN communications between multiple processes using UDP over Multicast IP."""
 
     interface_name = "udp_multicast"
@@ -440,7 +440,7 @@ class Udp_Multicast(SingletonConfigurable, CanBase):
     )
 
 
-class Usb2Can(SingletonConfigurable, CanBase):
+class Usb2Can(Configurable, CanBase):
     """Interface to a USB2CAN Bus."""
 
     interface_name = "usb2can"
@@ -454,7 +454,7 @@ class Usb2Can(SingletonConfigurable, CanBase):
     )
 
 
-class Vector(SingletonConfigurable, CanBase):
+class Vector(Configurable, CanBase):
     """Vector Informatik CAN interfaces."""
 
     interface_name = "vector"
@@ -490,7 +490,7 @@ If set, the `app_name` does not have to be previously defined in
     )
 
 
-class Virtual(SingletonConfigurable, CanBase):
+class Virtual(Configurable, CanBase):
     """ """
 
     interface_name = "virtual"
@@ -545,7 +545,7 @@ CAN_INTERFACE_MAP = {
 }
 
 
-class Can(SingletonConfigurable):
+class Can(Configurable):
     VALID_INTERFACES = can.interfaces.VALID_INTERFACES
 
     interface = Enum(
@@ -639,32 +639,32 @@ timing-related parameters.
                     f"CAN interface must be one of {sorted(list(self.VALID_INTERFACES))} not the"
                     " {type(self.interface).__name__} {self.interface}."
                 )
-        self.canalystii = CanAlystii.instance(config=self.config, parent=self)
-        self.cantact = CanTact.instance(config=self.config, parent=self)
-        self.etas = Etas.instance(config=self.config, parent=self)
-        self.gs_usb = Gs_Usb.instance(config=self.config, parent=self)
-        self.neovi = Neovi.instance(config=self.config, parent=self)
-        self.iscan = IsCan.instance(config=self.config, parent=self)
-        self.ixxat = Ixxat.instance(config=self.config, parent=self)
-        self.kvaser = Kvaser.instance(config=self.config, parent=self)
-        self.neousys = NeouSys.instance(config=self.config, parent=self)
-        self.nican = NiCan.instance(config=self.config, parent=self)
-        self.nixnet = NixNet.instance(config=self.config, parent=self)
-        self.pcan = PCan.instance(config=self.config, parent=self)
-        self.robotell = Robotell.instance(config=self.config, parent=self)
-        self.seeedstudio = SeeedStudio.instance(config=self.config, parent=self)
-        self.serial = Serial.instance(config=self.config, parent=self)
-        self.slcan = SlCan.instance(config=self.config, parent=self)
-        self.socketcan = SocketCan.instance(config=self.config, parent=self)
-        self.socketcand = SocketCanD.instance(config=self.config, parent=self)
-        self.systec = Systec.instance(config=self.config, parent=self)
-        self.udp_multicast = Udp_Multicast.instance(config=self.config, parent=self)
-        self.usb2can = Usb2Can.instance(config=self.config, parent=self)
-        self.vector = Vector.instance(config=self.config, parent=self)
-        self.virtual = Virtual.instance(config=self.config, parent=self)
+        self.canalystii = CanAlystii(config=self.config, parent=self)
+        self.cantact = CanTact(config=self.config, parent=self)
+        self.etas = Etas(config=self.config, parent=self)
+        self.gs_usb = Gs_Usb(config=self.config, parent=self)
+        self.neovi = Neovi(config=self.config, parent=self)
+        self.iscan = IsCan(config=self.config, parent=self)
+        self.ixxat = Ixxat(config=self.config, parent=self)
+        self.kvaser = Kvaser(config=self.config, parent=self)
+        self.neousys = NeouSys(config=self.config, parent=self)
+        self.nican = NiCan(config=self.config, parent=self)
+        self.nixnet = NixNet(config=self.config, parent=self)
+        self.pcan = PCan(config=self.config, parent=self)
+        self.robotell = Robotell(config=self.config, parent=self)
+        self.seeedstudio = SeeedStudio(config=self.config, parent=self)
+        self.serial = Serial(config=self.config, parent=self)
+        self.slcan = SlCan(config=self.config, parent=self)
+        self.socketcan = SocketCan(config=self.config, parent=self)
+        self.socketcand = SocketCanD(config=self.config, parent=self)
+        self.systec = Systec(config=self.config, parent=self)
+        self.udp_multicast = Udp_Multicast(config=self.config, parent=self)
+        self.usb2can = Usb2Can(config=self.config, parent=self)
+        self.vector = Vector(config=self.config, parent=self)
+        self.virtual = Virtual(config=self.config, parent=self)
 
 
-class Eth(SingletonConfigurable):
+class Eth(Configurable):
     """Ethernet."""
 
     host = Unicode("localhost", help="Hostname or IP address of XCP slave.").tag(config=True)
@@ -676,7 +676,7 @@ class Eth(SingletonConfigurable):
     bind_to_port = Integer(default_value=None, allow_none=True, help="Bind to specific local port.").tag(config=True)
 
 
-class SxI(SingletonConfigurable):
+class SxI(Configurable):
     """SCI and SPI connections."""
 
     port = Unicode("COM1", help="Name of communication interface.").tag(config=True)
@@ -728,7 +728,7 @@ HEADER_LEN_FILL_WORD    |   2   X   2
     esc_esc = Integer(0x00, min=0, max=255, help="SCI framing protocol character ESC.").tag(config=True)
 
 
-class Usb(SingletonConfigurable):
+class Usb(Configurable):
     """Universal Serial Bus connections."""
 
     serial_number = Unicode("", help="Device serial number.").tag(config=True)
@@ -787,7 +787,7 @@ class Usb(SingletonConfigurable):
     out_ep_recommended_host_bufsize = Integer(0, help="Outgoing: Recommended host buffer size.").tag(config=True)
 
 
-class Transport(SingletonConfigurable):
+class Transport(Configurable):
     """ """
 
     classes = List([Can, Eth, SxI, Usb])
@@ -813,13 +813,13 @@ if there is no response to a command.""",
 
     def __init__(self, **kws):
         super().__init__(**kws)
-        self.can = Can.instance(config=self.config, parent=self)
-        self.eth = Eth.instance(config=self.config, parent=self)
-        self.sxi = SxI.instance(config=self.config, parent=self)
-        self.usb = Usb.instance(config=self.config, parent=self)
+        self.can = Can(config=self.config, parent=self)
+        self.eth = Eth(config=self.config, parent=self)
+        self.sxi = SxI(config=self.config, parent=self)
+        self.usb = Usb(config=self.config, parent=self)
 
 
-class General(SingletonConfigurable):
+class General(Configurable):
     """ """
 
     # loglevel = Unicode("INFO", help="Set the log level by value or name.").tag(config=True)
@@ -932,11 +932,14 @@ class PyXCP(Application):
             self.subapp.start()
             exit(2)
         else:
-            if logging.getLogger().hasHandlers():
+            has_handlers = logging.getLogger().hasHandlers()
+            if has_handlers:
                 self.log = logging.getLogger()
+                self._read_configuration(self.config_file)
             else:
+                self._read_configuration(self.config_file)
                 self._setup_logger()
-            self._read_configuration(self.config_file)
+        self.log.debug(f"pyxcp version: {self.version}")
 
     def _setup_logger(self):
         from pyxcp.types import Command
@@ -964,12 +967,11 @@ class PyXCP(Application):
         PyXCP.version = pyxcp_version
         PyXCP.name = Path(sys.argv[0]).name
         self.parse_command_line(argv[1:])
-        self.log.debug(f"pyxcp version: {self.version}")
 
     def _read_configuration(self, file_name: str, emit_warning: bool = True) -> None:
         self.read_configuration_file(file_name, emit_warning)
-        self.general = General.instance(config=self.config, parent=self)
-        self.transport = Transport.instance(parent=self)
+        self.general = General(config=self.config, parent=self)
+        self.transport = Transport(parent=self)
 
     def read_configuration_file(self, file_name: str, emit_warning: bool = True):
         self.legacy_config: bool = False
@@ -1076,9 +1078,7 @@ def create_application(options: typing.Optional[typing.List[typing.Any]] = None)
     if options is None:
         options = []
     if application is not None:
-        print("Return existing App")
         return application
-    print("Create New APP")
     application = PyXCP()
     application.initialize(sys.argv)
     application.start()
@@ -1098,4 +1098,3 @@ def reset_application() -> None:
     global application
     del application
     application = None
-
