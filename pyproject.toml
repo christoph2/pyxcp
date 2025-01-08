@@ -191,8 +191,8 @@ manylinux-aarch64-image = "manylinux_2_35"
 # archs = ["auto", "aarch64"]
 archs = ["x86_64", "aarch64"]
 # before-all = "yum install -y libffi openssl openssl-devel gcc libpython3-dev"
-manylinux-x86_64-image = "manylinux_2_28"
-manylinux-aarch64-image = "manylinux_2_28"
+# manylinux-x86_64-image = "manylinux_2_28"
+# manylinux-aarch64-image = "manylinux_2_28"
 
 [tool.pyright]
 include = ["pyxcp", "build_ext.py"]
