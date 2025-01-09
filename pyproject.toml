@@ -182,16 +182,6 @@ archs = ["x86_64", "universal2", "arm64"]
 [tool.cibuildwheel.windows]
 archs = ["AMD64"]	# , "ARM64"
 
-[[tool.cibuildwheel.overrides]]
-select = "cp39-*"
-manylinux-x86_64-image = "manylinux_2_34"
-manylinux-aarch64-image = "manylinux_2_34"
-
-[[tool.cibuildwheel.overrides]]
-select = "cp3?-*"
-manylinux-x86_64-image = "manylinux_2_35"
-manylinux-aarch64-image = "manylinux_2_35"
-
 [tool.cibuildwheel.linux]
 # archs = ["auto", "aarch64"]
 archs = ["x86_64", "aarch64"]
