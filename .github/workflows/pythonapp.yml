@@ -25,6 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Build wheel
+        if: ${{ always() }}
         uses: pypa/cibuildwheel@v2.20
         env:
           CIBW_ARCHS_LINUX: x86_64
