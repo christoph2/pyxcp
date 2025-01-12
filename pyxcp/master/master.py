@@ -7,6 +7,7 @@
 .. [1] XCP Specification, Part 2 - Protocol Layer Specification
 """
 import functools
+import logging
 import struct
 import traceback
 import warnings
@@ -69,7 +70,7 @@ class Master:
         self.ctr = 0
         self.succeeded = True
         self.config = config.general
-        self.logger = config.log
+        self.logger = logging.getLogger("PyXCP")
         disable_error_handling(self.config.disable_error_handling)
         self.transport_name = transport_name.lower()
         transport_config = config.transport
