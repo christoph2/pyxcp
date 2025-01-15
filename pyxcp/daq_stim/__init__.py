@@ -36,6 +36,8 @@ class DaqProcessor:
         self.log = get_application().log
 
     def setup(self, start_datetime: Optional[CurrentDatetime] = None, write_multiple: bool = True):
+        if not self.xcp_master.slaveProperties.supportsDaq:
+            raise RuntimeError("DAQ functionality is not supported.")
         self.daq_info = self.xcp_master.getDaqInfo()
         if start_datetime is None:
             start_datetime = CurrentDatetime(time_ns())

@@ -34,32 +34,35 @@ def main():
         x.cond_unlock()
         print("\nDAQ Info:")
         print("=========")
-        daq_info = x.getDaqInfo()
-        pprint(daq_info)
+        if x.slaveProperties.supportsDaq:
+            daq_info = x.getDaqInfo()
+            pprint(daq_info)
 
-        daq_pro = daq_info["processor"]
-        daq_properties = daq_pro["properties"]
-        if x.slaveProperties.transport_layer == "CAN":
-            print("")
-            if daq_properties["pidOffSupported"]:
-                print("*** pidOffSupported -- i.e. one CAN-ID per DAQ-list.")
+            daq_pro = daq_info["processor"]
+            daq_properties = daq_pro["properties"]
+            if x.slaveProperties.transport_layer == "CAN":
+                print("")
+                if daq_properties["pidOffSupported"]:
+                    print("*** pidOffSupported -- i.e. one CAN-ID per DAQ-list.")
+                else:
+                    print("*** NO support for PID_OFF")
+            num_predefined = daq_pro["minDaq"]
+            print("\nPredefined DAQ-Lists")
+            print("====================")
+            if num_predefined > 0:
+                print(f"There are {num_predefined} predefined DAQ-lists")
+                for idx in range(num_predefined):
+                    print(f"DAQ-List #{idx}\n____________\n")
+                    status, dm = x.try_command(x.getDaqListMode, idx)
+                    if status == TryCommandResult.OK:
+                        print(dm)
+                    status, di = x.try_command(x.getDaqListInfo, idx)
+                    if status == TryCommandResult.OK:
+                        print(di)
             else:
-                print("*** NO support for PID_OFF")
-        num_predefined = daq_pro["minDaq"]
-        print("\nPredefined DAQ-Lists")
-        print("====================")
-        if num_predefined > 0:
-            print(f"There are {num_predefined} predefined DAQ-lists")
-            for idx in range(num_predefined):
-                print(f"DAQ-List #{idx}\n____________\n")
-                status, dm = x.try_command(x.getDaqListMode, idx)
-                if status == TryCommandResult.OK:
-                    print(dm)
-                status, di = x.try_command(x.getDaqListInfo, idx)
-                if status == TryCommandResult.OK:
-                    print(di)
+                print("*** NO Predefined DAQ-Lists")
         else:
-            print("*** NO Predefined DAQ-Lists")
+            print("*** DAQ IS NOT SUPPORTED .")
         print("\nPAG Info:")
         print("=========")
         if x.slaveProperties.supportsCalpag:
