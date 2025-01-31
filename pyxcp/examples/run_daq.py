@@ -8,7 +8,7 @@ from pyxcp.daq_stim import DaqList, DaqRecorder, DaqToCsv  # noqa: F401
 
 ap = ArgumentParser(description="DAQ test")
 
-XCP_LITE = True
+XCP_LITE = False
 
 #
 # NOTE: UPDATE TO CORRECT ADDRESSES BEFORE RUNNING!!!
@@ -17,40 +17,44 @@ if XCP_LITE:
     # Vectorgrp XCPlite.
     DAQ_LISTS = [
         DaqList(
-            "part_1",
-            0,
-            False,
-            False,
-            [
+            name="part_1",
+            event_num=0,
+            stim=False,
+            enable_timestamps=False,
+            measurements=[
                 ("byteCounter", 0x00023648, 0, "U8"),
                 ("wordCounter", 0x0002364C, 0, "U16"),
                 ("dwordCounter", 0x00023650, 0, "U32"),
                 ("sbyteCounter", 0x00023649, 0, "I8"),
             ],
+            priority=0,
+            prescaler=1,
         ),
         DaqList(
-            "part_2",
-            7,
-            False,
-            False,
-            [
+            name="part_2",
+            event_num=7,
+            stim=False,
+            enable_timestamps=False,
+            measurements=[
                 ("swordCounter", 0x00023654, 0, "I16"),
                 ("sdwordCounter", 0x00023658, 0, "I32"),
                 ("channel1", 0x00023630, 0, "F64"),
                 ("channel2", 0x00023638, 0, "F64"),
                 ("channel3", 0x00023640, 0, "F64"),
             ],
+            priority=0,
+            prescaler=1,
         ),
     ]
 else:
     # XCPsim from CANape.
     DAQ_LISTS = [
         DaqList(
-            "pwm_stuff",
-            2,
-            False,
-            True,
-            [
+            name="pwm_stuff",
+            event_num=2,
+            stim=False,
+            enable_timestamps=True,
+            measurements=[
                 ("channel1", 0x1BD004, 0, "F32"),
                 ("period", 0x001C0028, 0, "F32"),
                 ("channel2", 0x1BD008, 0, "F32"),
@@ -58,13 +62,15 @@ else:
                 ("PWM", 0x1BDDDF, 0, "U8"),
                 ("Triangle", 0x1BDDDE, 0, "I8"),
             ],
+            priority=0,
+            prescaler=1,
         ),
         DaqList(
-            "bytes",
-            1,
-            False,
-            True,
-            [
+            name="bytes",
+            event_num=1,
+            stim=False,
+            enable_timestamps=True,
+            measurements=[
                 ("TestByte_000", 0x1BE11C, 0, "U8"),
                 ("TestByte_015", 0x1BE158, 0, "U8"),
                 ("TestByte_016", 0x1BE15C, 0, "U8"),
@@ -97,13 +103,15 @@ else:
                 ("TestByte_344", 0x1BE67C, 0, "U8"),
                 ("TestByte_346", 0x1BE684, 0, "U8"),
             ],
+            priority=0,
+            prescaler=1,
         ),
         DaqList(
-            "words",
-            3,
-            False,
-            True,
-            [
+            name="words",
+            event_num=3,
+            stim=False,
+            enable_timestamps=True,
+            measurements=[
                 ("TestWord_001", 0x1BE120, 0, "U16"),
                 ("TestWord_003", 0x1BE128, 0, "U16"),
                 ("TestWord_004", 0x1BE12C, 0, "U16"),
@@ -114,6 +122,8 @@ else:
                 ("TestWord_009", 0x1BE140, 0, "U16"),
                 ("TestWord_011", 0x1BE148, 0, "U16"),
             ],
+            priority=0,
+            prescaler=1,
         ),
     ]
 

@@ -134,7 +134,11 @@ class DaqProcessor:
             ## mode |= 0x20
             ###
             self.xcp_master.setDaqListMode(
-                daqListNumber=i, mode=mode, eventChannelNumber=daq_list.event_num, prescaler=1, priority=0xFF
+                daq_list_number=i,
+                mode=mode,
+                event_channel_number=daq_list.event_num,
+                prescaler=daq_list.prescaler,
+                priority=daq_list.priority,
             )
             res = self.xcp_master.startStopDaqList(0x02, i)
             self._first_pids.append(res.firstPid)

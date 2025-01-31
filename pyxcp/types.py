@@ -990,4 +990,5 @@ class TryCommandResult(enum.IntEnum):
 
     OK = 0
     XCP_ERROR = 1
-    OTHER_ERROR = 2
+    NOT_IMPLEMENTED = 2
+    OTHER_ERROR = 3

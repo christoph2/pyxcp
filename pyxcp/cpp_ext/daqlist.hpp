@@ -15,10 +15,9 @@ class DaqList {
 
     DaqList(
         std::string_view meas_name, std::uint16_t event_num, bool stim, bool enable_timestamps,
-        const std::vector<daq_list_initialzer_t>& measurements
+        const std::vector<daq_list_initialzer_t>& measurements, std::uint8_t priority=0x00, std::uint8_t prescaler=0x01
     ) :
-        m_name(meas_name), m_event_num(event_num), m_stim(stim), m_enable_timestamps(enable_timestamps) {
-        // std::cout << "DAQ-List: " << meas_name << " " << event_num << " " << stim << " " << enable_timestamps << std::endl;
+        m_name(meas_name), m_event_num(event_num), m_priority(priority), m_prescaler(prescaler), m_stim(stim), m_enable_timestamps(enable_timestamps) {
         for (const auto& measurement : measurements) {
             auto const& [name, address, ext, dt_name] = measurement;
             m_measurements.emplace_back(McObject(name, address, static_cast<std::uint8_t>(ext), 0, dt_name));
@@ -35,6 +34,14 @@ class DaqList {
 
     std::uint16_t get_event_num() const {
         return m_event_num;
+    }
+
+    std::uint8_t get_priority() const {
+        return m_priority;
+    }
+
+    std::uint8_t get_prescaler() const {
+        return m_prescaler;
     }
 
     void set_event_num(std::uint16_t event_num) {
@@ -171,9 +178,6 @@ class DaqList {
             ss << "\"" << header << "\",";
         }
         ss << "\n]";
-
-        // using flatten_odts_t = std::vector<std::vector<std::tuple<std::string, std::uint32_t, std::uint8_t, std::uint16_t,
-        // std::int16_t>>>;
         ss << ")";
         return ss.str();
     }
@@ -185,6 +189,8 @@ class DaqList {
 
     std::string                                       m_name;
     std::uint16_t                                     m_event_num;
+    std::uint8_t                                      m_priority;
+    std::uint8_t                                      m_prescaler;
     bool                                              m_stim;
     bool                                              m_enable_timestamps;
     std::vector<McObject>                             m_measurements;
