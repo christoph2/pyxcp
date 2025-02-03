@@ -15,7 +15,9 @@ using namespace py::literals;
 
 PYBIND11_MODULE(stim, m) {
     py::class_<DaqEventInfo>(m, "DaqEventInfo")
-        .def(py::init<const std::string&, std::int8_t, std::size_t, std::size_t, std::size_t, std::string_view, bool, bool, bool>()
+        .def(py::init<const std::string&, std::int8_t, std::size_t, std::size_t, std::size_t, std::string_view, bool, bool, bool>(),
+        "name"_a, "type_code"_a, "cycle"_a, "max_daq_lists"_a, "priority"_a, "consistency"_a, "daq_supported"_a,
+        "stim_supported"_a, "packed_supported"_a
         );
 
     py::class_<Stim>(m, "Stim")

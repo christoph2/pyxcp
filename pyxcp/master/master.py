@@ -1670,7 +1670,7 @@ class Master:
         self.logger.debug(f"Our checksum          : 0x{cc:08X}")
         return cs.checksum == cc
 
-    def getDaqInfo(self):
+    def getDaqInfo(self, include_event_lists=True):
         """Get DAQ information: processor, resolution, events."""
         result = {}
         dpi = self.getDaqProcessorInfo()
@@ -1711,45 +1711,46 @@ class Master:
         result["resolution"] = resolutionInfo
         channels = []
         daq_events = []
-        for ecn in range(dpi.maxEventChannel):
-            eci = self.getDaqEventInfo(ecn)
-            cycle = eci["eventChannelTimeCycle"]
-            maxDaqList = eci["maxDaqList"]
-            priority = eci["eventChannelPriority"]
-            time_unit = eci["eventChannelTimeUnit"]
-            consistency = eci["daqEventProperties"]["consistency"]
-            daq_supported = eci["daqEventProperties"]["daq"]
-            stim_supported = eci["daqEventProperties"]["stim"]
-            packed_supported = eci["daqEventProperties"]["packed"]
-            name = self.fetch(eci.eventChannelNameLength)
-            if name:
-                name = decode_bytes(name)
-            channel = {
-                "name": name,
-                "priority": eci["eventChannelPriority"],
-                "unit": eci["eventChannelTimeUnit"],
-                "cycle": eci["eventChannelTimeCycle"],
-                "maxDaqList": eci["maxDaqList"],
-                "properties": {
-                    "consistency": consistency,
-                    "daq": daq_supported,
-                    "stim": stim_supported,
-                    "packed": packed_supported,
-                },
-            }
-            daq_event_info = DaqEventInfo(
-                name,
-                types.EVENT_CHANNEL_TIME_UNIT_TO_EXP[time_unit],
-                cycle,
-                maxDaqList,
-                priority,
-                consistency,
-                daq_supported,
-                stim_supported,
-                packed_supported,
-            )
-            daq_events.append(daq_event_info)
-            channels.append(channel)
+        if include_event_lists:
+            for ecn in range(dpi.maxEventChannel):
+                eci = self.getDaqEventInfo(ecn)
+                cycle = eci["eventChannelTimeCycle"]
+                maxDaqList = eci["maxDaqList"]
+                priority = eci["eventChannelPriority"]
+                time_unit = eci["eventChannelTimeUnit"]
+                consistency = eci["daqEventProperties"]["consistency"]
+                daq_supported = eci["daqEventProperties"]["daq"]
+                stim_supported = eci["daqEventProperties"]["stim"]
+                packed_supported = eci["daqEventProperties"]["packed"]
+                name = self.fetch(eci.eventChannelNameLength)
+                if name:
+                    name = decode_bytes(name)
+                channel = {
+                    "name": name,
+                    "priority": eci["eventChannelPriority"],
+                    "unit": eci["eventChannelTimeUnit"],
+                    "cycle": eci["eventChannelTimeCycle"],
+                    "maxDaqList": eci["maxDaqList"],
+                    "properties": {
+                        "consistency": consistency,
+                        "daq": daq_supported,
+                        "stim": stim_supported,
+                        "packed": packed_supported,
+                    },
+                }
+                daq_event_info = DaqEventInfo(
+                    name,
+                    types.EVENT_CHANNEL_TIME_UNIT_TO_EXP[time_unit],
+                    cycle,
+                    maxDaqList,
+                    priority,
+                    consistency,
+                    daq_supported,
+                    stim_supported,
+                    packed_supported,
+                )
+                daq_events.append(daq_event_info)
+                channels.append(channel)
         result["channels"] = channels
         self.stim.setDaqEventInfo(daq_events)
         return result
