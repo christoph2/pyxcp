@@ -356,6 +356,7 @@ class Executor(SingletonBase):
         self.arguments = arguments
         handler = Handler(inst, func, arguments)
         self.handlerStack.push(handler)
+        connect_retries = inst.config.connect_retries
         try:
             while True:
                 try:
@@ -366,9 +367,14 @@ class Executor(SingletonBase):
                     self.error_code = e.get_error_code()
                     handler.error_code = self.error_code
                 except XcpTimeoutError:
-                    # self.logger.error(f"XcpTimeoutError [{str(e)}]")
+                    is_connect = func.__name__ == "connect"
+                    self.logger.warning(f"XcpTimeoutError -- Service: {func.__name__!r}")
                     self.error_code = XcpError.ERR_TIMEOUT
                     handler.error_code = self.error_code
+                    if is_connect and connect_retries is not None:
+                        if connect_retries == 0:
+                            raise XcpTimeoutError("Maximum CONNECT retries reached.")
+                        connect_retries -= 1
                 except TimeoutError:
                     raise
                 except can.CanError:

@@ -822,9 +822,11 @@ if there is no response to a command.""",
 class General(Configurable):
     """ """
 
-    # loglevel = Unicode("INFO", help="Set the log level by value or name.").tag(config=True)
     disable_error_handling = Bool(False, help="Disable XCP error-handler for performance reasons.").tag(config=True)
     disconnect_response_optional = Bool(False, help="Ignore missing response on DISCONNECT request.").tag(config=True)
+    connect_retries = Integer(help="Number of CONNECT retries (None for infinite retries).", allow_none=True, default_value=3).tag(
+        config=True
+    )
     seed_n_key_dll = Unicode("", allow_none=False, help="Dynamic library used for slave resource unlocking.").tag(config=True)
     seed_n_key_dll_same_bit_width = Bool(False, help="").tag(config=True)
     seed_n_key_function = Callable(

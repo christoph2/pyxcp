@@ -1,27 +1,31 @@
 """Convert pyXCPs .xmraw files to common data formats.
 """
-from array import array
+
 import csv
-from dataclasses import dataclass, field
 import logging
-from mmap import PAGESIZE
-from pathlib import Path
 import os
 import sqlite3
+from array import array
+from dataclasses import dataclass, field
+from mmap import PAGESIZE
+from pathlib import Path
 from typing import Any, List
 
 import numpy as np
 from rich.logging import RichHandler
 
+
 try:
     import pyarrow as pa
     import pyarrow.parquet as pq
+
     has_arrow = True
 except ImportError:
     has_arrow = False
 
 try:
     import h5py
+
     has_h5py = True
 except ImportError:
     has_h5py = False
@@ -30,26 +34,25 @@ try:
     from asammdf import MDF, Signal
     from asammdf.blocks.v4_blocks import HeaderBlock
     from asammdf.blocks.v4_constants import FLAG_HD_TIME_OFFSET_VALID
+
     has_asammdf = True
 except ImportError:
     has_asammdf = False
 
 try:
     import xlsxwriter
+
     has_xlsxwriter = True
 
-except ImportError: 
+except ImportError:
     has_xlsxwriter = False
 
 from pyxcp import console
-
 from pyxcp.recorder.rekorder import XcpLogFileDecoder as _XcpLogFileDecoder
 
 
 FORMAT = "%(message)s"
-logging.basicConfig(
-    level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
-)
+logging.basicConfig(level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()])
 
 log = logging.getLogger("rich")
 
@@ -83,6 +86,7 @@ MAP_TO_NP = {
     "BF16": np.float16,
 }
 
+
 @dataclass
 class Storage:
     name: str
@@ -100,7 +104,15 @@ class StorageContainer:
 
 class XcpLogFileDecoder(_XcpLogFileDecoder):
     """"""
-    def __init__(self, recording_file_name: str, out_file_suffix: str, remove_file: bool = True, target_type_map: dict=None, target_file_name: str=""):
+
+    def __init__(
+        self,
+        recording_file_name: str,
+        out_file_suffix: str,
+        remove_file: bool = True,
+        target_type_map: dict = None,
+        target_file_name: str = "",
+    ):
         super().__init__(recording_file_name)
         self.logger = logging.getLogger("PyXCP")
         self.logger.setLevel(logging.DEBUG)
@@ -125,7 +137,7 @@ class XcpLogFileDecoder(_XcpLogFileDecoder):
     def on_finalize(self) -> None:
         pass
 
-    def setup_containers(self) -> None:        
+    def setup_containers(self) -> None:
         self.tables = []
         for dl in self.daq_lists:
             result = []
@@ -134,13 +146,14 @@ class XcpLogFileDecoder(_XcpLogFileDecoder):
                 target_type = self.target_type_map.get(type_str)
                 sd = Storage(name, target_type, array(array_txpe))
                 result.append(sd)
-            sc = StorageContainer(dl.name, result)        
+            sc = StorageContainer(dl.name, result)
             self.tables.append(sc)
             self.on_container(sc)
 
     def on_container(self, sc: StorageContainer) -> None:
         pass
-    
+
+
 class CollectRows:
 
     def on_daq_list(self, daq_list_num: int, timestamp0: int, timestamp1: int, measurements: list) -> None:
@@ -154,6 +167,7 @@ class CollectRows:
 
 class ArrowConverter(CollectRows, XcpLogFileDecoder):
     """"""
+
     MAP_TO_ARROW = {
         "U8": pa.uint8(),
         "I8": pa.int8(),
@@ -169,8 +183,14 @@ class ArrowConverter(CollectRows, XcpLogFileDecoder):
         "BF16": pa.float16(),
     }
 
-    def __init__(self, recording_file_name: str, target_file_name: str=""):
-        super().__init__(recording_file_name=recording_file_name, out_file_suffix=".parquet", remove_file=False, target_type_map=self.MAP_TO_ARROW, target_file_name=target_file_name)
+    def __init__(self, recording_file_name: str, target_file_name: str = ""):
+        super().__init__(
+            recording_file_name=recording_file_name,
+            out_file_suffix=".parquet",
+            remove_file=False,
+            target_type_map=self.MAP_TO_ARROW,
+            target_file_name=target_file_name,
+        )
 
     def on_initialize(self) -> None:
         super().on_initialize()
@@ -189,27 +209,29 @@ class ArrowConverter(CollectRows, XcpLogFileDecoder):
             table = pa.Table.from_arrays(data, names=names)
             fname = f"{arr.name}{self.out_file_suffix}"
             self.logger.info(f"Writing file {fname!r}")
-            pq.write_table(table, fname)            
+            pq.write_table(table, fname)
             result.append(table)
         return result
 
 
 class CsvConverter(XcpLogFileDecoder):
 
-    def __init__(self, recording_file_name: str, target_file_name: str=""):
-        super().__init__(recording_file_name=recording_file_name, out_file_suffix=".csv", remove_file=False, target_file_name=target_file_name)
+    def __init__(self, recording_file_name: str, target_file_name: str = ""):
+        super().__init__(
+            recording_file_name=recording_file_name, out_file_suffix=".csv", remove_file=False, target_file_name=target_file_name
+        )
 
     def on_initialize(self) -> None:
         self.csv_writers = []
         super().on_initialize()
 
-    def on_container(self, sc: StorageContainer) -> None:        
+    def on_container(self, sc: StorageContainer) -> None:
         fname = f"{sc.name}{self.out_file_suffix}"
         self.logger.info(f"Creating file {fname!r}.")
         writer = csv.writer(open(fname, "w", newline=""), dialect="excel")
         headers = ["ts0", "ts1"] + [e.name for e in sc.arr]
         writer.writerow(headers)
-        self.csv_writers.append(writer)            
+        self.csv_writers.append(writer)
 
     def on_finalize(self) -> None:
         self.logger.info("Done.")
@@ -222,12 +244,11 @@ class CsvConverter(XcpLogFileDecoder):
 
 class ExcelConverter(XcpLogFileDecoder):
 
-    
-    def __init__(self, recording_file_name: str, target_file_name: str=""):
+    def __init__(self, recording_file_name: str, target_file_name: str = ""):
         super().__init__(recording_file_name=recording_file_name, out_file_suffix=".xlsx", target_file_name=target_file_name)
 
-    def on_initialize(self) -> None:     
-        self.logger.info(f"Creating file {str(self.out_file_name)!r}.")   
+    def on_initialize(self) -> None:
+        self.logger.info(f"Creating file {str(self.out_file_name)!r}.")
         self.xls_workbook = xlsxwriter.Workbook(self.out_file_name)
         self.xls_sheets = []
         self.rows = []
@@ -238,7 +259,7 @@ class ExcelConverter(XcpLogFileDecoder):
         self.xls_sheets.append(sheet)
         headers = ["ts0", "ts1"] + [e.name for e in sc.arr]
         sheet.write_row(0, 0, headers)
-        self.rows.append(1)        
+        self.rows.append(1)
 
     def on_finalize(self) -> None:
         self.xls_workbook.close()
@@ -249,15 +270,15 @@ class ExcelConverter(XcpLogFileDecoder):
         row = self.rows[daq_list_num]
         data = [timestamp0, timestamp1] + measurements
         sheet.write_row(row, 0, data)
-        self.rows[daq_list_num] += 1        
+        self.rows[daq_list_num] += 1
 
 
 class HdfConverter(CollectRows, XcpLogFileDecoder):
 
-    def __init__(self, recording_file_name: str, target_file_name: str=""):
+    def __init__(self, recording_file_name: str, target_file_name: str = ""):
         super().__init__(recording_file_name=recording_file_name, out_file_suffix=".h5", target_file_name=target_file_name)
 
-    def on_initialize(self) -> None:        
+    def on_initialize(self) -> None:
         self.logger.info(f"Creating file {str(self.out_file_name)!r}")
         self.out_file = h5py.File(self.out_file_name, "w")
         super().on_initialize()
@@ -277,8 +298,13 @@ class HdfConverter(CollectRows, XcpLogFileDecoder):
 
 class MdfConverter(CollectRows, XcpLogFileDecoder):
 
-    def __init__(self, recording_file_name: str, target_file_name: str=""):
-        super().__init__(recording_file_name=recording_file_name, out_file_suffix=".mf4", target_type_map=MAP_TO_NP, target_file_name=target_file_name)
+    def __init__(self, recording_file_name: str, target_file_name: str = ""):
+        super().__init__(
+            recording_file_name=recording_file_name,
+            out_file_suffix=".mf4",
+            target_type_map=MAP_TO_NP,
+            target_file_name=target_file_name,
+        )
 
     def on_initialize(self) -> None:
         super().on_initialize()
@@ -308,8 +334,8 @@ class MdfConverter(CollectRows, XcpLogFileDecoder):
 
 
 class SqliteConverter(XcpLogFileDecoder):
-    """
-    """
+    """ """
+
     MAP_TO_SQL = {
         "U8": "INTEGER",
         "I8": "INTEGER",
@@ -325,8 +351,13 @@ class SqliteConverter(XcpLogFileDecoder):
         "BF16": "FLOAT",
     }
 
-    def __init__(self, recording_file_name: str, target_file_name: str=""):
-        super().__init__(recording_file_name=recording_file_name, out_file_suffix=".sq3", target_type_map=self.MAP_TO_SQL, target_file_name=target_file_name)
+    def __init__(self, recording_file_name: str, target_file_name: str = ""):
+        super().__init__(
+            recording_file_name=recording_file_name,
+            out_file_suffix=".sq3",
+            target_type_map=self.MAP_TO_SQL,
+            target_file_name=target_file_name,
+        )
 
     def on_initialize(self) -> None:
         self.logger.info(f"Creating database {str(self.out_file_name)!r}.")
@@ -336,7 +367,7 @@ class SqliteConverter(XcpLogFileDecoder):
 
     def on_container(self, sc: StorageContainer) -> None:
         self.create_table(sc)
-        self.logger.info(f"Creating table {sc.name!r}.")            
+        self.logger.info(f"Creating table {sc.name!r}.")
         self.insert_stmt[sc.name] = (
             f"""INSERT INTO {sc.name}({', '.join(['ts0', 'ts1'] + [r.name for r in sc.arr])}) VALUES({', '.join(["?" for _ in range(len(sc.arr) + 2)])})"""
         )
@@ -383,7 +414,7 @@ class SqliteConverter(XcpLogFileDecoder):
         try:
             self.cursor.execute(*args)
         except Exception as e:
-            print(e)   
+            print(e)
 
 
 CONVERTERS = {
