@@ -137,8 +137,6 @@ with ap.run(policy=daq_parser) as x:
 
     x.cond_unlock("DAQ")  # DAQ resource is locked in many cases.
 
-    DAQ_LISTS[1].event_num = 0
-
     print("setup DAQ lists.")
     daq_parser.setup()  # Execute setup procedures.
     print("start DAQ lists.")

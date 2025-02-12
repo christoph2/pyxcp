@@ -491,9 +491,15 @@ SetCalPageMode = BitStruct(
     "ecu" / Flag,
 )
 
+PagProperties = BitStruct(
+    Padding(7),
+    "freezeSupported" / Flag,
+)
+
+
 GetPagProcessorInfoResponse = Struct(
     "maxSegments" / Int8ul,
-    "pagProperties" / Int8ul,
+    "pagProperties" / PagProperties,
 )
 
 GetSegmentInfoMode0Response = Struct(

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """XCP Frame Recording Facility.
 """
+
 from dataclasses import dataclass
 from typing import Union
 
@@ -16,15 +17,13 @@ else:
 
 from pyxcp.recorder.rekorder import DaqOnlinePolicy  # noqa: F401
 from pyxcp.recorder.rekorder import (
-    DaqRecorderPolicy,
-    Deserializer,
-    MeasurementParameters,
-    ValueHolder,
-    XcpLogFileDecoder,
-    _PyXcpLogFileReader,
-    _PyXcpLogFileWriter,
-    data_types,
+    DaqRecorderPolicy,      # noqa: F401
+    Deserializer,           # noqa: F401
+    MeasurementParameters,  # noqa: F401
+    ValueHolder,            # noqa: F401
 )
+from pyxcp.recorder.rekorder import XcpLogFileDecoder as _XcpLogFileDecoder
+from pyxcp.recorder.rekorder import _PyXcpLogFileReader, _PyXcpLogFileWriter, data_types
 
 
 DATA_TYPES = data_types()
