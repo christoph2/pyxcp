@@ -102,6 +102,7 @@ xcp-fetch-a2l = "pyxcp.scripts.xcp_fetch_a2l:main"
 xcp-info = "pyxcp.scripts.xcp_info:main"
 xcp-profile = "pyxcp.scripts.xcp_profile:main"
 xcp-examples = "pyxcp.scripts.xcp_examples:main"
+xmraw-converter = "pyxcp.scripts.xmraw_converter:main"
 
 [tool.pytest]
 addopts = "--verbose --tb=short --junitxml=result.xml -o junit_family=xunit2"

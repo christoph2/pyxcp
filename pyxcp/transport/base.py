@@ -240,7 +240,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 xcpPDU = self.get()
             except EmptyFrameError:
                 if not ignore_timeout:
-                    MSG = f"Response timed out (timeout={self.timeout}s)"
+                    MSG = f"Response timed out (timeout={self.timeout / 1_000_000_000}s)"
                     with self.policy_lock:
                         self.policy.feed(types.FrameCategory.METADATA, self.counter_send, self.timestamp.value, bytes(MSG, "ascii"))
                     raise types.XcpTimeoutError(MSG) from None
