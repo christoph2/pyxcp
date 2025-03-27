@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
+import sys
 import time
 
 from pyxcp.cmdline import ArgumentParser
 from pyxcp.daq_stim import DaqList, DaqRecorder, DaqToCsv  # noqa: F401
+from pyxcp.types import XcpTimeoutError
 
 
 ap = ArgumentParser(description="DAQ test")
@@ -131,7 +133,12 @@ daq_parser = DaqToCsv(DAQ_LISTS)  # Record to CSV file(s).
 # daq_parser = DaqRecorder(DAQ_LISTS, "run_daq", 2)  # Record to ".xmraw" file.
 
 with ap.run(policy=daq_parser) as x:
-    x.connect()
+    try:
+        x.connect()
+    except XcpTimeoutError:
+        print("TO")
+        sys.exit(2)
+
     if x.slaveProperties.optionalCommMode:
         x.getCommModeInfo()
 

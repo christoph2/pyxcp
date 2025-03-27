@@ -9,6 +9,44 @@ from pyxcp.cmdline import ArgumentParser
 from pyxcp.types import TryCommandResult
 
 
+def getPagInfo(x):
+    result = {}
+    if x.slaveProperties.supportsCalpag:
+        status, pag = x.try_command(x.getPagProcessorInfo)
+        if status == TryCommandResult.OK:
+            result["maxSegments"] = pag.maxSegments
+            result["pagProperties"] = {}
+            result["pagProperties"]["freezeSupported"] = pag.pagProperties.freezeSupported
+            result["segments"] = []
+            for i in range(pag.maxSegments):
+                segment = {}
+                status, std_info = x.try_command(x.getSegmentInfo, 0x01, i, 0, 0)
+                std_info = x.getSegmentInfo(0x01, i, 2, 0)
+                if status == TryCommandResult.OK:
+                    segment["maxPages"] = std_info.maxPages
+                    segment["addressExtension"] = std_info.addressExtension
+                    segment["maxMapping"] = std_info.maxMapping
+                    segment["compressionMethod"] = std_info.compressionMethod
+                    segment["encryptionMethod"] = std_info.encryptionMethod
+
+                    status, seg_address = x.try_command(x.getSegmentInfo, 0x00, i, 0, 0)
+                    status, seg_length = x.try_command(x.getSegmentInfo, 0x00, i, 1, 0)
+
+                    segment["address"] = seg_address.basicInfo
+                    segment["length"] = seg_length.basicInfo
+
+                    result["segments"].append(segment)
+
+                    status, pgi = x.try_command(x.getPageInfo, i, 0)
+                    # print("PAGE:", pgi)
+                    # for j in range(si.maxPages):
+                    #    pgi = x.getPageInfo(i, j)
+                    #    print(pgi)
+                else:
+                    break
+    return result
+
+
 def main():
     ap = ArgumentParser(description="XCP info/exploration tool.")
 
@@ -66,14 +104,10 @@ def main():
         print("\nPAG Info:")
         print("=========")
         if x.slaveProperties.supportsCalpag:
-            status, pag = x.try_command(x.getPagProcessorInfo)
-            if status == TryCommandResult.OK:
-                print(pag)
-                # for idx in range(pag.maxSegments):
-                #     x.getSegmentInfo(0x01, idx, 0, 0)
+            pgi = getPagInfo(x)
+            pprint(pgi)
         else:
             print("*** PAGING IS NOT SUPPORTED.")
-
         print("\nPGM Info:")
         print("=========")
         if x.slaveProperties.supportsPgm:
@@ -82,7 +116,6 @@ def main():
                 print(pgm)
         else:
             print("*** FLASH PROGRAMMING IS NOT SUPPORTED.")
-
         if x.slaveProperties.transport_layer == "CAN":
             print("\nTransport-Layer CAN:")
             print("====================")
@@ -90,7 +123,8 @@ def main():
             if status == TryCommandResult.OK:
                 print("CAN identifier for CMD/STIM:\n", res)
             else:
-                print("*** GET_SLAVE_ID() IS NOT SUPPORTED.")  # no response from bc address ???
+                pass
+                # print("*** GET_SLAVE_ID() IS NOT SUPPORTED.")  # no response from bc address ???
 
             print("\nPer DAQ-list Identifier")
             print("-----------------------")

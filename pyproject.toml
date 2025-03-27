@@ -4,7 +4,7 @@ requires = ["poetry-core>=1.0.0", "pybind11>=2.12.0",  "pybind11[global]>=2.12.0
 build-backend = "poetry.core.masonry.api"
 
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 Pygments = ">=2.10.0"
 bandit = ">=1.7.4"
 black = ">=21.10b0"
@@ -18,7 +18,6 @@ isort = ">=5.10.1"
 mypy = ">=0.930"
 pep8-naming = ">=0.12.1"
 pre-commit = ">=2.16.0"
-pre-commit-hooks = ">=4.1.0"
 pytest = ">=6.2.5"
 pyupgrade = ">=2.29.1"
 safety = ">=1.10.3"
@@ -28,6 +27,8 @@ sphinx-click = ">=3.0.2"
 typeguard = ">=2.13.3"
 xdoctest = {extras = ["colors"], version = ">=0.15.10"}
 myst-parser = {version = ">=0.16.1"}
+ruff = "^0.1.0"
+pre-commit-hooks = "^4.6.0"
 
 [project]
 name = "pyxcp"
@@ -85,16 +86,11 @@ rich = "^13.6.0"
 chardet = "^5.2.0"
 traitlets = "<=5.11.2"
 line-profiler-pycharm = "^1.1.0"
-
 toml = "^0.10.2"
 bandit = "^1.7.8"
 tomlkit = "^0.12.5"
 pytz = "^2024.1"
-[tool.poetry.group.dev.dependencies]
-ruff = "^0.1.0"
 
-pre-commit-hooks = "^4.6.0"
-darglint = "^1.8.1"
 [tool.poetry.scripts]
 pyxcp-probe-can-drivers = "pyxcp.scripts.pyxcp_probe_can_drivers:main"
 xcp-id-scanner = "pyxcp.scripts.xcp_id_scanner:main"

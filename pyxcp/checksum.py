@@ -3,6 +3,7 @@
 
 .. [1] XCP Specification, BUILD_CHECKSUM service.
 """
+
 import enum
 import struct
 import zlib
@@ -641,7 +642,15 @@ def adder(modulus):
     return add
 
 
-def wordSum(modulus, step):
+def pad_to_word_size(frame: bytes, word_size: int, padding_value=b"\x00") -> bytes:
+    padding_bytes = word_size - (len(frame) % word_size)
+    if padding_bytes == word_size:
+        return frame
+    else:
+        return frame + (padding_value * padding_bytes)
+
+
+def wordSum(modulus: int, step: int) -> int:
     """Factory function for (double-)word modulus sums
 
     Parameters
@@ -657,13 +666,14 @@ def wordSum(modulus, step):
         summation function
     """
 
-    def add(frame):
+    def add(frame: bytes):
         if step == 2:
             mask = "<H"
         elif step == 4:
             mask = "<I"
         else:
             raise NotImplementedError("Only WORDs or DWORDs are supported.")
+        frame = pad_to_word_size(frame, step)
         x = [struct.unpack(mask, frame[x : x + step])[0] for x in range(0, len(frame), step)]
         return sum(x) % modulus
 
@@ -680,7 +690,7 @@ CRC16 = Crc16(CRC16, 0x0000, 0x0000, True, True)
 CRC16_CCITT = Crc16(CRC16_CCITT, 0xFFFF, 0x0000, False, False)
 
 
-def CRC32(x):
+def CRC32(x) -> int:
     return zlib.crc32(x) & 0xFFFFFFFF
 
 
@@ -703,7 +713,7 @@ ALGO = {
 }
 
 
-def check(frame, algo):
+def check(frame: bytes, algo: str):
     """Calculate checksum using given algorithm
 
     Parameters
