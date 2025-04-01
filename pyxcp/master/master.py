@@ -579,10 +579,10 @@ class Master:
         result = []
         for _ in chunks:
             data = self.upload(chunk_size)
-            result.extend(data)
+            result.extend(data[:chunk_size])
         if remaining:
             data = self.upload(remaining)
-            result.extend(data)
+            result.extend(data[:remaining])
         return bytes(result)
 
     pull = fetch  # fetch() may be completely replaced by pull() someday.
