@@ -319,6 +319,11 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 if not ignore_timeout:
                     MSG = f"Response timed out (timeout={self.timeout}s)"
                     self.policy.feed(types.FrameCategory.METADATA, self.counterSend, perf_counter(), bytes(MSG, "ascii"))
+                    # ensure the bus is closed so the port is freed
+                    try:
+                        self.close()
+                    except Exception:
+                        pass
                     raise types.XcpTimeoutError(MSG) from None
                 else:
                     self.timing.stop()
