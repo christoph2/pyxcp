@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import datetime
+from enum import IntEnum
 import functools
 import operator
 import sys
@@ -100,3 +101,27 @@ class CurrentDatetime(TimestampInfo):
     utc_offset={self.utc_offset},
     dst_offset={self.dst_offset}
 )"""
+
+
+def enum_from_str(enum_class: IntEnum, enumerator: str) -> IntEnum:
+    """Create an `IntEnum` instance from an enumerator `str`.
+
+    Parameters
+    ----------
+    enum_class: IntEnum
+
+    enumerator: str
+
+    Example
+    -------
+
+    class Color(enum.IntEnum):
+        RED = 0
+        GREEN = 1
+        BLUE = 2
+
+    color: Color = enum_from_str(Color, "GREEN")
+
+
+    """
+    return enum_class(enum_class.__members__.get(enumerator))
