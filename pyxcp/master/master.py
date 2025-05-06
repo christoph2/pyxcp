@@ -113,6 +113,7 @@ class Master:
 
     def __enter__(self):
         """Context manager entry part."""
+        self.transport.connect()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -171,8 +172,6 @@ class Master:
         more attempts to connect are silently ignored.
 
         """
-        self.transport.connect()
-
         response = self.transport.request(types.Command.CONNECT, mode & 0xFF)
 
         # First get byte-order
