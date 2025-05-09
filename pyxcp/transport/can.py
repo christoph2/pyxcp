@@ -351,13 +351,11 @@ class Can(BaseTransport):
                     result[n] = value
             elif value is not None:
                 self.logger.warning(f"XCPonCAN - {self.interface_name!r} has no support for parameter {n!r}.")
-
         # Parameter names that need to be mapped.
         for base_name, name in can_interface_config_class.CAN_PARAM_MAP.items():
             value = getattr(self.config, base_name)
-            if value is not None:
+            if name is not None and value is not None:
                 result[name] = value
-
         # Interface specific parameters.
         cxx = getattr(self.config, self.interface_name)
         for name in can_interface_config_class.class_own_traits().keys():
