@@ -40,6 +40,7 @@ PYBIND11_MODULE(cpp_ext, m) {
         .def_property_readonly("components", &McObject::get_components)
 
         .def("add_component", &McObject::add_component, "component"_a)
+        .def("__eq__", [](const McObject& self, const McObject& other) { return self == other; })
         .def("__repr__", [](const McObject& self) { return to_string(self); })
         .def("__hash__", [](const McObject& self) { return self.get_hash(); })
         ;
