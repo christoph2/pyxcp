@@ -218,8 +218,8 @@ class DaqToCsv(DaqOnlinePolicy):
             hdr = ",".join(["timestamp0", "timestamp1"] + [h[0] for h in daq_list.headers])
             out_file.write(f"{hdr}\n")
 
-    def on_daq_list(self, daq_list: int, ts0: int, ts1: int, payload: list):
-        self.files[daq_list].write(f"{ts0},{ts1},{', '.join([str(x) for x in payload])}\n")
+    def on_daq_list(self, daq_list: int, timestamp0: int, timestamp1: int, payload: list):
+        self.files[daq_list].write(f"{timestamp0},{timestamp1},{', '.join([str(x) for x in payload])}\n")
 
     def finalize(self):
         self.log.debug("DaqCsv::finalize()")

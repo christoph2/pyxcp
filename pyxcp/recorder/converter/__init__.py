@@ -98,8 +98,8 @@ class Storage:
 class StorageContainer:
     name: str
     arr: List[Storage] = field(default_factory=[])
-    ts0: List[int] = field(default_factory=lambda: array("Q"))
-    ts1: List[int] = field(default_factory=lambda: array("Q"))
+    timestamp0: List[int] = field(default_factory=lambda: array("Q"))
+    timestamp1: List[int] = field(default_factory=lambda: array("Q"))
 
 
 class XcpLogFileDecoder(_XcpLogFileDecoder):
@@ -158,8 +158,8 @@ class CollectRows:
 
     def on_daq_list(self, daq_list_num: int, timestamp0: int, timestamp1: int, measurements: list) -> None:
         storage_container = self.tables[daq_list_num]
-        storage_container.ts0.append(timestamp0)
-        storage_container.ts1.append(timestamp1)
+        storage_container.timestamp0.append(timestamp0)
+        storage_container.timestamp1.append(timestamp1)
         for idx, elem in enumerate(measurements):
             storage = storage_container.arr[idx]
             storage.arr.append(elem)
@@ -198,8 +198,8 @@ class ArrowConverter(CollectRows, XcpLogFileDecoder):
     def on_finalize(self) -> None:
         result = []
         for arr in self.tables:
-            timestamp0 = arr.ts0
-            timestamp1 = arr.ts1
+            timestamp0 = arr.timestamp0
+            timestamp1 = arr.timestamp1
             names = ["timestamp0", "timestamp1"]
             data = [timestamp0, timestamp1]
             for sd in arr.arr:
@@ -229,7 +229,7 @@ class CsvConverter(XcpLogFileDecoder):
         fname = f"{sc.name}{self.out_file_suffix}"
         self.logger.info(f"Creating file {fname!r}.")
         writer = csv.writer(open(fname, "w", newline=""), dialect="excel")
-        headers = ["ts0", "ts1"] + [e.name for e in sc.arr]
+        headers = ["timestamp0", "timestamp1"] + [e.name for e in sc.arr]
         writer.writerow(headers)
         self.csv_writers.append(writer)
 
@@ -257,7 +257,7 @@ class ExcelConverter(XcpLogFileDecoder):
     def on_container(self, sc: StorageContainer) -> None:
         sheet = self.xls_workbook.add_worksheet(sc.name)
         self.xls_sheets.append(sheet)
-        headers = ["ts0", "ts1"] + [e.name for e in sc.arr]
+        headers = ["timestamp0", "timestamp1"] + [e.name for e in sc.arr]
         sheet.write_row(0, 0, headers)
         self.rows.append(1)
 
@@ -285,8 +285,8 @@ class HdfConverter(CollectRows, XcpLogFileDecoder):
 
     def on_finalize(self) -> None:
         for arr in self.tables:
-            timestamp0 = arr.ts0
-            timestamp1 = arr.ts1
+            timestamp0 = arr.timestamp0
+            timestamp1 = arr.timestamp1
             self.out_file[f"/{arr.name}/timestamp0"] = timestamp0
             self.out_file[f"/{arr.name}/timestamp1"] = timestamp1
             for sd in arr.arr:
@@ -322,7 +322,7 @@ class MdfConverter(CollectRows, XcpLogFileDecoder):
         mdf4.header = hdr
         for idx, arr in enumerate(self.tables):
             signals = []
-            timestamps = arr.ts0
+            timestamps = arr.timestamp0
             for sd in arr.arr:
                 signal = Signal(samples=sd.arr, name=sd.name, timestamps=timestamps)
                 signals.append(signal)
@@ -369,7 +369,7 @@ class SqliteConverter(XcpLogFileDecoder):
         self.create_table(sc)
         self.logger.info(f"Creating table {sc.name!r}.")
         self.insert_stmt[sc.name] = (
-            f"""INSERT INTO {sc.name}({', '.join(['ts0', 'ts1'] + [r.name for r in sc.arr])}) VALUES({', '.join(["?" for _ in range(len(sc.arr) + 2)])})"""
+            f"""INSERT INTO {sc.name}({', '.join(['timestamp0', 'timestamp1'] + [r.name for r in sc.arr])}) VALUES({', '.join(["?" for _ in range(len(sc.arr) + 2)])})"""
         )
 
     def on_finalize(self) -> None:
@@ -403,7 +403,7 @@ class SqliteConverter(XcpLogFileDecoder):
         )
 
     def create_table(self, sc: StorageContainer) -> None:
-        columns = ["ts0 INTEGER", "ts1 INTEGER"]
+        columns = ["timestamp0 INTEGER", "timestamp1 INTEGER"]
         for elem in sc.arr:
             columns.append(f"{elem.name} {elem.target_type}")
         ddl = f"CREATE TABLE {sc.name}({', '.join(columns)})"
