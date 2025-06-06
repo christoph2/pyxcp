@@ -1,11 +1,28 @@
+from unittest import mock
+
 import pytest
 
 import pyxcp.transport.base as tr
 
 
+def create_config():
+    # Exception: XCPonEth - Failed to resolve address <MagicMock name='mock.transport.eth.host' id='2414047113872'>:<MagicMock name='mock.transport.eth.port' id='2414047478992'>
+    config = mock.MagicMock()
+    config.general.return_value = mock.MagicMock()
+    config.transport.return_value = mock.MagicMock()
+    config.transport.eth.return_value = mock.MagicMock()
+    config.transport.eth.host = "localhost"
+    config.transport.eth.port = 5555
+    config.transport.eth.bind_to_address = ""
+    config.transport.eth.bind_to_port = 0
+    config.transport.create_daq_timestamps = False
+    return config
+
+
 def test_factory_works():
-    assert isinstance(tr.create_transport("eth"), tr.BaseTransport)
-    assert isinstance(tr.create_transport("sxi"), tr.BaseTransport)
+    config = create_config()
+    assert isinstance(tr.create_transport("eth", config=config), tr.BaseTransport)
+    assert isinstance(tr.create_transport("sxi", config=config), tr.BaseTransport)
     assert isinstance(
         tr.create_transport(
             "can",

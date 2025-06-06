@@ -134,7 +134,7 @@ class TestMaster:
     def testDisconnect(self, eth):
         with Master("eth", config=create_config()) as xm:
             xm.transport = eth()
-            xm.transport.request.return_value = bytes([])
+            xm.transport.request_optional_response.return_value = bytes([])
             res = xm.disconnect()
         assert res == b""
 
