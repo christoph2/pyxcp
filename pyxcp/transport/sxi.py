@@ -42,7 +42,7 @@ class SxI(BaseTransport):
         if self.has_user_supplied_interface and transport_layer_interface:
             self.comm_port = transport_layer_interface
         else:
-            self.logger.info(f"XCPonSxI - trying to open serial comm_port {self.port_name}.")
+            self.logger.info(f"XCPonSxI - trying to open serial comm_port {self.port_name!r}.")
             try:
                 self.comm_port = serial.Serial(
                     port=self.port_name,
@@ -88,7 +88,9 @@ class SxI(BaseTransport):
         self.unpacker = unpacker
 
     def connect(self) -> None:
-        self.logger.info(f"XCPonSxI - serial comm_port openend: {self.comm_port.portstr}@{self.baudrate} Bits/Sec.")
+        self.logger.info(
+            f"XCPonSxI - serial comm_port {self.comm_port.portstr!r} openend [{self.baudrate}/{self.bytesize}-{self.parity}-{self.stopbits}]"
+        )
         self.start_listener()
 
     def output(self, enable) -> None:
