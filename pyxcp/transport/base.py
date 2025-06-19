@@ -278,7 +278,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 err = types.XcpError.parse(xcpPDU[1:])
                 raise types.XcpResponseError(err)
         with self.command_lock:
-            if isinstance(*data, list):
+            if isinstance(data, list):
                 data = data[0]  # C++ interfacing.
             frame = self._prepare_request(cmd, *data)
             with self.policy_lock:

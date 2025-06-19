@@ -694,7 +694,7 @@ class Master:
             callback_remaining = total_length
             for _ in chunks:
                 block = data[offset : offset + max_payload]
-                dl_func(block, max_payload, last=True)
+                dl_func(block, max_payload, last=False)
                 offset += max_payload
                 callback_remaining -= chunk_size
                 if callback and callback_remaining <= total_length - (total_length / 100) * percent_complete:
