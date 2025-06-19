@@ -1328,7 +1328,7 @@ class Master:
         if wait_for_optional_response:
             return self.transport.request_optional_response(types.Command.PROGRAM_RESET)
         else:
-            return self.transport.block_request(types.Command.PROGRAM_RESET)
+            return self.transport.request(types.Command.PROGRAM_RESET)
 
     @wrapped
     def getPgmProcessorInfo(self):
