@@ -10,6 +10,7 @@
 #include "bin.hpp"
 #include "daqlist.hpp"
 #include "mcobject.hpp"
+#include "framing.hpp"
 
 namespace py = pybind11;
 using namespace pybind11::literals;
@@ -97,4 +98,22 @@ PYBIND11_MODULE(cpp_ext, m) {
         .def_property("utc_offset", &TimestampInfo::get_utc_offset, &TimestampInfo::set_utc_offset)
         .def_property("dst_offset", &TimestampInfo::get_dst_offset, &TimestampInfo::set_dst_offset)
         .def_property("timezone", &TimestampInfo::get_timezone, &TimestampInfo::set_timezone);
+
+	py::enum_<XcpTransportLayerType>(m, "XcpTransportLayerType")
+		.value("CAN", XcpTransportLayerType::CAN)
+		.value("ETH", XcpTransportLayerType::ETH)
+		.value("SXI", XcpTransportLayerType::SXI)
+		.value("USB", XcpTransportLayerType::USB)
+	;
+
+	py::class_<XcpFramingConfig>(m, "XcpFramingConfig")
+		.def(py::init<std::uint8_t, std::uint8_t, std::uint8_t, std::uint8_t, std::uint8_t>(), py::arg("header_len"), py::arg("header_ctr"), py::arg("header_fill"), py::arg("tail_fill"), py::arg("tail_cs"))
+	;
+
+	py::class_<XcpFraming>(m, "XcpFraming")
+        .def(py::init<const XcpFramingConfig&>())
+        .def("prepare_request", &XcpFraming::prepare_request)
+        .def_property_readonly("counter_send", &XcpFraming::get_counter_send)
+	;
+
 }

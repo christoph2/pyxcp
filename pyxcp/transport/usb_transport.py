@@ -12,7 +12,7 @@ import usb.core
 import usb.util
 from usb.core import USBError, USBTimeoutError
 
-from pyxcp.transport.base import BaseTransport
+from pyxcp.transport.base import BaseTransport, XcpFramingConfig
 from pyxcp.utils import short_sleep
 
 

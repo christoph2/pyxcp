@@ -6,7 +6,7 @@ from collections import deque
 from typing import Any, Dict, Optional, Set, Type
 
 import pyxcp.types as types
-from pyxcp.cpp_ext.cpp_ext import Timestamp, TimestampType
+from pyxcp.cpp_ext.cpp_ext import Timestamp, TimestampType, XcpFraming, XcpFramingConfig
 from pyxcp.recorder import XcpLogFileWriter
 from pyxcp.timing import Timing
 from pyxcp.utils import (
@@ -136,10 +136,17 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     """
 
-    def __init__(self, config, policy: Optional[FrameAcquisitionPolicy] = None, transport_layer_interface: Optional[Any] = None):
+    def __init__(
+        self,
+        config,
+        framing_config: XcpFramingConfig,
+        policy: Optional[FrameAcquisitionPolicy] = None,
+        transport_layer_interface: Optional[Any] = None,
+    ):
         self.has_user_supplied_interface: bool = transport_layer_interface is not None
         self.transport_layer_interface: Optional[Any] = transport_layer_interface
         self.parent = None
+        self.framing = XcpFraming(framing_config)
         self.policy: FrameAcquisitionPolicy = policy or LegacyFrameAcquisitionPolicy()
         self.closeEvent: threading.Event = threading.Event()
 
@@ -150,7 +157,6 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self._debug: bool = self.logger.level == 10
         if transport_layer_interface:
             self.logger.info(f"Transport - User Supplied Transport-Layer Interface: '{transport_layer_interface!s}'")
-        self.counter_send: int = 0
         self.counter_received: int = -1
         self.create_daq_timestamps: bool = config.create_daq_timestamps
         self.timestamp = Timestamp(TimestampType.ABSOLUTE_TS)
@@ -204,7 +210,6 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 raise EmptyFrameError
             short_sleep()
         item = self.resQueue.popleft()
-        # print("Q", item)
         return item
 
     @property
@@ -234,7 +239,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             frame = self._prepare_request(cmd, *data)
             self.timing.start()
             with self.policy_lock:
-                self.policy.feed(types.FrameCategory.CMD, self.counter_send, self.timestamp.value, frame)
+                self.policy.feed(types.FrameCategory.CMD, self.framing.counter_send, self.timestamp.value, frame)
             self.send(frame)
             try:
                 xcpPDU = self.get()
@@ -242,7 +247,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 if not ignore_timeout:
                     MSG = f"Response timed out (timeout={self.timeout / 1_000_000_000}s)"
                     with self.policy_lock:
-                        self.policy.feed(types.FrameCategory.METADATA, self.counter_send, self.timestamp.value, bytes(MSG, "ascii"))
+                        self.policy.feed(
+                            types.FrameCategory.METADATA, self.framing.counter_send, self.timestamp.value, bytes(MSG, "ascii")
+                        )
                     raise types.XcpTimeoutError(MSG) from None
                 else:
                     self.timing.stop()
@@ -284,7 +291,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             with self.policy_lock:
                 self.policy.feed(
                     types.FrameCategory.CMD if int(cmd) >= 0xC0 else types.FrameCategory.STIM,
-                    self.counter_send,
+                    self.framing.counter_send,
                     self.timestamp.value,
                     frame,
                 )
@@ -297,19 +304,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         if self._debug:
             self.logger.debug(cmd.name)
         self.parent._setService(cmd)
-
-        cmd_len = cmd.bit_length() // 8  # calculate bytes needed for cmd
-        packet = bytes(flatten(cmd.to_bytes(cmd_len, "big"), data))
-
-        header = self.HEADER.pack(len(packet), self.counter_send)
-        self.counter_send = (self.counter_send + 1) & 0xFFFF
-
-        frame = header + packet
-
-        remainder = len(frame) % self.alignment
-        if remainder:
-            frame += b"\0" * (self.alignment - remainder)
-
+        frame = self.framing.prepare_request(cmd, *data)
         if self._debug:
             self.logger.debug(f"-> {hexDump(frame)}")
         return frame

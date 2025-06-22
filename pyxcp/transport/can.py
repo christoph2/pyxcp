@@ -13,7 +13,7 @@ from can.interface import _get_class_for_interface
 from rich.console import Console
 
 from pyxcp.config import CAN_INTERFACE_MAP
-from pyxcp.transport.base import BaseTransport
+from pyxcp.transport.base import BaseTransport, XcpFramingConfig
 
 from ..utils import seconds_to_nanoseconds
 
@@ -310,7 +310,8 @@ class Can(BaseTransport):
     HEADER_SIZE = 0
 
     def __init__(self, config, policy=None, transport_layer_interface: Optional[BusABC] = None):
-        super().__init__(config, policy, transport_layer_interface)
+        framing_config = XcpFramingConfig(header_len=0, header_ctr=0, header_fill=0, tail_fill=False, tail_cs=0)
+        super().__init__(config, framing_config, policy, transport_layer_interface)
         self.load_config(config)
         self.useDefaultListener = self.config.use_default_listener
         self.can_id_master = Identifier(self.config.can_id_master)

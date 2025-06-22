@@ -1757,7 +1757,10 @@ class Master:
     def getCurrentProtectionStatus(self):
         """"""
         if self.currentProtectionStatus is None:
-            status = self.getStatus()
+            try:
+                status = self.getStatus()
+            except Exception as e:  # may temporary ERR_OUT_OF_RANGE
+                return {"dbg": None, "pgm": None, "stim": None, "daq": None, "calpag": None}
             self._setProtectionStatus(status.resourceProtectionStatus)
         return self.currentProtectionStatus
 

@@ -6,7 +6,7 @@ from typing import Optional
 import serial
 
 import pyxcp.types as types
-from pyxcp.transport.base import BaseTransport
+from pyxcp.transport.base import BaseTransport, XcpFramingConfig
 
 
 @dataclass
@@ -23,7 +23,6 @@ class SxI(BaseTransport):
     """"""
 
     def __init__(self, config=None, policy=None, transport_layer_interface: Optional[serial.Serial] = None) -> None:
-        super().__init__(config, policy, transport_layer_interface)
         self.load_config(config)
         self.port_name = self.config.port
         self.baudrate = self.config.bitrate
@@ -31,12 +30,29 @@ class SxI(BaseTransport):
         self.parity = self.config.parity
         self.stopbits = self.config.stopbits
         self.mode = self.config.mode
-        self.header_format = self.config.header_format
+
+        header_format = self.config.header_format
+        self.header_format = header_format
+        if header_format == "HEADER_LEN_BYTE":
+            header_len, header_ctr, header_fill = 1, 0, 0
+        elif header_format == "HEADER_LEN_CTR_BYTE":
+            header_len, header_ctr, header_fill = 1, 1, 0
+        elif header_format == "HEADER_LEN_FILL_BYTE":
+            header_len, header_ctr, header_fill = 1, 0, 1
+        elif header_format == "HEADER_LEN_WORD":
+            header_len, header_ctr, header_fill = 2, 0, 0
+        elif header_format == "HEADER_LEN_CTR_WORD":
+            header_len, header_ctr, header_fill = 2, 2, 0
+        elif header_format == "HEADER_LEN_FILL_WORD":
+            header_len, header_ctr, header_fill = 2, 0, 2
+        framing_config = XcpFramingConfig(
+            header_len=header_len, header_ctr=header_ctr, header_fill=header_fill, tail_fill=False, tail_cs=0
+        )
+        super().__init__(config, framing_config, policy, transport_layer_interface)
         self.tail_format = self.config.tail_format
         self.framing = self.config.framing
         self.esc_sync = self.config.esc_sync
         self.esc_esc = self.config.esc_esc
-        self.make_header()
         self.comm_port: serial.Serial
 
         if self.has_user_supplied_interface and transport_layer_interface:
@@ -60,32 +76,6 @@ class SxI(BaseTransport):
 
     def __del__(self) -> None:
         self.close_connection()
-
-    def make_header(self) -> None:
-        def unpack_len(args):
-            (length,) = args
-            return HeaderValues(length=length)
-
-        def unpack_len_counter(args):
-            length, counter = args
-            return HeaderValues(length=length, counter=counter)
-
-        def unpack_len_filler(args):
-            length, filler = args
-            return HeaderValues(length=length, filler=filler)
-
-        HEADER_FORMATS = {
-            "HEADER_LEN_BYTE": ("B", unpack_len),
-            "HEADER_LEN_CTR_BYTE": ("BB", unpack_len_counter),
-            "HEADER_LEN_FILL_BYTE": ("BB", unpack_len_filler),
-            "HEADER_LEN_WORD": ("H", unpack_len),
-            "HEADER_LEN_CTR_WORD": ("HH", unpack_len_counter),
-            "HEADER_LEN_FILL_WORD": ("HH", unpack_len_filler),
-        }
-        fmt, unpacker = HEADER_FORMATS[self.header_format]
-        self.HEADER = struct.Struct(f"<{fmt}")
-        self.HEADER_SIZE = self.HEADER.size
-        self.unpacker = unpacker
 
     def connect(self) -> None:
         self.logger.info(
