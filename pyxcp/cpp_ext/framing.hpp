@@ -6,7 +6,6 @@
 
 #include <atomic>
 #include <bit>
-#include <format>
 #include <optional>
 #include <iostream>
 #include <map>
@@ -196,14 +195,14 @@ public:
         return m_framing_type.header_len + m_framing_type.header_ctr + m_framing_type.header_fill;
     }
 
-    auto get_counter_send() const noexcept {
-        return m_counter_send;
+    std::uint16_t get_counter_send() const noexcept {		
+    	return m_counter_send;
     }
 
 private:
 	void set_send_buffer(std::uint8_t value) noexcept {
-		m_send_buffer[m_send_buffer_offset] = value;
-		m_send_buffer_offset++;
+	    m_send_buffer[m_send_buffer_offset] = value;
+   	   m_send_buffer_offset++;
 	}
 
 	void set_send_buffer(const std::vector<std::uint8_t>& values) noexcept {
@@ -231,7 +230,7 @@ private:
 		m_send_buffer_offset = 0UL;
 	}
 
-	auto current_send_buffer_pointer() const noexcept {
+	std::uint16_t current_send_buffer_pointer() const noexcept {
 		return m_send_buffer_offset;
 	}
 
@@ -264,7 +263,8 @@ private:
     // XcpTransportLayerType m_transport_layer_type;
     XcpFramingConfig m_framing_type;
     std::uint8_t * m_send_buffer = nullptr;
-	std::uint16_t m_send_buffer_offset = 0UL;
+    std::uint16_t m_send_buffer_offset = 0UL;
 };
 
 #endif // __FRAMING_HPP
+

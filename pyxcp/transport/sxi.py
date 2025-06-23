@@ -50,7 +50,6 @@ class SxI(BaseTransport):
         )
         super().__init__(config, framing_config, policy, transport_layer_interface)
         self.tail_format = self.config.tail_format
-        self.framing = self.config.framing
         self.esc_sync = self.config.esc_sync
         self.esc_esc = self.config.esc_esc
         self.comm_port: serial.Serial
@@ -105,9 +104,10 @@ class SxI(BaseTransport):
                 continue
 
             recv_timestamp = self.timestamp.value
-            header_values = self.unpacker(self.HEADER.unpack(self.comm_port.read(self.HEADER_SIZE)))
-            length, counter, _ = header_values.length, header_values.counter, header_values.filler
+            # header_values = self.unpacker(self.HEADER.unpack(self.comm_port.read(self.HEADER_SIZE)))
+            # length, counter, _ = header_values.length, header_values.counter, header_values.filler
 
+            print("RESSP", self.comm_port.read(8))
             response = self.comm_port.read(length)
             self.timing.stop()
 
