@@ -80,6 +80,10 @@ std::vector<std::uint8_t> serialize_word_le(std::uint16_t value) {
 	return result;
 }
 
+std::string_view bytes_as_string_view(const py::bytes& data) {
+    return std::string_view{data};
+}
+
 enum class XcpTransportLayerType : std::uint8_t {
 	CAN,
 	ETH,
@@ -144,7 +148,6 @@ public:
 		if (m_framing_type.header_fill > 0) {
 			fill_send_buffer(m_framing_type.header_fill);
 			frame_header_size += m_framing_type.header_fill;
-
 		}
 
 		set_send_buffer(command_bytes);
@@ -159,15 +162,43 @@ public:
 
 		m_counter_send++;
 		py::bytes result(reinterpret_cast<const char*>(m_send_buffer), current_send_buffer_pointer());
-		//if (m_debug) {
-		//	m_log_debug("-> ", hexDump(bytes_as_string_view(result)));
-		//}
 		return result;
 	}
 
-auto get_counter_send() const noexcept {
-    return m_counter_send;
-}
+    std::optional<std::tuple<std::uint16_t, std::uint16_t>> unpack_header(const py::bytes& data) const noexcept {
+        auto data_view = bytes_as_string_view(data);
+        if (std::size(data_view) >= get_header_size()) {
+            auto offset = 0UL;
+            auto length = 0UL;
+            auto counter = 0UL;
+
+            if (m_framing_type.header_len > 0) {
+                offset += m_framing_type.header_len;
+                if (m_framing_type.header_len == 1) {
+                    length = static_cast<std::uint16_t>(data_view[0]);
+                } else {
+                    length = static_cast<std::uint16_t>(data_view[0] | (data_view[1] << 8));
+                }
+            }
+            if (m_framing_type.header_ctr > 0) {
+                if (m_framing_type.header_ctr == 1) {
+                    counter = static_cast<std::uint16_t>(data_view[offset]);
+                } else {
+                    counter = static_cast<std::uint16_t>(data_view[offset] | (data_view[offset + 1] << 8));
+                }
+		    }
+		    return std::make_tuple(length, counter);
+        }
+        return std::nullopt;
+    }
+
+    std::uint16_t get_header_size() const noexcept {
+        return m_framing_type.header_len + m_framing_type.header_ctr + m_framing_type.header_fill;
+    }
+
+    auto get_counter_send() const noexcept {
+        return m_counter_send;
+    }
 
 private:
 	void set_send_buffer(std::uint8_t value) noexcept {

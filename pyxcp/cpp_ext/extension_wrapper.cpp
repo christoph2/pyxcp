@@ -113,7 +113,9 @@ PYBIND11_MODULE(cpp_ext, m) {
 	py::class_<XcpFraming>(m, "XcpFraming")
         .def(py::init<const XcpFramingConfig&>())
         .def("prepare_request", &XcpFraming::prepare_request)
+        .def("unpack_header", &XcpFraming::unpack_header)
         .def_property_readonly("counter_send", &XcpFraming::get_counter_send)
+        .def_property_readonly("header_size", &XcpFraming::get_header_size)
 	;
 
 }
