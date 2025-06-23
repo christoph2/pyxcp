@@ -164,12 +164,12 @@ public:
 		return result;
 	}
 
-    std::optional<std::tuple<std::uint16_t, std::uint16_t>> unpack_header(const py::bytes& data) const noexcept {
+    std::optional<std::tuple<std::uint16_t, std::uint16_t>> unpack_header(const py::bytes& data, std::uint16_t initial_offset=0) const noexcept {
         auto data_view = bytes_as_string_view(data);
-        if (std::size(data_view) >= get_header_size()) {
-            auto offset = 0UL;
-            auto length = 0UL;
-            auto counter = 0UL;
+        if (std::size(data_view) >= (get_header_size() + initial_offset)) {
+            auto offset = initial_offset;
+            auto length = 0U;
+            auto counter = 0U;
 
             if (m_framing_type.header_len > 0) {
                 offset += m_framing_type.header_len;
@@ -195,7 +195,7 @@ public:
         return m_framing_type.header_len + m_framing_type.header_ctr + m_framing_type.header_fill;
     }
 
-    std::uint16_t get_counter_send() const noexcept {		
+    std::uint16_t get_counter_send() const noexcept {
     	return m_counter_send;
     }
 
@@ -267,4 +267,3 @@ private:
 };
 
 #endif // __FRAMING_HPP
-

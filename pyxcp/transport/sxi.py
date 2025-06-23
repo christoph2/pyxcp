@@ -1,4 +1,3 @@
-import struct
 from collections import deque
 from dataclasses import dataclass
 from typing import Optional
@@ -6,7 +5,7 @@ from typing import Optional
 import serial
 
 import pyxcp.types as types
-from pyxcp.transport.base import BaseTransport, XcpFramingConfig
+from pyxcp.transport.base import BaseTransport, XcpFramingConfig, parse_header_format
 
 
 @dataclass
@@ -30,21 +29,7 @@ class SxI(BaseTransport):
         self.parity = self.config.parity
         self.stopbits = self.config.stopbits
         self.mode = self.config.mode
-
-        header_format = self.config.header_format
-        self.header_format = header_format
-        if header_format == "HEADER_LEN_BYTE":
-            header_len, header_ctr, header_fill = 1, 0, 0
-        elif header_format == "HEADER_LEN_CTR_BYTE":
-            header_len, header_ctr, header_fill = 1, 1, 0
-        elif header_format == "HEADER_LEN_FILL_BYTE":
-            header_len, header_ctr, header_fill = 1, 0, 1
-        elif header_format == "HEADER_LEN_WORD":
-            header_len, header_ctr, header_fill = 2, 0, 0
-        elif header_format == "HEADER_LEN_CTR_WORD":
-            header_len, header_ctr, header_fill = 2, 2, 0
-        elif header_format == "HEADER_LEN_FILL_WORD":
-            header_len, header_ctr, header_fill = 2, 0, 2
+        header_len, header_ctr, header_fill = parse_header_format(self.config.header_format)
         framing_config = XcpFramingConfig(
             header_len=header_len, header_ctr=header_ctr, header_fill=header_fill, tail_fill=False, tail_cs=0
         )
@@ -102,18 +87,16 @@ class SxI(BaseTransport):
                 return
             if not self.comm_port.in_waiting:
                 continue
-
             recv_timestamp = self.timestamp.value
-            # header_values = self.unpacker(self.HEADER.unpack(self.comm_port.read(self.HEADER_SIZE)))
-            # length, counter, _ = header_values.length, header_values.counter, header_values.filler
-
-            print("RESSP", self.comm_port.read(8))
-            response = self.comm_port.read(length)
-            self.timing.stop()
-
-            if len(response) != length:
-                raise types.FrameSizeError("Size mismatch.")
-            self.process_response(response, length, counter, recv_timestamp)
+            header_values = self.framing.unpack_header(self.comm_port.read(self.framing.header_size))
+            if header_values is not None:
+                length, counter = header_values
+                # print(f"Received frame: {length} bytes, counter: {counter}")
+                response = self.comm_port.read(length)
+                self.timing.stop()
+                if len(response) != length:
+                    raise types.FrameSizeError("Size mismatch.")
+                self.process_response(response, length, counter, recv_timestamp)
 
     def send(self, frame) -> None:
         self.pre_send_timestamp = self.timestamp.value

@@ -9,13 +9,7 @@ import pyxcp.types as types
 from pyxcp.cpp_ext.cpp_ext import Timestamp, TimestampType, XcpFraming, XcpFramingConfig
 from pyxcp.recorder import XcpLogFileWriter
 from pyxcp.timing import Timing
-from pyxcp.utils import (
-    CurrentDatetime,
-    flatten,
-    hexDump,
-    seconds_to_nanoseconds,
-    short_sleep,
-)
+from pyxcp.utils import CurrentDatetime, hexDump, seconds_to_nanoseconds, short_sleep
 
 
 class FrameAcquisitionPolicy:
@@ -122,6 +116,24 @@ class StdoutPolicy(FrameAcquisitionPolicy):
 
 class EmptyFrameError(Exception):
     """Raised when an empty frame is received."""
+
+
+def parse_header_format(header_format: str) -> tuple:
+    """SxI and USB framing is configurable."""
+    if header_format == "HEADER_LEN_BYTE":
+        return 1, 0, 0
+    elif header_format == "HEADER_LEN_CTR_BYTE":
+        return 1, 1, 0
+    elif header_format == "HEADER_LEN_FILL_BYTE":
+        return 1, 0, 1
+    elif header_format == "HEADER_LEN_WORD":
+        return 2, 0, 0
+    elif header_format == "HEADER_LEN_CTR_WORD":
+        return 2, 2, 0
+    elif header_format == "HEADER_LEN_FILL_WORD":
+        return 2, 0, 2
+    else:
+        raise ValueError(f"Invalid header format: {header_format}")
 
 
 class BaseTransport(metaclass=abc.ABCMeta):
