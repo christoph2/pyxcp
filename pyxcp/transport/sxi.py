@@ -7,6 +7,7 @@ import serial
 
 import pyxcp.types as types
 from pyxcp.transport.base import BaseTransport
+from pyxcp.utils import short_sleep
 
 
 @dataclass
@@ -17,6 +18,7 @@ class HeaderValues:
 
 
 RECV_SIZE = 16384
+FIVE_MS = 5_000_000  # Five milliseconds in nanoseconds
 
 
 class SxI(BaseTransport):
@@ -108,22 +110,74 @@ class SxI(BaseTransport):
         super().start_listener()
 
     def listen(self) -> None:
+        """Process data received from the serial port.
+
+        This method runs in a separate thread and continuously polls the serial port
+        for new data. When data is available, it:
+
+        1. Reads the header to get the length and counter
+        2. Reads the payload based on the length
+        3. Passes the payload to process_response
+
+        The method includes periodic sleep to prevent CPU hogging and error handling
+        to ensure the listener thread doesn't crash on exceptions.
+        """
+        # Cache frequently used methods and attributes for better performance
+        close_event_set = self.closeEvent.is_set
+        process_response = self.process_response
+        comm_port_in_waiting = self.comm_port.in_waiting
+        comm_port_read = self.comm_port.read
+        header_unpacker = self.unpacker
+        header_unpack = self.HEADER.unpack
+        header_size = self.HEADER_SIZE
+
+        # State variables for processing
+        last_sleep = self.timestamp.value
+
         while True:
-            if self.closeEvent.is_set():
+            # Check if we should exit the loop
+            if close_event_set():
                 return
-            if not self.comm_port.in_waiting:
+
+            # Periodically sleep to prevent CPU hogging
+            if self.timestamp.value - last_sleep >= FIVE_MS:
+                short_sleep()
+                last_sleep = self.timestamp.value
+
+            # Check if there is data available to read
+            if not comm_port_in_waiting():
+                short_sleep()
+                last_sleep = self.timestamp.value
                 continue
 
-            recv_timestamp = self.timestamp.value
-            header_values = self.unpacker(self.HEADER.unpack(self.comm_port.read(self.HEADER_SIZE)))
-            length, counter, _ = header_values.length, header_values.counter, header_values.filler
+            try:
+                # Read and process the data
+                recv_timestamp = self.timestamp.value
 
-            response = self.comm_port.read(length)
-            self.timing.stop()
+                # Read and unpack the header
+                header_values = header_unpacker(header_unpack(comm_port_read(header_size)))
+                length, counter, _ = header_values.length, header_values.counter, header_values.filler
 
-            if len(response) != length:
-                raise types.FrameSizeError("Size mismatch.")
-            self.process_response(response, length, counter, recv_timestamp)
+                # Read the payload
+                response = comm_port_read(length)
+                self.timing.stop()
+
+                # Verify the response length
+                if len(response) != length:
+                    self.logger.error(f"Frame size mismatch: expected {length}, got {len(response)}")
+                    raise types.FrameSizeError("Size mismatch.")
+
+                # Process the response
+                process_response(response, length, counter, recv_timestamp)
+            except types.FrameSizeError:
+                # Re-raise FrameSizeError as it's a critical error
+                raise
+            except Exception as e:
+                # Log any other exceptions but continue processing
+                self.logger.error(f"Error in SxI listen thread: {e}")
+                # Sleep briefly to avoid tight error loops
+                short_sleep()
+                last_sleep = self.timestamp.value
 
     def send(self, frame) -> None:
         self.pre_send_timestamp = self.timestamp.value

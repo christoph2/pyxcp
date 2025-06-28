@@ -7,6 +7,7 @@
 
 #include <cstdint>
 
+#include "aligned_buffer.hpp"
 #include "bin.hpp"
 #include "daqlist.hpp"
 #include "mcobject.hpp"
@@ -97,4 +98,16 @@ PYBIND11_MODULE(cpp_ext, m) {
         .def_property("utc_offset", &TimestampInfo::get_utc_offset, &TimestampInfo::set_utc_offset)
         .def_property("dst_offset", &TimestampInfo::get_dst_offset, &TimestampInfo::set_dst_offset)
         .def_property("timezone", &TimestampInfo::get_timezone, &TimestampInfo::set_timezone);
+
+	py::class_<AlignedBuffer>(m, "AlignedBuffer")
+		.def(py::init<std::size_t>(), py::arg("size")=0xffff)
+		.def("reset", &AlignedBuffer::reset)
+		.def("append", &AlignedBuffer::append, py::arg("value"))
+		.def("extend", py::overload_cast<const py::bytes&>(&AlignedBuffer::extend))
+		.def("extend", py::overload_cast<const std::vector<std::uint8_t>&>(&AlignedBuffer::extend))
+        .def("__len__", [](const AlignedBuffer& self) { return self.size(); })
+        .def("__getitem__", [](const AlignedBuffer &self, py::object index) {
+            return self.get_item(index);
+        })
+	;
 }

@@ -6,12 +6,14 @@
 
 .. [1] XCP Specification, Part 2 - Protocol Layer Specification
 """
+from __future__ import annotations
+
 import functools
 import logging
 import struct
 import traceback
 import warnings
-from typing import Any, Callable, Collection, Dict, List, Optional, Tuple
+from typing import Any, Callable, Collection, Dict, Optional, Tuple, TypeVar
 
 from pyxcp import checksum, types
 from pyxcp.constants import (
@@ -26,8 +28,13 @@ from pyxcp.constants import (
 )
 from pyxcp.daq_stim.stim import DaqEventInfo, Stim
 from pyxcp.master.errorhandler import SystemExit, disable_error_handling, wrapped
-from pyxcp.transport.base import create_transport
+from pyxcp.transport.base import BaseTransport, create_transport
 from pyxcp.utils import decode_bytes, delay, short_sleep
+
+
+# Type variables for better type hinting
+T = TypeVar("T")
+R = TypeVar("R")
 
 
 def broadcasted(func: Callable):
@@ -36,107 +43,217 @@ def broadcasted(func: Callable):
 
 
 class SlaveProperties(dict):
-    """Container class for fixed parameters, like byte-order, maxCTO, ..."""
+    """Container class for fixed parameters, like byte-order, maxCTO, ...
 
-    def __init__(self, *args, **kws):
+    This class extends dict to provide attribute-style access to dictionary items.
+    """
+
+    def __init__(self, *args: Any, **kws: Any) -> None:
+        """Initialize a new SlaveProperties instance.
+
+        Parameters
+        ----------
+        *args : Any
+            Positional arguments passed to dict.__init__
+        **kws : Any
+            Keyword arguments passed to dict.__init__
+        """
         super().__init__(*args, **kws)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
+        """Get an attribute by name.
+
+        Parameters
+        ----------
+        name : str
+            The name of the attribute to get
+
+        Returns
+        -------
+        Any
+            The value of the attribute
+        """
         return self[name]
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Set an attribute by name.
+
+        Parameters
+        ----------
+        name : str
+            The name of the attribute to set
+        value : Any
+            The value to set
+        """
         self[name] = value
 
-    def __getstate__(self):
+    def __getstate__(self) -> dict:
+        """Get the state of the object for pickling.
+
+        Returns
+        -------
+        dict
+            The state of the object
+        """
         return self
 
-    def __setstate__(self, state):
-        self = state  # noqa: F841
+    def __setstate__(self, state: dict) -> None:
+        """Set the state of the object from unpickling.
+
+        Parameters
+        ----------
+        state : dict
+            The state to set
+        """
+        self.update(state)  # Use update instead of direct assignment
 
 
 class Master:
     """Common part of lowlevel XCP API.
 
+    This class provides methods for interacting with an XCP slave device.
+    It handles the communication protocol and provides a high-level API
+    for sending commands and receiving responses.
+
     Parameters
     ----------
-    transport_name : str
+    transport_name : str | None
         XCP transport layer name ['can', 'eth', 'sxi']
-    config: dict
+    config : Any
+        Configuration object containing transport and general settings
+    policy : Any, optional
+        Policy object for handling frames, by default None
+    transport_layer_interface : Any, optional
+        Custom transport layer interface, by default None
     """
 
-    def __init__(self, transport_name: Optional[str], config, policy=None, transport_layer_interface=None):
+    def __init__(self, transport_name: str | None, config: Any, policy: Any = None, transport_layer_interface: Any = None) -> None:
+        """Initialize a new Master instance.
+
+        Parameters
+        ----------
+        transport_name : str | None
+            XCP transport layer name ['can', 'eth', 'sxi']
+        config : Any
+            Configuration object containing transport and general settings
+        policy : Any, optional
+            Policy object for handling frames, by default None
+        transport_layer_interface : Any, optional
+            Custom transport layer interface, by default None
+
+        Raises
+        ------
+        ValueError
+            If transport_name is None
+        """
         if transport_name is None:
             raise ValueError("No transport-layer selected")  # Never reached -- to keep type-checkers happy.
-        self.ctr = 0
-        self.succeeded = True
-        self.config = config.general
-        self.logger = logging.getLogger("PyXCP")
+
+        # Initialize basic properties
+        self.ctr: int = 0
+        self.succeeded: bool = True
+        self.config: Any = config.general
+        self.logger: logging.Logger = logging.getLogger("PyXCP")
+
+        # Configure error handling
         disable_error_handling(self.config.disable_error_handling)
-        self.transport_name = transport_name.lower()
-        transport_config = config.transport
-        self.transport = create_transport(transport_name, transport_config, policy, transport_layer_interface)
-        self.stim = Stim(self.config.stim_support)
+
+        # Set up transport layer
+        self.transport_name: str = transport_name.lower()
+        transport_config: Any = config.transport
+        self.transport: BaseTransport = create_transport(transport_name, transport_config, policy, transport_layer_interface)
+
+        # Set up STIM (stimulation) support
+        self.stim: Stim = Stim(self.config.stim_support)
         self.stim.clear()
         self.stim.set_policy_feeder(self.transport.policy.feed)
         self.stim.set_frame_sender(self.transport.block_request)
 
         # In some cases the transport-layer needs to communicate with us.
         self.transport.parent = self
-        self.service = None
+        self.service: Any = None
 
-        # Policies may issue XCP commands on there own.
+        # Policies may issue XCP commands on their own.
         self.transport.policy.xcp_master = self
 
         # (D)Word (un-)packers are byte-order dependent
         # -- byte-order is returned by CONNECT_Resp (COMM_MODE_BASIC)
-        self.BYTE_pack = None
-        self.BYTE_unpack = None
-        self.WORD_pack = None
-        self.WORD_unpack = None
-        self.DWORD_pack = None
-        self.DWORD_unpack = None
-        self.DLONG_pack = None
-        self.DLONG_unpack = None
-        self.AG_pack = None
-        self.AG_unpack = None
-        # self.connected = False
-        self.mta = types.MtaType(None, None)
-        self.currentDaqPtr = None
-        self.currentProtectionStatus = None
-        self.seed_n_key_dll = self.config.seed_n_key_dll
-        self.seed_n_key_function = self.config.seed_n_key_function
-        self.seed_n_key_dll_same_bit_width = self.config.seed_n_key_dll_same_bit_width
-        self.disconnect_response_optional = self.config.disconnect_response_optional
-        self.slaveProperties = SlaveProperties()
+        self.BYTE_pack: Callable[[int], bytes] | None = None
+        self.BYTE_unpack: Callable[[bytes], tuple[int]] | None = None
+        self.WORD_pack: Callable[[int], bytes] | None = None
+        self.WORD_unpack: Callable[[bytes], tuple[int]] | None = None
+        self.DWORD_pack: Callable[[int], bytes] | None = None
+        self.DWORD_unpack: Callable[[bytes], tuple[int]] | None = None
+        self.DLONG_pack: Callable[[int], bytes] | None = None
+        self.DLONG_unpack: Callable[[bytes], tuple[int]] | None = None
+        self.AG_pack: Callable[[int], bytes] | None = None
+        self.AG_unpack: Callable[[bytes], tuple[int]] | None = None
+
+        # Initialize state variables
+        self.mta: types.MtaType = types.MtaType(None, None)
+        self.currentDaqPtr: Any = None
+        self.currentProtectionStatus: dict[str, bool] | None = None
+
+        # Configuration for seed and key
+        self.seed_n_key_dll: str | None = self.config.seed_n_key_dll
+        self.seed_n_key_function: Callable | None = self.config.seed_n_key_function
+        self.seed_n_key_dll_same_bit_width: bool = self.config.seed_n_key_dll_same_bit_width
+        self.disconnect_response_optional: bool = self.config.disconnect_response_optional
+
+        # Initialize slave properties
+        self.slaveProperties: SlaveProperties = SlaveProperties()
         self.slaveProperties.pgmProcessor = SlaveProperties()
         self.slaveProperties.transport_layer = self.transport_name.upper()
 
-    def __enter__(self):
-        """Context manager entry part."""
+    def __enter__(self) -> Master:
+        """Context manager entry part.
+
+        This method is called when entering a context manager block.
+        It connects to the XCP slave and returns the Master instance.
+
+        Returns
+        -------
+        Master
+            The Master instance
+        """
         self.transport.connect()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit part."""
-        # if self.connected:
-        #    self.disconnect()
-        self.close()
-        if exc_type is None:
-            return
-        else:
-            self.succeeded = False
-            # print("=" * 79)
-            # print("Exception while in Context-Manager:\n")
-            self.logger.error("".join(traceback.format_exception(exc_type, exc_val, exc_tb)))
-            # print("=" * 79)
-            # return True
+    def __exit__(
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: traceback.TracebackType | None
+    ) -> None:
+        """Context manager exit part.
 
-    def _setService(self, service):
-        """Records the currently processed service.
+        This method is called when exiting a context manager block.
+        It closes the connection to the XCP slave and logs any exceptions.
 
         Parameters
         ----------
-        service: `pydbc.types.Command`
+        exc_type : type[BaseException] | None
+            The type of the exception that was raised, or None if no exception was raised
+        exc_val : BaseException | None
+            The exception instance that was raised, or None if no exception was raised
+        exc_tb : traceback.TracebackType | None
+            The traceback of the exception that was raised, or None if no exception was raised
+        """
+        # Close the connection to the XCP slave
+        self.close()
+
+        # Handle any exceptions that were raised
+        if exc_type is not None:
+            self.succeeded = False
+            self.logger.error("".join(traceback.format_exception(exc_type, exc_val, exc_tb)))
+
+    def _setService(self, service: Any) -> None:
+        """Record the currently processed service.
+
+        This method is called by the transport layer to record the
+        currently processed service.
+
+        Parameters
+        ----------
+        service : Any
+            The service being processed, typically a `pyxcp.types.Command`
 
         Note
         ----
@@ -144,66 +261,122 @@ class Master:
         """
         self.service = service
 
-    def close(self):
-        """Closes transport layer connection."""
+    def close(self) -> None:
+        """Close the transport layer connection.
+
+        This method finalizes the policy and closes the transport layer connection.
+        It should be called when the Master instance is no longer needed.
+        """
         self.transport.policy.finalize()
         self.transport.close()
 
     # Mandatory Commands.
     @wrapped
-    def connect(self, mode=0x00):
+    def connect(self, mode: int = 0x00) -> types.ConnectResponse:
         """Build up connection to an XCP slave.
 
         Before the actual XCP traffic starts a connection is required.
+        This method sends a CONNECT command to the slave and processes
+        the response to set up various properties of the slave.
 
         Parameters
         ----------
-        mode : int
-            connection mode; default is 0x00 (normal mode)
+        mode : int, optional
+            Connection mode, by default 0x00 (normal mode)
 
         Returns
         -------
-        :py:obj:`pyxcp.types.ConnectResponse`
-            Describes fundamental client properties.
+        types.ConnectResponse
+            Response object containing fundamental client properties
 
         Note
         ----
         Every XCP slave supports at most one connection,
         more attempts to connect are silently ignored.
-
         """
+        # Send CONNECT command to the slave
         response = self.transport.request(types.Command.CONNECT, mode & 0xFF)
 
-        # First get byte-order
-        resultPartial = types.ConnectResponsePartial.parse(response)
-        byteOrder = resultPartial.commModeBasic.byteOrder
+        # First get byte-order from partial response
+        result_partial = types.ConnectResponsePartial.parse(response)
+        byte_order = result_partial.commModeBasic.byteOrder
 
-        result = types.ConnectResponse.parse(response, byteOrder=byteOrder)
-        byteOrderPrefix = "<" if byteOrder == types.ByteOrder.INTEL else ">"
-        self.slaveProperties.byteOrder = byteOrder
+        # Parse the full response with the correct byte order
+        result = types.ConnectResponse.parse(response, byteOrder=byte_order)
+
+        # Set up byte order dependent properties
+        self._setup_slave_properties(result, byte_order)
+
+        # Set up byte order dependent packers and unpackers
+        self._setup_packers_and_unpackers(byte_order)
+
+        # Set up address granularity dependent properties
+        self._setup_address_granularity()
+
+        return result
+
+    def _setup_slave_properties(self, result: types.ConnectResponse, byte_order: types.ByteOrder) -> None:
+        """Set up slave properties based on the connect response.
+
+        Parameters
+        ----------
+        result : types.ConnectResponse
+            The parsed connect response
+        byte_order : types.ByteOrder
+            The byte order reported by the slave
+        """
+        # Set basic properties
+        self.slaveProperties.byteOrder = byte_order
         self.slaveProperties.maxCto = result.maxCto
         self.slaveProperties.maxDto = result.maxDto
+
+        # Set resource support flags
         self.slaveProperties.supportsPgm = result.resource.pgm
         self.slaveProperties.supportsStim = result.resource.stim
         self.slaveProperties.supportsDaq = result.resource.daq
         self.slaveProperties.supportsCalpag = result.resource.calpag
+
+        # Set communication mode properties
         self.slaveProperties.slaveBlockMode = result.commModeBasic.slaveBlockMode
         self.slaveProperties.addressGranularity = result.commModeBasic.addressGranularity
+        self.slaveProperties.optionalCommMode = result.commModeBasic.optional
+
+        # Set version information
         self.slaveProperties.protocolLayerVersion = result.protocolLayerVersion
         self.slaveProperties.transportLayerVersion = result.transportLayerVersion
-        self.slaveProperties.optionalCommMode = result.commModeBasic.optional
+
+        # Calculate derived properties
         self.slaveProperties.maxWriteDaqMultipleElements = (
             0 if self.slaveProperties.maxCto < 10 else int((self.slaveProperties.maxCto - 2) // 8)
         )
-        self.BYTE_pack = makeBytePacker(byteOrderPrefix)
-        self.BYTE_unpack = makeByteUnpacker(byteOrderPrefix)
-        self.WORD_pack = makeWordPacker(byteOrderPrefix)
-        self.WORD_unpack = makeWordUnpacker(byteOrderPrefix)
-        self.DWORD_pack = makeDWordPacker(byteOrderPrefix)
-        self.DWORD_unpack = makeDWordUnpacker(byteOrderPrefix)
-        self.DLONG_pack = makeDLongPacker(byteOrderPrefix)
-        self.DLONG_unpack = makeDLongUnpacker(byteOrderPrefix)
-        self.slaveProperties.bytesPerElement = None  # Download/Upload commands are using element- not byte-count.
+
+        # Initialize bytesPerElement (will be set in _setup_address_granularity)
+        self.slaveProperties.bytesPerElement = None
+
+    def _setup_packers_and_unpackers(self, byte_order: types.ByteOrder) -> None:
+        """Set up byte order dependent packers and unpackers.
+
+        Parameters
+        ----------
+        byte_order : types.ByteOrder
+            The byte order reported by the slave
+        """
+        # Determine byte order prefix for struct format strings
+        byte_order_prefix = "<" if byte_order == types.ByteOrder.INTEL else ">"
+
+        # Create packers and unpackers for different data types
+        self.BYTE_pack = makeBytePacker(byte_order_prefix)
+        self.BYTE_unpack = makeByteUnpacker(byte_order_prefix)
+        self.WORD_pack = makeWordPacker(byte_order_prefix)
+        self.WORD_unpack = makeWordUnpacker(byte_order_prefix)
+        self.DWORD_pack = makeDWordPacker(byte_order_prefix)
+        self.DWORD_unpack = makeDWordUnpacker(byte_order_prefix)
+        self.DLONG_pack = makeDLongPacker(byte_order_prefix)
+        self.DLONG_unpack = makeDLongUnpacker(byte_order_prefix)
+
+    def _setup_address_granularity(self) -> None:
+        """Set up address granularity dependent properties and packers/unpackers."""
+        # Set up address granularity dependent packers and unpackers
         if self.slaveProperties.addressGranularity == types.AddressGranularity.BYTE:
             self.AG_pack = struct.Struct("<B").pack
             self.AG_unpack = struct.Struct("<B").unpack
@@ -216,16 +389,19 @@ class Master:
             self.AG_pack = self.DWORD_pack
             self.AG_unpack = self.DWORD_unpack
             self.slaveProperties.bytesPerElement = 4
-            # self.connected = True
-        return result
 
     @wrapped
-    def disconnect(self):
-        """Releases the connection to the XCP slave.
+    def disconnect(self) -> bytes:
+        """Release the connection to the XCP slave.
 
-        Thereafter, no further communication with the slave is possible
-        (besides `connect`).
+        This method sends a DISCONNECT command to the slave, which releases
+        the connection. Thereafter, no further communication with the slave
+        is possible (besides `connect`).
 
+        Returns
+        -------
+        bytes
+            The raw response from the slave, typically empty
 
         Note
         -----
@@ -235,58 +411,106 @@ class Master:
             - `"DISCONNECT_RESPONSE_OPTIONAL": true` (JSON)
             to your configuration file.
         """
+        # Send DISCONNECT command to the slave
         if self.disconnect_response_optional:
             response = self.transport.request_optional_response(types.Command.DISCONNECT)
         else:
             response = self.transport.request(types.Command.DISCONNECT)
-        # self.connected = False
+
         return response
 
     @wrapped
-    def getStatus(self):
+    def getStatus(self) -> types.GetStatusResponse:
         """Get current status information of the slave device.
 
+        This method sends a GET_STATUS command to the slave and processes
+        the response to get information about the current status of the slave.
         This includes the status of the resource protection, pending store
         requests and the general status of data acquisition and stimulation.
 
         Returns
         -------
-        :obj:`pyxcp.types.GetStatusResponse`
+        types.GetStatusResponse
+            Response object containing status information
         """
+        # Send GET_STATUS command to the slave
         response = self.transport.request(types.Command.GET_STATUS)
+
+        # Parse the response with the correct byte order
         result = types.GetStatusResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+
+        # Update the current protection status
         self._setProtectionStatus(result.resourceProtectionStatus)
+
         return result
 
     @wrapped
-    def synch(self):
-        """Synchronize command execution after timeout conditions."""
+    def synch(self) -> bytes:
+        """Synchronize command execution after timeout conditions.
+
+        This method sends a SYNCH command to the slave, which synchronizes
+        command execution after timeout conditions. This is useful when
+        the slave has timed out and needs to be resynchronized.
+
+        Returns
+        -------
+        bytes
+            The raw response from the slave
+        """
+        # Send SYNCH command to the slave
         response = self.transport.request(types.Command.SYNCH)
         return response
 
     @wrapped
-    def getCommModeInfo(self):
+    def getCommModeInfo(self) -> types.GetCommModeInfoResponse:
         """Get optional information on different Communication Modes supported
+        by the slave.
+
+        This method sends a GET_COMM_MODE_INFO command to the slave and processes
+        the response to get information about the communication modes supported
         by the slave.
 
         Returns
         -------
-        :obj:`pyxcp.types.GetCommModeInfoResponse`
+        types.GetCommModeInfoResponse
+            Response object containing communication mode information
         """
+        # Send GET_COMM_MODE_INFO command to the slave
         response = self.transport.request(types.Command.GET_COMM_MODE_INFO)
+
+        # Parse the response with the correct byte order
         result = types.GetCommModeInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+
+        # Update slave properties with communication mode information
+        self._update_comm_mode_properties(result)
+
+        return result
+
+    def _update_comm_mode_properties(self, result: types.GetCommModeInfoResponse) -> None:
+        """Update slave properties with communication mode information.
+
+        Parameters
+        ----------
+        result : types.GetCommModeInfoResponse
+            The parsed GET_COMM_MODE_INFO response
+        """
+        # Set optional communication mode properties
         self.slaveProperties.interleavedMode = result.commModeOptional.interleavedMode
         self.slaveProperties.masterBlockMode = result.commModeOptional.masterBlockMode
+
+        # Set basic communication properties
         self.slaveProperties.maxBs = result.maxBs
         self.slaveProperties.minSt = result.minSt
         self.slaveProperties.queueSize = result.queueSize
         self.slaveProperties.xcpDriverVersionNumber = result.xcpDriverVersionNumber
-        return result
 
     @wrapped
-    def getId(self, mode: int):
-        """This command is used for automatic session configuration and for
-        slave device identification.
+    def getId(self, mode: int) -> types.GetIDResponse:
+        """Get identification information from the slave device.
+
+        This command is used for automatic session configuration and for
+        slave device identification. It sends a GET_ID command to the slave
+        and processes the response to get identification information.
 
         Parameters
         ----------
@@ -301,16 +525,27 @@ class Master:
 
         Returns
         -------
-        :obj:`pydbc.types.GetIDResponse`
+        types.GetIDResponse
+            Response object containing identification information
         """
+        # Send GET_ID command to the slave
         response = self.transport.request(types.Command.GET_ID, mode)
+
+        # Parse the response with the correct byte order
         result = types.GetIDResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+
+        # Extract the length from the response
         result.length = self.DWORD_unpack(response[3:7])[0]
+
         return result
 
     @wrapped
-    def setRequest(self, mode: int, session_configuration_id: int):
-        """Request to save to non-volatile memory.
+    def setRequest(self, mode: int, session_configuration_id: int) -> bytes:
+        """Request to save data to non-volatile memory.
+
+        This method sends a SET_REQUEST command to the slave, which requests
+        the slave to save data to non-volatile memory. The data to be saved
+        is specified by the mode parameter.
 
         Parameters
         ----------
@@ -319,19 +554,31 @@ class Master:
             - 2  Request to store DAQ list, no resume
             - 4  Request to store DAQ list, resume enabled
             - 8  Request to clear DAQ configuration
-        sessionConfigurationId : int
+        session_configuration_id : int
+            Identifier for the session configuration
 
+        Returns
+        -------
+        bytes
+            The raw response from the slave
         """
+        # Send SET_REQUEST command to the slave
+        # Split the session_configuration_id into high and low bytes
         return self.transport.request(
             types.Command.SET_REQUEST,
             mode,
-            session_configuration_id >> 8,
-            session_configuration_id & 0xFF,
+            session_configuration_id >> 8,  # High byte
+            session_configuration_id & 0xFF,  # Low byte
         )
 
     @wrapped
-    def getSeed(self, first: int, resource: int):
+    def getSeed(self, first: int, resource: int) -> types.GetSeedResponse:
         """Get seed from slave for unlocking a protected resource.
+
+        This method sends a GET_SEED command to the slave, which returns a seed
+        that can be used to generate a key for unlocking a protected resource.
+        The seed is used as input to a key generation algorithm, and the resulting
+        key is sent back to the slave using the unlock method.
 
         Parameters
         ----------
@@ -339,22 +586,36 @@ class Master:
             - 0 - first part of seed
             - 1 - remaining part
         resource : int
-            - Mode = =0 - Resource
+            - Mode == 0 - Resource to unlock
             - Mode == 1 - Don't care
 
         Returns
         -------
-        `pydbc.types.GetSeedResponse`
+        types.GetSeedResponse
+            Response object containing the seed
+
+        Note
+        ----
+        For CAN transport, the seed may be split across multiple frames if it's
+        longer than the maximum DLC. In this case, the first byte of the response
+        indicates the remaining seed size, and the master must call getSeed
+        multiple times until the complete seed is received.
         """
+        # Send GET_SEED command to the slave
+        response = self.transport.request(types.Command.GET_SEED, first, resource)
+
+        # Handle CAN-specific seed format
         if self.transport_name == "can":
-            # for CAN it might happen that the seed is longer than the max DLC
-            # in this case the first byte will be the current remaining seed size
-            # followed by the seeds bytes that can fit in the current frame
-            # the master must call getSeed several times until the complete seed is received
-            response = self.transport.request(types.Command.GET_SEED, first, resource)
+            # For CAN it might happen that the seed is longer than the max DLC
+            # In this case the first byte will be the current remaining seed size
+            # followed by the seed bytes that can fit in the current frame
             size, seed = response[0], response[1:]
+
+            # Truncate seed if necessary
             if size < len(seed):
                 seed = seed[:size]
+
+            # Create and populate response object
             reply = types.GetSeedResponse.parse(
                 types.GetSeedResponse.build({"length": size, "seed": bytes(size)}),
                 byteOrder=self.slaveProperties.byteOrder,
@@ -362,245 +623,387 @@ class Master:
             reply.seed = seed
             return reply
         else:
-            response = self.transport.request(types.Command.GET_SEED, first, resource)
+            # For other transports, parse the response directly
             return types.GetSeedResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
-    def unlock(self, length: int, key: bytes):
+    def unlock(self, length: int, key: bytes) -> types.ResourceType:
         """Send key to slave for unlocking a protected resource.
+
+        This method sends an UNLOCK command to the slave, which attempts to
+        unlock a protected resource using the provided key. The key is generated
+        from the seed obtained using the getSeed method.
 
         Parameters
         ----------
         length : int
-            indicates the (remaining) number of key bytes.
+            Indicates the (remaining) number of key bytes
         key : bytes
+            The key bytes to send to the slave
 
         Returns
         -------
-        :obj:`pydbc.types.ResourceType`
+        types.ResourceType
+            Response object containing the resource protection status
 
         Note
         ----
         The master has to use :meth:`unlock` in a defined sequence together
-        with :meth:`getSeed`. The master only can send an :meth:`unlock` sequence
+        with :meth:`getSeed`. The master can only send an :meth:`unlock` sequence
         if previously there was a :meth:`getSeed` sequence. The master has
         to send the first `unlocking` after a :meth:`getSeed` sequence with
         a Length containing the total length of the key.
         """
+        # Send UNLOCK command to the slave
         response = self.transport.request(types.Command.UNLOCK, length, *key)
+
+        # Parse the response with the correct byte order
         result = types.ResourceType.parse(response, byteOrder=self.slaveProperties.byteOrder)
+
+        # Update the current protection status
         self._setProtectionStatus(result)
+
         return result
 
     @wrapped
-    def setMta(self, address: int, address_ext: int = 0x00):
+    def setMta(self, address: int, address_ext: int = 0x00) -> bytes:
         """Set Memory Transfer Address in slave.
+
+        This method sends a SET_MTA command to the slave, which sets the
+        Memory Transfer Address (MTA) to the specified address. The MTA is
+        used by various commands that transfer data between the master and
+        the slave.
 
         Parameters
         ----------
         address : int
-        addressExt : int
+            The memory address to set
+        address_ext : int, optional
+            The address extension, by default 0x00
+
+        Returns
+        -------
+        bytes
+            The raw response from the slave
 
         Note
         ----
         The MTA is used by :meth:`buildChecksum`, :meth:`upload`, :meth:`download`, :meth:`downloadNext`,
         :meth:`downloadMax`, :meth:`modifyBits`, :meth:`programClear`, :meth:`program`, :meth:`programNext`
         and :meth:`programMax`.
-
         """
-        self.mta = types.MtaType(address, address_ext)  # Keep track of MTA (needed for error-handling).
+        # Keep track of MTA (needed for error-handling)
+        self.mta = types.MtaType(address, address_ext)
+
+        # Pack the address into bytes
         addr = self.DWORD_pack(address)
+
+        # Send SET_MTA command to the slave
         return self.transport.request(types.Command.SET_MTA, 0, 0, address_ext, *addr)
 
     @wrapped
-    def upload(self, length: int):
+    def upload(self, length: int) -> bytes:
         """Transfer data from slave to master.
+
+        This method sends an UPLOAD command to the slave, which transfers
+        data from the slave to the master. The data is read from the memory
+        address specified by the MTA, which must be set before calling this
+        method.
 
         Parameters
         ----------
         length : int
-            Number of elements (address granularity).
+            Number of elements (address granularity) to upload
+
+        Returns
+        -------
+        bytes
+            The uploaded data
 
         Note
         ----
-        Adress is set via :meth:`setMta` (Some services like :meth:`getID` also set the MTA).
-
-        Returns
-        -------
-        bytes
+        Address is set via :meth:`setMta` (Some services like :meth:`getID` also set the MTA).
         """
+        # Calculate the number of bytes to upload
         byte_count = length * self.slaveProperties.bytesPerElement
+
+        # Send UPLOAD command to the slave
         response = self.transport.request(types.Command.UPLOAD, length)
+
+        # Handle block mode for large uploads
         if byte_count > (self.slaveProperties.maxCto - 1):
+            # Receive the remaining bytes in block mode
             block_response = self.transport.block_receive(length_required=(byte_count - len(response)))
             response += block_response
+        # Handle CAN-specific upload format
         elif self.transport_name == "can":
-            # larger sizes will send in multiple CAN messages
-            # each valid message will start with 0xFF followed by the upload bytes
-            # the last message might be padded to the required DLC
-            rem = byte_count - len(response)
-            while rem:
+            # Larger sizes will send in multiple CAN messages
+            # Each valid message will start with 0xFF followed by the upload bytes
+            # The last message might be padded to the required DLC
+            remaining_bytes = byte_count - len(response)
+            while remaining_bytes:
                 if len(self.transport.resQueue):
                     data = self.transport.resQueue.popleft()
-                    response += data[1 : rem + 1]
-                    rem = byte_count - len(response)
+                    response += data[1 : remaining_bytes + 1]
+                    remaining_bytes = byte_count - len(response)
                 else:
                     short_sleep()
+
         return response
 
     @wrapped
-    def shortUpload(self, length: int, address: int, address_ext: int = 0x00):
-        """Transfer data from slave to master.
-        As opposed to :meth:`upload` this service also includes address information.
+    def shortUpload(self, length: int, address: int, address_ext: int = 0x00) -> bytes:
+        """Transfer data from slave to master with address information.
+
+        This method sends a SHORT_UPLOAD command to the slave, which transfers
+        data from the slave to the master. Unlike the :meth:`upload` method,
+        this method includes the address information in the command, so it
+        doesn't require setting the MTA first.
 
         Parameters
         ----------
         length : int
-            Number of elements (address granularity).
+            Number of elements (address granularity) to upload
         address : int
-        addressExt : int
+            The memory address to read from
+        address_ext : int, optional
+            The address extension, by default 0x00
 
         Returns
         -------
         bytes
+            The uploaded data
         """
+        # Pack the address into bytes
         addr = self.DWORD_pack(address)
+
+        # Calculate the number of bytes to upload
         byte_count = length * self.slaveProperties.bytesPerElement
         max_byte_count = self.slaveProperties.maxCto - 1
+
+        # Check if the requested byte count exceeds the maximum
         if byte_count > max_byte_count:
             self.logger.warn(f"SHORT_UPLOAD: {byte_count} bytes exceeds the maximum value of {max_byte_count}.")
+
+        # Send SHORT_UPLOAD command to the slave
         response = self.transport.request(types.Command.SHORT_UPLOAD, length, 0, address_ext, *addr)
+
+        # Return only the requested number of bytes
         return response[:byte_count]
 
     @wrapped
-    def buildChecksum(self, blocksize: int):
+    def buildChecksum(self, blocksize: int) -> types.BuildChecksumResponse:
         """Build checksum over memory range.
+
+        This method sends a BUILD_CHECKSUM command to the slave, which calculates
+        a checksum over a memory range. The memory range starts at the address
+        specified by the MTA and has a size of `blocksize` elements.
 
         Parameters
         ----------
         blocksize : int
+            The number of elements (address granularity) to include in the checksum
 
         Returns
         -------
-        :obj:`~pyxcp.types.BuildChecksumResponse`
+        types.BuildChecksumResponse
+            Response object containing the checksum information
 
-        .. note:: Adress is set via `setMta`
+        Note
+        ----
+        Address is set via :meth:`setMta`
 
         See Also
         --------
         :mod:`~pyxcp.checksum`
         """
+        # Pack the blocksize into bytes
         bs = self.DWORD_pack(blocksize)
+
+        # Send BUILD_CHECKSUM command to the slave
         response = self.transport.request(types.Command.BUILD_CHECKSUM, 0, 0, 0, *bs)
+
+        # Parse the response with the correct byte order
         return types.BuildChecksumResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
-    def transportLayerCmd(self, sub_command: int, *data: List[bytes]):
+    def transportLayerCmd(self, sub_command: int, *data: bytes) -> bytes:
         """Execute transfer-layer specific command.
+
+        This method sends a TRANSPORT_LAYER_CMD command to the slave, which
+        executes a transport-layer specific command. The exact behavior of
+        this command depends on the transport layer being used.
 
         Parameters
         ----------
-        subCommand : int
-        data : bytes
+        sub_command : int
+            The sub-command to execute
+        *data : bytes
+            Variable number of data bytes to send with the command
+
+        Returns
+        -------
+        bytes
+            The raw response from the slave, or None if no response is expected
 
         Note
         ----
         For details refer to XCP specification.
         """
+        # Send TRANSPORT_LAYER_CMD command to the slave
         return self.transport.request_optional_response(types.Command.TRANSPORT_LAYER_CMD, sub_command, *data)
 
     @wrapped
-    def userCmd(self, sub_command: int, data: bytes):
+    def userCmd(self, sub_command: int, data: bytes) -> bytes:
         """Execute proprietary command implemented in your XCP client.
 
+        This method sends a USER_CMD command to the slave, which executes
+        a proprietary command implemented in the XCP client. The exact behavior
+        of this command depends on the XCP client vendor.
+
         Parameters
         ----------
-        subCommand : int
+        sub_command : int
+            The sub-command to execute
         data : bytes
-
-
-        .. note:: For details refer to your XCP client vendor.
-        """
-
-        response = self.transport.request(types.Command.USER_CMD, sub_command, *data)
-        return response
-
-    @wrapped
-    def getVersion(self):
-        """Get version information.
-
-        This command returns detailed information about the implemented
-        protocol layer version of the XCP slave and the transport layer
-        currently in use.
-
-        Returns
-        -------
-        :obj:`~types.GetVersionResponse`
-        """
-
-        response = self.transport.request(types.Command.GET_VERSION)
-        result = types.GetVersionResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
-        self.slaveProperties.protocolMajor = result.protocolMajor
-        self.slaveProperties.protocolMinor = result.protocolMinor
-        self.slaveProperties.transportMajor = result.transportMajor
-        self.slaveProperties.transportMinor = result.transportMinor
-        return result
-
-    def fetch(self, length: int, limit_payload: int = None):  # TODO: pull
-        """Convenience function for data-transfer from slave to master
-        (Not part of the XCP Specification).
-
-        Parameters
-        ----------
-        length : int
-        limitPayload : int
-            transfer less bytes then supported by transport-layer
+            The data bytes to send with the command
 
         Returns
         -------
         bytes
+            The raw response from the slave
 
         Note
         ----
-        address is not included because of services implicitly setting address information like :meth:`getID` .
+        For details refer to your XCP client vendor.
         """
-        if limit_payload and limit_payload < 8:
+        # Send USER_CMD command to the slave
+        return self.transport.request(types.Command.USER_CMD, sub_command, *data)
+
+    @wrapped
+    def getVersion(self) -> types.GetVersionResponse:
+        """Get version information from the slave.
+
+        This method sends a GET_VERSION command to the slave, which returns
+        detailed information about the implemented protocol layer version
+        of the XCP slave and the transport layer currently in use.
+
+        Returns
+        -------
+        types.GetVersionResponse
+            Response object containing version information
+        """
+        # Send GET_VERSION command to the slave
+        response = self.transport.request(types.Command.GET_VERSION)
+
+        # Parse the response with the correct byte order
+        result = types.GetVersionResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+
+        # Update slave properties with version information
+        self._update_version_properties(result)
+
+        return result
+
+    def _update_version_properties(self, result: types.GetVersionResponse) -> None:
+        """Update slave properties with version information.
+
+        Parameters
+        ----------
+        result : types.GetVersionResponse
+            The parsed GET_VERSION response
+        """
+        # Set version information
+        self.slaveProperties.protocolMajor = result.protocolMajor
+        self.slaveProperties.protocolMinor = result.protocolMinor
+        self.slaveProperties.transportMajor = result.transportMajor
+        self.slaveProperties.transportMinor = result.transportMinor
+
+    def fetch(self, length: int, limit_payload: int = None) -> bytes:  # TODO: pull
+        """Convenience function for data-transfer from slave to master.
+
+        This method transfers data from the slave to the master in chunks,
+        handling the details of breaking up large transfers into smaller
+        pieces. It's not part of the XCP Specification but provides a
+        convenient way to fetch data.
+
+        Parameters
+        ----------
+        length : int
+            The number of bytes to fetch
+        limit_payload : int, optional
+            Transfer less bytes than supported by transport-layer, by default None
+
+        Returns
+        -------
+        bytes
+            The fetched data
+
+        Raises
+        ------
+        ValueError
+            If limit_payload is less than 8 bytes
+
+        Note
+        ----
+        Address is not included because of services implicitly setting
+        address information like :meth:`getID`.
+        """
+        # Validate limit_payload
+        if limit_payload is not None and limit_payload < 8:
             raise ValueError(f"Payload must be at least 8 bytes - given: {limit_payload}")
 
+        # Determine maximum payload size
         slave_block_mode = self.slaveProperties.slaveBlockMode
-        if slave_block_mode:
-            max_payload = 255
-        else:
-            max_payload = self.slaveProperties.maxCto - 1
+        max_payload = 255 if slave_block_mode else self.slaveProperties.maxCto - 1
+
+        # Apply limit_payload if specified
         payload = min(limit_payload, max_payload) if limit_payload else max_payload
+
+        # Calculate number of chunks and remaining bytes
         chunk_size = payload
         chunks = range(length // chunk_size)
         remaining = length % chunk_size
+
+        # Fetch data in chunks
         result = []
         for _ in chunks:
             data = self.upload(chunk_size)
             result.extend(data[:chunk_size])
+
+        # Fetch remaining bytes
         if remaining:
             data = self.upload(remaining)
             result.extend(data[:remaining])
+
         return bytes(result)
 
     pull = fetch  # fetch() may be completely replaced by pull() someday.
 
-    def push(self, address: int, address_ext: int, data: bytes, callback: Optional[Callable] = None):
+    def push(self, address: int, address_ext: int, data: bytes, callback: Callable[[int], None] | None = None) -> None:
         """Convenience function for data-transfer from master to slave.
-        (Not part of the XCP Specification).
+
+        This method transfers data from the master to the slave in chunks,
+        handling the details of breaking up large transfers into smaller
+        pieces. It's not part of the XCP Specification but provides a
+        convenient way to push data.
 
         Parameters
         ----------
-        address: int
-
+        address : int
+            The memory address to write to
+        address_ext : int
+            The address extension
         data : bytes
-            Arbitrary number of bytes.
+            The data bytes to write
+        callback : Callable[[int], None], optional
+            A callback function that is called with the percentage of completion,
+            by default None
 
-        Returns
-        -------
+        Note
+        ----
+        This method uses the download and downloadNext methods internally.
         """
+        # Use the generalized downloader to transfer the data
         self._generalized_downloader(
             address=address,
             address_ext=address_ext,
@@ -614,20 +1017,31 @@ class Master:
             callback=callback,
         )
 
-    def flash_program(self, address: int, data: bytes, callback: Optional[Callable] = None):
-        """Convenience function for flash programing.
-        (Not part of the XCP Specification).
+    def flash_program(self, address: int, data: bytes, callback: Callable[[int], None] | None = None) -> None:
+        """Convenience function for flash programming.
+
+        This method programs flash memory on the slave in chunks, handling
+        the details of breaking up large transfers into smaller pieces.
+        It's not part of the XCP Specification but provides a convenient
+        way to program flash memory.
 
         Parameters
         ----------
-        address: int
-
+        address : int
+            The memory address to program
         data : bytes
-            Arbitrary number of bytes.
+            The data bytes to program
+        callback : Callable[[int], None], optional
+            A callback function that is called with the percentage of completion,
+            by default None
 
-        Returns
-        -------
+        Note
+        ----
+        This method uses the program and programNext methods internally.
+        It automatically uses the programming-specific parameters from the
+        slave properties (maxCtoPgm, maxBsPgm, minStPgm, masterBlockMode).
         """
+        # Use the generalized downloader to program the flash
         self._generalized_downloader(
             address=address,
             data=data,
@@ -649,110 +1063,252 @@ class Master:
         maxBs: int,
         minSt: int,
         master_block_mode: bool,
-        dl_func,
-        dl_next_func,
-        callback=None,
-    ):
-        """ """
+        dl_func: Callable[[bytes, int, bool], Any],
+        dl_next_func: Callable[[bytes, int, bool], Any],
+        callback: Callable[[int], None] | None = None,
+    ) -> None:
+        """Generic implementation for downloading data to the slave.
+
+        This method is a generic implementation for downloading data to the slave.
+        It handles the details of breaking up large transfers into smaller pieces,
+        and supports both master block mode and normal mode.
+
+        Parameters
+        ----------
+        address : int
+            The memory address to write to
+        address_ext : int
+            The address extension
+        data : bytes
+            The data bytes to write
+        maxCto : int
+            Maximum Command Transfer Object size
+        maxBs : int
+            Maximum Block Size
+        minSt : int
+            Minimum Separation Time in 100µs units
+        master_block_mode : bool
+            Whether to use master block mode
+        dl_func : Callable[[bytes, int, bool], Any]
+            Function to use for the first download packet
+        dl_next_func : Callable[[bytes, int, bool], Any]
+            Function to use for subsequent download packets
+        callback : Callable[[int], None], optional
+            A callback function that is called with the percentage of completion,
+            by default None
+        """
+        # Set the Memory Transfer Address
         self.setMta(address, address_ext)
-        minSt /= 10000.0
+
+        # Convert minSt from 100µs units to seconds
+        minSt_seconds = minSt / 10000.0
+
+        # Create a partial function for block downloading
         block_downloader = functools.partial(
             self._block_downloader,
             dl_func=dl_func,
             dl_next_func=dl_next_func,
-            minSt=minSt,
+            minSt=minSt_seconds,
         )
+
+        # Calculate total length and maximum payload size
         total_length = len(data)
         if master_block_mode:
             max_payload = min(maxBs * (maxCto - 2), 255)
         else:
             max_payload = maxCto - 2
-        offset = 0
-        if master_block_mode:
-            remaining = total_length
-            blocks = range(total_length // max_payload)
-            percent_complete = 1
-            remaining_block_size = total_length % max_payload
-            for _ in blocks:
-                block = data[offset : offset + max_payload]
-                block_downloader(block)
-                offset += max_payload
-                remaining -= max_payload
-                if callback and remaining <= total_length - (total_length / 100) * percent_complete:
-                    callback(percent_complete)
-                    percent_complete += 1
-            if remaining_block_size:
-                block = data[offset : offset + remaining_block_size]
-                block_downloader(block)
-                if callback:
-                    callback(percent_complete)
-        else:
-            chunk_size = max_payload
-            chunks = range(total_length // chunk_size)
-            remaining = total_length % chunk_size
-            percent_complete = 1
-            callback_remaining = total_length
-            for _ in chunks:
-                block = data[offset : offset + max_payload]
-                dl_func(block, max_payload, last=False)
-                offset += max_payload
-                callback_remaining -= chunk_size
-                if callback and callback_remaining <= total_length - (total_length / 100) * percent_complete:
-                    callback(percent_complete)
-                    percent_complete += 1
-            if remaining:
-                block = data[offset : offset + remaining]
-                dl_func(block, remaining, last=True)
-                if callback:
-                    callback(percent_complete)
 
-    def _block_downloader(
-        self, data: bytes, dl_func: Optional[Callable] = None, dl_next_func: Optional[Callable] = None, minSt: int = 0
-    ):
-        """Re-usable block downloader.
+        # Initialize offset
+        offset = 0
+
+        # Handle master block mode
+        if master_block_mode:
+            self._download_master_block_mode(data, total_length, max_payload, offset, block_downloader, callback)
+        # Handle normal mode
+        else:
+            self._download_normal_mode(data, total_length, max_payload, offset, dl_func, callback)
+
+    def _download_master_block_mode(
+        self,
+        data: bytes,
+        total_length: int,
+        max_payload: int,
+        offset: int,
+        block_downloader: Callable[[bytes], Any],
+        callback: Callable[[int], None] | None = None,
+    ) -> None:
+        """Download data using master block mode.
 
         Parameters
         ----------
         data : bytes
-            Arbitrary number of bytes.
-
-        dl_func: method
-            usually :meth: `download` or :meth:`program`
-
-        dl_next_func: method
-            usually :meth: `downloadNext` or :meth:`programNext`
-
-        minSt: int
-            Minimum separation time of frames.
+            The data bytes to write
+        total_length : int
+            The total length of the data
+        max_payload : int
+            Maximum payload size
+        offset : int
+            Starting offset in the data
+        block_downloader : Callable[[bytes], Any]
+            Function to use for downloading blocks
+        callback : Callable[[int], None], optional
+            A callback function that is called with the percentage of completion,
+            by default None
         """
+        remaining = total_length
+        blocks = range(total_length // max_payload)
+        percent_complete = 1
+        remaining_block_size = total_length % max_payload
+
+        # Process full blocks
+        for _ in blocks:
+            block = data[offset : offset + max_payload]
+            block_downloader(block)
+            offset += max_payload
+            remaining -= max_payload
+
+            # Call callback if provided
+            if callback and remaining <= total_length - (total_length / 100) * percent_complete:
+                callback(percent_complete)
+                percent_complete += 1
+
+        # Process remaining partial block
+        if remaining_block_size:
+            block = data[offset : offset + remaining_block_size]
+            block_downloader(block)
+            if callback:
+                callback(percent_complete)
+
+    def _download_normal_mode(
+        self,
+        data: bytes,
+        total_length: int,
+        max_payload: int,
+        offset: int,
+        dl_func: Callable[[bytes, int, bool], Any],
+        callback: Callable[[int], None] | None = None,
+    ) -> None:
+        """Download data using normal mode.
+
+        Parameters
+        ----------
+        data : bytes
+            The data bytes to write
+        total_length : int
+            The total length of the data
+        max_payload : int
+            Maximum payload size
+        offset : int
+            Starting offset in the data
+        dl_func : Callable[[bytes, int, bool], Any]
+            Function to use for downloading
+        callback : Callable[[int], None], optional
+            A callback function that is called with the percentage of completion,
+            by default None
+        """
+        chunk_size = max_payload
+        chunks = range(total_length // chunk_size)
+        remaining = total_length % chunk_size
+        percent_complete = 1
+        callback_remaining = total_length
+
+        # Process full chunks
+        for _ in chunks:
+            block = data[offset : offset + max_payload]
+            dl_func(block, max_payload, last=False)
+            offset += max_payload
+            callback_remaining -= chunk_size
+
+            # Call callback if provided
+            if callback and callback_remaining <= total_length - (total_length / 100) * percent_complete:
+                callback(percent_complete)
+                percent_complete += 1
+
+        # Process remaining partial chunk
+        if remaining:
+            block = data[offset : offset + remaining]
+            dl_func(block, remaining, last=True)
+            if callback:
+                callback(percent_complete)
+
+    def _block_downloader(
+        self,
+        data: bytes,
+        dl_func: Callable[[bytes, int, bool], Any] | None = None,
+        dl_next_func: Callable[[bytes, int, bool], Any] | None = None,
+        minSt: float = 0.0,
+    ) -> None:
+        """Re-usable block downloader for transferring data in blocks.
+
+        This method breaks up a block of data into packets and sends them
+        using the provided download functions. It handles the details of
+        calculating packet sizes, setting the 'last' flag, and applying
+        the minimum separation time between packets.
+
+        Parameters
+        ----------
+        data : bytes
+            The data bytes to download
+        dl_func : Callable[[bytes, int, bool], Any] | None, optional
+            Function to use for the first download packet,
+            usually :meth:`download` or :meth:`program`, by default None
+        dl_next_func : Callable[[bytes, int, bool], Any] | None, optional
+            Function to use for subsequent download packets,
+            usually :meth:`downloadNext` or :meth:`programNext`, by default None
+        minSt : float, optional
+            Minimum separation time between frames in seconds, by default 0.0
+        """
+        # Calculate sizes and offsets
         length = len(data)
         max_packet_size = self.slaveProperties.maxCto - 2  # Command ID + Length
         packets = range(length // max_packet_size)
         offset = 0
         remaining = length % max_packet_size
         remaining_block_size = length
+
+        # Process full packets
         index = 0
         for index in packets:
+            # Extract packet data
             packet_data = data[offset : offset + max_packet_size]
+
+            # Determine if this is the last packet
             last = (remaining_block_size - max_packet_size) == 0
+
+            # Send packet using appropriate function
             if index == 0:
-                dl_func(packet_data, length, last)  # Transmit the complete length in the first CTO.
+                # First packet: use dl_func and transmit the complete length
+                dl_func(packet_data, length, last)
             else:
+                # Subsequent packets: use dl_next_func
                 dl_next_func(packet_data, remaining_block_size, last)
+
+            # Update offsets and remaining size
             offset += max_packet_size
             remaining_block_size -= max_packet_size
+
+            # Apply minimum separation time
             delay(minSt)
+
+        # Process remaining partial packet
         if remaining:
+            # Extract remaining data
             packet_data = data[offset : offset + remaining]
+
+            # Send packet using appropriate function
             if index == 0:
-                # length of data is smaller than maxCto - 2
+                # If there were no full packets, use dl_func
+                # (length of data is smaller than maxCto - 2)
                 dl_func(packet_data, remaining, last=True)
             else:
+                # Otherwise use dl_next_func
                 dl_next_func(packet_data, remaining, last=True)
+
+            # Apply minimum separation time
             delay(minSt)
 
     @wrapped
-    def download(self, data: bytes, block_mode_length: Optional[int] = None, last: bool = False):
+    def download(self, data: bytes, block_mode_length: int | None = None, last: bool = False):
         """Transfer data from master to slave.
 
         Parameters
@@ -1878,7 +2434,7 @@ class Master:
             value = self.fetch(gid.length)
         return decode_bytes(value)
 
-    def id_scanner(self, scan_ranges: Optional[Collection[Collection[int]]] = None) -> Dict[str, str]:
+    def id_scanner(self, scan_ranges: Collection[Collection[int]] | None = None) -> dict[str, str]:
         """Scan for available standard identification types (GET_ID).
 
         Parameters
@@ -1948,7 +2504,7 @@ class Master:
         """"""
         return self.transport.start_datetime
 
-    def try_command(self, cmd: Callable, *args, **kws) -> Tuple[types.TryCommandResult, Any]:
+    def try_command(self, cmd: Callable, *args, **kws) -> tuple[types.TryCommandResult, Any]:
         """Call master functions and handle XCP errors more gracefuly.
 
         Parameter
@@ -1972,12 +2528,12 @@ class Master:
         Use carefuly not to hide serious error causes.
         """
         try:
-            extra_msg: Optional[str] = kws.get("extra_msg")
+            extra_msg: str | None = kws.get("extra_msg")
             if extra_msg:
                 kws.pop("extra_msg")
             else:
                 extra_msg = ""
-            silent: Optional[bool] = kws.get("silent")
+            silent: bool | None = kws.get("silent")
             if silent:
                 kws.pop("silent")
             else:

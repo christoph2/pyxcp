@@ -160,6 +160,21 @@ class Eth(BaseTransport):
                 break
 
     def listen(self) -> None:
+        """Process packets received from the network.
+
+        This method runs in a separate thread and continuously processes packets
+        that have been received by the _packet_listen method and added to the
+        _packets deque. It extracts XCP messages from the raw data by:
+
+        1. Unpacking the header to get the length and counter
+        2. Extracting the payload based on the length
+        3. Passing the payload to process_response
+
+        The method handles partial messages that may be split across multiple
+        network packets, and processes multiple messages that may be contained
+        in a single network packet.
+        """
+        # Cache frequently used methods and attributes for better performance
         HEADER_UNPACK_FROM = self.HEADER.unpack_from
         HEADER_SIZE = self.HEADER_SIZE
         process_response = self.process_response
@@ -167,40 +182,71 @@ class Eth(BaseTransport):
         close_event_set = self.closeEvent.is_set
         socket_fileno = self.sock.fileno
         _packets = self._packets
-        length: Optional[int] = None
-        counter: int = 0
-        data: bytearray = bytearray(b"")
+
+        # State variables for processing messages
+        length: Optional[int] = None  # Length of the current message payload
+        counter: int = 0  # Counter value from the current message header
+        data: bytearray = bytearray(b"")  # Buffer for accumulated data
+        last_sleep: int = self.timestamp.value  # Timestamp of last sleep
+        FIVE_MS = 5_000_000  # Five milliseconds in nanoseconds
+
         while True:
+            # Check if we should exit the loop
             if close_event_set() or socket_fileno() == -1:
                 return
+
+            # Periodically sleep to prevent CPU hogging
+            if self.timestamp.value - last_sleep >= FIVE_MS:
+                short_sleep()
+                last_sleep = self.timestamp.value
+
+            # Check if there are packets to process
             count: int = len(_packets)
             if not count:
                 short_sleep()
+                last_sleep = self.timestamp.value
                 continue
-            for _ in range(count):
-                bts, timestamp = popleft()
-                data += bts
-                current_size: int = len(data)
-                current_position: int = 0
-                while True:
-                    if length is None:
-                        if current_size >= HEADER_SIZE:
-                            length, counter = HEADER_UNPACK_FROM(data, current_position)
-                            current_position += HEADER_SIZE
-                            current_size -= HEADER_SIZE
+
+            try:
+                # Process all packets currently in the queue
+                for _ in range(count):
+                    bts, timestamp = popleft()
+                    data += bts
+                    current_size: int = len(data)
+                    current_position: int = 0
+
+                    # Process all complete messages in the current data
+                    while True:
+                        # If we don't have a length yet, try to extract the header
+                        if length is None:
+                            if current_size >= HEADER_SIZE:
+                                # Extract length and counter from header
+                                length, counter = HEADER_UNPACK_FROM(data, current_position)
+                                current_position += HEADER_SIZE
+                                current_size -= HEADER_SIZE
+                            else:
+                                # Not enough data for a header, keep the remaining data
+                                data = data[current_position:]
+                                break
                         else:
-                            data = data[current_position:]
-                            break
-                    else:
-                        if current_size >= length:
-                            response = data[current_position : current_position + length]
-                            process_response(response, length, counter, timestamp)
-                            current_size -= length
-                            current_position += length
-                            length = None
-                        else:
-                            data = data[current_position:]
-                            break
+                            # We have a length, check if we have enough data for the payload
+                            if current_size >= length:
+                                # Extract and process the payload
+                                response = data[current_position : current_position + length]
+                                process_response(response, length, counter, timestamp)
+                                current_size -= length
+                                current_position += length
+                                length = None  # Reset length for the next message
+                            else:
+                                # Not enough data for the payload, keep the remaining data
+                                data = data[current_position:]
+                                break
+            except Exception as e:
+                # Log any exceptions but continue processing
+                self.logger.error(f"Error in listen thread: {e}")
+                # Reset state to avoid getting stuck
+                length = None
+                data = bytearray(b"")
 
     def send(self, frame) -> None:
         self.pre_send_timestamp = self.timestamp.value
