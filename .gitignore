@@ -131,3 +131,6 @@ result.xml
 /pyxcp/recorder/mio/
 /pyxcp/recorder/simde/
 /pyxcp/recorder/coro/
+
+# PyCharm
+.idea/
