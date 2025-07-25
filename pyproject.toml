@@ -27,8 +27,8 @@ sphinx-click = ">=3.0.2"
 typeguard = ">=2.13.3"
 xdoctest = {extras = ["colors"], version = ">=0.15.10"}
 myst-parser = {version = ">=0.16.1"}
-ruff = "^0.1.0"
-pre-commit-hooks = "^4.6.0"
+ruff = "^0.12.0"
+pre-commit-hooks = "^5.0.0"
 
 [project]
 name = "pyxcp"
@@ -75,21 +75,21 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.8.1"
+python = "^3.10"
 construct = "^2.10.68"
 mako = "^1.2.4"
 pyserial = "^3.5"
 pyusb = "^1.2.1"
 python-can = "^4.2.2"
 uptime = "^3.0.1"
-rich = "^13.6.0"
+rich = "^14.0.0"
 chardet = "^5.2.0"
 traitlets = "<=5.11.2"
 line-profiler-pycharm = "^1.1.0"
 toml = "^0.10.2"
 bandit = "^1.7.8"
-tomlkit = "^0.12.5"
-pytz = "^2024.1"
+tomlkit = "^0.13.3"
+pytz = "^2025.2"
 
 [tool.poetry.scripts]
 pyxcp-probe-can-drivers = "pyxcp.scripts.pyxcp_probe_can_drivers:main"
@@ -167,23 +167,14 @@ exclude = '''
 
 [tool.cibuildwheel]
 build-verbosity = 3
-#test-command = "pytest {package}/tests"
+#test-command = "pya2l {package}/tests"
 
-build = "cp3{8,9,10,11,12,13}-*"
-skip = ["*-manylinux_i686", "*-musllinux_x86_64", "*-musllinux_i686", "cp38-manylinux*"]
+build = "cp3{10,11,12,13,14}-*"
+skip = ["*_i686", "*-musllinux*"]
 build-frontend = "build"
 
-[tool.cibuildwheel.macos]
-archs = ["x86_64", "universal2", "arm64"]
-
 [tool.cibuildwheel.windows]
-archs = ["AMD64"]	# , "ARM64"
-
-[tool.cibuildwheel.linux]
-# archs = ["auto", "aarch64"]
-archs = ["x86_64", "aarch64"]
-# before-all = "yum install -y libffi openssl openssl-devel gcc libpython3-dev"
-manylinux-x86_64-image = "manylinux_2_28"
+archs = ["AMD64"]
 
 [tool.pyright]
 include = ["pyxcp", "build_ext.py"]
