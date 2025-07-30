@@ -37,7 +37,7 @@ dynamic = ["license", "readme", "authors", "requires-python", "description", "cl
 [tool.poetry]
 authors = ["Christoph Schueler <cpu.gems@googlemail.com>"]
 name = "pyxcp"
-version = "0.22.33"
+version = "0.22.34"
 readme = "README.md"
 description = "Universal Calibration Protocol for Python"
 keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
