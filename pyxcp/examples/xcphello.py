@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-"""Very basic hello-world example.
-"""
+"""Very basic hello-world example."""
 from pprint import pprint
 
 from pyxcp.cmdline import ArgumentParser
@@ -17,14 +16,14 @@ def callout(master, args):
 
 
 ap = ArgumentParser(description="pyXCP hello world.", callout=callout)
-ap.parser.add_argument(
-    "-d",
-    "--daq-info",
-    dest="daq_info",
-    help="Display DAQ-info",
-    default=False,
-    action="store_true",
-)
+# ap.parser.add_argument(
+#    "-d",
+#    "--daq-info",
+#    dest="daq_info",
+#    help="Display DAQ-info",
+#    default=False,
+#    action="store_true",
+# )
 
 with ap.run() as x:
     x.connect()

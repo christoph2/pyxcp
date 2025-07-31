@@ -36,8 +36,13 @@ else:
     raise RuntimeError(f"Platform {sys.platform!r} currently not supported.")
 
 
-def getKey(logger, dllName: str, privilege: int, seed: bytes, assume_same_bit_width: bool):
+def getKey(logger, loader_cfg: str, dllName: str, privilege: int, seed: bytes, assume_same_bit_width: bool):
     dllName = str(Path(dllName).absolute())  # Fix loader issues.
+
+    if loader_cfg is not None:
+        loader_exe = loader_cfg
+    else:
+        loader_exe = LOADER
 
     use_ctypes: bool = False
     if assume_same_bit_width:
@@ -70,15 +75,15 @@ def getKey(logger, dllName: str, privilege: int, seed: bytes, assume_same_bit_wi
     else:
         try:
             p0 = subprocess.Popen(
-                [LOADER, dllName, str(privilege), binascii.hexlify(seed).decode("ascii")],
+                [loader_exe, dllName, str(privilege), binascii.hexlify(seed).decode("ascii")],
                 stdout=subprocess.PIPE,
                 shell=False,
             )  # nosec
         except FileNotFoundError as exc:
-            logger.error(f"Could not find executable {LOADER!r} -- {exc}")
+            logger.error(f"Could not find executable {loader_exe!r} -- {exc}")
             return (SeedNKeyResult.ERR_COULD_NOT_LOAD_DLL, None)
         except OSError as exc:
-            logger.error(f"Cannot execute {LOADER!r} -- {exc}")
+            logger.error(f"Cannot execute {loader_exe!r} -- {exc}")
             return (SeedNKeyResult.ERR_COULD_NOT_LOAD_DLL, None)
         key: bytes = b""
         if p0.stdout:

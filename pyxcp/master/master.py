@@ -1840,6 +1840,7 @@ class Master:
                 self.logger.debug(f"Using seed and key DLL {self.seed_n_key_dll!r}.")
                 result, key = getKey(
                     self.logger,
+                    self.config.custom_dll_loader,
                     self.seed_n_key_dll,
                     resource_value,
                     bytes(seed),
