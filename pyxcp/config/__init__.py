@@ -827,6 +827,9 @@ class General(Configurable):
     connect_retries = Integer(help="Number of CONNECT retries (None for infinite retries).", allow_none=True, default_value=3).tag(
         config=True
     )
+    additional_module_path = List(
+        trait=Unicode(), default_value=[], allow_none=True, help="Extend search path for Python modules."
+    ).tag(config=True)
     seed_n_key_dll = Unicode("", allow_none=False, help="Dynamic library used for slave resource unlocking.").tag(config=True)
     seed_n_key_dll_same_bit_width = Bool(False, help="").tag(config=True)
     seed_n_key_function = Callable(
