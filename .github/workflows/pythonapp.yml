@@ -17,14 +17,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - macos-latest
-          - ubuntu-24.04-arm
-          - ubuntu-latest
-          - windows-latest
+        include:
+          - os: macos-latest
+          - os: ubuntu-24.04-arm
+          - os: ubuntu-latest
+          - os: windows-11-arm
+            cibw_archs_windows: ARM64
+          - os: windows-latest
+            cibw_archs_windows: AMD64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: pypa/cibuildwheel@v3.1
+        env:
+          CIBW_ARCHS_WINDOWS: ${{ matrix.cibw_archs_windows || '' }}
       - uses: actions/upload-artifact@v4
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
@@ -34,7 +39,7 @@ jobs:
     name: Build source distribution
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Build sdist
         run: |
           pip install -U build
@@ -52,7 +57,7 @@ jobs:
     # alternatively, to publish when a GitHub Release is created, use the following rule:
     # if: github.event_name == 'release' && github.event.action == 'published'
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           path: dist
           merge-multiple: true
