@@ -4,10 +4,17 @@
 
 import functools
 import operator
+from abc import ABC, abstractmethod
 from bisect import bisect_left
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, List, Optional, Union
 
-from can import CanError, CanInitializationError, Message, detect_available_configs
+from can import (
+    BusState,
+    CanError,
+    CanInitializationError,
+    Message,
+    detect_available_configs,
+)
 from can.bus import BusABC
 from can.interface import _get_class_for_interface
 from rich.console import Console
@@ -235,7 +242,10 @@ class PythonCanWrapper:
         self.interface_name: str = interface_name
         self.timeout: int = timeout
         self.parameters = parameters
-        self.can_interface_class: Type[BusABC] = _get_class_for_interface(self.interface_name)
+        if not self.parent.has_user_supplied_interface:
+            self.can_interface_class = _get_class_for_interface(self.interface_name)
+        else:
+            self.can_interface_class = None
         self.can_interface: BusABC
         self.connected: bool = False
 
@@ -326,9 +336,13 @@ class Can(BaseTransport):
                 self.daq_identifier.append(Identifier(daq_id))
         self.max_dlc_required = self.config.max_dlc_required
         self.padding_value = self.config.padding_value
-        self.interface_name = self.config.interface
-        self.interface_configuration = detect_available_configs(interfaces=[self.interface_name])
-        parameters = self.get_interface_parameters()
+        if transport_layer_interface is None:
+            self.interface_name = self.config.interface
+            self.interface_configuration = detect_available_configs(interfaces=[self.interface_name])
+            parameters = self.get_interface_parameters()
+        else:
+            self.interface_name = "<CUSTOM>"
+            parameters = {}  # Assume custom interface has no parameters.
         self.can_interface = PythonCanWrapper(self, self.interface_name, config.timeout, **parameters)
         self.logger.info(f"XCPonCAN - Interface-Type: {self.interface_name!r} Parameters: {list(parameters.items())}")
         self.logger.info(
@@ -439,3 +453,40 @@ def calculate_filter(ids: list):
     cmask = functools.reduce(operator.or_, raw_ids) ^ cfilter
     cmask ^= 0x1FFFFFFF if any_extended_ids else 0x7FF
     return (cfilter, cmask)
+
+
+class CanInterfaceBase(ABC):
+    """
+    Base class for custom CAN interfaces.
+    This is basically a subset of python-CANs `BusABC`.
+    """
+
+    @abstractmethod
+    def set_filters(self, filters: Optional[List[Dict[str, Union[int, bool]]]] = None) -> None:
+        """Apply filtering to all messages received by this Bus.
+
+        filters:
+            A list of dictionaries, each containing a 'can_id', 'can_mask', and 'extended' field, e.g.:
+            [{"can_id": 0x11, "can_mask": 0x21, "extended": False}]
+        """
+
+    @abstractmethod
+    def recv(self, timeout: Optional[float] = None) -> Optional[Message]:
+        """Block waiting for a message from the Bus."""
+
+    @abstractmethod
+    def send(self, msg: Message) -> None:
+        """Transmit a message to the CAN bus."""
+
+    @property
+    @abstractmethod
+    def filters(self) -> Optional[List[Dict[str, Union[int, bool]]]]:
+        """Modify the filters of this bus."""
+
+    @property
+    @abstractmethod
+    def state(self) -> BusState:
+        """Return the current state of the hardware."""
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}"
