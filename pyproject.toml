@@ -173,9 +173,6 @@ build = "cp3{10,11,12,13,14}-*"
 skip = ["*_i686", "*-musllinux*"]
 build-frontend = "build"
 
-[tool.cibuildwheel.windows]
-archs = ["AMD64"]
-
 [tool.pyright]
 include = ["pyxcp", "build_ext.py"]
 ignore = ["pyxcp/recorder/converter/**", "pyxcp/recorder/simdjson/**","pyxcp/recorder/mio/**", "pyxcp/recorder/lz4/**"]
