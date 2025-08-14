@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-"""
-"""
+""" """
 
 import functools
 import operator
@@ -342,7 +341,7 @@ class Can(BaseTransport):
             parameters = self.get_interface_parameters()
         else:
             self.interface_name = "<CUSTOM>"
-            parameters = {}  # Assume custom interface has no parameters.
+            parameters = {}
         self.can_interface = PythonCanWrapper(self, self.interface_name, config.timeout, **parameters)
         self.logger.info(f"XCPonCAN - Interface-Type: {self.interface_name!r} Parameters: {list(parameters.items())}")
         self.logger.info(
