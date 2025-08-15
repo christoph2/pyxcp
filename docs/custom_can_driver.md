@@ -3,7 +3,6 @@
 
 [example](pyxcp/blob/master/pyxcp/examples/xcp_user_supplied_driver.py)
 
-[example](pyxcp/examples/xcp_user_supplied_driver.py)
 
 ```python
 class CanInterfaceBase(ABC):
