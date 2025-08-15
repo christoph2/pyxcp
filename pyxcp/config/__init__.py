@@ -490,6 +490,12 @@ If set, the `app_name` does not have to be previously defined in
     )
 
 
+class CanCustom(Configurable, CanBase):
+    """ """
+
+    interface_name = "custom"
+
+
 class Virtual(Configurable, CanBase):
     """ """
 
@@ -542,11 +548,13 @@ CAN_INTERFACE_MAP = {
     "usb2can": Usb2Can,
     "vector": Vector,
     "virtual": Virtual,
+    "custom": CanCustom,
 }
 
 
 class Can(Configurable):
-    VALID_INTERFACES = can.interfaces.VALID_INTERFACES
+    VALID_INTERFACES = set(can.interfaces.VALID_INTERFACES)
+    VALID_INTERFACES.add("custom")
 
     interface = Enum(
         values=VALID_INTERFACES, default_value=None, allow_none=True, help="CAN interface supported by python-can"
@@ -605,6 +613,7 @@ timing-related parameters.
     classes = List(
         [
             CanAlystii,
+            CanCustom,
             CanTact,
             Etas,
             Gs_Usb,
@@ -640,6 +649,7 @@ timing-related parameters.
                     " {type(self.interface).__name__} {self.interface}."
                 )
         self.canalystii = CanAlystii(config=self.config, parent=self)
+        self.cancustom = CanCustom(config=self.config, parent=self)
         self.cantact = CanTact(config=self.config, parent=self)
         self.etas = Etas(config=self.config, parent=self)
         self.gs_usb = Gs_Usb(config=self.config, parent=self)

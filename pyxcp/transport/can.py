@@ -253,15 +253,16 @@ class PythonCanWrapper:
             return
         can_filters = []
         can_filters.append(self.parent.can_id_slave.create_filter_from_id())  # Primary CAN filter.
-        if self.parent.has_user_supplied_interface:
-            self.can_interface = self.parent.transport_layer_interface
-        else:
-            self.can_interface = self.can_interface_class(interface=self.interface_name, **self.parameters)
         if self.parent.daq_identifier:
             # Add filters for DAQ identifiers.
             for daq_id in self.parent.daq_identifier:
                 can_filters.append(daq_id.create_filter_from_id())
-        self.can_interface.set_filters(can_filters)
+        if self.parent.has_user_supplied_interface:
+            self.can_interface = self.parent.transport_layer_interface
+            self.can_interface.set_filters(can_filters)
+        else:
+            # self.can_interface = self.can_interface_class(interface=self.interface_name, **self.parameters)
+            self.can_interface = self.can_interface_class(interface=self.interface_name, can_filters=can_filters, **self.parameters)
         self.parent.logger.info(f"XCPonCAN - Using Interface: '{self.can_interface!s}'")
         self.parent.logger.info(f"XCPonCAN - Filters used: {self.can_interface.filters}")
         self.parent.logger.info(f"XCPonCAN - State: {self.can_interface.state!s}")
@@ -340,7 +341,8 @@ class Can(BaseTransport):
             self.interface_configuration = detect_available_configs(interfaces=[self.interface_name])
             parameters = self.get_interface_parameters()
         else:
-            self.interface_name = "<CUSTOM>"
+            self.interface_name = "custom"
+            # print("TRY GET PARAMs", self.get_interface_parameters())
             parameters = {}
         self.can_interface = PythonCanWrapper(self, self.interface_name, config.timeout, **parameters)
         self.logger.info(f"XCPonCAN - Interface-Type: {self.interface_name!r} Parameters: {list(parameters.items())}")
