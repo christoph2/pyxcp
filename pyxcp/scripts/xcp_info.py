@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
-"""XCP info/exploration tool.
-"""
+"""XCP info/exploration tool."""
 
 from pprint import pprint
 
@@ -21,7 +20,6 @@ def getPagInfo(x):
             for i in range(pag.maxSegments):
                 segment = {}
                 status, std_info = x.try_command(x.getSegmentInfo, 0x01, i, 0, 0)
-                std_info = x.getSegmentInfo(0x01, i, 2, 0)
                 if status == TryCommandResult.OK:
                     segment["maxPages"] = std_info.maxPages
                     segment["addressExtension"] = std_info.addressExtension

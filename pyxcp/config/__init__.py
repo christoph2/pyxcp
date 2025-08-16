@@ -808,7 +808,7 @@ class Transport(Configurable):
         allow_none=True,
         help="Choose one of the supported XCP transport layers.",
     ).tag(config=True)
-    create_daq_timestamps = Bool(False, help="Record time of frame reception or set timestamp to 0.").tag(config=True)
+    create_daq_timestamps = Bool(True, help="Record time of frame reception or set timestamp to 0.").tag(config=True)
     timeout = Float(
         2.0,
         help="""raise `XcpTimeoutError` after `timeout` seconds

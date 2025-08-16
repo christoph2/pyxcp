@@ -5,6 +5,7 @@ import functools
 import operator
 from abc import ABC, abstractmethod
 from bisect import bisect_left
+from enum import IntEnum
 from typing import Any, Dict, List, Optional, Union
 
 from can import (
@@ -31,6 +32,52 @@ MAX_11_BIT_IDENTIFIER = (1 << 11) - 1
 MAX_29_BIT_IDENTIFIER = (1 << 29) - 1
 MAX_DLC_CLASSIC = 8
 CAN_FD_DLCS = (12, 16, 20, 24, 32, 48, 64)  # Discrete CAN-FD DLCs in case DLC > 8.
+
+
+class FilterState(IntEnum):
+    REJECT_ALL = 0
+    ACCEPT_ALL = 1
+    FILTERING = 2
+
+
+class SoftwareFilter:
+    """Additional CAN filters in software."""
+
+    def __init__(self) -> None:
+        self.filters = None
+        self.reject_all()
+
+    def set_filters(self, filters: List[Dict]) -> None:
+        self.filters = filters
+        self.filtering()
+
+    def reject_all(self) -> None:
+        self.filter_state = FilterState.REJECT_ALL
+
+    def accept_all(self) -> None:
+        self.filter_state = FilterState.ACCEPT_ALL
+
+    def filtering(self) -> None:
+        self.filter_state = FilterState.FILTERING
+
+    @property
+    def state(self) -> FilterState:
+        return self.filter_state
+
+    def accept(self, msg: Message) -> bool:
+        if self.filter_state == FilterState.REJECT_ALL:
+            return False
+        elif self.filter_state == FilterState.ACCEPT_ALL or self.filters is None:
+            return True
+        for filter in self.filters:
+            if "extended" in filter:
+                if filter["extended"] != msg.is_extended_id:
+                    continue
+            can_id = filter["can_id"]
+            can_mask = filter["can_mask"]
+            if (can_id ^ msg.arbitration_id) & can_mask == 0:
+                return True
+        return False
 
 
 class IdentifierOutOfRangeError(Exception):
@@ -247,8 +294,10 @@ class PythonCanWrapper:
             self.can_interface_class = None
         self.can_interface: BusABC
         self.connected: bool = False
+        self.software_filter = SoftwareFilter()
+        self.saved_filters = []
 
-    def connect(self):
+    def connect(self) -> None:
         if self.connected:
             return
         can_filters = []
@@ -258,19 +307,28 @@ class PythonCanWrapper:
             for daq_id in self.parent.daq_identifier:
                 can_filters.append(daq_id.create_filter_from_id())
         if self.parent.has_user_supplied_interface:
+            self.saved_filters = self.parent.transport_layer_interface.filters
+            if self.saved_filters:
+                merged_filters = can_filters[::]
+                for fltr in self.saved_filters:
+                    if fltr not in merged_filters:
+                        merged_filters.append(fltr)
             self.can_interface = self.parent.transport_layer_interface
-            self.can_interface.set_filters(can_filters)
+            self.can_interface.set_filters(merged_filters)
+            self.software_filter.set_filters(can_filters)  # Filter unwanted traffic.
         else:
-            # self.can_interface = self.can_interface_class(interface=self.interface_name, **self.parameters)
             self.can_interface = self.can_interface_class(interface=self.interface_name, can_filters=can_filters, **self.parameters)
+            self.software_filter.accept_all()
         self.parent.logger.info(f"XCPonCAN - Using Interface: '{self.can_interface!s}'")
         self.parent.logger.info(f"XCPonCAN - Filters used: {self.can_interface.filters}")
         self.parent.logger.info(f"XCPonCAN - State: {self.can_interface.state!s}")
         self.connected = True
 
-    def close(self):
+    def close(self) -> None:
         if self.connected and not self.parent.has_user_supplied_interface:
             self.can_interface.shutdown()
+        if self.saved_filters:
+            self.can_interface.set_filters(self.saved_filters)
         self.connected = False
 
     def transmit(self, payload: bytes) -> None:
@@ -292,6 +350,8 @@ class PythonCanWrapper:
         else:
             if frame is None or not len(frame.data):
                 return None  # Timeout condition.
+            if not self.software_filter.accept(frame):
+                return None  # Filter out unwanted traffic.
             extended = frame.is_extended_id
             identifier = Identifier.make_identifier(frame.arbitration_id, extended)
             return Frame(
