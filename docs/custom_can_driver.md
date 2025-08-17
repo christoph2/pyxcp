@@ -78,7 +78,7 @@ Import it as follows:
 from pyxcp.transport.can import CanInterfaceBase
 ```
 
-Use this [example]([pyxcp/blob/master/pyxcp/examples/xcp_user_supplied_driver.py](../pyxcp/examples/xcp_user_supplied_driver.py)) as a starting point, or the following sucessfully tested code:
+Use this [example]([pyxcp/blob/master/pyxcp/examples/xcp_user_supplied_driver.py](https://github.com/christoph2/pyxcp/blob/master/pyxcp/examples/xcp_user_supplied_driver.py) as a starting point, or the following sucessfully tested code:
 
 ```python
 #!/usr/bin/env python
