@@ -65,6 +65,9 @@ class SoftwareFilter:
         return self.filter_state
 
     def accept(self, msg: Message) -> bool:
+        """
+        Based on: https://github.com/hardbyte/python-can/blob/bc248e8aaf96280a574c06e8e7d2778a67f091e3/can/bus.py#L430
+        """
         if self.filter_state == FilterState.REJECT_ALL:
             return False
         elif self.filter_state == FilterState.ACCEPT_ALL or self.filters is None:
