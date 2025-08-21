@@ -7,7 +7,11 @@ Subpackages
 .. toctree::
 
     pyxcp.asam
+    pyxcp.config
+    pyxcp.daq_stim
     pyxcp.master
+    pyxcp.recorder
+    pyxcp.scripts
     pyxcp.transport
 
 Submodules
@@ -21,10 +25,26 @@ pyxcp.checksum module
     :undoc-members:
     :show-inheritance:
 
-pyxcp.config module
+pyxcp.cmdline module
+--------------------
+
+.. automodule:: pyxcp.cmdline
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pyxcp.constants module
 ---------------------
 
-.. automodule:: pyxcp.config
+.. automodule:: pyxcp.constants
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+pyxcp.dllif module
+-----------------
+
+.. automodule:: pyxcp.dllif
     :members:
     :undoc-members:
     :show-inheritance:
@@ -37,15 +57,13 @@ pyxcp.errormatrix module
     :undoc-members:
     :show-inheritance:
 
+pyxcp.timing module
+------------------
 
-pyxcp.logger module
--------------------
-
-.. automodule:: pyxcp.logger
+.. automodule:: pyxcp.timing
     :members:
     :undoc-members:
     :show-inheritance:
-
 
 pyxcp.types module
 ------------------

@@ -21,15 +21,23 @@ jobs:
           - os: macos-latest
           - os: ubuntu-24.04-arm
           - os: ubuntu-latest
+          - os: ubuntu-latest
+            cibw_archs_linux: armv7l
           - os: windows-11-arm
             cibw_archs_windows: ARM64
           - os: windows-latest
             cibw_archs_windows: AMD64
     steps:
       - uses: actions/checkout@v5
+      - name: Set up QEMU (for ARM emulation)
+        if: ${{ matrix.cibw_archs_linux == 'armv7l' }}
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm
       - uses: pypa/cibuildwheel@v3.1
         env:
           CIBW_ARCHS_WINDOWS: ${{ matrix.cibw_archs_windows || '' }}
+          CIBW_ARCHS_LINUX: ${{ matrix.cibw_archs_linux || '' }}
       - uses: actions/upload-artifact@v4
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}

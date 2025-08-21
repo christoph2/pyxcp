@@ -27,6 +27,7 @@ sphinx-click = ">=3.0.2"
 typeguard = ">=2.13.3"
 xdoctest = {extras = ["colors"], version = ">=0.15.10"}
 myst-parser = {version = ">=0.16.1"}
+sphinxcontrib-napoleon = ">=0.7"
 ruff = "^0.12.0"
 pre-commit-hooks = "^5.0.0"
 
@@ -48,12 +49,11 @@ classifiers = [
     "Intended Audience :: Developers", "Topic :: Software Development",
     "Topic :: Scientific/Engineering",
     "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-	"Programming Language :: Python :: 3.13"
+	"Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 build = "build_ext.py"
 include = [

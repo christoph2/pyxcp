@@ -17,6 +17,7 @@ from traitlets import (
     Dict,
     Enum,
     Float,
+    HasTraits,
     Integer,
     List,
     TraitError,
@@ -24,6 +25,7 @@ from traitlets import (
     Union,
 )
 from traitlets.config import Application, Configurable, Instance, default
+from traitlets.config.loader import Config
 
 from pyxcp.config import legacy
 
@@ -491,9 +493,21 @@ If set, the `app_name` does not have to be previously defined in
 
 
 class CanCustom(Configurable, CanBase):
-    """ """
+    """Generic custom CAN interface.
+
+    Enable basic CanBase options so user-provided python-can backends can
+    consume common parameters like bitrate, fd, data_bitrate, poll_interval,
+    receive_own_messages, and optional timing.
+    """
 
     interface_name = "custom"
+
+    # Allow usage of the basic options from CanBase for custom backends
+    has_fd = True
+    has_data_bitrate = True
+    has_poll_interval = True
+    has_receive_own_messages = True
+    has_timing = True
 
 
 class Virtual(Configurable, CanBase):
@@ -829,6 +843,68 @@ if there is no response to a command.""",
         self.usb = Usb(config=self.config, parent=self)
 
 
+class CustomArgs(Configurable):
+    """Class to handle custom command-line arguments."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._custom_args = {}
+
+    def add_argument(self, short_opt, long_opt="", dest="", help="", type=None, default=None, action=None):
+        """Add a custom argument dynamically.
+
+        This mimics the argparse.ArgumentParser.add_argument method.
+        """
+        if not dest and long_opt:
+            dest = long_opt.lstrip("-").replace("-", "_")
+
+        # Store the argument definition
+        self._custom_args[dest] = {
+            "short_opt": short_opt,
+            "long_opt": long_opt,
+            "help": help,
+            "type": type,
+            "default": default,
+            "action": action,
+            "value": default,
+        }
+
+        # Dynamically add a trait for this argument
+        trait_type = Any()
+        if type == bool or action == "store_true" or action == "store_false":
+            trait_type = Bool(default)
+        elif type == int:
+            trait_type = Integer(default)
+        elif type == float:
+            trait_type = Float(default)
+        elif type == str:
+            trait_type = Unicode(default)
+
+        # Add the trait to this instance
+        self.add_trait(dest, trait_type)
+        setattr(self, dest, default)
+
+    def update_from_options(self, options):
+        """Update trait values from parsed options."""
+        for option in options:
+            if option.dest and option.dest in self._custom_args:
+                if option.default is not None:
+                    setattr(self, option.dest, option.default)
+                    self._custom_args[option.dest]["value"] = option.default
+
+    def get_args(self):
+        """Return an object with all custom arguments as attributes."""
+
+        class Args:
+            pass
+
+        args = Args()
+        for name, arg_def in self._custom_args.items():
+            setattr(args, name, arg_def["value"])
+
+        return args
+
+
 class General(Configurable):
     """ """
 
@@ -929,7 +1005,12 @@ class PyXCP(Application):
     description = "pyXCP application"
     config_file = Unicode(default_value="pyxcp_conf.py", help="base name of config file").tag(config=True)
 
-    classes = List([General, Transport])
+    # Add callout function support
+    callout = Callable(default_value=None, allow_none=True, help="Callback function to be called with master and args").tag(
+        config=True
+    )
+
+    classes = List([General, Transport, CustomArgs])
 
     subcommands = dict(
         profile=(
@@ -985,6 +1066,7 @@ class PyXCP(Application):
         self.read_configuration_file(file_name, emit_warning)
         self.general = General(config=self.config, parent=self)
         self.transport = Transport(parent=self)
+        self.custom_args = CustomArgs(config=self.config, parent=self)
 
     def read_configuration_file(self, file_name: str, emit_warning: bool = True):
         self.legacy_config: bool = False
@@ -1086,7 +1168,7 @@ class PyXCP(Application):
 application: typing.Optional[PyXCP] = None
 
 
-def create_application(options: typing.Optional[typing.List[typing.Any]] = None) -> PyXCP:
+def create_application(options: typing.Optional[typing.List[typing.Any]] = None, callout=None) -> PyXCP:
     global application
     if options is None:
         options = []
@@ -1095,15 +1177,24 @@ def create_application(options: typing.Optional[typing.List[typing.Any]] = None)
     application = PyXCP()
     application.initialize(sys.argv)
     application.start()
+
+    # Set callout function if provided
+    if callout is not None:
+        application.callout = callout
+
+    # Process custom arguments if provided
+    if options and hasattr(application, "custom_args"):
+        application.custom_args.update_from_options(options)
+
     return application
 
 
-def get_application(options: typing.Optional[typing.List[typing.Any]] = None) -> PyXCP:
+def get_application(options: typing.Optional[typing.List[typing.Any]] = None, callout=None) -> PyXCP:
     if options is None:
         options = []
     global application
     if application is None:
-        application = create_application(options)
+        application = create_application(options, callout)
     return application
 
 
