@@ -10,6 +10,9 @@ class XcpLogFileWriter {
     explicit XcpLogFileWriter(
         const std::string &file_name, uint32_t prealloc = 10UL, uint32_t chunk_size = 1, std::string_view metadata = ""
     ) {
+
+       XCP_UNREFERENCED_PARAMETER(chunk_size);
+
         if (!file_name.ends_with(detail::FILE_EXTENSION)) {
             m_file_name = file_name + detail::FILE_EXTENSION;
         } else {

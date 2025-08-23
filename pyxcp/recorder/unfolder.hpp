@@ -746,17 +746,21 @@ class Deserializer {
    protected:
 
     DaqList create_daq_list() {
-        std::string              name;
-        std::uint16_t            event_num;
-        bool                     stim;
-        bool                     enable_timestamps;
-        std::vector<McObject>    measurements;
-        std::vector<Bin>         measurements_opt;
-        std::vector<std::string> header_names;
+        std::string              name{};
+        std::uint16_t            event_num{};
+        bool                     stim{false};
+        bool                     enable_timestamps{false};
+        std::vector<McObject>    measurements{};
+        std::vector<Bin>         measurements_opt{};
+        std::vector<std::string> header_names{};
 
-        std::uint16_t odt_count;
-        std::uint16_t total_entries;
-        std::uint16_t total_length;
+        std::uint16_t odt_count{};
+        std::uint16_t total_entries{};
+        std::uint16_t total_length{};
+
+        XCP_UNREFERENCED_PARAMETER(odt_count);
+        XCP_UNREFERENCED_PARAMETER(total_entries);
+        XCP_UNREFERENCED_PARAMETER(total_length);
 
         flatten_odts_t flatten_odts;
 
@@ -840,6 +844,7 @@ class Deserializer {
         data_type             = from_binary_str();
         type_index            = from_binary<std::int16_t>();  // not used
         std::size_t comp_size = from_binary<std::size_t>();
+        XCP_UNREFERENCED_PARAMETER(type_index);
         for (auto i = 0U; i < comp_size; i++) {
             components.push_back(create_mc_object());
         }
@@ -1158,6 +1163,8 @@ class DaqOnlinePolicy : public DAQPolicyBase {
     ) = 0;
 
     void feed(std::uint8_t frame_cat, std::uint16_t counter, std::uint64_t timestamp, const std::string& payload) {
+        XCP_UNREFERENCED_PARAMETER(counter);
+
         if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
             return;
         }

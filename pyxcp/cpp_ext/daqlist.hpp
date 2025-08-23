@@ -183,6 +183,7 @@ class DaqList {
     }
 
     static void loads(std::string_view buffer) {
+        XCP_UNREFERENCED_PARAMETER(buffer);
     }
 
    private:

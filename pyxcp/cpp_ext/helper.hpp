@@ -40,6 +40,10 @@
         #define HAS_BFLOAT16 (0)
     #endif
 
+    #if !defined(XCP_UNREFERENCED_PARAMETER)
+        #define XCP_UNREFERENCED_PARAMETER(x) (x) = (x) /*lint  -esym( 714, x ) */
+    #endif
+
 constexpr std::endian target_byteorder() {
     return std::endian::native;
 }
@@ -216,6 +220,7 @@ class Timestamp {
         } else if (m_type == TimestampType::RELATIVE_TS) {
             return relative();
         }
+        return 0ULL;  // Invalid timestamp type
     }
 
     std::uint64_t get_initial_value() const noexcept {
