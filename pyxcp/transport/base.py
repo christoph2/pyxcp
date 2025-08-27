@@ -222,6 +222,10 @@ class BaseTransport(metaclass=abc.ABCMeta):
             self.finish_listener()
             self.listener.join()
 
+        # Ensure the close event is cleared before starting a new listener thread.
+        if hasattr(self, "closeEvent"):
+            self.closeEvent.clear()
+
         self.listener = threading.Thread(target=self.listen)
         self.listener.start()
 
@@ -368,16 +372,16 @@ class BaseTransport(metaclass=abc.ABCMeta):
             self.timer_restart_event.set()
 
     def process_response(self, response: bytes, length: int, counter: int, recv_timestamp: int) -> None:
-        if counter == self.counter_received:
-            self.logger.warning(f"Duplicate message counter {counter} received from the XCP slave")
-            if self._debug:
-                self.logger.debug(f"<- L{length} C{counter} {hexDump(response[:512])}")
-            return
-        self.counter_received = counter
+        # Important: determine PID first so duplicate counter handling can be applied selectively.
         pid = response[0]
+
         if pid >= 0xFC:
+            # Do not drop RESPONSE/EVENT/SERV frames even if the transport counter repeats.
+            # Some slaves may reuse the counter while DAQ traffic is active, and we must not lose
+            # command responses; otherwise request() can stall until timeout.
             if self._debug:
                 self.logger.debug(f"<- L{length} C{counter} {hexDump(response)}")
+            self.counter_received = counter
             if pid >= 0xFE:
                 self.resQueue.append(response)
                 with self.policy_lock:
@@ -391,6 +395,15 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 with self.policy_lock:
                     self.policy.feed(types.FrameCategory.SERV, self.counter_received, self.timestamp.value, response)
         else:
+            # DAQ traffic: Some transports reuse or do not advance the counter for DAQ frames.
+            # Do not drop DAQ frames on duplicate counters to avoid losing measurements.
+            if counter == self.counter_received:
+                self.logger.debug(f"Duplicate message counter {counter} received (DAQ) - not dropping")
+                # DAQ still flowing – reset request timeout window to avoid false timeouts while
+                # the slave is busy but has not yet responded to a command.
+                self.timer_restart_event.set()
+                # Fall through and process the frame as usual.
+            self.counter_received = counter
             if self._debug:
                 self.logger.debug(f"<- L{length} C{counter} ODT_Data[0:8] {hexDump(response[:8])}")
             if self.first_daq_timestamp is None:
@@ -399,6 +412,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 timestamp = recv_timestamp
             else:
                 timestamp = 0
+            # DAQ activity indicates the slave is alive/busy; keep extending the wait window for any
+            # outstanding request, similar to EV_CMD_PENDING behavior on stacks that don't emit it.
+            self.timer_restart_event.set()
             with self.policy_lock:
                 self.policy.feed(types.FrameCategory.DAQ, self.counter_received, timestamp, response)
 

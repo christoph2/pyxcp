@@ -31,7 +31,6 @@ DAQ_TIMESTAMP_SIZE = {
 
 class DaqProcessor:
     def __init__(self, daq_lists: List[DaqList]):
-        # super().__init__()
         self.daq_lists = daq_lists
         self.log = get_application().log
 

@@ -145,6 +145,9 @@ extend-ignore = ["E203", "E501", "E701"]
 
 [tool.ruff]
 line-length = 132
+[tool.ruff.lint]
+ignore = ["I001"]
+unfixable = ["B"]
 
 [tool.black]
 line-length=132
