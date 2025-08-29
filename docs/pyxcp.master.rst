@@ -4,35 +4,34 @@ pyxcp.master package
 Submodules
 ----------
 
-pyxcp.master.base module
-------------------------
+pyxcp.master.async\_master module
+---------------------------------
 
-.. automodule:: pyxcp.master.base
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. automodule:: pyxcp.master.async_master
+   :members:
+   :show-inheritance:
+   :undoc-members:
 
-pyxcp.master.pre35 module
--------------------------
+pyxcp.master.errorhandler module
+--------------------------------
 
-.. automodule:: pyxcp.master.pre35
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. automodule:: pyxcp.master.errorhandler
+   :members:
+   :show-inheritance:
+   :undoc-members:
 
-pyxcp.master.py35 module
-------------------------
+pyxcp.master.master module
+--------------------------
 
-.. automodule:: pyxcp.master.py35
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
+.. automodule:: pyxcp.master.master
+   :members:
+   :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: pyxcp.master
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :show-inheritance:
+   :undoc-members:

@@ -913,6 +913,10 @@ class General(Configurable):
     connect_retries = Integer(help="Number of CONNECT retries (None for infinite retries).", allow_none=True, default_value=3).tag(
         config=True
     )
+    # Structured diagnostics dump options
+    diagnostics_on_failure = Bool(True, help="Append a structured diagnostics dump to timeout errors.").tag(config=True)
+    diagnostics_last_pdus = Integer(20, help="How many recent PDUs to include in diagnostics dump.").tag(config=True)
+
     seed_n_key_dll = Unicode("", allow_none=False, help="Dynamic library used for slave resource unlocking.").tag(config=True)
     seed_n_key_dll_same_bit_width = Bool(False, help="").tag(config=True)
     custom_dll_loader = Unicode(allow_none=True, default_value=None, help="Use an custom seed and key DLL loader.").tag(config=True)
@@ -1010,6 +1014,11 @@ class PyXCP(Application):
         config=True
     )
 
+    # Logging options
+    structured_logging = Bool(False, help="Emit one-line JSON logs instead of rich text.").tag(config=True)
+    # Use log_output_format to avoid clashing with traitlets.Application.log_format (a %-style template)
+    log_output_format = Enum(values=["rich", "json"], default_value="rich", help="Select logging output format.").tag(config=True)
+
     classes = List([General, Transport, CustomArgs])
 
     subcommands = dict(
@@ -1026,34 +1035,79 @@ class PyXCP(Application):
             self.subapp.start()
             exit(2)
         else:
-            has_handlers = logging.getLogger().hasHandlers()
-            if has_handlers:
-                self.log = logging.getLogger()
-                self._read_configuration(self.config_file)
-            else:
-                self._read_configuration(self.config_file)
-                self._setup_logger()
+            # Always read configuration and then set up our logger explicitly to avoid
+            # traitlets.Application default logging using an incompatible 'log_format'.
+            self._read_configuration(self.config_file)
+            try:
+                # Ensure base Application.log_format is a valid %-style template
+                # (Users might set c.PyXCP.log_format = "json" which clashes with traitlets behavior.)
+                self.log_format = "%(message)s"  # type: ignore[assignment]
+            except Exception:
+                pass
+            self._setup_logger()
         self.log.debug(f"pyxcp version: {self.version}")
 
     def _setup_logger(self):
         from pyxcp.types import Command
 
         # Remove any handlers installed by `traitlets`.
-        for hdl in self.log.handlers:
+        for hdl in list(self.log.handlers):
             self.log.removeHandler(hdl)
 
-        # formatter = logging.Formatter(fmt=self.log_format, datefmt=self.log_datefmt)
+        # Decide formatter/handler based on config
+        use_json = False
+        try:
+            # Prefer explicit log_output_format; fallback to structured_logging for compatibility
+            use_json = getattr(self, "log_output_format", "rich") == "json" or getattr(self, "structured_logging", False)
+            # Backward-compat: if someone set PyXCP.log_format="json" in config, honor it here too
+            if not use_json:
+                lf = getattr(self, "log_format", None)
+                if isinstance(lf, str) and lf.lower() == "json":
+                    use_json = True
+        except Exception:
+            use_json = False
 
-        keywords = list(Command.__members__.keys()) + ["ARGS", "KWS"]  # Syntax highlight XCP commands and other stuff.
-        rich_handler = RichHandler(
-            rich_tracebacks=True,
-            tracebacks_show_locals=True,
-            log_time_format=self.log_datefmt,
-            level=self.log_level,
-            keywords=keywords,
-        )
-        # rich_handler.setFormatter(formatter)
-        self.log.addHandler(rich_handler)
+        if use_json:
+
+            class JSONFormatter(logging.Formatter):
+                def format(self, record: logging.LogRecord) -> str:
+                    # Build a minimal structured payload
+                    payload = {
+                        "time": self.formatTime(record, self.datefmt),
+                        "level": record.levelname,
+                        "logger": record.name,
+                        "message": record.getMessage(),
+                    }
+                    # Include extras if present
+                    for key in ("transport", "host", "port", "protocol", "event", "command"):
+                        if hasattr(record, key):
+                            payload[key] = getattr(record, key)
+                    # Exceptions
+                    if record.exc_info:
+                        payload["exc_type"] = record.exc_info[0].__name__ if record.exc_info[0] else None
+                        payload["exc_text"] = self.formatException(record.exc_info)
+                    try:
+                        import json as _json
+
+                        return _json.dumps(payload, ensure_ascii=False)
+                    except Exception:
+                        return f"{payload}"
+
+            handler = logging.StreamHandler()
+            formatter = JSONFormatter(datefmt=self.log_datefmt)
+            handler.setFormatter(formatter)
+            handler.setLevel(self.log_level)
+            self.log.addHandler(handler)
+        else:
+            keywords = list(Command.__members__.keys()) + ["ARGS", "KWS"]  # Syntax highlight XCP commands and other stuff.
+            rich_handler = RichHandler(
+                rich_tracebacks=True,
+                tracebacks_show_locals=True,
+                log_time_format=self.log_datefmt,
+                level=self.log_level,
+                keywords=keywords,
+            )
+            self.log.addHandler(rich_handler)
 
     def initialize(self, argv=None):
         from pyxcp import __version__ as pyxcp_version

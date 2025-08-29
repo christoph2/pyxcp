@@ -292,7 +292,13 @@ class PythonCanWrapper:
         self.timeout: int = timeout
         self.parameters = parameters
         if not self.parent.has_user_supplied_interface:
-            self.can_interface_class = _get_class_for_interface(self.interface_name)
+            try:
+                self.can_interface_class = _get_class_for_interface(self.interface_name)
+            except Exception as ex:
+                # Provide clearer message if interface not supported by python-can on this platform
+                raise CanInitializationError(
+                    f"Unsupported or unavailable CAN interface {self.interface_name!r}: {ex.__class__.__name__}: {ex}"
+                ) from ex
         else:
             self.can_interface_class = None
         self.can_interface: BusABC
@@ -320,7 +326,15 @@ class PythonCanWrapper:
             self.can_interface.set_filters(merged_filters)
             self.software_filter.set_filters(can_filters)  # Filter unwanted traffic.
         else:
-            self.can_interface = self.can_interface_class(interface=self.interface_name, can_filters=can_filters, **self.parameters)
+            try:
+                self.can_interface = self.can_interface_class(
+                    interface=self.interface_name, can_filters=can_filters, **self.parameters
+                )
+            except OSError as ex:
+                # Typical when selecting socketcan on unsupported OS (e.g., Windows)
+                raise CanInitializationError(
+                    f"OS error while creating CAN interface {self.interface_name!r}: {ex.__class__.__name__}: {ex}"
+                ) from ex
             self.software_filter.accept_all()
         self.parent.logger.info(f"XCPonCAN - Using Interface: '{self.can_interface!s}'")
         self.parent.logger.info(f"XCPonCAN - Filters used: {self.can_interface.filters}")
@@ -401,13 +415,33 @@ class Can(BaseTransport):
         self.padding_value = self.config.padding_value
         if transport_layer_interface is None:
             self.interface_name = self.config.interface
-            self.interface_configuration = detect_available_configs(interfaces=[self.interface_name])
+            # On platforms that do not support certain backends (e.g., SocketCAN on Windows),
+            # python-can may raise OSError deep inside interface initialization. We want to
+            # fail fast with a clearer hint and avoid unhandled low-level errors.
+            try:
+                self.interface_configuration = detect_available_configs(interfaces=[self.interface_name])
+            except Exception as ex:
+                # Best-effort graceful message; keep original exception context
+                self.logger.critical(
+                    f"XCPonCAN - Failed to query available configs for interface {self.interface_name!r}: {ex.__class__.__name__}: {ex}"
+                )
+                self.interface_configuration = []
             parameters = self.get_interface_parameters()
         else:
             self.interface_name = "custom"
             # print("TRY GET PARAMs", self.get_interface_parameters())
             parameters = {}
-        self.can_interface = PythonCanWrapper(self, self.interface_name, config.timeout, **parameters)
+        try:
+            self.can_interface = PythonCanWrapper(self, self.interface_name, config.timeout, **parameters)
+        except OSError as ex:
+            # Catch platform-specific socket errors early (e.g., SocketCAN on Windows)
+            msg = (
+                f"XCPonCAN - Failed to initialize CAN interface {self.interface_name!r}: "
+                f"{ex.__class__.__name__}: {ex}.\n"
+                f"Hint: Interface may be unsupported on this OS or missing drivers."
+            )
+            self.logger.critical(msg)
+            raise CanInitializationError(msg) from ex
         self.logger.info(f"XCPonCAN - Interface-Type: {self.interface_name!r} Parameters: {list(parameters.items())}")
         self.logger.info(
             f"XCPonCAN - Master-ID (Tx): 0x{self.can_id_master.id:08X}{self.can_id_master.type_str} -- "
@@ -459,15 +493,34 @@ class Can(BaseTransport):
                 self.data_received(frame.data, frame.timestamp)
 
     def connect(self):
-        if self.useDefaultListener:
-            self.start_listener()
+        # Start listener lazily after a successful interface connection to avoid a dangling
+        # thread waiting on a not-yet-connected interface if initialization fails.
         try:
             self.can_interface.connect()
         except CanInitializationError:
+            # Ensure any previously-started listener is stopped to prevent hangs.
+            self.finish_listener()
             console.print("[red]\nThere may be a problem with the configuration of your CAN-interface.\n")
             console.print(f"[grey]Current configuration of interface {self.interface_name!r}:")
             console.print(self.interface_configuration)
             raise
+        except OSError as ex:
+            # Ensure any previously-started listener is stopped to prevent hangs.
+            self.finish_listener()
+            # E.g., attempting to instantiate SocketCAN on Windows raises an OSError from socket layer.
+            # Provide a clearer, actionable message and keep the original exception.
+            msg = (
+                f"XCPonCAN - OS error while initializing interface {self.interface_name!r}: "
+                f"{ex.__class__.__name__}: {ex}.\n"
+                f"Hint: This interface may not be supported on your platform. "
+                f"On Windows, use e.g. 'vector', 'kvaser', 'pcan', or other vendor backends instead of 'socketcan'."
+            )
+            self.logger.critical(msg)
+            raise CanInitializationError(msg) from ex
+        else:
+            # Only now start the default listener if requested.
+            if self.useDefaultListener:
+                self.start_listener()
         self.status = 1  # connected
 
     def send(self, frame: bytes) -> None:

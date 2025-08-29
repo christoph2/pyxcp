@@ -13,19 +13,40 @@ import os
 import sys
 
 
+def get_version():
+    import re
+    from pathlib import Path
+
+    VERSION = re.compile(r'version\s*=\s*"(?P<version>\d+\.\d+(\.\d+)?)\s*"', re.M)
+
+    try:
+        cfg = Path(r"../pyproject.toml")
+        data = cfg.open().read()
+    except Exception:
+        return "0.1"
+    else:
+        match = VERSION.search(data)
+        if match:
+            gd = match.groupdict()
+            version = gd.get("version")
+            if version:
+                return version
+    return "0.1"
+
+
 sys.path.insert(0, os.path.abspath("../pyxcp"))
 
 
 # -- Project information -----------------------------------------------------
 
 project = "pyXCP"
-copyright = "2019, Christoph Schueler"
+copyright = "2025, Christoph Schueler"
 author = "Christoph Schueler"
 
 # The short X.Y version
 version = ""
 # The full version, including alpha/beta/rc tags
-release = "0.9"
+release = get_version()
 
 
 # -- General configuration ---------------------------------------------------
@@ -39,8 +60,13 @@ release = "0.9"
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
+    "numpydoc",
     "sphinx.ext.doctest",
-#    "myst-parser",
+    "sphinx.ext.autosummary",
+    "sphinx_copybutton",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.autosectionlabel",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -49,13 +75,7 @@ templates_path = ["_templates"]
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-source_parsers = {".md": "recommonmark.parser.CommonMarkParser"}
-source_suffix = [".rst", ".md"]
-# source_suffix = { ".md": "markdown" }
-myst_enable_extensions = [
-    "colon_fence",
-    "deflist",
-]
+source_suffix = {".rst": "restructuredtext"}
 
 # The master toctree document.
 master_doc = "index"
@@ -81,7 +101,7 @@ pygments_style = "sphinx"
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-# html_theme = 'alabaster'
+html_theme = "pydata_sphinx_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -167,3 +187,14 @@ texinfo_documents = [
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+
+numpydoc_show_class_members = False
+autosummary_generate = True
+autosummary_imported_members = True
+
+autodoc_default_options = {
+    "member_order": "bysource",
+    "private-members": True,
+    "undoc-members": True,
+    "show-inheritance": True,
+}

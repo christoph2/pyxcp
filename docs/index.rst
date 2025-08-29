@@ -1,12 +1,27 @@
-# Welcome to pyXCP's documentation
+Welcome to pyXCP’s documentation
+================================
 
+.. image:: pyxcp_light_small.jpg
+    :align: center
 
-Contents
-- `README <README.html>`_
-- `Installation <installation.html>`_
-- `Tutorial <tutorial.html>`_
-- `Configuration <configuration.html>`_
-- `HOW‑TOs <howto.html>`_
-- `Recorder (DAQ list recording, policies, converters) <recorder.html>`_
-- `API Documentation <modules.html>`_
+.. toctree::
+   :maxdepth: 2
 
+   README
+   installation
+   tutorial
+   configuration
+   custom_can_driver
+   howto
+   howto_can_driver
+   howto_cli_tools
+   recorder
+   troubleshooting
+   pyxcp
+
+Indices and tables
+------------------
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

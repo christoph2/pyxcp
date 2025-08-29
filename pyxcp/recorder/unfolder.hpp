@@ -1139,70 +1139,10 @@ class DaqRecorderPolicy : public DAQPolicyBase {
     bool                              m_initialized{ false };
 };
 
-class DaqOnlinePolicy : public DAQPolicyBase {
-   public:
-
-    ~DaqOnlinePolicy() {
-    }
-
-    DaqOnlinePolicy() = default;
-
-    void set_parameters(const MeasurementParameters& params) noexcept {
-        m_decoder = std::make_unique<DAQProcessor>(params);
-        DAQPolicyBase::set_parameters(params);
-    }
-
-    virtual void on_daq_list(
-        std::uint16_t daq_list_num, std::uint64_t timestamp0, std::uint64_t timestamp1,
-        const std::vector<measurement_value_t>& measurement
-    ) = 0;
-
-    void feed(std::uint8_t frame_cat, std::uint16_t counter, std::uint64_t timestamp, const std::string& payload) {
-        if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
-            return;
-        }
-        auto result = m_decoder->feed(timestamp, payload);
-        if (result) {
-            const auto& [daq_list, ts0, ts1, meas] = *result;
-            on_daq_list(daq_list, ts0, ts1, meas);
-        }
-    }
-
-    virtual void initialize() {
-    }
-
-    virtual void finalize() {
-    }
-
-   private:
-
-    std::unique_ptr<DAQProcessor> m_decoder;
-};
-
-struct ValueHolder {
-    ValueHolder()                   = delete;
-    ValueHolder(const ValueHolder&) = default;
-
-    ValueHolder(const std::any& value) : m_value(value) {
-    }
-
-    ValueHolder(std::any&& value) : m_value(std::move(value)) {
-    }
-
-    std::any get_value() const noexcept {
-        return m_value;
-    }
-
-   private:
-
-    std::any m_value;
-};
-
-class Overflow {
+class DaqTimeTracker {
 public:
 
-    Overflow(std::uint64_t overflow_value) : m_overflow_value(overflow_value), m_overflow_counter(0ULL), m_previous_timestamp(0ULL) {
-    }
+    DaqTimeTracker(std::uint64_t overflow_value) : m_overflow_value(overflow_value), m_overflow_counter(0ULL), m_previous_timestamp(0ULL) { m_ts_base_set=false; m_ts0_base=0ULL; m_ts1_base=0ULL; }
 
     auto get_previous_timestamp() const noexcept {
         return m_previous_timestamp;
@@ -1224,11 +1164,81 @@ public:
         return m_overflow_value * m_overflow_counter;
     }
 
+public:
+    std::pair<std::uint64_t,std::uint64_t> normalize(std::uint64_t ts0, std::uint64_t ts1) noexcept {
+        if (!m_ts_base_set) {
+            m_ts0_base = ts0;
+            m_ts1_base = ts1;
+            m_ts_base_set = true;
+        }
+        return {ts0 - m_ts0_base, ts1 - m_ts1_base};
+    }
 private:
     std::uint64_t m_overflow_value{};
     std::uint64_t m_overflow_counter{};
     std::uint64_t m_previous_timestamp{};
+    bool m_ts_base_set{false};
+    std::uint64_t m_ts0_base{0ULL};
+    std::uint64_t m_ts1_base{0ULL};
 };
+
+
+class DaqOnlinePolicy : public DAQPolicyBase {
+   public:
+
+    ~DaqOnlinePolicy() {
+    }
+
+    DaqOnlinePolicy() = default;
+
+    void set_parameters(const MeasurementParameters& params) noexcept {
+        m_decoder = std::make_unique<DAQProcessor>(params);
+		for (auto idx=0; idx < params.get_daq_lists().size(); ++idx) {
+            m_overflows.emplace_back(DaqTimeTracker(params.get_overflow_value()));
+        }
+        DAQPolicyBase::set_parameters(params);
+    }
+
+    virtual void on_daq_list(
+        std::uint16_t daq_list_num, std::uint64_t timestamp0, std::uint64_t timestamp1,
+        const std::vector<measurement_value_t>& measurement
+    ) = 0;
+
+    void feed(std::uint8_t frame_cat, std::uint16_t counter, std::uint64_t timestamp, const std::string& payload) {
+        if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
+            return;
+        }
+        auto result = m_decoder->feed(timestamp, payload);
+        if (result) {
+            const auto& [daq_list, ts0, ts1, meas] = *result;
+
+			auto& overflow = m_overflows[daq_list];
+
+            auto [norm_ts0, norm_ts1] = overflow.normalize(ts0, ts1);
+
+			if (overflow.get_previous_timestamp() > norm_ts1) {
+				overflow.inc_overflow_counter();
+            }
+
+			on_daq_list(daq_list, norm_ts0, norm_ts1 + overflow.get_value(), meas);
+
+			overflow.set_previous_timestamp(norm_ts1);
+
+        }
+    }
+
+    virtual void initialize() {
+    }
+
+    virtual void finalize() {
+    }
+
+   private:
+
+    std::unique_ptr<DAQProcessor> m_decoder;
+	std::vector<DaqTimeTracker>   m_overflows;
+};
+
 
 class XcpLogFileDecoder {
    public:
@@ -1240,12 +1250,12 @@ class XcpLogFileDecoder {
             m_params  = des.run();
 
             for (auto idx=0; idx < m_params.get_daq_lists().size(); ++idx) {
-                m_overflows.emplace_back(Overflow(m_params.get_overflow_value()));
+                m_overflows.emplace_back(DaqTimeTracker(m_params.get_overflow_value()));
             }
 
             m_decoder = std::make_unique<DAQProcessor>(m_params);
         } else {
-            // cannot proceed!!!
+            throw std::runtime_error("XcpLogFileDecoder: missing metadata.");
         }
     }
 
@@ -1289,15 +1299,17 @@ class XcpLogFileDecoder {
 
                     auto& overflow = m_overflows[daq_list];
 
-                    if (overflow.get_previous_timestamp() > ts1) {
+                    auto [norm_ts0, norm_ts1] = overflow.normalize(ts0, ts1);
+
+                    if (overflow.get_previous_timestamp() > norm_ts1) {
                         overflow.inc_overflow_counter();
                         // Maybe on debug-level?
                         // std::cout << "Overflow detected, counter: " << overflow.get_overflow_counter() << " " << overflow.get_previous_timestamp() << " " << ts1 << std::endl;
                     }
 
-                    on_daq_list(daq_list, ts0, ts1 + overflow.get_value(), meas);
+                    on_daq_list(daq_list, norm_ts0, norm_ts1 + overflow.get_value(), meas);
 
-                    overflow.set_previous_timestamp(ts1);
+                    overflow.set_previous_timestamp(norm_ts1);
                 }
             }
         }
@@ -1326,7 +1338,7 @@ class XcpLogFileDecoder {
     XcpLogFileReader              m_reader;
     std::unique_ptr<DAQProcessor> m_decoder;
     MeasurementParameters         m_params;
-    std::vector<Overflow>           m_overflows;
+    std::vector<DaqTimeTracker>   m_overflows;
 };
 
 #endif  // RECORDER_UNFOLDER_HPP

@@ -88,6 +88,8 @@ Run any tool with -h for options.
 - Configuration: docs/configuration.md
 - CAN driver setup and troubleshooting: docs/howto_can_driver.md
 - Recorder: docs/recorder.md
+- Troubleshooting: docs/troubleshooting.md
+- Troubleshooting matrix (common errors, root causes, fixes): docs/troubleshooting_matrix.md
 
 To build the Sphinx documentation locally:
 1. Install doc requirements: `pip install -r docs/requirements.txt`

@@ -16,12 +16,9 @@ else:
     HAS_PANDAS = True
 
 from pyxcp.recorder.rekorder import DaqOnlinePolicy  # noqa: F401
-from pyxcp.recorder.rekorder import (
-    DaqRecorderPolicy,      # noqa: F401
-    Deserializer,           # noqa: F401
-    MeasurementParameters,  # noqa: F401
-    ValueHolder,            # noqa: F401
-)
+from pyxcp.recorder.rekorder import DaqRecorderPolicy  # noqa: F401
+from pyxcp.recorder.rekorder import Deserializer  # noqa: F401
+from pyxcp.recorder.rekorder import MeasurementParameters  # noqa: F401
 from pyxcp.recorder.rekorder import XcpLogFileDecoder as _XcpLogFileDecoder
 from pyxcp.recorder.rekorder import _PyXcpLogFileReader, _PyXcpLogFileWriter, data_types
 

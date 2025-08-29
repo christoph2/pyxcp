@@ -25,7 +25,13 @@ from pyxcp.constants import (
     makeWordUnpacker,
 )
 from pyxcp.daq_stim.stim import DaqEventInfo, Stim
-from pyxcp.master.errorhandler import SystemExit, disable_error_handling, wrapped
+from pyxcp.master.errorhandler import (
+    SystemExit,
+    disable_error_handling,
+    is_suppress_xcp_error_log,
+    set_suppress_xcp_error_log,
+    wrapped,
+)
 from pyxcp.transport.base import create_transport
 from pyxcp.utils import decode_bytes, delay, short_sleep
 
@@ -1972,6 +1978,9 @@ class Master:
         is normal for this kind of applications -- or to test for optional commands.
         Use carefuly not to hide serious error causes.
         """
+        # Suppress logging of expected XCP negative responses during try_command
+        _prev_suppress = is_suppress_xcp_error_log()
+        set_suppress_xcp_error_log(True)
         try:
             extra_msg: Optional[str] = kws.get("extra_msg")
             if extra_msg:
@@ -1985,6 +1994,8 @@ class Master:
                 silent = False
             res = cmd(*args, **kws)
         except SystemExit as e:
+            # restore suppression flag before handling
+            set_suppress_xcp_error_log(_prev_suppress)
             # print(f"\tUnexpected error while executing command {cmd.__name__!r}: {e!r}")
             if e.error_code == types.XcpError.ERR_CMD_UNKNOWN:
                 # This is a rather common use-case, so let the user know that there is some functionality missing.
@@ -2000,6 +2011,12 @@ class Master:
             return (types.TryCommandResult.OTHER_ERROR, e)
         else:
             return (types.TryCommandResult.OK, res)
+        finally:
+            # Ensure suppression flag is restored even on success/other exceptions
+            try:
+                set_suppress_xcp_error_log(_prev_suppress)
+            except Exception:
+                pass
 
 
 def ticks_to_seconds(ticks, resolution):

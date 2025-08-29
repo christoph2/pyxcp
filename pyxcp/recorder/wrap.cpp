@@ -11,7 +11,6 @@
 namespace py = pybind11;
 using namespace pybind11::literals;
 
-PYBIND11_MAKE_OPAQUE(ValueHolder);
 
 class PyDaqOnlinePolicy : public DaqOnlinePolicy {
    public:
@@ -181,9 +180,4 @@ PYBIND11_MODULE(rekorder, m) {
         .def("get_header", &XcpLogFileDecoder::get_header)
         .def("initialize", &XcpLogFileDecoder::initialize)
         .def("finalize", &XcpLogFileDecoder::finalize);
-
-    py::class_<ValueHolder>(m, "ValueHolder")
-        //.def(py::init<const ValueHolder&>())
-        .def(py::init<const std::any&>())
-        .def_property_readonly("value", &ValueHolder::get_value);
 }

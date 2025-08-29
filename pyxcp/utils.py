@@ -113,8 +113,8 @@ def enum_from_str(enum_class: IntEnum, enumerator: str) -> IntEnum:
 
     enumerator: str
 
-    Example
-    -------
+    Examples
+    --------
 
     class Color(enum.IntEnum):
         RED = 0

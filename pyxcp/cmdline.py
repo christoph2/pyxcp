@@ -55,7 +55,7 @@ class ArgumentParser:
         self._description = description
 
     def run(self, policy=None, transport_layer_interface=None):
-        """Create and configure a master instance.
+        """Create and configure a synchronous master instance.
 
         Args:
             policy: Optional policy to use for the master

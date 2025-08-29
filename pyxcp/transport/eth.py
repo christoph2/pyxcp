@@ -69,8 +69,8 @@ class Eth(BaseTransport):
                 self.sockaddr,
             ) = addrinfo[0]
         except BaseException as ex:  # noqa: B036
-            msg = f"XCPonEth - Failed to resolve address {self.host}:{self.port}"
-            self.logger.critical(msg)
+            msg = f"XCPonEth - Failed to resolve address {self.host}:{self.port} ({self.protocol}, ipv6={self.ipv6}): {ex.__class__.__name__}: {ex}"
+            self.logger.critical(msg, extra={"transport": "eth", "host": self.host, "port": self.port, "protocol": self.protocol})
             raise Exception(msg) from ex
         self.status: int = 0
         self.sock = socket.socket(self.address_family, self.socktype, self.proto)
@@ -87,8 +87,10 @@ class Eth(BaseTransport):
             try:
                 self.sock.bind(self._local_address)
             except BaseException as ex:  # noqa: B036
-                msg = f"XCPonEth - Failed to bind socket to given address {self._local_address}"
-                self.logger.critical(msg)
+                msg = f"XCPonEth - Failed to bind socket to given address {self._local_address}: {ex.__class__.__name__}: {ex}"
+                self.logger.critical(
+                    msg, extra={"transport": "eth", "host": self.host, "port": self.port, "protocol": self.protocol}
+                )
                 raise Exception(msg) from ex
         self._packet_listener = threading.Thread(
             target=self._packet_listen,
@@ -194,7 +196,23 @@ class Eth(BaseTransport):
                     else:
                         if current_size >= length:
                             response = data[current_position : current_position + length]
-                            process_response(response, length, counter, timestamp)
+                            try:
+                                process_response(response, length, counter, timestamp)
+                            except BaseException as ex:  # Guard listener against unhandled exceptions (e.g., disk full in policy)
+                                try:
+                                    self.logger.critical(
+                                        f"Listener error in process_response: {ex.__class__.__name__}: {ex}. Stopping listener.",
+                                        extra={"event": "listener_error"},
+                                    )
+                                except Exception:
+                                    pass
+                                try:
+                                    # Signal all loops to stop
+                                    if hasattr(self, "closeEvent"):
+                                        self.closeEvent.set()
+                                except Exception:
+                                    pass
+                                return
                             current_size -= length
                             current_position += length
                             length = None
