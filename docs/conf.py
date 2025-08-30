@@ -40,6 +40,7 @@ release = "0.9"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.doctest",
+#    "myst-parser",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -48,7 +49,9 @@ templates_path = ["_templates"]
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
+source_parsers = {".md": "recommonmark.parser.CommonMarkParser"}
 source_suffix = [".rst", ".md"]
+# source_suffix = { ".md": "markdown" }
 myst_enable_extensions = [
     "colon_fence",
     "deflist",
