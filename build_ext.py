@@ -110,7 +110,12 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
     print(f" BUILD-TYPE: {cfg!r}")
 
     py_cfg = get_py_config()
-
+    # CIBW_ARCHS_LINUX: armv7l
+    cibw_archs_linux = os.environ.get("CIBW_ARCHS_LINUX")
+    if cibw_archs_linux:
+        cibw_archs_linux = cibw_archs_linux.split()
+        if "armv7l" in cibw_archs_linux:
+            print("*** Build on ARM/32!!!")
     cmake_args = [
         f"-DPython3_EXECUTABLE={py_cfg['exe']}",
         f"-DPython3_INCLUDE_DIR={py_cfg['include']}",
