@@ -3,7 +3,6 @@ Readme
 
 .. image:: pyxcp_social.jpg
     :align: center
-    :scale: 25%
 
 Reliable Python tooling for the ASAM MCD-1 XCP protocol (measurement,
 calibration, flashing) with multiple transports (CAN, Ethernet, USB,
