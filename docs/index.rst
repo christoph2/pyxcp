@@ -1,8 +1,10 @@
 Welcome to pyXCP’s documentation
 ================================
 
-.. image:: pyxcp_light_small.jpg
+.. image:: pyxcp_social.jpg
     :align: center
+	:scale: 25%
+
 
 .. toctree::
    :maxdepth: 2
