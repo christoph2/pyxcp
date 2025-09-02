@@ -1,7 +1,7 @@
 Readme
 ======
 
-.. image:: pyxcp_social.jpg
+.. image:: pyxcp_social.svg
     :align: center
 
 Reliable Python tooling for the ASAM MCD-1 XCP protocol (measurement,

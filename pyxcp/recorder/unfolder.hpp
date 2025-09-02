@@ -1142,38 +1142,30 @@ class DaqRecorderPolicy : public DAQPolicyBase {
 class DaqTimeTracker {
 public:
 
-    DaqTimeTracker(std::uint64_t overflow_value) : m_overflow_value(overflow_value), m_overflow_counter(0ULL), m_previous_timestamp(0ULL) { m_ts_base_set=false; m_ts0_base=0ULL; m_ts1_base=0ULL; }
+    DaqTimeTracker(std::uint64_t overflow_value) : m_overflow_value(overflow_value), m_overflow_counter(0ULL), m_previous_timestamp(0ULL) {
+		m_ts_base_set=false;
+		m_ts0_base=0ULL; m_ts1_base=0ULL;
+		//std::cout << "\tOverflow value: " << overflow_value << "\n";
+	}
 
-    auto get_previous_timestamp() const noexcept {
-        return m_previous_timestamp;
-    }
-
-    void set_previous_timestamp(std::uint64_t timestamp) noexcept {
-        m_previous_timestamp = timestamp;
-    }
-
-    void inc_overflow_counter() noexcept {
-        m_overflow_counter++;
-    }
-
-    auto get_overflow_counter() const noexcept {
-        return m_overflow_counter;
-    }
-
-    auto get_value() const noexcept {
-        return m_overflow_value * m_overflow_counter;
-    }
-
-public:
     std::pair<std::uint64_t,std::uint64_t> normalize(std::uint64_t ts0, std::uint64_t ts1) noexcept {
+
+		if (m_previous_timestamp > ts1) {
+			m_overflow_counter++;
+		}
+		m_previous_timestamp = ts1;
+
         if (!m_ts_base_set) {
             m_ts0_base = ts0;
             m_ts1_base = ts1;
             m_ts_base_set = true;
+			// std::cout << "\tSet ts0: " << ts0 << " ts1:" << ts1 << "\n";
         }
-        return {ts0 - m_ts0_base, ts1 - m_ts1_base};
+		// std::cout << "\t\tts0: " << ts0 << " Base: " << m_ts0_base << "  ts1: " << ts1 << " Base: " << m_ts1_base << "\n";
+        return {ts0 - m_ts0_base, (ts1 - m_ts1_base) + (m_overflow_value * m_overflow_counter) };
     }
 private:
+
     std::uint64_t m_overflow_value{};
     std::uint64_t m_overflow_counter{};
     std::uint64_t m_previous_timestamp{};
@@ -1211,19 +1203,11 @@ class DaqOnlinePolicy : public DAQPolicyBase {
         auto result = m_decoder->feed(timestamp, payload);
         if (result) {
             const auto& [daq_list, ts0, ts1, meas] = *result;
-
 			auto& overflow = m_overflows[daq_list];
 
             auto [norm_ts0, norm_ts1] = overflow.normalize(ts0, ts1);
 
-			if (overflow.get_previous_timestamp() > norm_ts1) {
-				overflow.inc_overflow_counter();
-            }
-
-			on_daq_list(daq_list, norm_ts0, norm_ts1 + overflow.get_value(), meas);
-
-			overflow.set_previous_timestamp(norm_ts1);
-
+			on_daq_list(daq_list, norm_ts0, norm_ts1, meas);
         }
     }
 
@@ -1296,20 +1280,11 @@ class XcpLogFileDecoder {
                 auto result = m_decoder->feed(timestamp, str_data);
                 if (result) {
                     const auto& [daq_list, ts0, ts1, meas] = *result;
-
                     auto& overflow = m_overflows[daq_list];
 
                     auto [norm_ts0, norm_ts1] = overflow.normalize(ts0, ts1);
 
-                    if (overflow.get_previous_timestamp() > norm_ts1) {
-                        overflow.inc_overflow_counter();
-                        // Maybe on debug-level?
-                        // std::cout << "Overflow detected, counter: " << overflow.get_overflow_counter() << " " << overflow.get_previous_timestamp() << " " << ts1 << std::endl;
-                    }
-
-                    on_daq_list(daq_list, norm_ts0, norm_ts1 + overflow.get_value(), meas);
-
-                    overflow.set_previous_timestamp(norm_ts1);
+                    on_daq_list(daq_list, norm_ts0, norm_ts1, meas);
                 }
             }
         }

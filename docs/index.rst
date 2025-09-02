@@ -1,9 +1,8 @@
 Welcome to pyXCP’s documentation
 ================================
 
-.. image:: pyxcp_social.jpg
+.. image:: pyxcp_social.svg
     :align: center
-	:scale: 25%
 
 
 .. toctree::
