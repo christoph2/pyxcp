@@ -1109,8 +1109,9 @@ class DaqRecorderPolicy : public DAQPolicyBase {
     }
 
     void feed(std::uint8_t frame_cat, std::uint16_t counter, std::uint64_t timestamp, const std::string& payload) override {
-        if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
+        if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ) || (!m_initialized)) {
             // Only record DAQ frames for now.
+			// also make sure policy is initialized.
             return;
         }
         m_writer->add_frame(frame_cat, counter, timestamp, static_cast<std::uint16_t>(payload.size()), payload.c_str());
