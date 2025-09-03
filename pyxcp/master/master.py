@@ -223,6 +223,10 @@ class Master:
             self.AG_unpack = self.DWORD_unpack
             self.slaveProperties.bytesPerElement = 4
             # self.connected = True
+        status = self.getStatus()
+        if status.sessionStatus.daqRunning:
+            # TODO: resume
+            self.startStopSynch(0x00)
         return result
 
     @wrapped

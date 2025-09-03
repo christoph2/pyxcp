@@ -130,7 +130,7 @@ else:
     ]
 
 
-#daq_parser = DaqToCsv(DAQ_LISTS)  # Record to CSV file(s).
+# daq_parser = DaqToCsv(DAQ_LISTS)  # Record to CSV file(s).
 daq_parser = DaqRecorder(DAQ_LISTS, "run_daq_01092025_01", 8)  # Record to ".xmraw" file.
 
 with ap.run(policy=daq_parser) as x:
