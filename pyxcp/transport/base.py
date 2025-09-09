@@ -259,7 +259,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                     # Build diagnostics and include in exception
                     diag = self._build_diagnostics_dump() if self._diagnostics_enabled() else ""
                     self.logger.debug("XCP request timeout", extra={"event": "timeout", "command": cmd.name})
-                    raise types.XcpTimeoutError(MSG + ("\n" + diag if diag else "")) from None
+                    raise types.XcpTimeoutError(MSG) from None
                 else:
                     self.timing.stop()
                     return
@@ -378,7 +378,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                     # Attach diagnostics
                     diag = self._build_diagnostics_dump() if self._diagnostics_enabled() else ""
                     self.logger.debug("XCP block_receive timeout", extra={"event": "timeout"})
-                    raise types.XcpTimeoutError(msg + ("\n" + diag if diag else "")) from None
+                    raise types.XcpTimeoutError(msg) from None
                 short_sleep()
         return block_response
 
