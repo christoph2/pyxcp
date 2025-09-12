@@ -748,8 +748,10 @@ class Deserializer {
     DaqList create_daq_list() {
         std::string              name;
         std::uint16_t            event_num;
+        std::uint16_t            prescaler;
         bool                     stim;
         bool                     enable_timestamps;
+        bool                     predefined_list;
         std::vector<McObject>    measurements;
         std::vector<Bin>         measurements_opt;
         std::vector<std::string> header_names;
@@ -766,6 +768,8 @@ class Deserializer {
         event_num         = from_binary<std::uint16_t>();
         stim              = from_binary<bool>();
         enable_timestamps = from_binary<bool>();
+        prescaler         = from_binary<std::uint8_t>();
+        predefined_list   = from_binary<bool>();
 
         odt_count     = from_binary<std::uint16_t>();  // not used
         total_entries = from_binary<std::uint16_t>();  // not used
@@ -792,7 +796,7 @@ class Deserializer {
 
         auto odts = create_flatten_odts();
 
-        auto result = DaqList(name, event_num, stim, enable_timestamps, initializer_list);
+        auto result = DaqList(name, event_num, stim, enable_timestamps, initializer_list, prescaler, predefined_list);
         result.set_measurements_opt(measurements_opt);
         return result;
     }
