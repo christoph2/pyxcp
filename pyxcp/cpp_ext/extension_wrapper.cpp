@@ -61,14 +61,15 @@ PYBIND11_MODULE(cpp_ext, m) {
     py::class_<DaqList>(m, "DaqList")
         .def(
             py::init<std::string_view, std::uint16_t, bool, bool, const std::vector<DaqList::daq_list_initialzer_t>&,
-            std::uint8_t, std::uint8_t>(), "name"_a, "event_num"_a, "stim"_a, "enable_timestamps"_a, "measurements"_a,
-            "priority"_a=0, "prescaler"_a=1
+            std::uint8_t, std::uint8_t, bool>(), "name"_a, "event_num"_a, "stim"_a, "enable_timestamps"_a, "measurements"_a,
+            "priority"_a=0, "prescaler"_a=1, "predefined_list"_a=0
         )
         .def("__repr__", [](const DaqList& self) { return self.to_string(); })
         .def_property("name", &DaqList::get_name, nullptr)
         .def_property("event_num", &DaqList::get_event_num, &DaqList::set_event_num)
         .def_property("priority", &DaqList::get_priority, nullptr)
         .def_property("prescaler", &DaqList::get_prescaler, nullptr)
+		.def_property("predefined_list", &DaqList::get_predefined_list, nullptr)
         .def_property("stim", &DaqList::get_stim, nullptr)
         .def_property("enable_timestamps", &DaqList::get_enable_timestamps, nullptr)
         .def_property("measurements", &DaqList::get_measurements, nullptr)
