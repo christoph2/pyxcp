@@ -748,12 +748,21 @@ HEADER_LEN_FILL_WORD    |   2   X   2
     tail_format = Enum(
         values=["NO_CHECKSUM", "CHECKSUM_BYTE", "CHECKSUM_WORD"], default_value="NO_CHECKSUM", help="XCPonSxI tail format."
     ).tag(config=True)
-    framing = Bool(False, help="Enable SCI framing mechanism (ESC chars).").tag(config=True)
+    framing = Enum(
+        values=["NO_FRAMING", "FRAMING", "IMPROVED_FRAMING"],
+        default_value="NO_FRAMING",
+        help="""SCI framing mechanism:
+
+NO_FRAMING: framing fully disabled.
+FRAMING: a SYNC char is prepended to each frame
+IMPROVED_FRAMING: same like FRAMING and additionally inside a frame following replacement rules are applied for improved frame detection: SYNC -> ESC+ESC_SYNC and ESC -> ESC+ESC_ESC
+""",
+    ).tag(config=True)
 
     @validate("framing")
     def _validate_framing(self, proposal):
         framing = proposal["value"]
-        if self.framing and self.mode != "ASYNCH_FULL_DUPLEX_MODE":
+        if framing != "NO_FRAMING" and self.mode != "ASYNCH_FULL_DUPLEX_MODE":
             raise TraitError("Framing can only be used in asynchronous (SCI) full duplex mode.")
         return framing
 

@@ -96,11 +96,13 @@ class SxI(BaseTransport):
 
     def handle_framing(self, frame):
 
-        # Replace SYNC by ESC+ESC_SYNC
-        frame = b"".join(bytes([self.esc]) + bytes([ESC.ESC_SYNC]) if byte == self.sync else bytes([byte]) for byte in frame)
+        if self.framing == "IMPROVED_FRAMING":
 
-        # Replace ESC by ESC+ESC_ESC
-        frame = b"".join(bytes([self.esc]) + bytes([ESC.ESC_ESC]) if byte == self.esc else bytes([byte]) for byte in frame)
+            # Replace SYNC by ESC+ESC_SYNC
+            frame = b"".join(bytes([self.esc]) + bytes([ESC.ESC_SYNC]) if byte == self.sync else bytes([byte]) for byte in frame)
+
+            # Replace ESC by ESC+ESC_ESC
+            frame = b"".join(bytes([self.esc]) + bytes([ESC.ESC_ESC]) if byte == self.esc else bytes([byte]) for byte in frame)
 
         # Add sync char in front of each frame
         frame = bytes([self.sync]) + frame
@@ -136,7 +138,7 @@ class SxI(BaseTransport):
 
             recv_timestamp = self.timestamp.value
 
-            if self.framing:
+            if self.framing != "NO_FRAMING":
                 sync = self.comm_port.read(1)  # first byte before a frame must always be the sync byte
                 if sync != bytes([self.sync]):
                     raise types.FrameStructureError("Frame Wrong sync byte received.")
@@ -153,7 +155,7 @@ class SxI(BaseTransport):
 
     def send(self, frame) -> None:
         self.pre_send_timestamp = self.timestamp.value
-        if self.framing:
+        if self.framing != "NO_FRAMING":
             frame = self.handle_framing(frame)
         self.comm_port.write(frame)
         self.post_send_timestamp = self.timestamp.value
