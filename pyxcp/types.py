@@ -42,6 +42,12 @@ class FrameSizeError(Exception):
     """
 
 
+class FrameStructureError(Exception):
+    """
+    A frame with an invalid structure was received.
+    """
+
+
 class XcpResponseError(Exception):
     """
     Raise an `exception` from an XCP error packet.

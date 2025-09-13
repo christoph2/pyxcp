@@ -23,6 +23,7 @@ from traitlets import (
     TraitError,
     Unicode,
     Union,
+    validate,
 )
 from traitlets.config import Application, Configurable, Instance, default
 from traitlets.config.loader import Config
@@ -748,8 +749,16 @@ HEADER_LEN_FILL_WORD    |   2   X   2
         values=["NO_CHECKSUM", "CHECKSUM_BYTE", "CHECKSUM_WORD"], default_value="NO_CHECKSUM", help="XCPonSxI tail format."
     ).tag(config=True)
     framing = Bool(False, help="Enable SCI framing mechanism (ESC chars).").tag(config=True)
-    esc_sync = Integer(0x01, min=0, max=255, help="SCI framing protocol character SYNC.").tag(config=True)
-    esc_esc = Integer(0x00, min=0, max=255, help="SCI framing protocol character ESC.").tag(config=True)
+
+    @validate("framing")
+    def _validate_framing(self, proposal):
+        framing = proposal["value"]
+        if self.framing and self.mode != "ASYNCH_FULL_DUPLEX_MODE":
+            raise TraitError("Framing can only be used in asynchronous (SCI) full duplex mode.")
+        return framing
+
+    sync = Integer(0x01, min=0, max=255, help="SCI framing protocol character SYNC.").tag(config=True)
+    esc = Integer(0x00, min=0, max=255, help="SCI framing protocol character ESC.").tag(config=True)
 
 
 class Usb(Configurable):
