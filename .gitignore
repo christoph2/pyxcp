@@ -26,6 +26,18 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# artifacts from installing package in editable mode
+CMakeFiles/
+CMakeCache.txt
+install_manifest.txt
+Release/*
+*/Release/*
+pyxcp/*.exe
+*.vcxproj
+*.filters
+*.cmake
+*.sln
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.

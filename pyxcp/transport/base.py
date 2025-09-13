@@ -327,7 +327,12 @@ class BaseTransport(metaclass=abc.ABCMeta):
         else:
             packet = bytes(flatten(cmd_bytes, data))
 
-        header = self.HEADER.pack(len(packet), self.counter_send)
+        nr_args_expected = len(self.HEADER.unpack(b"\x00" * self.HEADER.size))
+        if nr_args_expected == 2:
+            header = self.HEADER.pack(len(packet), self.counter_send)
+        else:  # if nr_args_expected == 1
+            header = self.HEADER.pack(len(packet))
+
         self.counter_send = (self.counter_send + 1) & 0xFFFF
 
         frame = header + packet
