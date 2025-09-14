@@ -15,6 +15,7 @@
 #include <thread>
 #include <tuple>
 #include <vector>
+#include <cstring>  // memcpy
 
 namespace py = pybind11;
 
@@ -53,14 +54,18 @@ std::vector<std::uint8_t> serialize_cmd_value(std::uint32_t value) {
 	std::vector<std::uint8_t> result;
 
 	auto bc = byte_count(value);
+	result.reserve(bc);
 
 	switch (bc) {
 		case 4:
 			result.push_back(static_cast<std::uint8_t>(static_cast<std::uint32_t>(((value & 0xff000000UL)) >> 24)));
+			[[fallthrough]];
 		case 3:
 			result.push_back(static_cast<std::uint8_t>(static_cast<std::uint32_t>(((value & 0xff0000UL)) >> 16)));
+			[[fallthrough]];
 		case 2:
 			result.push_back(static_cast<std::uint8_t>(static_cast<std::uint16_t>(((value & 0xff00UL)) >> 8)));
+			[[fallthrough]];
 		case 1:
 			result.push_back(static_cast<std::uint8_t>(value & 0xffUL));
 			break;
@@ -80,7 +85,16 @@ std::vector<std::uint8_t> serialize_word_le(std::uint16_t value) {
 }
 
 std::string_view bytes_as_string_view(const py::bytes& data) {
-    return std::string_view{data};
+    // Zero-copy view into Python bytes; lifetime is tied to 'data' which
+    // outlives this function call.
+    char* buf = nullptr;
+    Py_ssize_t len = 0;
+    // PyBytes_AsStringAndSize returns 0 on success.
+    if (PyBytes_AsStringAndSize(data.ptr(), &buf, &len) != 0 || buf == nullptr || len < 0) {
+        // Fallback: empty view on error (should be rare)
+        return std::string_view{};
+    }
+    return std::string_view(buf, static_cast<std::size_t>(len));
 }
 
 enum class XcpTransportLayerType : std::uint8_t {
@@ -168,25 +182,31 @@ public:
         auto data_view = bytes_as_string_view(data);
         if (std::size(data_view) >= (get_header_size() + initial_offset)) {
             auto offset = initial_offset;
-            auto length = 0U;
-            auto counter = 0U;
+            std::uint16_t length = 0U;
+            std::uint16_t counter = 0U;
 
+            // Read length field starting at current offset (if present)
             if (m_framing_type.header_len > 0) {
-                offset += m_framing_type.header_len;
                 if (m_framing_type.header_len == 1) {
-                    length = static_cast<std::uint16_t>(data_view[0]);
+                    length = static_cast<std::uint16_t>(static_cast<std::uint8_t>(data_view[offset]));
                 } else {
-                    length = static_cast<std::uint16_t>(data_view[0] | (data_view[1] << 8));
+                    auto b0 = static_cast<std::uint8_t>(data_view[offset]);
+                    auto b1 = static_cast<std::uint8_t>(data_view[offset + 1]);
+                    length = static_cast<std::uint16_t>(static_cast<std::uint16_t>(b0) | (static_cast<std::uint16_t>(b1) << 8));
                 }
+                offset += m_framing_type.header_len;
             }
+            // Read counter field starting after length (if present)
             if (m_framing_type.header_ctr > 0) {
                 if (m_framing_type.header_ctr == 1) {
-                    counter = static_cast<std::uint16_t>(data_view[offset]);
+                    counter = static_cast<std::uint16_t>(static_cast<std::uint8_t>(data_view[offset]));
                 } else {
-                    counter = static_cast<std::uint16_t>(data_view[offset] | (data_view[offset + 1] << 8));
+                    auto c0 = static_cast<std::uint8_t>(data_view[offset]);
+                    auto c1 = static_cast<std::uint8_t>(data_view[offset + 1]);
+                    counter = static_cast<std::uint16_t>(static_cast<std::uint16_t>(c0) | (static_cast<std::uint16_t>(c1) << 8));
                 }
-		    }
-		    return std::make_tuple(length, counter);
+            }
+            return std::make_tuple(length, counter);
         }
         return std::nullopt;
     }
@@ -206,9 +226,9 @@ private:
 	}
 
 	void set_send_buffer(const std::vector<std::uint8_t>& values) noexcept {
-		for (auto idx=0; idx < values.size(); ++idx) {
-			m_send_buffer[m_send_buffer_offset] = values[idx];
-			m_send_buffer_offset++;
+		if (!values.empty()) {
+			std::memcpy(m_send_buffer + m_send_buffer_offset, values.data(), values.size());
+			m_send_buffer_offset += static_cast<std::uint16_t>(values.size());
 		}
 	}
 

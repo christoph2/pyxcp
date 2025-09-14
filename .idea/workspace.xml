@@ -16,7 +16,10 @@
     <configurations />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1febaf4b-3911-495c-8b89-d73da684e6d5" name="Changes" comment="Add bin-packing tests." />
+    <list default="true" id="1febaf4b-3911-495c-8b89-d73da684e6d5" name="Changes" comment="Add bin-packing tests.">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/cpp_ext/framing.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/framing.hpp" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -139,7 +142,7 @@
     &quot;cf.advertisement.text.overridden&quot;: &quot;true&quot;,
     &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
     &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;framing__cpp&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
     &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
     &quot;last_opened_file_path&quot;: &quot;C:/Users/Chris/PycharmProjects/pyxcp&quot;,
@@ -692,7 +695,8 @@
       <workItem from="1757663288754" duration="1474000" />
       <workItem from="1757674385946" duration="3799000" />
       <workItem from="1757740613587" duration="1014000" />
-      <workItem from="1757808904202" duration="378000" />
+      <workItem from="1757808904202" duration="2180000" />
+      <workItem from="1757821154733" duration="2702000" />
     </task>
     <task id="LOCAL-00001" summary="Try to fix Linux build, again ....">
       <created>1648542766058</created>
@@ -860,7 +864,7 @@
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pyxcp/transport/eth.py</url>
-          <line>107</line>
+          <line>105</line>
           <option name="timeStamp" value="2" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -870,47 +874,47 @@
         </line-breakpoint>
         <line-breakpoint suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pyxcp/master/master.py</url>
-          <line>155</line>
+          <line>270</line>
           <option name="timeStamp" value="61" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pyxcp/transport/base.py</url>
-          <line>262</line>
+          <line>265</line>
           <option name="timeStamp" value="108" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pyxcp/transport/can.py</url>
-          <line>307</line>
+          <line>239</line>
           <option name="timeStamp" value="110" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pyxcp/transport/can.py</url>
-          <line>552</line>
+          <line>459</line>
           <option name="timeStamp" value="111" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pyxcp/transport/can.py</url>
-          <line>401</line>
+          <line>314</line>
           <option name="timeStamp" value="112" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pyxcp/transport/can.py</url>
-          <line>312</line>
+          <line>244</line>
           <option name="timeStamp" value="113" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pyxcp/scripts/xcp_info.py</url>
-          <line>4</line>
+          <line>5</line>
           <option name="timeStamp" value="114" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pyxcp/config/__init__.py</url>
-          <line>1027</line>
+          <line>929</line>
           <option name="timeStamp" value="124" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pyxcp/config/__init__.py</url>
-          <line>1223</line>
+          <line>1079</line>
           <option name="timeStamp" value="126" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -920,37 +924,37 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pyxcp/tests/test_master.py</url>
-          <line>424</line>
+          <line>535</line>
           <option name="timeStamp" value="131" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pyxcp/tests/test_master.py</url>
-          <line>373</line>
+          <line>484</line>
           <option name="timeStamp" value="132" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pyxcp/tests/test_master.py</url>
-          <line>329</line>
+          <line>440</line>
           <option name="timeStamp" value="133" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pyxcp/tests/test_master.py</url>
-          <line>212</line>
+          <line>323</line>
           <option name="timeStamp" value="134" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pyxcp/tests/test_master.py</url>
-          <line>231</line>
+          <line>342</line>
           <option name="timeStamp" value="136" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pyxcp/tests/test_master.py</url>
-          <line>215</line>
+          <line>326</line>
           <option name="timeStamp" value="137" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/pyxcp/master/master.py</url>
-          <line>429</line>
+          <line>713</line>
           <option name="timeStamp" value="139" />
         </line-breakpoint>
       </breakpoints>
