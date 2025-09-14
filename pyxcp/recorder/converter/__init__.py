@@ -1,5 +1,4 @@
-"""Convert pyXCPs .xmraw files to common data formats.
-"""
+"""Convert pyXCPs .xmraw files to common data formats."""
 
 import csv
 import logging
@@ -318,8 +317,7 @@ class MdfConverter(CollectRows, XcpLogFileDecoder):
             time_flags=FLAG_HD_TIME_OFFSET_VALID,
         )
         hdr.comment = f"""<HDcomment><TX>Timezone: {timestamp_info.timezone}</TX></HDcomment>"""  # Test-Comment.
-        mdf4 = MDF(version="4.10")
-        mdf4.header = hdr
+        mdf4 = MDF(version="4.10", header=hdr)
         for idx, arr in enumerate(self.tables):
             signals = []
             timestamps = arr.timestamp0
@@ -369,7 +367,8 @@ class SqliteConverter(XcpLogFileDecoder):
         self.create_table(sc)
         self.logger.info(f"Creating table {sc.name!r}.")
         self.insert_stmt[sc.name] = (
-            f"""INSERT INTO {sc.name}({', '.join(['timestamp0', 'timestamp1'] + [r.name for r in sc.arr])}) VALUES({', '.join(["?" for _ in range(len(sc.arr) + 2)])})"""
+            f"""INSERT INTO {sc.name}({', '.join(['timestamp0', 'timestamp1'] + [r.name for r in sc.arr])})"""
+            f""" VALUES({', '.join(["?" for _ in range(len(sc.arr) + 2)])})"""
         )
 
     def on_finalize(self) -> None:

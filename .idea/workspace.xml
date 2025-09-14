@@ -1,0 +1,976 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="CMakePresetLoader">{
+  &quot;useNewFormat&quot;: true
+}</component>
+  <component name="CMakeReloadState">
+    <option name="reloaded" value="true" />
+  </component>
+  <component name="CMakeRunConfigurationManager">
+    <generated />
+  </component>
+  <component name="CMakeSettings">
+    <configurations />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="1febaf4b-3911-495c-8b89-d73da684e6d5" name="Changes" comment="Add bin-packing tests." />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="JavaScript File" />
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="ROOT_SYNC" value="DONT_SYNC" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;christoph2&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/christoph2/pyxcp&quot;,
+    &quot;accountId&quot;: &quot;04d9a6d4-e279-4a71-97bd-14abd47d4966&quot;
+  }
+}</component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/pyproject.toml" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/cmdline.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/config/__init__.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/config/legacy.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/cpp_ext/__init__.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/cpp_ext/daqlist.hpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/daq_stim/__init__.py" root0="SKIP_INSPECTION" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/daq_stim/optimize/__init__.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/daq_stim/optimize/binpacking.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/errormatrix.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/examples/run_mini.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/examples/ts_tester.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/examples/xcp_daq_polling.py" root0="SKIP_INSPECTION" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/examples/xcp_recording.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/examples/xcphello.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/examples/xcphello_logg.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/examples/xpl_counter.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/master/errorhandler.py" root0="SKIP_INSPECTION" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/master/master.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/recorder/__init__.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/recorder/reader.hpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/recorder/rekorder.hpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/recorder/unfolder.hpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/recorder/wrap.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/scripts/xcp_examples.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/scripts/xcp_info.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/tests/test_can.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/tests/test_frame_padding.py" root0="SKIP_INSPECTION" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/timing.py" root0="SKIP_INSPECTION" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/transport/__init__.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/transport/base.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/transport/can.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/transport/eth.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/transport/sxi.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/transport/usb_transport.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/types.py" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/pyxcp/utils.py" root0="FORCE_HIGHLIGHTING" />
+  </component>
+  <component name="MacroExpansionManager">
+    <option name="directoryName" value="fg01jmyj" />
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="QODANA_PROBLEMS_VIEW_TAB" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 6
+}</component>
+  <component name="ProjectId" id="26uzNPSFADwsIjAnH7UHfjSN2T8" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;GenProtobuf.pythonLoc&quot;: &quot;.\\&quot;,
+    &quot;GenProtobuf.quickGen&quot;: &quot;Python&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python docs.Sphinx Task in docs.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest in test_conformance_mocked.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest in test_daq_opt.py.executor&quot;: &quot;Debug&quot;,
+    &quot;Python tests.pytest in test_master.py.executor&quot;: &quot;Debug&quot;,
+    &quot;Python tests.pytest in test_transport.py.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.__init__.executor&quot;: &quot;Debug&quot;,
+    &quot;Python._multiarray_umath.executor&quot;: &quot;Run&quot;,
+    &quot;Python.base.executor&quot;: &quot;Run&quot;,
+    &quot;Python.dackel_lite.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.dackel_new.executor&quot;: &quot;Run&quot;,
+    &quot;Python.kaunta.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.run_daq.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.test_daq_opt.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.xcp_daq_polling.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.xcp_examples.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.xcp_recording.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.xcphello.executor&quot;: &quot;Debug&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.com.insyncwithfoo.pyrightls.configuration.converter.ProjectConfigurationsConverter&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;cf.advertisement.text.overridden&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/Chris/PycharmProjects/pyxcp&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  },
+  &quot;keyToStringList&quot;: {
+    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
+      &quot;Python&quot;
+    ]
+  }
+}</component>
+  <component name="PyConsoleOptionsProvider">
+    <option name="myPythonConsoleState">
+      <console-settings module-name="pyxcp" sdk-home="C:\Users\Chris\PycharmProjects\pyxcp\venv\Scripts\python.exe">
+        <option name="sdk">
+          <Sdk />
+        </option>
+        <option name="mySdkHome" value="C:\Users\Chris\PycharmProjects\pyxcp\venv\Scripts\python.exe" />
+        <option name="mySdk">
+          <Sdk />
+        </option>
+        <option name="myModuleName" value="pyxcp" />
+      </console-settings>
+    </option>
+  </component>
+  <component name="QodanaHighlightedReportService">
+    <option name="localRunNotPublishedPersistedInfo">
+      <LocalReportPersistedInfo>
+        <option name="path" value="C:\Users\Chris\AppData\Local\Temp\qodana_output\qodana.sarif.json" />
+        <option name="reportGuid" value="34fee93e-4ce5-47a0-9e70-76c51c570ef1" />
+        <option name="reportName" value="pyxcp/qodana/2025-03-04" />
+      </LocalReportPersistedInfo>
+    </option>
+  </component>
+  <component name="QodanaIsSelectedPersistenceService">
+    <option name="selectedOrLoading" value="true" />
+  </component>
+  <component name="QodanaReportsService">
+    <option name="descriptions">
+      <ReportDescription localRun="true" path="C:\Users\Chris\AppData\Local\Temp\qodana_output\qodana.sarif.json" reportGuid="34fee93e-4ce5-47a0-9e70-76c51c570ef1" reportId="pyxcp/qodana/2025-03-04" />
+    </option>
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\Chris\PycharmProjects\pyxcp\pyxcp\examples" />
+      <recent name="C:\Users\Chris\PycharmProjects\pyxcp\docs" />
+      <recent name="C:\Users\Chris\PycharmProjects\pyxcp\pyxcp\tests" />
+      <recent name="C:\Users\Chris\PycharmProjects\pyxcp\pyxcp\daq_stim" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.dackel_lite">
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="config_new" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="pyxcp" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/pyxcp" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/pyxcp/config_new.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="config_tr" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="pyxcp" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/pyxcp" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/pyxcp/config_tr.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="dackel_lite" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+      <module name="pyxcp" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/pyxcp/examples/dackel_lite.py" />
+      <option name="PARAMETERS" value="-c C:\Users\Chris\PycharmProjects\pyxcp\pyxcp\examples\conf_eth.toml" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="kaunta" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+      <module name="pyxcp" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="C:\Users\Chris\PycharmProjects\pyxcp\pyxcp\examples" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/pyxcp/examples/kaunta.py" />
+      <option name="PARAMETERS" value="-c C:\Users\Chris\PycharmProjects\pyxcp\pyxcp\examples\conf_can.py" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="xcphello" type="PythonConfigurationType" factoryName="Python">
+      <module name="pyxcp" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="C:\Users\Chris\PycharmProjects\pyxcp\venv\Scripts\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/pyxcp/examples" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/pyxcp/examples/xcphello.py" />
+      <option name="PARAMETERS" value="-c conf_can.py -l DEBUG" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Sphinx Task in docs" type="docs" factoryName="Sphinx task">
+      <module name="pyxcp" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="docutils_input_file" value="$PROJECT_DIR$/docs" />
+      <option name="docutils_output_file" value="$PROJECT_DIR$/docs/_output" />
+      <option name="docutils_params" value="" />
+      <option name="docutils_task" value="latex" />
+      <option name="docutils_open_in_browser" value="false" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest in test_daq_opt.py" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="pyxcp" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/pyxcp/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/pyxcp/tests/test_daq_opt.py&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest in test_reko.py" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="pyxcp" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/pyxcp/recorder" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/pyxcp/recorder/test_reko.py&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="pytest in test_transport.py" type="tests" factoryName="py.test" temporary="true" nameIsGenerated="true">
+      <module name="pyxcp" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/pyxcp/tests" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="_new_keywords" value="&quot;&quot;" />
+      <option name="_new_parameters" value="&quot;&quot;" />
+      <option name="_new_additionalArguments" value="&quot;&quot;" />
+      <option name="_new_target" value="&quot;$PROJECT_DIR$/pyxcp/tests/test_transport.py&quot;" />
+      <option name="_new_targetType" value="&quot;PATH&quot;" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Python.dackel_lite" />
+      <item itemvalue="Python.kaunta" />
+      <item itemvalue="Python.xcphello" />
+      <item itemvalue="Python.config_new" />
+      <item itemvalue="Python.config_tr" />
+      <item itemvalue="Python docs.Sphinx Task in docs" />
+      <item itemvalue="Python tests.pytest in test_daq_opt.py" />
+      <item itemvalue="Python tests.pytest in test_reko.py" />
+      <item itemvalue="Python tests.pytest in test_transport.py" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python tests.pytest in test_transport.py" />
+        <item itemvalue="Python tests.pytest in test_daq_opt.py" />
+        <item itemvalue="Python tests.pytest in test_reko.py" />
+        <item itemvalue="Python.config_tr" />
+        <item itemvalue="Python.config_new" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-b598e85cdad2-JavaScript-PY-252.25557.178" />
+        <option value="bundled-python-sdk-ce6832f46686-7b97d883f26b-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.25557.178" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="SvnConfiguration">
+    <configuration>C:\Users\Chris\AppData\Roaming\Subversion</configuration>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="1febaf4b-3911-495c-8b89-d73da684e6d5" name="Changes" comment="" />
+      <created>1648288223000</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1648288223000</updated>
+      <workItem from="1648288224972" duration="771000" />
+      <workItem from="1648471028279" duration="19262000" />
+      <workItem from="1648669920505" duration="19000" />
+      <workItem from="1648670110807" duration="645000" />
+      <workItem from="1648704559567" duration="8037000" />
+      <workItem from="1648716958652" duration="5934000" />
+      <workItem from="1650962996892" duration="2306000" />
+      <workItem from="1651407686926" duration="2758000" />
+      <workItem from="1651411520518" duration="21944000" />
+      <workItem from="1653378057484" duration="829000" />
+      <workItem from="1656842261869" duration="7109000" />
+      <workItem from="1656911676154" duration="2950000" />
+      <workItem from="1657011204215" duration="535000" />
+      <workItem from="1657011934546" duration="657000" />
+      <workItem from="1657275283900" duration="1996000" />
+      <workItem from="1657458088401" duration="1840000" />
+      <workItem from="1659759324093" duration="23452000" />
+      <workItem from="1660115616907" duration="257000" />
+      <workItem from="1660115928005" duration="590000" />
+      <workItem from="1660189155786" duration="1285000" />
+      <workItem from="1660450067064" duration="3575000" />
+      <workItem from="1660707087450" duration="1757000" />
+      <workItem from="1663881598108" duration="611000" />
+      <workItem from="1664081903580" duration="561000" />
+      <workItem from="1664260392604" duration="617000" />
+      <workItem from="1664487679675" duration="1132000" />
+      <workItem from="1664588125307" duration="588000" />
+      <workItem from="1664696892861" duration="1910000" />
+      <workItem from="1665301582620" duration="1673000" />
+      <workItem from="1665634936003" duration="1400000" />
+      <workItem from="1665750026670" duration="743000" />
+      <workItem from="1665902379976" duration="10645000" />
+      <workItem from="1666766303851" duration="1201000" />
+      <workItem from="1666846269777" duration="736000" />
+      <workItem from="1666858570893" duration="6264000" />
+      <workItem from="1667460539189" duration="587000" />
+      <workItem from="1667715834308" duration="645000" />
+      <workItem from="1668574498703" duration="1113000" />
+      <workItem from="1669266346180" duration="24471000" />
+      <workItem from="1669785164052" duration="5308000" />
+      <workItem from="1669877740921" duration="1159000" />
+      <workItem from="1670409250233" duration="538000" />
+      <workItem from="1670995314796" duration="542000" />
+      <workItem from="1670997398638" duration="9018000" />
+      <workItem from="1671522577239" duration="559000" />
+      <workItem from="1671717244379" duration="590000" />
+      <workItem from="1671779676829" duration="1112000" />
+      <workItem from="1672564308654" duration="1179000" />
+      <workItem from="1672824901984" duration="552000" />
+      <workItem from="1679903580793" duration="22665000" />
+      <workItem from="1680274947385" duration="1139000" />
+      <workItem from="1680409164415" duration="25715000" />
+      <workItem from="1680821160292" duration="6440000" />
+      <workItem from="1682277485137" duration="745000" />
+      <workItem from="1682852700426" duration="2280000" />
+      <workItem from="1682949650225" duration="4152000" />
+      <workItem from="1684004183374" duration="2272000" />
+      <workItem from="1684899764470" duration="647000" />
+      <workItem from="1685206118779" duration="360000" />
+      <workItem from="1685605554267" duration="634000" />
+      <workItem from="1685606735146" duration="17029000" />
+      <workItem from="1685937557494" duration="597000" />
+      <workItem from="1686034088679" duration="1421000" />
+      <workItem from="1686040030705" duration="20000" />
+      <workItem from="1686046151803" duration="1316000" />
+      <workItem from="1686049286360" duration="588000" />
+      <workItem from="1686109816720" duration="1309000" />
+      <workItem from="1686216041088" duration="525000" />
+      <workItem from="1687514904732" duration="357000" />
+      <workItem from="1687515408236" duration="1111000" />
+      <workItem from="1687678344266" duration="538000" />
+      <workItem from="1687695819736" duration="2524000" />
+      <workItem from="1687974012350" duration="1174000" />
+      <workItem from="1688131790776" duration="2826000" />
+      <workItem from="1688444527034" duration="62000" />
+      <workItem from="1688666245881" duration="330000" />
+      <workItem from="1688709952243" duration="948000" />
+      <workItem from="1689134514139" duration="826000" />
+      <workItem from="1689169648998" duration="524000" />
+      <workItem from="1689176513756" duration="243000" />
+      <workItem from="1689320731787" duration="9911000" />
+      <workItem from="1689519777710" duration="2489000" />
+      <workItem from="1689568770823" duration="657000" />
+      <workItem from="1689743676190" duration="833000" />
+      <workItem from="1689745501219" duration="665000" />
+      <workItem from="1690119064834" duration="61000" />
+      <workItem from="1690119263136" duration="1079000" />
+      <workItem from="1691735401494" duration="2000" />
+      <workItem from="1695268250046" duration="1083000" />
+      <workItem from="1695274123039" duration="2365000" />
+      <workItem from="1695402776690" duration="43879000" />
+      <workItem from="1695707665855" duration="42564000" />
+      <workItem from="1695910965137" duration="1603000" />
+      <workItem from="1695956783096" duration="4577000" />
+      <workItem from="1695971689218" duration="73306000" />
+      <workItem from="1696345625058" duration="43830000" />
+      <workItem from="1696650679147" duration="4230000" />
+      <workItem from="1696691677360" duration="23995000" />
+      <workItem from="1696998232030" duration="170000" />
+      <workItem from="1697083101251" duration="503000" />
+      <workItem from="1697099689723" duration="157000" />
+      <workItem from="1697101863485" duration="33346000" />
+      <workItem from="1697523196274" duration="129317000" />
+      <workItem from="1698308023700" duration="9960000" />
+      <workItem from="1699552459798" duration="1498000" />
+      <workItem from="1699688570437" duration="652000" />
+      <workItem from="1700102458616" duration="464000" />
+      <workItem from="1700193877261" duration="1318000" />
+      <workItem from="1700311198814" duration="2670000" />
+      <workItem from="1700362573835" duration="6732000" />
+      <workItem from="1701086077379" duration="1365000" />
+      <workItem from="1701195601843" duration="599000" />
+      <workItem from="1701938833580" duration="3815000" />
+      <workItem from="1701944580904" duration="7606000" />
+      <workItem from="1702525210897" duration="74000" />
+      <workItem from="1702574250836" duration="23804000" />
+      <workItem from="1703050294347" duration="1152000" />
+      <workItem from="1703086131546" duration="1893000" />
+      <workItem from="1703140976401" duration="18345000" />
+      <workItem from="1703477049620" duration="4009000" />
+      <workItem from="1704115968994" duration="820000" />
+      <workItem from="1704133996512" duration="142000" />
+      <workItem from="1704134180389" duration="26000" />
+      <workItem from="1704427642513" duration="1098000" />
+      <workItem from="1704618668957" duration="11592000" />
+      <workItem from="1704813229181" duration="27255000" />
+      <workItem from="1704949374422" duration="26250000" />
+      <workItem from="1705417329612" duration="17822000" />
+      <workItem from="1706453761530" duration="540000" />
+      <workItem from="1706502868011" duration="42306000" />
+      <workItem from="1708551538471" duration="2272000" />
+      <workItem from="1708586900046" duration="4028000" />
+      <workItem from="1708603644355" duration="119931000" />
+      <workItem from="1709284604224" duration="27649000" />
+      <workItem from="1709453005361" duration="619000" />
+      <workItem from="1712373468189" duration="15806000" />
+      <workItem from="1712824377277" duration="37911000" />
+      <workItem from="1713239611678" duration="9459000" />
+      <workItem from="1713540427589" duration="6633000" />
+      <workItem from="1713613399766" duration="8935000" />
+      <workItem from="1713801728939" duration="7215000" />
+      <workItem from="1714189132695" duration="739000" />
+      <workItem from="1714280069359" duration="77000" />
+      <workItem from="1714280207912" duration="556000" />
+      <workItem from="1714884271959" duration="809000" />
+      <workItem from="1715513101123" duration="5853000" />
+      <workItem from="1715667227423" duration="10016000" />
+      <workItem from="1716046747641" duration="1141000" />
+      <workItem from="1716171960543" duration="17490000" />
+      <workItem from="1716283364145" duration="4429000" />
+      <workItem from="1716343655363" duration="2612000" />
+      <workItem from="1716462579280" duration="4959000" />
+      <workItem from="1716609958685" duration="2774000" />
+      <workItem from="1716914091776" duration="27311000" />
+      <workItem from="1717258008923" duration="28677000" />
+      <workItem from="1717565867900" duration="26488000" />
+      <workItem from="1717815712820" duration="2565000" />
+      <workItem from="1718682145673" duration="1282000" />
+      <workItem from="1720323269501" duration="71672000" />
+      <workItem from="1720772029155" duration="751000" />
+      <workItem from="1720931103912" duration="10927000" />
+      <workItem from="1720982829615" duration="21817000" />
+      <workItem from="1721202564533" duration="56452000" />
+      <workItem from="1721620701470" duration="21822000" />
+      <workItem from="1721908745430" duration="11603000" />
+      <workItem from="1721958382447" duration="25079000" />
+      <workItem from="1722048039322" duration="17913000" />
+      <workItem from="1722833823652" duration="21238000" />
+      <workItem from="1723360751508" duration="2674000" />
+      <workItem from="1723519347960" duration="514000" />
+      <workItem from="1723519907718" duration="13642000" />
+      <workItem from="1723782009192" duration="329000" />
+      <workItem from="1723782480103" duration="20158000" />
+      <workItem from="1724076714188" duration="7705000" />
+      <workItem from="1724375148357" duration="12565000" />
+      <workItem from="1724496767121" duration="2057000" />
+      <workItem from="1724551030262" duration="1254000" />
+      <workItem from="1724637247651" duration="1927000" />
+      <workItem from="1724661199417" duration="2259000" />
+      <workItem from="1725007937132" duration="5904000" />
+      <workItem from="1725108187329" duration="2344000" />
+      <workItem from="1725154406847" duration="6024000" />
+      <workItem from="1725333856542" duration="40829000" />
+      <workItem from="1725513293594" duration="22796000" />
+      <workItem from="1725940201495" duration="6947000" />
+      <workItem from="1726645051087" duration="12449000" />
+      <workItem from="1726726379610" duration="803000" />
+      <workItem from="1726764565192" duration="11582000" />
+      <workItem from="1727165689069" duration="590000" />
+      <workItem from="1727188771096" duration="1273000" />
+      <workItem from="1727410846358" duration="579000" />
+      <workItem from="1727412322554" duration="21117000" />
+      <workItem from="1727840193205" duration="15362000" />
+      <workItem from="1727973456433" duration="1875000" />
+      <workItem from="1728088614884" duration="1793000" />
+      <workItem from="1728318270220" duration="10436000" />
+      <workItem from="1728427835486" duration="2752000" />
+      <workItem from="1728459925630" duration="563000" />
+      <workItem from="1728473518679" duration="2106000" />
+      <workItem from="1728485347964" duration="600000" />
+      <workItem from="1728530684965" duration="1209000" />
+      <workItem from="1728561165188" duration="3952000" />
+      <workItem from="1728661927625" duration="572000" />
+      <workItem from="1728723206056" duration="5312000" />
+      <workItem from="1728770814183" duration="1542000" />
+      <workItem from="1728796232302" duration="592000" />
+      <workItem from="1728803218232" duration="13493000" />
+      <workItem from="1728953890591" duration="10241000" />
+      <workItem from="1729101575802" duration="6908000" />
+      <workItem from="1729303114754" duration="1964000" />
+      <workItem from="1729430659204" duration="2422000" />
+      <workItem from="1729916326693" duration="337000" />
+      <workItem from="1730045315067" duration="2435000" />
+      <workItem from="1730375330806" duration="21525000" />
+      <workItem from="1735566269290" duration="914000" />
+      <workItem from="1736312172928" duration="9056000" />
+      <workItem from="1736333256979" duration="5532000" />
+      <workItem from="1741052717272" duration="3371000" />
+      <workItem from="1741070310570" duration="5887000" />
+      <workItem from="1746613906700" duration="1209000" />
+      <workItem from="1746630967547" duration="1515000" />
+      <workItem from="1746778052779" duration="393000" />
+      <workItem from="1746779353771" duration="274000" />
+      <workItem from="1746779860544" duration="4085000" />
+      <workItem from="1747309446368" duration="3799000" />
+      <workItem from="1747386017522" duration="1832000" />
+      <workItem from="1747712040681" duration="23178000" />
+      <workItem from="1748438058844" duration="9954000" />
+      <workItem from="1749185628740" duration="9427000" />
+      <workItem from="1749273427345" duration="29478000" />
+      <workItem from="1749463604078" duration="31171000" />
+      <workItem from="1749784994779" duration="4977000" />
+      <workItem from="1749874726405" duration="26549000" />
+      <workItem from="1750142119655" duration="336000" />
+      <workItem from="1750304575157" duration="5710000" />
+      <workItem from="1750400402821" duration="37214000" />
+      <workItem from="1750659148631" duration="11752000" />
+      <workItem from="1750732916569" duration="53017000" />
+      <workItem from="1750919354969" duration="8168000" />
+      <workItem from="1752707388659" duration="13661000" />
+      <workItem from="1752903246177" duration="1670000" />
+      <workItem from="1754976876311" duration="3981000" />
+      <workItem from="1755042710420" duration="3065000" />
+      <workItem from="1755142124524" duration="3807000" />
+      <workItem from="1755348185559" duration="22631000" />
+      <workItem from="1755505206687" duration="4817000" />
+      <workItem from="1755513267557" duration="7880000" />
+      <workItem from="1755605894575" duration="2201000" />
+      <workItem from="1755613355150" duration="8810000" />
+      <workItem from="1755748207305" duration="11784000" />
+      <workItem from="1755853664184" duration="558000" />
+      <workItem from="1756270775975" duration="6015000" />
+      <workItem from="1756396357609" duration="34086000" />
+      <workItem from="1756530055137" duration="3795000" />
+      <workItem from="1756541286864" duration="7480000" />
+      <workItem from="1756556611324" duration="1590000" />
+      <workItem from="1756715904564" duration="3648000" />
+      <workItem from="1757401103200" duration="2045000" />
+      <workItem from="1757603445001" duration="4032000" />
+      <workItem from="1757644215482" duration="277000" />
+      <workItem from="1757663288754" duration="1474000" />
+      <workItem from="1757674385946" duration="3799000" />
+      <workItem from="1757740613587" duration="1014000" />
+      <workItem from="1757808904202" duration="378000" />
+    </task>
+    <task id="LOCAL-00001" summary="Try to fix Linux build, again ....">
+      <created>1648542766058</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1648542766058</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Stop supporting Py3.6">
+      <created>1648544839190</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1648544839190</updated>
+    </task>
+    <task id="LOCAL-00003" summary="Disable Ubuntu build">
+      <created>1648550675303</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1648550675303</updated>
+    </task>
+    <task id="LOCAL-00004" summary="python-can dependency was missing">
+      <created>1648705988893</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1648705988893</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Initial commit on branch">
+      <created>1656842590707</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1656842590707</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Recorder package">
+      <created>1660493779151</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1660493779151</updated>
+    </task>
+    <task id="LOCAL-00007" summary="Make DISCONNECT response optional.">
+      <created>1669716292962</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1669716292962</updated>
+    </task>
+    <task id="LOCAL-00008" summary="Try Python 3.11 and Ubuntu builds.">
+      <created>1671124783239</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1671124783240</updated>
+    </task>
+    <task id="LOCAL-00009" summary="Fix serial port properties">
+      <option name="closed" value="true" />
+      <created>1727667474657</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1727667474657</updated>
+    </task>
+    <task id="LOCAL-00010" summary="Add bin-packing tests.">
+      <option name="closed" value="true" />
+      <created>1747734404825</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1747734404825</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
+    <servers>
+      <GitHub url="https://github.com">
+        <option name="repoAuthor" value="christoph2" />
+        <option name="repoName" value="pyxcp" />
+      </GitHub>
+    </servers>
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="dependencySupport" implementationName="executable:docker" />
+    <option featureType="dependencySupport" implementationName="executable:kubectl" />
+  </component>
+  <component name="VCPKGProject">
+    <isAutomaticEditVcpkgJson value="false" />
+    <isAutomaticCheckingOnLaunch value="false" />
+    <isAutomaticFoundErrors value="true" />
+    <isAutomaticFoundErrors value="true" />
+  </component>
+  <component name="Vcs.Log.History.Properties">
+    <option name="COLUMN_ID_ORDER">
+      <list>
+        <option value="Default.Root" />
+        <option value="Default.Author" />
+        <option value="Default.Date" />
+        <option value="Default.Subject" />
+        <option value="GitHub.CommitStatus" />
+      </list>
+    </option>
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="OPEN_GENERIC_TABS">
+      <map>
+        <entry key="f3f144fa-6fe8-4ba2-ac6c-e6b1927e1533" value="TOOL_WINDOW" />
+      </map>
+    </option>
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+        <entry key="f3f144fa-6fe8-4ba2-ac6c-e6b1927e1533">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="HEAD" />
+                      </list>
+                    </value>
+                  </entry>
+                  <entry key="roots">
+                    <value>
+                      <list>
+                        <option value="$PROJECT_DIR$" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+              <option name="SHOW_ONLY_AFFECTED_CHANGES" value="true" />
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Try to fix Linux build, again ...." />
+    <MESSAGE value="Stop supporting Py3.6" />
+    <MESSAGE value="Disable Ubuntu build" />
+    <MESSAGE value="python-can dependency was missing" />
+    <MESSAGE value="More type annotations" />
+    <MESSAGE value="Initial commit on branch" />
+    <MESSAGE value="Initial commit on branch traitlets_config" />
+    <MESSAGE value="Recorder package" />
+    <MESSAGE value="Make DISCONNECT response optional." />
+    <MESSAGE value="Try Python 3.11 and Ubuntu builds." />
+    <MESSAGE value="Add `xcp-examples` script" />
+    <MESSAGE value="Fix serial port properties" />
+    <MESSAGE value="Add bin-packing tests." />
+    <option name="LAST_COMMIT_MESSAGE" value="Add bin-packing tests." />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/transport/eth.py</url>
+          <line>107</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/transport/eth.py</url>
+          <line>56</line>
+          <option name="timeStamp" value="44" />
+        </line-breakpoint>
+        <line-breakpoint suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/master/master.py</url>
+          <line>155</line>
+          <option name="timeStamp" value="61" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/transport/base.py</url>
+          <line>262</line>
+          <option name="timeStamp" value="108" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/transport/can.py</url>
+          <line>307</line>
+          <option name="timeStamp" value="110" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/transport/can.py</url>
+          <line>552</line>
+          <option name="timeStamp" value="111" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/transport/can.py</url>
+          <line>401</line>
+          <option name="timeStamp" value="112" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/transport/can.py</url>
+          <line>312</line>
+          <option name="timeStamp" value="113" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/scripts/xcp_info.py</url>
+          <line>4</line>
+          <option name="timeStamp" value="114" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/config/__init__.py</url>
+          <line>1027</line>
+          <option name="timeStamp" value="124" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/config/__init__.py</url>
+          <line>1223</line>
+          <option name="timeStamp" value="126" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/tests/test_transport.py</url>
+          <line>109</line>
+          <option name="timeStamp" value="128" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/tests/test_master.py</url>
+          <line>424</line>
+          <option name="timeStamp" value="131" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/tests/test_master.py</url>
+          <line>373</line>
+          <option name="timeStamp" value="132" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/tests/test_master.py</url>
+          <line>329</line>
+          <option name="timeStamp" value="133" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/tests/test_master.py</url>
+          <line>212</line>
+          <option name="timeStamp" value="134" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/tests/test_master.py</url>
+          <line>231</line>
+          <option name="timeStamp" value="136" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/tests/test_master.py</url>
+          <line>215</line>
+          <option name="timeStamp" value="137" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/master/master.py</url>
+          <line>429</line>
+          <option name="timeStamp" value="139" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/pyxcp$xcp_daq_polling.coverage" NAME="xcp_daq_polling Coverage Results" MODIFIED="1729143114364" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyxcp/examples" />
+    <SUITE FILE_PATH="coverage/pyxcp$run_daq.coverage" NAME="run_daq Coverage Results" MODIFIED="1728894552263" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyxcp/examples" />
+    <SUITE FILE_PATH="coverage/pyxcp$kaunta.coverage" NAME="kaunta Coverage Results" MODIFIED="1717310412263" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="C:\Users\Chris\PycharmProjects\pyxcp\pyxcp\examples" />
+    <SUITE FILE_PATH="coverage/pyxcp$__init__.coverage" NAME="__init__ Coverage Results" MODIFIED="1729143171747" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyxcp/config" />
+    <SUITE FILE_PATH="coverage/pyxcp$base.coverage" NAME="base Coverage Results" MODIFIED="1748507703230" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyxcp/transport" />
+    <SUITE FILE_PATH="coverage/pyxcp$pytest_in_test_master_py.coverage" NAME="pytest in test_master.py Coverage Results" MODIFIED="1750814694071" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyxcp/tests" />
+    <SUITE FILE_PATH="coverage/pyxcp$_multiarray_umath.coverage" NAME="_multiarray_umath Coverage Results" MODIFIED="1725354813121" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$USER_HOME$/AppData/Local/Programs/Python/Python312/Lib/site-packages/numpy/core" />
+    <SUITE FILE_PATH="coverage/pyxcp$pytest_in_test_daq_opt_py.coverage" NAME="pytest in test_daq_opt.py Coverage Results" MODIFIED="1747734217166" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyxcp/tests" />
+    <SUITE FILE_PATH="coverage/pyxcp$xcp_examples.coverage" NAME="xcp_examples Coverage Results" MODIFIED="1726673117936" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyxcp/scripts" />
+    <SUITE FILE_PATH="coverage/pyxcp$xcp_recording.coverage" NAME="xcp_recording Coverage Results" MODIFIED="1757675939660" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyxcp/examples" />
+    <SUITE FILE_PATH="coverage/pyxcp$dackel_lite.coverage" NAME="dackel_lite Coverage Results" MODIFIED="1729143076932" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/pyxcp$xcphello.coverage" NAME="xcphello Coverage Results" MODIFIED="1721924861473" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyxcp/examples" />
+    <SUITE FILE_PATH="coverage/pyxcp$test_daq_opt.coverage" NAME="test_daq_opt Coverage Results" MODIFIED="1747733986058" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyxcp/tests" />
+    <SUITE FILE_PATH="coverage/pyxcp$pytest_in_test_conformance_mocked_py.coverage" NAME="pytest in test_conformance_mocked.py Coverage Results" MODIFIED="1756464324492" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/pyxcp$pytest_in_test_transport_py.coverage" NAME="pytest in test_transport.py Coverage Results" MODIFIED="1748503973072" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyxcp/tests" />
+  </component>
+</project>

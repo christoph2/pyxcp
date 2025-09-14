@@ -1,0 +1,7 @@
+
+T	cpp:S5028"8Replace this macro by "const", "constexpr" or an "enum".(Á·¨«8žó“€¹1
+	cpp:S3806""^non-portable path to file '<windows.h>'; specified path differs in case from file name on disk(íƒö’üÿÿÿÿ8ˆ´”€¹1
+Tcpp:S954º"8Move these 3 #include directives to the top of the file.(¿€è‰8ï´”€¹1
+T	cpp:S5028"8Replace this macro by "const", "constexpr" or an "enum".(Á·¨«8å¸”€¹1
+	cpp:S3806""^non-portable path to file '<windows.h>'; specified path differs in case from file name on disk(íƒö’üÿÿÿÿ8ÛÓ”€¹1
+Tcpp:S954º"8Move these 3 #include directives to the top of the file.(¿€è‰8§Ô”€¹1
