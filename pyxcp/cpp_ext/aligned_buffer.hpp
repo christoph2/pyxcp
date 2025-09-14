@@ -6,6 +6,13 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <vector>
+#include <string_view>
+#include <stdexcept>
+#include <algorithm>
+#include <cstring>
+
+#include <pybind11/pybind11.h>
 
 #if (defined(_WIN32) || defined(_WIN64)) && defined(_MSC_VER)
     #include <malloc.h>
@@ -19,11 +26,14 @@ public:
 
     AlignedBuffer(size_t size = 0xffff) : m_size(size), m_current_pos(0)  {
         m_buffer = nullptr;
-        // Create natural aligned buffer.
+        // Create naturally aligned buffer.
+        constexpr std::size_t align = alignof(int);
+        // aligned_alloc requires size to be a multiple of alignment.
+        const std::size_t aligned_size = ((m_size + align - 1) / align) * align;
         #if (defined(_WIN32) || defined(_WIN64)) && defined(_MSC_VER)
-        m_buffer = static_cast<uint8_t*>(::_aligned_malloc(size, alignof(int)));
+        m_buffer = static_cast<uint8_t*>(::_aligned_malloc(aligned_size, align));
         #else
-        m_buffer = static_cast<uint8_t*>(::aligned_alloc(alignof(int), size));
+        m_buffer = static_cast<uint8_t*>(::aligned_alloc(align, aligned_size));
         #endif
     }
 
@@ -34,7 +44,11 @@ public:
 
     ~AlignedBuffer() {
         if (m_buffer) {
+            #if (defined(_WIN32) || defined(_WIN64)) && defined(_MSC_VER)
+            ::_aligned_free(m_buffer);
+            #else
             ::free(m_buffer);
+            #endif
             m_buffer = nullptr;
         }
     }
@@ -54,7 +68,7 @@ public:
     }
 
     void append(uint8_t value) {
-        if ((m_current_pos + 1) >= m_size) {
+        if ((m_current_pos + 1) > m_size) {
             throw std::overflow_error("Buffer overflow");
         }
         m_buffer[m_current_pos] = value;
@@ -67,8 +81,13 @@ public:
         m_buffer[index] = value;
     }
 
-    std::string_view bytes_as_string_view(const py::bytes& data) {
-        return std::string_view{data};
+    static std::string_view bytes_as_string_view(const py::bytes& data) {
+        char* buf = nullptr;
+        Py_ssize_t len = 0;
+        if (PyBytes_AsStringAndSize(data.ptr(), &buf, &len) != 0 || buf == nullptr || len < 0) {
+            return std::string_view{};
+        }
+        return std::string_view(buf, static_cast<std::size_t>(len));
     }
 
 
@@ -78,20 +97,20 @@ public:
         if ((data_view.size() + m_current_pos) > m_size) {
             throw std::invalid_argument("Values vector is too large");
         }
-		for (auto idx=0; idx < data_view.size(); ++idx) {
-			m_buffer[m_current_pos] = data_view[idx];
-			m_current_pos++;
-		}
+        if (!data_view.empty()) {
+            std::memcpy(m_buffer + m_current_pos, data_view.data(), data_view.size());
+            m_current_pos += data_view.size();
+        }
 	}
 
 	void extend(const std::vector<std::uint8_t>& values) noexcept {
         if ((values.size() + m_current_pos) > m_size) {
             throw std::invalid_argument("Values vector is too large");
         }
-		for (auto idx=0; idx < values.size(); ++idx) {
-			m_buffer[m_current_pos] = values[idx];
-			m_current_pos++;
-		}
+        if (!values.empty()) {
+            std::memcpy(m_buffer + m_current_pos, values.data(), values.size());
+            m_current_pos += values.size();
+        }
 	}
 
     std::variant<uint8_t, py::bytes> get_item(py::object index) const {
@@ -103,11 +122,14 @@ public:
             }
             return slice(start, stop, step);
         } else if (py::isinstance<py::int_>(index)) {
-            size_t idx = index.cast<size_t>();
+            Py_ssize_t idx = index.cast<Py_ssize_t>();
             if (idx < 0) {
-                idx += size();
+                idx += static_cast<Py_ssize_t>(size());
             }
-            return get(idx);
+            if (idx < 0 || static_cast<std::size_t>(idx) >= size()) {
+                throw std::out_of_range("Index out of range");
+            }
+            return get(static_cast<std::size_t>(idx));
         } else {
             throw py::type_error("Invalid index type");
         }
@@ -117,19 +139,23 @@ public:
         if (step == 0) {
             throw std::invalid_argument("Step cannot be zero");
         }
-        if (start < 0) {
-            start += size();
-        }
-        if (stop < 0) {
-            stop += size();
-        }
-
         // Clamp indices to valid range
         start = std::max(size_t(0), std::min(start, size_t(size())));
         stop = std::max(size_t(0), std::min(stop, size_t(size())));
 
-        py::bytes result(reinterpret_cast<const char*>(m_buffer) + start, stop - start);
-        return result;
+        if (start >= stop) {
+            return py::bytes("");
+        }
+        if (step == 1) {
+            return py::bytes(reinterpret_cast<const char*>(m_buffer) + start, stop - start);
+        }
+        // General step handling (build result with stride)
+        std::string out;
+        out.reserve((stop - start + step - 1) / step);
+        for (size_t i = start; i < stop; i += step) {
+            out.push_back(static_cast<char>(m_buffer[i]));
+        }
+        return py::bytes(out);
     }
 
 private:

@@ -16,10 +16,7 @@
     <configurations />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1febaf4b-3911-495c-8b89-d73da684e6d5" name="Changes" comment="Add bin-packing tests.">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyxcp/cpp_ext/framing.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/framing.hpp" afterDir="false" />
-    </list>
+    <list default="true" id="1febaf4b-3911-495c-8b89-d73da684e6d5" name="Changes" comment="framing.hpp: Fix offset issue." />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -696,7 +693,7 @@
       <workItem from="1757674385946" duration="3799000" />
       <workItem from="1757740613587" duration="1014000" />
       <workItem from="1757808904202" duration="2180000" />
-      <workItem from="1757821154733" duration="2702000" />
+      <workItem from="1757821154733" duration="3025000" />
     </task>
     <task id="LOCAL-00001" summary="Try to fix Linux build, again ....">
       <created>1648542766058</created>
@@ -857,7 +854,8 @@
     <MESSAGE value="Add `xcp-examples` script" />
     <MESSAGE value="Fix serial port properties" />
     <MESSAGE value="Add bin-packing tests." />
-    <option name="LAST_COMMIT_MESSAGE" value="Add bin-packing tests." />
+    <MESSAGE value="framing.hpp: Fix offset issue." />
+    <option name="LAST_COMMIT_MESSAGE" value="framing.hpp: Fix offset issue." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
