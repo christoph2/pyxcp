@@ -16,7 +16,6 @@ from can import (
     detect_available_configs,
 )
 from can.bus import BusABC
-from can.interface import _get_class_for_interface
 from rich.console import Console
 
 from pyxcp.config import CAN_INTERFACE_MAP
