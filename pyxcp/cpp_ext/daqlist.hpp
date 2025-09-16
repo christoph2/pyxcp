@@ -21,7 +21,7 @@ class Odt {
 
     const std::vector<McObject>& get_entries() const {
         return m_entries;
-        }
+    }
 
    private:
     std::vector<McObject> m_entries;
@@ -73,6 +73,10 @@ class DaqListBase {
 
     bool get_stim() const noexcept {
         return m_stim;
+    }
+
+    const std::vector<McObject>& get_measurements() const {
+        return m_measurements;
     }
 
     const std::vector<Bin>& get_measurements_opt() const {

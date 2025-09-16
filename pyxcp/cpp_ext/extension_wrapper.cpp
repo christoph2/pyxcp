@@ -91,7 +91,7 @@ PYBIND11_MODULE(cpp_ext, m) {
             "priority"_a=0, "prescaler"_a=1
         )
         .def_property_readonly("odts", &PredefinedDaqList::get_odts);
-                
+
     py::enum_<TimestampType>(m, "TimestampType")
         .value("ABSOLUTE_TS", TimestampType::ABSOLUTE_TS)
         .value("RELATIVE_TS", TimestampType::RELATIVE_TS);
