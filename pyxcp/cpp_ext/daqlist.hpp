@@ -8,23 +8,42 @@
 
 using flatten_odts_t = std::vector<std::vector<std::tuple<std::string, std::uint32_t, std::uint8_t, std::uint16_t, std::int16_t>>>;
 
-class DaqList {
+class Odt {
    public:
+    using odt_entry_initializer_t = std::tuple<std::string, std::string>;
 
-    using daq_list_initialzer_t = std::tuple<std::string, std::uint32_t, std::uint16_t, std::string>;
-
-    DaqList(
-        std::string_view meas_name, std::uint16_t event_num, bool stim, bool enable_timestamps,
-        const std::vector<daq_list_initialzer_t>& measurements, std::uint8_t priority=0x00, std::uint8_t prescaler=0x01, bool predefined_list=false
-    ) :
-        m_name(meas_name), m_event_num(event_num), m_priority(priority), m_prescaler(prescaler), m_stim(stim), m_enable_timestamps(enable_timestamps), m_predefined_list(predefined_list) {
-        for (const auto& measurement : measurements) {
-            auto const& [name, address, ext, dt_name] = measurement;
-            m_measurements.emplace_back(McObject(name, address, static_cast<std::uint8_t>(ext), 0, dt_name));
+    Odt(const std::vector<odt_entry_initializer_t>& entries) {
+        for (const auto& entry : entries) {
+            const auto& [name, dt_name] = entry;
+            m_entries.emplace_back(McObject(name, 0, 0, 0, dt_name));
         }
     }
 
-    bool get_enable_timestamps() const noexcept {
+    const std::vector<McObject>& get_entries() const {
+        return m_entries;
+        }
+
+   private:
+    std::vector<McObject> m_entries;
+};
+
+class DaqListBase {
+   public:
+    DaqListBase(std::string_view name, std::uint16_t event_num, bool stim, bool enable_timestamps, std::uint8_t priority, std::uint8_t prescaler) :
+        m_name(name),
+        m_event_num(event_num),
+        m_priority(priority),
+        m_prescaler(prescaler),
+        m_stim(stim),
+        m_enable_timestamps(enable_timestamps),
+        m_odt_count(0),
+        m_total_entries(0),
+        m_total_length(0) {
+    }
+
+    virtual ~DaqListBase() = default;
+
+    bool get_enable_timestamps() const {
         return m_enable_timestamps;
     }
 
@@ -56,11 +75,7 @@ class DaqList {
         return m_stim;
     }
 
-    const std::vector<McObject>& get_measurements() const noexcept {
-        return m_measurements;
-    }
-
-    const std::vector<Bin>& get_measurements_opt() const noexcept {
+    const std::vector<Bin>& get_measurements_opt() const {
         return m_measurements_opt;
     }
 
@@ -115,7 +130,43 @@ class DaqList {
         m_total_length  = total_length;
     }
 
-    std::string dumps() const noexcept {
+   protected:
+    std::string                                       m_name;
+    std::uint16_t                                     m_event_num;
+    std::uint8_t                                      m_priority;
+    std::uint8_t                                      m_prescaler;
+    bool                                              m_stim;
+    bool                                              m_enable_timestamps;
+    std::vector<Bin>                                  m_measurements_opt;
+    std::vector<std::string>                          m_header_names;
+    std::vector<std::tuple<std::string, std::string>> m_headers;
+    std::uint16_t                                     m_odt_count;
+    std::uint16_t                                     m_total_entries;
+    std::uint16_t                                     m_total_length;
+    flatten_odts_t                                    m_flatten_odts;
+};
+
+class DaqList : public DaqListBase {
+   public:
+
+    using daq_list_initialzer_t = std::tuple<std::string, std::uint32_t, std::uint16_t, std::string>;
+
+    DaqList(
+        std::string_view meas_name, std::uint16_t event_num, bool stim, bool enable_timestamps,
+        const std::vector<daq_list_initialzer_t>& measurements, std::uint8_t priority=0x00, std::uint8_t prescaler=0x01
+    ) :
+        DaqListBase(meas_name, event_num, stim, enable_timestamps, priority, prescaler) {
+        for (const auto& measurement : measurements) {
+            auto const& [name, address, ext, dt_name] = measurement;
+            m_measurements.emplace_back(McObject(name, address, static_cast<std::uint8_t>(ext), 0, dt_name));
+        }
+    }
+
+    const std::vector<McObject>& get_measurements() const {
+        return m_measurements;
+    }
+
+    std::string dumps() const {
         std::stringstream ss;
 
         ss << to_binary(m_name);
@@ -165,7 +216,7 @@ class DaqList {
         std::stringstream ss;
 
         ss << "DaqList(";
-        ss << "name=\"" << m_name << "\", ";
+        ss << "name="" << m_name << "", ";
         ss << "event_num=" << static_cast<std::uint16_t>(m_event_num) << ", ";
         ss << "stim=" << bool_to_string(m_stim) << ", ";
         ss << "enable_timestamps=" << bool_to_string(m_enable_timestamps) << ", ";
@@ -183,7 +234,7 @@ class DaqList {
         ss << "],\n";
         ss << "header_names=[\n";
         for (const auto& header : m_header_names) {
-            ss << "\"" << header << "\",";
+            ss << """ << header << "",";
         }
         ss << "\n]";
         ss << ")";
@@ -194,22 +245,29 @@ class DaqList {
     }
 
    private:
+    std::vector<McObject> m_measurements;
+};
 
-    std::string                                       m_name;
-    std::uint16_t                                     m_event_num;
-    std::uint8_t                                      m_priority;
-    std::uint8_t                                      m_prescaler;
-    bool                                              m_stim;
-    bool                                              m_enable_timestamps;
-	bool											  m_predefined_list;
-    std::vector<McObject>                             m_measurements;
-    std::vector<Bin>                                  m_measurements_opt;
-    std::vector<std::string>                          m_header_names;
-    std::vector<std::tuple<std::string, std::string>> m_headers;
-    std::uint16_t                                     m_odt_count;
-    std::uint16_t                                     m_total_entries;
-    std::uint16_t                                     m_total_length;
-    flatten_odts_t                                    m_flatten_odts;
+class PredefinedDaqList : public DaqListBase {
+   public:
+    using odt_initializer_t = std::vector<Odt::odt_entry_initializer_t>;
+    using predefined_daq_list_initializer_t = std::vector<odt_initializer_t>;
+
+    PredefinedDaqList(
+        std::string_view name, std::uint16_t event_num, bool stim, bool enable_timestamps,
+        const predefined_daq_list_initializer_t& odts, std::uint8_t priority = 0x00, std::uint8_t prescaler = 0x01) :
+        DaqListBase(name, event_num, stim, enable_timestamps, priority, prescaler) {
+        for (const auto& odt_init : odts) {
+            m_odts.emplace_back(Odt(odt_init));
+        }
+    }
+
+    const std::vector<Odt>& get_odts() const {
+        return m_odts;
+    }
+
+   private:
+    std::vector<Odt> m_odts;
 };
 
 #endif  // __DAQ_LIST_HPP
