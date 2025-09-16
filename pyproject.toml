@@ -117,7 +117,7 @@ show_column_numbers = true
 show_error_context = true
 
 [tool.flake8]
-ignore = ["D203", "E203", "E266", "E501", "W503", "F403", "F401", "BLK100"]
+ignore = ["D203", "E203", "E266", "E501", "W503", "F403", "F401", "BLK100", "DAR101", "DAR201"]
 exclude = '''
 /(
     \.git
