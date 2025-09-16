@@ -220,7 +220,7 @@ class DaqList : public DaqListBase {
         std::stringstream ss;
 
         ss << "DaqList(";
-        ss << "name="" << m_name << "", ";
+        ss << "name=\"" << m_name << "\", ";
         ss << "event_num=" << static_cast<std::uint16_t>(m_event_num) << ", ";
         ss << "stim=" << bool_to_string(m_stim) << ", ";
         ss << "enable_timestamps=" << bool_to_string(m_enable_timestamps) << ", ";
@@ -238,7 +238,7 @@ class DaqList : public DaqListBase {
         ss << "],\n";
         ss << "header_names=[\n";
         for (const auto& header : m_header_names) {
-            ss << """ << header << "",";
+            ss << "\"" << header << "\",";
         }
         ss << "\n]";
         ss << ")";
