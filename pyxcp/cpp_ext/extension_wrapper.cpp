@@ -58,25 +58,39 @@ PYBIND11_MODULE(cpp_ext, m) {
 
         .def("__len__", [](const Bin& self) { return std::size(self.get_entries()); });
 
-    py::class_<DaqList>(m, "DaqList")
+    py::class_<Odt>(m, "Odt")
+        .def(py::init<const std::vector<Odt::odt_entry_initializer_t>&>(), "entries"_a)
+        .def_property_readonly("entries", &Odt::get_entries);
+
+    py::class_<DaqListBase>(m, "DaqListBase")
+        .def_property("name", &DaqListBase::get_name, nullptr)
+        .def_property("event_num", &DaqListBase::get_event_num, &DaqListBase::set_event_num)
+        .def_property("priority", &DaqListBase::get_priority, nullptr)
+        .def_property("prescaler", &DaqListBase::get_prescaler, nullptr)
+        .def_property("stim", &DaqListBase::get_stim, nullptr)
+        .def_property("enable_timestamps", &DaqListBase::get_enable_timestamps, nullptr)
+        .def_property("measurements_opt", &DaqListBase::get_measurements_opt, &DaqListBase::set_measurements_opt)
+        .def_property("headers", &DaqListBase::get_headers, nullptr)
+        .def_property("odt_count", &DaqListBase::get_odt_count, nullptr)
+        .def_property("total_entries", &DaqListBase::get_total_entries, nullptr)
+        .def_property("total_length", &DaqListBase::get_total_length, nullptr);
+
+    py::class_<DaqList, DaqListBase>(m, "DaqList")
         .def(
             py::init<std::string_view, std::uint16_t, bool, bool, const std::vector<DaqList::daq_list_initialzer_t>&,
             std::uint8_t, std::uint8_t>(), "name"_a, "event_num"_a, "stim"_a, "enable_timestamps"_a, "measurements"_a,
             "priority"_a=0, "prescaler"_a=1
         )
         .def("__repr__", [](const DaqList& self) { return self.to_string(); })
-        .def_property("name", &DaqList::get_name, nullptr)
-        .def_property("event_num", &DaqList::get_event_num, &DaqList::set_event_num)
-        .def_property("priority", &DaqList::get_priority, nullptr)
-        .def_property("prescaler", &DaqList::get_prescaler, nullptr)
-        .def_property("stim", &DaqList::get_stim, nullptr)
-        .def_property("enable_timestamps", &DaqList::get_enable_timestamps, nullptr)
-        .def_property("measurements", &DaqList::get_measurements, nullptr)
-        .def_property("measurements_opt", &DaqList::get_measurements_opt, &DaqList::set_measurements_opt)
-        .def_property("headers", &DaqList::get_headers, nullptr)
-        .def_property("odt_count", &DaqList::get_odt_count, nullptr)
-        .def_property("total_entries", &DaqList::get_total_entries, nullptr)
-        .def_property("total_length", &DaqList::get_total_length, nullptr);
+        .def_property("measurements", &DaqList::get_measurements, nullptr);
+
+    py::class_<PredefinedDaqList, DaqListBase>(m, "PredefinedDaqList")
+        .def(
+            py::init<std::string_view, std::uint16_t, bool, bool, const PredefinedDaqList::predefined_daq_list_initializer_t&,
+            std::uint8_t, std::uint8_t>(), "name"_a, "event_num"_a, "stim"_a, "enable_timestamps"_a, "odts"_a,
+            "priority"_a=0, "prescaler"_a=1
+        )
+        .def_property_readonly("odts", &PredefinedDaqList::get_odts);
 
     py::enum_<TimestampType>(m, "TimestampType")
         .value("ABSOLUTE_TS", TimestampType::ABSOLUTE_TS)

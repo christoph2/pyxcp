@@ -1945,12 +1945,25 @@ class Master:
 
         gen = make_generator(scan_ranges)
         for id_value, name in gen:
-            status, response = self.try_command(self.identifier, id_value)
+            # Avoid noisy warnings while probing
+            status, response = self.try_command(self.identifier, id_value, silent=True)
             if status == types.TryCommandResult.OK and response:
                 result[name] = response
-            elif status == types.TryCommandResult.XCP_ERROR and response.error_code == types.XcpError.ERR_CMD_UNKNOWN:
-                break  # Nothing to do here.
-            elif status == types.TryCommandResult.OTHER_ERROR:
+                continue
+            if status == types.TryCommandResult.NOT_IMPLEMENTED:
+                # GET_ID not supported by the slave at all → stop scanning
+                break
+            if status == types.TryCommandResult.XCP_ERROR:
+                # Some IDs may not be supported; ignore typical probe errors
+                try:
+                    err = response.error_code
+                except Exception:
+                    err = None
+                if err in (types.XcpError.ERR_OUT_OF_RANGE, types.XcpError.ERR_CMD_SYNTAX):
+                    continue
+                # For any other XCP error, keep scanning (best-effort) instead of aborting
+                continue
+            if status == types.TryCommandResult.OTHER_ERROR:
                 raise RuntimeError(f"Error while scanning for ID {id_value}: {response!r}")
         return result
 
@@ -2020,7 +2033,7 @@ class Master:
             try:
                 set_suppress_xcp_error_log(_prev_suppress)
             except Exception:
-                pass
+                pass  # nosec B110
 
 
 def ticks_to_seconds(ticks, resolution):
