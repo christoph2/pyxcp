@@ -72,9 +72,10 @@ class DaqProcessor:
             max_payload_size = min(max_odt_entry_size, max_dto - header_len)
             # First ODT may contain timestamp.
             self.selectable_timestamps = False
+            max_payload_size_first = max_payload_size
             if not self.supports_timestampes:
-                max_payload_size_first = max_payload_size
                 # print("NO TIMESTAMP SUPPORT")
+                pass
             else:
                 if self.ts_fixed:
                     # print("Fixed timestamp")

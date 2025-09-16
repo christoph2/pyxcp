@@ -78,8 +78,8 @@ PYBIND11_MODULE(cpp_ext, m) {
     py::class_<DaqList, DaqListBase>(m, "DaqList")
         .def(
             py::init<std::string_view, std::uint16_t, bool, bool, const std::vector<DaqList::daq_list_initialzer_t>&,
-            std::uint8_t, std::uint8_t, bool>(), "name"_a, "event_num"_a, "stim"_a, "enable_timestamps"_a, "measurements"_a,
-            "priority"_a=0, "prescaler"_a=1, "predefined_list"_a=0
+            std::uint8_t, std::uint8_t>(), "name"_a, "event_num"_a, "stim"_a, "enable_timestamps"_a, "measurements"_a,
+            "priority"_a=0, "prescaler"_a=1
         )
         .def("__repr__", [](const DaqList& self) { return self.to_string(); })
         .def_property("measurements", &DaqList::get_measurements, nullptr);
@@ -91,7 +91,7 @@ PYBIND11_MODULE(cpp_ext, m) {
             "priority"_a=0, "prescaler"_a=1
         )
         .def_property_readonly("odts", &PredefinedDaqList::get_odts);
-                
+
     py::enum_<TimestampType>(m, "TimestampType")
         .value("ABSOLUTE_TS", TimestampType::ABSOLUTE_TS)
         .value("RELATIVE_TS", TimestampType::RELATIVE_TS);

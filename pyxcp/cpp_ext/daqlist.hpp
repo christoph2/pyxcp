@@ -21,7 +21,7 @@ class Odt {
 
     const std::vector<McObject>& get_entries() const {
         return m_entries;
-        }
+    }
 
    private:
     std::vector<McObject> m_entries;
@@ -47,31 +47,27 @@ class DaqListBase {
         return m_enable_timestamps;
     }
 
-    const std::string& get_name() const noexcept {
+    const std::string& get_name() const {
         return m_name;
     }
 
-    std::uint16_t get_event_num() const noexcept {
+    std::uint16_t get_event_num() const {
         return m_event_num;
     }
 
-    std::uint8_t get_priority() const noexcept {
+    std::uint8_t get_priority() const {
         return m_priority;
     }
 
-    std::uint8_t get_prescaler() const noexcept {
+    std::uint8_t get_prescaler() const {
         return m_prescaler;
     }
 
-	bool get_predefined_list() const noexcept {
-		return m_predefined_list;
-	}
-
-    void set_event_num(std::uint16_t event_num) noexcept {
+    void set_event_num(std::uint16_t event_num) {
         m_event_num = event_num;
     }
 
-    bool get_stim() const noexcept {
+    bool get_stim() const {
         return m_stim;
     }
 
@@ -79,7 +75,7 @@ class DaqListBase {
         return m_measurements_opt;
     }
 
-    const std::vector<std::string>& get_header_names() const noexcept {
+    const std::vector<std::string>& get_header_names() const {
         return m_header_names;
     }
 
@@ -87,23 +83,23 @@ class DaqListBase {
         return m_headers;
     }
 
-    std::uint16_t get_odt_count() const noexcept {
+    std::uint16_t get_odt_count() const {
         return m_odt_count;
     }
 
-    std::uint16_t get_total_entries() const noexcept {
+    std::uint16_t get_total_entries() const {
         return m_total_entries;
     }
 
-    std::uint16_t get_total_length() const noexcept {
+    std::uint16_t get_total_length() const {
         return m_total_length;
     }
 
-    const flatten_odts_t& get_flatten_odts() const noexcept {
+    const flatten_odts_t& get_flatten_odts() const {
         return m_flatten_odts;
     }
 
-    void set_measurements_opt(const std::vector<Bin>& measurements_opt) noexcept {
+    void set_measurements_opt(const std::vector<Bin>& measurements_opt) {
         m_measurements_opt = measurements_opt;
         auto odt_count     = 0u;
         auto total_entries = 0u;
@@ -173,8 +169,6 @@ class DaqList : public DaqListBase {
         ss << to_binary(m_event_num);
         ss << to_binary(m_stim);
         ss << to_binary(m_enable_timestamps);
-		ss << to_binary(m_prescaler);
-		ss << to_binary(m_predefined_list);
 
         ss << to_binary(m_odt_count);
         ss << to_binary(m_total_entries);
@@ -212,17 +206,15 @@ class DaqList : public DaqListBase {
         return ss.str();
     }
 
-    std::string to_string() const noexcept {
+    std::string to_string() const {
         std::stringstream ss;
 
         ss << "DaqList(";
         ss << "name="" << m_name << "", ";
         ss << "event_num=" << static_cast<std::uint16_t>(m_event_num) << ", ";
         ss << "stim=" << bool_to_string(m_stim) << ", ";
-        ss << "enable_timestamps=" << bool_to_string(m_enable_timestamps) << ", ";
-		ss << "predefined_list=" << bool_to_string(m_predefined_list) << ", ";
-        ss << "prescaler=" << static_cast<std::uint16_t>(m_prescaler) << ", ";
-		ss << "measurements=[\n";
+        ss << "enable_timestamps" << bool_to_string(m_enable_timestamps) << ", ";
+        ss << "measurements=[\n";
         for (const auto& meas : m_measurements) {
             ss << ::to_string(meas) << ",\n";
         }
@@ -241,7 +233,7 @@ class DaqList : public DaqListBase {
         return ss.str();
     }
 
-    static void loads(std::string_view buffer) noexcept {
+    static void loads(std::string_view buffer) {
     }
 
    private:
