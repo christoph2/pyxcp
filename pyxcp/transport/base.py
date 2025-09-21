@@ -285,9 +285,13 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 if not ignore_timeout:
                     MSG = f"Response timed out (timeout={self.timeout / 1_000_000_000}s)"
                     with self.policy_lock:
-                        self.policy.feed(types.FrameCategory.CMD, self.framing.counter_send, self.timestamp.value, frame)
-                    # Build diagnostics and include in exception
-                    # diag = self._build_diagnostics_dump() if self._diagnostics_enabled() else ""
+                        (
+                            self.policy.feed(
+                                types.FrameCategory.METADATA, self.framing.counter_send, self.timestamp.value, bytes(MSG, "ascii")
+                            )
+                            if self._diagnostics_enabled()
+                            else ""
+                        )
                     self.logger.debug("XCP request timeout", extra={"event": "timeout", "command": cmd.name})
                     raise types.XcpTimeoutError(MSG) from None
                 else:

@@ -16,7 +16,44 @@
     <configurations />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="1febaf4b-3911-495c-8b89-d73da684e6d5" name="Changes" comment="framing.hpp: Fix offset issue." />
+    <list default="true" id="1febaf4b-3911-495c-8b89-d73da684e6d5" name="Changes" comment="framing.hpp: Fix offset issue.">
+      <change afterPath="$PROJECT_DIR$/.idea/deployment.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/pyxcp.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/aligned_buffer.hpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/framing.hpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyxcp/recorder/.idea/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyxcp/recorder/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyxcp/recorder/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyxcp/recorder/.idea/recorder.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyxcp/recorder/.idea/sonarlint/issuestore/3/8/3808afc69ac1edb9d760000a2f137335b1b99728" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyxcp/recorder/.idea/sonarlint/issuestore/9/a/9a2aa4db38d3115ed60da621e012c0efc0172aae" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyxcp/recorder/.idea/sonarlint/issuestore/b/4/b49006702b459496a8e8c94ebe60947108361b91" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyxcp/recorder/.idea/sonarlint/issuestore/index.pb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyxcp/recorder/.idea/sonarlint/securityhotspotstore/3/8/3808afc69ac1edb9d760000a2f137335b1b99728" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyxcp/recorder/.idea/sonarlint/securityhotspotstore/9/a/9a2aa4db38d3115ed60da621e012c0efc0172aae" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyxcp/recorder/.idea/sonarlint/securityhotspotstore/b/4/b49006702b459496a8e8c94ebe60947108361b91" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyxcp/recorder/.idea/sonarlint/securityhotspotstore/index.pb" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyxcp/recorder/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyxcp/recorder/lz4" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pyxcp/recorder/simdjson" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/cpp_ext/extension_wrapper.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/extension_wrapper.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/examples/conf_sxi.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/examples/conf_sxi.toml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/master/master.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/master/master.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/tests/test_master.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/tests/test_master.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/tests/test_transport.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/tests/test_transport.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/transport/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/transport/base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/transport/can.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/transport/can.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/transport/eth.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/transport/eth.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/transport/sxi.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/transport/sxi.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/transport/usb_transport.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/transport/usb_transport.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -33,7 +70,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="master" />
+        <entry key="$PROJECT_DIR$" value="rc" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -107,57 +144,57 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;GenProtobuf.pythonLoc&quot;: &quot;.\\&quot;,
-    &quot;GenProtobuf.quickGen&quot;: &quot;Python&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python docs.Sphinx Task in docs.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.pytest in test_conformance_mocked.py.executor&quot;: &quot;Run&quot;,
-    &quot;Python tests.pytest in test_daq_opt.py.executor&quot;: &quot;Debug&quot;,
-    &quot;Python tests.pytest in test_master.py.executor&quot;: &quot;Debug&quot;,
-    &quot;Python tests.pytest in test_transport.py.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.__init__.executor&quot;: &quot;Debug&quot;,
-    &quot;Python._multiarray_umath.executor&quot;: &quot;Run&quot;,
-    &quot;Python.base.executor&quot;: &quot;Run&quot;,
-    &quot;Python.dackel_lite.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.dackel_new.executor&quot;: &quot;Run&quot;,
-    &quot;Python.kaunta.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.run_daq.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.test_daq_opt.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.xcp_daq_polling.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.xcp_examples.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.xcp_recording.executor&quot;: &quot;Debug&quot;,
-    &quot;Python.xcphello.executor&quot;: &quot;Debug&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.com.insyncwithfoo.pyrightls.configuration.converter.ProjectConfigurationsConverter&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;cf.advertisement.text.overridden&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;framing__cpp&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/Chris/PycharmProjects/pyxcp&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
-    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "GenProtobuf.pythonLoc": ".\\",
+    "GenProtobuf.quickGen": "Python",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python docs.Sphinx Task in docs.executor": "Run",
+    "Python tests.pytest in test_conformance_mocked.py.executor": "Run",
+    "Python tests.pytest in test_daq_opt.py.executor": "Debug",
+    "Python tests.pytest in test_master.py.executor": "Debug",
+    "Python tests.pytest in test_transport.py.executor": "Debug",
+    "Python.__init__.executor": "Debug",
+    "Python._multiarray_umath.executor": "Run",
+    "Python.base.executor": "Run",
+    "Python.dackel_lite.executor": "Debug",
+    "Python.dackel_new.executor": "Run",
+    "Python.kaunta.executor": "Debug",
+    "Python.run_daq.executor": "Debug",
+    "Python.test_daq_opt.executor": "Debug",
+    "Python.xcp_daq_polling.executor": "Debug",
+    "Python.xcp_examples.executor": "Debug",
+    "Python.xcp_recording.executor": "Debug",
+    "Python.xcphello.executor": "Debug",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.com.insyncwithfoo.pyrightls.configuration.converter.ProjectConfigurationsConverter": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "cf.advertisement.text.overridden": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "framing__cpp",
+    "ignore.virus.scanning.warn.message": "true",
+    "junie.onboarding.icon.badge.shown": "true",
+    "last_opened_file_path": "C:/Users/Chris/PycharmProjects/pyxcp",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "to.speed.mode.migration.done": "true",
+    "vue.rearranger.settings.migration": "true"
   },
-  &quot;keyToStringList&quot;: {
-    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
-      &quot;Python&quot;
+  "keyToStringList": {
+    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
+      "Python"
     ]
   }
-}</component>
+}]]></component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
       <console-settings module-name="pyxcp" sdk-home="C:\Users\Chris\PycharmProjects\pyxcp\venv\Scripts\python.exe">
@@ -403,8 +440,8 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python tests.pytest in test_transport.py" />
-        <item itemvalue="Python tests.pytest in test_daq_opt.py" />
         <item itemvalue="Python tests.pytest in test_reko.py" />
+        <item itemvalue="Python tests.pytest in test_daq_opt.py" />
         <item itemvalue="Python.config_tr" />
         <item itemvalue="Python.config_new" />
       </list>
