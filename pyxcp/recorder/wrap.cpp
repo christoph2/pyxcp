@@ -3,6 +3,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <memory>
 
 #include <cstdint>
 
@@ -111,7 +112,7 @@ PYBIND11_MODULE(rekorder, m) {
     py::class_<MeasurementParameters>(m, "MeasurementParameters")
         .def(py::init<
              std::uint8_t, std::uint8_t, bool, bool, bool, bool, double, std::uint8_t, std::uint16_t, const TimestampInfo&,
-             const std::vector<DaqList>&, const std::vector<std::uint16_t>&>())
+             const std::vector<std::shared_ptr<DaqListBase>>&, const std::vector<std::uint16_t>&>())
         .def("dumps", [](const MeasurementParameters& self) { return py::bytes(self.dumps()); })
         .def(
             "__repr__",
@@ -130,7 +131,7 @@ PYBIND11_MODULE(rekorder, m) {
                 ss << "timestamp_info=" << self.get_timestamp_info().to_string() << ", ";
                 ss << "daq_lists=[\n";
                 for (const auto& dl : self.m_daq_lists) {
-                    ss << dl.to_string() << ",\n";
+                    ss << dl->to_string() << ",\n";
                 }
                 ss << "],\n";
                 ss << "first_pids=[";

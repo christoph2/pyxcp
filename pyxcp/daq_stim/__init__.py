@@ -2,11 +2,11 @@
 
 # from pprint import pprint
 from time import time_ns
-from typing import Dict, List, Optional, TextIO
+from typing import Dict, List, Optional, TextIO, Union
 
 from pyxcp import types
 from pyxcp.config import get_application
-from pyxcp.cpp_ext.cpp_ext import DaqList
+from pyxcp.cpp_ext.cpp_ext import DaqList, PredefinedDaqList
 from pyxcp.daq_stim.optimize import make_continuous_blocks
 from pyxcp.daq_stim.optimize.binpacking import first_fit_decreasing
 from pyxcp.recorder import DaqOnlinePolicy as _DaqOnlinePolicy
@@ -30,8 +30,9 @@ DAQ_TIMESTAMP_SIZE = {
 
 
 class DaqProcessor:
-    def __init__(self, daq_lists: List[DaqList]):
+    def __init__(self, daq_lists: List[Union[DaqList, PredefinedDaqList]]):
         self.daq_lists = daq_lists
+        self.is_predefined = [isinstance(d, PredefinedDaqList) for d in daq_lists]
         self.log = get_application().log
         # Flag indicating a fatal OS-level error occurred during DAQ (e.g., disk full, out-of-memory)
         self._fatal_os_error: bool = False
@@ -48,8 +49,10 @@ class DaqProcessor:
             processor = self.daq_info.get("processor")
             properties = processor.get("properties")
             resolution = self.daq_info.get("resolution")
-            if properties["configType"] == "STATIC":
-                raise TypeError("DAQ configuration is static, cannot proceed.")
+            if properties["configType"] == "STATIC" and not all(self.is_predefined):
+                raise TypeError(
+                    "DAQ configuration is static, but in your configuration are only dynamic DAQ lists -- cannot proceed."
+                )
             self.supports_timestampes = properties["timestampSupported"]
             self.supports_prescaler = properties["prescalerSupported"]
             self.supports_pid_off = properties["pidOffSupported"]
@@ -82,12 +85,11 @@ class DaqProcessor:
                 else:
                     # print("timestamp variable.")
                     self.selectable_timestamps = True
-
         except Exception as e:
             raise TypeError(f"DAQ_INFO corrupted: {e}") from e
 
         # DAQ optimization.
-        for daq_list in self.daq_lists:
+        for idx, daq_list in enumerate(self.daq_lists):
             if self.selectable_timestamps:
                 if daq_list.enable_timestamps:
                     max_payload_size_first = max_payload_size - self.ts_size
