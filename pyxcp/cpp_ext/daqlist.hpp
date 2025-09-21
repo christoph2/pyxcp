@@ -23,9 +23,32 @@ class Odt {
         return m_entries;
     }
 
+    std::string dumps() const {
+        std::stringstream ss;
+        ss << to_binary(m_entries.size());
+        for (const auto& entry : m_entries) {
+            ss << entry.dumps();
+        }
+        return ss.str();
+    }
+
+    std::string to_string() const {
+        std::stringstream ss;
+        ss << "Odt(entries=[\n";
+        for (const auto& entry : m_entries) {
+            ss << ::to_string(entry) << ",\n";
+        }
+        ss << "])";
+        return ss.str();
+    }
+
    private:
     std::vector<McObject> m_entries;
 };
+
+inline std::string to_string(const Odt& odt) {
+    return odt.to_string();
+}
 
 class DaqListBase {
    public:
@@ -42,6 +65,9 @@ class DaqListBase {
     }
 
     virtual ~DaqListBase() = default;
+
+    virtual std::string dumps() const = 0;
+    virtual std::string to_string() const = 0;
 
     bool get_enable_timestamps() const {
         return m_enable_timestamps;
@@ -162,13 +188,18 @@ class DaqList : public DaqListBase {
         return m_measurements;
     }
 
-    std::string dumps() const {
+    std::string dumps() const override {
         std::stringstream ss;
 
+		std::uint8_t discr=1;
+
+        ss << to_binary(discr);
         ss << to_binary(m_name);
         ss << to_binary(m_event_num);
         ss << to_binary(m_stim);
         ss << to_binary(m_enable_timestamps);
+        ss << to_binary(m_priority);
+        ss << to_binary(m_prescaler);
 
         ss << to_binary(m_odt_count);
         ss << to_binary(m_total_entries);
@@ -189,7 +220,7 @@ class DaqList : public DaqListBase {
         for (const auto& hdr_obj : m_header_names) {
             ss << to_binary(hdr_obj);
         }
-        /////
+#if 0
         std::size_t odt_size = m_flatten_odts.size();
         ss << to_binary(odt_size);
         for (const auto& odt : m_flatten_odts) {
@@ -203,14 +234,15 @@ class DaqList : public DaqListBase {
                 ss << to_binary(type_index);
             }
         }
+#endif
         return ss.str();
     }
 
-    std::string to_string() const {
+    std::string to_string() const override {
         std::stringstream ss;
 
         ss << "DaqList(";
-        ss << "name=\"" << m_name << "\", ";
+        ss << "name="" << m_name << "", ";
         ss << "event_num=" << static_cast<std::uint16_t>(m_event_num) << ", ";
         ss << "stim=" << bool_to_string(m_stim) << ", ";
         ss << "enable_timestamps=" << bool_to_string(m_enable_timestamps) << ", ";
@@ -226,7 +258,7 @@ class DaqList : public DaqListBase {
         ss << "],\n";
         ss << "header_names=[\n";
         for (const auto& header : m_header_names) {
-            ss << "\"" << header << "\",";
+            ss << """ << header << "",";
         }
         ss << "\n]";
         ss << ")";
@@ -250,16 +282,84 @@ class PredefinedDaqList : public DaqListBase {
         const predefined_daq_list_initializer_t& odts, std::uint8_t priority = 0x00, std::uint8_t prescaler = 0x01) :
         DaqListBase(name, event_num, stim, enable_timestamps, priority, prescaler) {
         for (const auto& odt_init : odts) {
-            m_odts.emplace_back(Odt(odt_init));
+			Bin bin(0);
+
+			for (const auto& entry : odt_init) {
+				const auto& [name, dt_name] = entry;
+				bin.append(McObject(name, 0, 0, 0, dt_name));
+			}
+			m_measurements_opt.emplace_back(bin);
         }
     }
 
-    const std::vector<Odt>& get_odts() const {
-        return m_odts;
+    std::string dumps() const override {
+        std::stringstream ss;
+
+		std::uint8_t discr=2;
+
+        ss <<  to_binary(discr);
+
+        ss << to_binary(m_name);
+        ss << to_binary(m_event_num);
+        ss << to_binary(m_stim);
+        ss << to_binary(m_enable_timestamps);
+        ss << to_binary(m_priority);
+        ss << to_binary(m_prescaler);
+
+        ss << to_binary(m_odt_count);
+        ss << to_binary(m_total_entries);
+        ss << to_binary(m_total_length);
+
+        std::size_t meas_opt_size = m_measurements_opt.size();
+        ss << to_binary(meas_opt_size);
+        for (const auto& mc_obj : m_measurements_opt) {
+            ss << mc_obj.dumps();
+        }
+        std::size_t hname_size = m_header_names.size();
+        ss << to_binary(hname_size);
+        for (const auto& hdr_obj : m_header_names) {
+            ss << to_binary(hdr_obj);
+        }
+#if 0
+        std::size_t odt_size = m_flatten_odts.size();
+        ss << to_binary(odt_size);
+        for (const auto& odt : m_flatten_odts) {
+            ss << to_binary(odt.size());
+            for (const auto& odt_entry : odt) {
+                const auto& [name, address, ext, size, type_index] = odt_entry;
+                ss << to_binary(name);
+                ss << to_binary(address);
+                ss << to_binary(ext);
+                ss << to_binary(size);
+                ss << to_binary(type_index);
+            }
+        }
+#endif
+        return ss.str();
     }
 
-   private:
-    std::vector<Odt> m_odts;
+    std::string to_string() const override {
+        std::stringstream ss;
+
+        ss << "PredefinedDaqList(";
+        ss << "name="" << m_name << "", ";
+        ss << "event_num=" << static_cast<std::uint16_t>(m_event_num) << ", ";
+        ss << "stim=" << bool_to_string(m_stim) << ", ";
+        ss << "enable_timestamps=" << bool_to_string(m_enable_timestamps) << ", ";
+
+        ss << "measurements_opt=[\n";
+        for (const auto& meas : m_measurements_opt) {
+            ss << ::to_string(meas) << ",\n";
+        }
+        ss << "],\n";
+        ss << "header_names=[\n";
+        for (const auto& header : m_header_names) {
+            ss << """ << header << "",";
+        }
+        ss << "\n]";
+        ss << ")";
+        return ss.str();
+    }
 };
 
 #endif  // __DAQ_LIST_HPP

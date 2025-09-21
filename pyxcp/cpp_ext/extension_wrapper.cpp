@@ -4,6 +4,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <memory>
 
 #include <cstdint>
 
@@ -51,18 +52,11 @@ PYBIND11_MODULE(cpp_ext, m) {
         .def_property("residual_capacity", &Bin::get_residual_capacity, &Bin::set_residual_capacity)
         .def_property("entries", &Bin::get_entries, nullptr)
         .def("append", &Bin::append)
-
         .def("__repr__", [](const Bin& self) { return to_string(self); })
-
         .def("__eq__", [](const Bin& self, const Bin& other) { return self == other; })
-
         .def("__len__", [](const Bin& self) { return std::size(self.get_entries()); });
 
-    py::class_<Odt>(m, "Odt")
-        .def(py::init<const std::vector<Odt::odt_entry_initializer_t>&>(), "entries"_a)
-        .def_property_readonly("entries", &Odt::get_entries);
-
-    py::class_<DaqListBase>(m, "DaqListBase")
+    py::class_<DaqListBase, std::shared_ptr<DaqListBase>>(m, "DaqListBase")
         .def_property("name", &DaqListBase::get_name, nullptr)
         .def_property("event_num", &DaqListBase::get_event_num, &DaqListBase::set_event_num)
         .def_property("priority", &DaqListBase::get_priority, nullptr)
@@ -75,7 +69,7 @@ PYBIND11_MODULE(cpp_ext, m) {
         .def_property("total_entries", &DaqListBase::get_total_entries, nullptr)
         .def_property("total_length", &DaqListBase::get_total_length, nullptr);
 
-    py::class_<DaqList, DaqListBase>(m, "DaqList")
+    py::class_<DaqList, DaqListBase, std::shared_ptr<DaqList>>(m, "DaqList")
         .def(
             py::init<std::string_view, std::uint16_t, bool, bool, const std::vector<DaqList::daq_list_initialzer_t>&,
             std::uint8_t, std::uint8_t>(), "name"_a, "event_num"_a, "stim"_a, "enable_timestamps"_a, "measurements"_a,
@@ -84,13 +78,14 @@ PYBIND11_MODULE(cpp_ext, m) {
         .def("__repr__", [](const DaqList& self) { return self.to_string(); })
         .def_property("measurements", &DaqList::get_measurements, nullptr);
 
-    py::class_<PredefinedDaqList, DaqListBase>(m, "PredefinedDaqList")
+    py::class_<PredefinedDaqList, DaqListBase, std::shared_ptr<PredefinedDaqList>>(m, "PredefinedDaqList")
         .def(
             py::init<std::string_view, std::uint16_t, bool, bool, const PredefinedDaqList::predefined_daq_list_initializer_t&,
             std::uint8_t, std::uint8_t>(), "name"_a, "event_num"_a, "stim"_a, "enable_timestamps"_a, "odts"_a,
             "priority"_a=0, "prescaler"_a=1
         )
-        .def_property_readonly("odts", &PredefinedDaqList::get_odts);
+        .def("__repr__", [](const DaqList& self) { return self.to_string(); })
+		;
 
     py::enum_<TimestampType>(m, "TimestampType")
         .value("ABSOLUTE_TS", TimestampType::ABSOLUTE_TS)

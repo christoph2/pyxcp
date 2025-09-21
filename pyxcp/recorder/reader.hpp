@@ -47,7 +47,6 @@ class XcpLogFileReader {
             read_bytes(m_offset, sizeof(std::size_t), reinterpret_cast<blob_t *>(&metadata_length));
 
             std::copy(ptr(data_start), ptr(data_start + metadata_length), std::back_inserter(m_metadata));
-            // std::cout << "Metadata: " << m_metadata << std::endl;
             m_offset += (metadata_length + sizeof(std::size_t));
         }
     }
