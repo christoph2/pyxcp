@@ -107,15 +107,27 @@ PYBIND11_MODULE(cpp_ext, m) {
         .value("SXI", XcpTransportLayerType::SXI)
         .value("USB", XcpTransportLayerType::USB);
 
+    // XCP checksum type enum
+    py::enum_<ChecksumType>(m, "ChecksumType")
+        .value("NO_CHECKSUM", ChecksumType::NO_CHECKSUM)
+        .value("BYTE_CHECKSUM", ChecksumType::BYTE_CHECKSUM)
+        .value("WORD_CHECKSUM", ChecksumType::WORD_CHECKSUM);
+
     // XCP framing configuration and helper
     py::class_<XcpFramingConfig>(m, "XcpFramingConfig")
-        .def(py::init<std::uint8_t, std::uint8_t, std::uint8_t, std::uint8_t, std::uint8_t>(),
-             py::arg("header_len"), py::arg("header_ctr"), py::arg("header_fill"), py::arg("tail_fill"), py::arg("tail_cs"));
+        .def(py::init<>())
+        .def_readwrite("transport_layer_type", &XcpFramingConfig::transport_layer_type)
+        .def_readwrite("header_len", &XcpFramingConfig::header_len)
+        .def_readwrite("header_ctr", &XcpFramingConfig::header_ctr)
+        .def_readwrite("header_fill", &XcpFramingConfig::header_fill)
+        .def_readwrite("tail_fill", &XcpFramingConfig::tail_fill)
+        .def_readwrite("tail_cs", &XcpFramingConfig::tail_cs);
 
     py::class_<XcpFraming>(m, "XcpFraming")
         .def(py::init<const XcpFramingConfig&>())
         .def("prepare_request", &XcpFraming::prepare_request)
         .def("unpack_header", &XcpFraming::unpack_header, py::arg("data"), py::arg("initial_offset") = 0)
+        .def("verify_checksum", &XcpFraming::verify_checksum)
         .def_property_readonly("counter_send", &XcpFraming::get_counter_send)
         .def_property_readonly("header_size", &XcpFraming::get_header_size);
 

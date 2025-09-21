@@ -12,7 +12,13 @@ import usb.core
 import usb.util
 from usb.core import USBError, USBTimeoutError
 
-from pyxcp.transport.base import BaseTransport, XcpFramingConfig, parse_header_format
+from pyxcp.transport.base import (
+    BaseTransport,
+    ChecksumType,
+    XcpFramingConfig,
+    XcpTransportLayerType,
+    parse_header_format,
+)
 from pyxcp.utils import short_sleep
 
 
@@ -27,7 +33,12 @@ class Usb(BaseTransport):
         self.load_config(config)
         header_len, header_ctr, header_fill = parse_header_format(self.config.header_format)
         framing_config = XcpFramingConfig(
-            header_len=header_len, header_ctr=header_ctr, header_fill=header_fill, tail_fill=False, tail_cs=0
+            transport_layer_type=XcpTransportLayerType.USB,
+            header_len=header_len,
+            header_ctr=header_ctr,
+            header_fill=header_fill,
+            tail_fill=False,
+            tail_cs=ChecksumType.NO_CHECKSUM,
         )
         self.serial_number: str = self.config.serial_number
         self.vendor_id: int = self.config.vendor_id

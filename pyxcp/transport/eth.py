@@ -6,7 +6,12 @@ import threading
 from collections import deque
 from typing import Optional
 
-from pyxcp.transport.base import BaseTransport, XcpFramingConfig
+from pyxcp.transport.base import (
+    BaseTransport,
+    ChecksumType,
+    XcpFramingConfig,
+    XcpTransportLayerType,
+)
 from pyxcp.utils import short_sleep
 
 
@@ -39,7 +44,14 @@ class Eth(BaseTransport):
 
     def __init__(self, config=None, policy=None, transport_layer_interface: Optional[socket.socket] = None) -> None:
         self.load_config(config)
-        framing_config = XcpFramingConfig(header_len=2, header_ctr=2, header_fill=0, tail_fill=False, tail_cs=0)
+        framing_config = XcpFramingConfig(
+            transport_layer_type=XcpTransportLayerType.ETH,
+            header_len=2,
+            header_ctr=2,
+            header_fill=0,
+            tail_fill=False,
+            tail_cs=ChecksumType.NO_CHECKSUM,
+        )
         super().__init__(config, framing_config, policy, transport_layer_interface)
         self.host: str = self.config.host
         self.port: int = self.config.port
