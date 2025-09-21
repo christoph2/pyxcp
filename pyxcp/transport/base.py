@@ -6,16 +6,10 @@ from collections import deque
 from typing import Any, Dict, Optional, Set, Type
 
 import pyxcp.types as types
-from pyxcp.cpp_ext.cpp_ext import Timestamp, TimestampType
+from pyxcp.cpp_ext.cpp_ext import Timestamp, TimestampType, XcpFraming, XcpFramingConfig
 from pyxcp.recorder import XcpLogFileWriter
 from pyxcp.timing import Timing
-from pyxcp.utils import (
-    CurrentDatetime,
-    flatten,
-    hexDump,
-    seconds_to_nanoseconds,
-    short_sleep,
-)
+from pyxcp.utils import CurrentDatetime, hexDump, seconds_to_nanoseconds, short_sleep
 
 
 class FrameAcquisitionPolicy:
@@ -124,6 +118,24 @@ class EmptyFrameError(Exception):
     """Raised when an empty frame is received."""
 
 
+def parse_header_format(header_format: str) -> tuple:
+    """SxI and USB framing is configurable."""
+    if header_format == "HEADER_LEN_BYTE":
+        return 1, 0, 0
+    elif header_format == "HEADER_LEN_CTR_BYTE":
+        return 1, 1, 0
+    elif header_format == "HEADER_LEN_FILL_BYTE":
+        return 1, 0, 1
+    elif header_format == "HEADER_LEN_WORD":
+        return 2, 0, 0
+    elif header_format == "HEADER_LEN_CTR_WORD":
+        return 2, 2, 0
+    elif header_format == "HEADER_LEN_FILL_WORD":
+        return 2, 0, 2
+    else:
+        raise ValueError(f"Invalid header format: {header_format}")
+
+
 class BaseTransport(metaclass=abc.ABCMeta):
     """Base class for transport-layers (Can, Eth, Sxi).
 
@@ -136,10 +148,17 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     """
 
-    def __init__(self, config, policy: Optional[FrameAcquisitionPolicy] = None, transport_layer_interface: Optional[Any] = None):
+    def __init__(
+        self,
+        config,
+        framing_config: XcpFramingConfig,
+        policy: Optional[FrameAcquisitionPolicy] = None,
+        transport_layer_interface: Optional[Any] = None,
+    ):
         self.has_user_supplied_interface: bool = transport_layer_interface is not None
         self.transport_layer_interface: Optional[Any] = transport_layer_interface
         self.parent = None
+        self.framing = XcpFraming(framing_config)
         self.policy: FrameAcquisitionPolicy = policy or LegacyFrameAcquisitionPolicy()
         self.closeEvent: threading.Event = threading.Event()
 
@@ -150,7 +169,6 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self._debug: bool = self.logger.level == 10
         if transport_layer_interface:
             self.logger.info(f"Transport - User Supplied Transport-Layer Interface: '{transport_layer_interface!s}'")
-        self.counter_send: int = 0
         self.counter_received: int = -1
         self.create_daq_timestamps: bool = config.create_daq_timestamps
         self.timestamp = Timestamp(TimestampType.ABSOLUTE_TS)
@@ -211,7 +229,6 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 raise EmptyFrameError
             short_sleep()
         item = self.resQueue.popleft()
-        # print("Q", item)
         return item
 
     @property
@@ -245,9 +262,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             frame = self._prepare_request(cmd, *data)
             self.timing.start()
             with self.policy_lock:
-                self.policy.feed(types.FrameCategory.CMD, self.counter_send, self.timestamp.value, frame)
-            # Record outgoing CMD for diagnostics
-            self._record_pdu("out", types.FrameCategory.CMD, self.counter_send, self.timestamp.value, frame)
+                self.policy.feed(types.FrameCategory.CMD, self.framing.counter_send, self.timestamp.value, frame)
             self.send(frame)
             try:
                 xcpPDU = self.get()
@@ -255,9 +270,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 if not ignore_timeout:
                     MSG = f"Response timed out (timeout={self.timeout / 1_000_000_000}s)"
                     with self.policy_lock:
-                        self.policy.feed(types.FrameCategory.METADATA, self.counter_send, self.timestamp.value, bytes(MSG, "ascii"))
-                    # Build diagnostics and include in exception
-                    diag = self._build_diagnostics_dump() if self._diagnostics_enabled() else ""
+                        self.policy.feed(
+                            types.FrameCategory.METADATA, self.framing.counter_send, self.timestamp.value, bytes(MSG, "ascii")
+                        ) if self._diagnostics_enabled() else ""
                     self.logger.debug("XCP request timeout", extra={"event": "timeout", "command": cmd.name})
                     raise types.XcpTimeoutError(MSG) from None
                 else:
@@ -300,7 +315,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             with self.policy_lock:
                 self.policy.feed(
                     types.FrameCategory.CMD if int(cmd) >= 0xC0 else types.FrameCategory.STIM,
-                    self.counter_send,
+                    self.framing.counter_send,
                     self.timestamp.value,
                     frame,
                 )
@@ -313,33 +328,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         if self._debug:
             self.logger.debug(cmd.name)
         self.parent._setService(cmd)
-
-        cmd_len = cmd.bit_length() // 8  # calculate bytes needed for cmd
-        cmd_bytes = cmd.to_bytes(cmd_len, "big")
-        try:
-            from pyxcp.cpp_ext import accel as _accel
-        except Exception:
-            _accel = None  # type: ignore
-
-        # Build payload (command + data) using optional accelerator
-        if _accel is not None and hasattr(_accel, "build_packet"):
-            packet = _accel.build_packet(cmd_bytes, data)
-        else:
-            packet = bytes(flatten(cmd_bytes, data))
-
-        header = self.HEADER.pack(len(packet), self.counter_send)
-        self.counter_send = (self.counter_send + 1) & 0xFFFF
-
-        frame = header + packet
-
-        # Align using optional accelerator
-        if _accel is not None and hasattr(_accel, "add_alignment"):
-            frame = _accel.add_alignment(frame, self.alignment)
-        else:
-            remainder = len(frame) % self.alignment
-            if remainder:
-                frame += b"\0" * (self.alignment - remainder)
-
+        frame = self.framing.prepare_request(cmd, *data)
         if self._debug:
             self.logger.debug(f"-> {hexDump(frame)}")
         return frame

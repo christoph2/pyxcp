@@ -1,4 +1,3 @@
-import struct
 from collections import deque
 from dataclasses import dataclass
 from typing import Optional
@@ -6,7 +5,7 @@ from typing import Optional
 import serial
 
 import pyxcp.types as types
-from pyxcp.transport.base import BaseTransport
+from pyxcp.transport.base import BaseTransport, XcpFramingConfig, parse_header_format
 
 
 @dataclass
@@ -23,7 +22,6 @@ class SxI(BaseTransport):
     """"""
 
     def __init__(self, config=None, policy=None, transport_layer_interface: Optional[serial.Serial] = None) -> None:
-        super().__init__(config, policy, transport_layer_interface)
         self.load_config(config)
         self.port_name = self.config.port
         self.baudrate = self.config.bitrate
@@ -31,12 +29,14 @@ class SxI(BaseTransport):
         self.parity = self.config.parity
         self.stopbits = self.config.stopbits
         self.mode = self.config.mode
-        self.header_format = self.config.header_format
+        header_len, header_ctr, header_fill = parse_header_format(self.config.header_format)
+        framing_config = XcpFramingConfig(
+            header_len=header_len, header_ctr=header_ctr, header_fill=header_fill, tail_fill=False, tail_cs=0
+        )
+        super().__init__(config, framing_config, policy, transport_layer_interface)
         self.tail_format = self.config.tail_format
-        self.framing = self.config.framing
         self.esc_sync = self.config.esc_sync
         self.esc_esc = self.config.esc_esc
-        self.make_header()
         self.comm_port: serial.Serial
 
         if self.has_user_supplied_interface and transport_layer_interface:
@@ -60,32 +60,6 @@ class SxI(BaseTransport):
 
     def __del__(self) -> None:
         self.close_connection()
-
-    def make_header(self) -> None:
-        def unpack_len(args):
-            (length,) = args
-            return HeaderValues(length=length)
-
-        def unpack_len_counter(args):
-            length, counter = args
-            return HeaderValues(length=length, counter=counter)
-
-        def unpack_len_filler(args):
-            length, filler = args
-            return HeaderValues(length=length, filler=filler)
-
-        HEADER_FORMATS = {
-            "HEADER_LEN_BYTE": ("B", unpack_len),
-            "HEADER_LEN_CTR_BYTE": ("BB", unpack_len_counter),
-            "HEADER_LEN_FILL_BYTE": ("BB", unpack_len_filler),
-            "HEADER_LEN_WORD": ("H", unpack_len),
-            "HEADER_LEN_CTR_WORD": ("HH", unpack_len_counter),
-            "HEADER_LEN_FILL_WORD": ("HH", unpack_len_filler),
-        }
-        fmt, unpacker = HEADER_FORMATS[self.header_format]
-        self.HEADER = struct.Struct(f"<{fmt}")
-        self.HEADER_SIZE = self.HEADER.size
-        self.unpacker = unpacker
 
     def connect(self) -> None:
         self.logger.info(
@@ -113,17 +87,16 @@ class SxI(BaseTransport):
                 return
             if not self.comm_port.in_waiting:
                 continue
-
             recv_timestamp = self.timestamp.value
-            header_values = self.unpacker(self.HEADER.unpack(self.comm_port.read(self.HEADER_SIZE)))
-            length, counter, _ = header_values.length, header_values.counter, header_values.filler
-
-            response = self.comm_port.read(length)
-            self.timing.stop()
-
-            if len(response) != length:
-                raise types.FrameSizeError("Size mismatch.")
-            self.process_response(response, length, counter, recv_timestamp)
+            header_values = self.framing.unpack_header(self.comm_port.read(self.framing.header_size))
+            if header_values is not None:
+                length, counter = header_values
+                # print(f"Received frame: {length} bytes, counter: {counter}")
+                response = self.comm_port.read(length)
+                self.timing.stop()
+                if len(response) != length:
+                    raise types.FrameSizeError("Size mismatch.")
+                self.process_response(response, length, counter, recv_timestamp)
 
     def send(self, frame) -> None:
         self.pre_send_timestamp = self.timestamp.value

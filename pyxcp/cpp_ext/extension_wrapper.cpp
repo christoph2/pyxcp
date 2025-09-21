@@ -8,9 +8,11 @@
 
 #include <cstdint>
 
+#include "aligned_buffer.hpp"
 #include "bin.hpp"
 #include "daqlist.hpp"
 #include "mcobject.hpp"
+#include "framing.hpp"
 
 namespace py = pybind11;
 using namespace pybind11::literals;
@@ -106,4 +108,33 @@ PYBIND11_MODULE(cpp_ext, m) {
         .def_property("utc_offset", &TimestampInfo::get_utc_offset, &TimestampInfo::set_utc_offset)
         .def_property("dst_offset", &TimestampInfo::get_dst_offset, &TimestampInfo::set_dst_offset)
         .def_property("timezone", &TimestampInfo::get_timezone, &TimestampInfo::set_timezone);
+
+    // Transport layer type enum
+    py::enum_<XcpTransportLayerType>(m, "XcpTransportLayerType")
+        .value("CAN", XcpTransportLayerType::CAN)
+        .value("ETH", XcpTransportLayerType::ETH)
+        .value("SXI", XcpTransportLayerType::SXI)
+        .value("USB", XcpTransportLayerType::USB);
+
+    // XCP framing configuration and helper
+    py::class_<XcpFramingConfig>(m, "XcpFramingConfig")
+        .def(py::init<std::uint8_t, std::uint8_t, std::uint8_t, std::uint8_t, std::uint8_t>(),
+             py::arg("header_len"), py::arg("header_ctr"), py::arg("header_fill"), py::arg("tail_fill"), py::arg("tail_cs"));
+
+    py::class_<XcpFraming>(m, "XcpFraming")
+        .def(py::init<const XcpFramingConfig&>())
+        .def("prepare_request", &XcpFraming::prepare_request)
+        .def("unpack_header", &XcpFraming::unpack_header, py::arg("data"), py::arg("initial_offset") = 0)
+        .def_property_readonly("counter_send", &XcpFraming::get_counter_send)
+        .def_property_readonly("header_size", &XcpFraming::get_header_size);
+
+    // Aligned buffer utility
+    py::class_<AlignedBuffer>(m, "AlignedBuffer")
+        .def(py::init<std::size_t>(), py::arg("size") = 0xffff)
+        .def("reset", &AlignedBuffer::reset)
+        .def("append", &AlignedBuffer::append, py::arg("value"))
+        .def("extend", py::overload_cast<const py::bytes&>(&AlignedBuffer::extend))
+        .def("extend", py::overload_cast<const std::vector<std::uint8_t>&>(&AlignedBuffer::extend))
+        .def("__len__", [](const AlignedBuffer& self) { return self.size(); })
+        .def("__getitem__", [](const AlignedBuffer& self, py::object index) { return self.get_item(index); });
 }

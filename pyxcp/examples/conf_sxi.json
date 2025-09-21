@@ -1,9 +1,0 @@
-{
-  "TRANSPORT": "SXI",
-  "PORT": "COM10",
-  "BITRATE": 38400,
-  "BYTESIZE": 8,
-  "PARITY": "N",
-  "STOPBITS": 1,
-  "CREATE_DAQ_TIMESTAMPS": false
-}

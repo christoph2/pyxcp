@@ -6,7 +6,7 @@ import threading
 from collections import deque
 from typing import Optional
 
-from pyxcp.transport.base import BaseTransport
+from pyxcp.transport.base import BaseTransport, XcpFramingConfig
 from pyxcp.utils import short_sleep
 
 
@@ -36,11 +36,11 @@ class Eth(BaseTransport):
 
     MAX_DATAGRAM_SIZE = 512
     HEADER = struct.Struct("<HH")
-    HEADER_SIZE = HEADER.size
 
     def __init__(self, config=None, policy=None, transport_layer_interface: Optional[socket.socket] = None) -> None:
-        super().__init__(config, policy, transport_layer_interface)
         self.load_config(config)
+        framing_config = XcpFramingConfig(header_len=2, header_ctr=2, header_fill=0, tail_fill=False, tail_cs=0)
+        super().__init__(config, framing_config, policy, transport_layer_interface)
         self.host: str = self.config.host
         self.port: int = self.config.port
         self.protocol: int = self.config.protocol
@@ -162,8 +162,6 @@ class Eth(BaseTransport):
                 break
 
     def listen(self) -> None:
-        HEADER_UNPACK_FROM = self.HEADER.unpack_from
-        HEADER_SIZE = self.HEADER_SIZE
         process_response = self.process_response
         popleft = self._packets.popleft
         close_event_set = self.closeEvent.is_set
@@ -186,10 +184,10 @@ class Eth(BaseTransport):
                 current_position: int = 0
                 while True:
                     if length is None:
-                        if current_size >= HEADER_SIZE:
-                            length, counter = HEADER_UNPACK_FROM(data, current_position)
-                            current_position += HEADER_SIZE
-                            current_size -= HEADER_SIZE
+                        if current_size >= self.framing.header_size:
+                            length, counter = self.framing.unpack_header(bytes(data), initial_offset=current_position)
+                            current_position += self.framing.header_size
+                            current_size -= self.framing.header_size
                         else:
                             data = data[current_position:]
                             break
