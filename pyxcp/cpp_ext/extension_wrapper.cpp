@@ -130,12 +130,14 @@ PYBIND11_MODULE(cpp_ext, m) {
     // XCP framing configuration and helper
     py::class_<XcpFramingConfig>(m, "XcpFramingConfig")
         .def(py::init<>())
-        .def_readwrite("transport_layer_type", &XcpFramingConfig::transport_layer_type)
-        .def_readwrite("header_len", &XcpFramingConfig::header_len)
-        .def_readwrite("header_ctr", &XcpFramingConfig::header_ctr)
-        .def_readwrite("header_fill", &XcpFramingConfig::header_fill)
-        .def_readwrite("tail_fill", &XcpFramingConfig::tail_fill)
-        .def_readwrite("tail_cs", &XcpFramingConfig::tail_cs);
+        .def(py::init<XcpTransportLayerType, std::uint8_t, std::uint8_t, std::uint8_t, bool, ChecksumType>(),
+            "transport_layer_type"_a, "header_len"_a, "header_ctr"_a, "header_fill"_a, "tail_fill"_a = false, "tail_cs"_a = ChecksumType::NO_CHECKSUM)
+        .def_property_readonly("transport_layer_type", [](const XcpFramingConfig &self) { return self.transport_layer_type; })
+        .def_property_readonly("header_len", [](const XcpFramingConfig &self) { return self.header_len; })
+        .def_property_readonly("header_ctr", [](const XcpFramingConfig &self) { return self.header_ctr; })
+        .def_property_readonly("header_fill", [](const XcpFramingConfig &self) { return self.header_fill; })
+        .def_property_readonly("tail_fill", [](const XcpFramingConfig &self) { return self.tail_fill; })
+        .def_property_readonly("tail_cs", [](const XcpFramingConfig &self) { return self.tail_cs; });
 
     py::class_<XcpFraming>(m, "XcpFraming")
         .def(py::init<const XcpFramingConfig&>())
