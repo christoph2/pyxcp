@@ -116,15 +116,29 @@ PYBIND11_MODULE(cpp_ext, m) {
         .value("SXI", XcpTransportLayerType::SXI)
         .value("USB", XcpTransportLayerType::USB);
 
+    // XCP checksum type enum
+    py::enum_<ChecksumType>(m, "ChecksumType")
+        .value("NO_CHECKSUM", ChecksumType::NO_CHECKSUM)
+        .value("BYTE_CHECKSUM", ChecksumType::BYTE_CHECKSUM)
+        .value("WORD_CHECKSUM", ChecksumType::WORD_CHECKSUM);
+
     // XCP framing configuration and helper
     py::class_<XcpFramingConfig>(m, "XcpFramingConfig")
-        .def(py::init<std::uint8_t, std::uint8_t, std::uint8_t, std::uint8_t, std::uint8_t>(),
-             py::arg("header_len"), py::arg("header_ctr"), py::arg("header_fill"), py::arg("tail_fill"), py::arg("tail_cs"));
+        .def(py::init<>())
+        .def(py::init<XcpTransportLayerType, std::uint8_t, std::uint8_t, std::uint8_t, bool, ChecksumType>(),
+            "transport_layer_type"_a, "header_len"_a, "header_ctr"_a, "header_fill"_a, "tail_fill"_a = false, "tail_cs"_a = ChecksumType::NO_CHECKSUM)
+        .def_property_readonly("transport_layer_type", [](const XcpFramingConfig &self) { return self.transport_layer_type; })
+        .def_property_readonly("header_len", [](const XcpFramingConfig &self) { return self.header_len; })
+        .def_property_readonly("header_ctr", [](const XcpFramingConfig &self) { return self.header_ctr; })
+        .def_property_readonly("header_fill", [](const XcpFramingConfig &self) { return self.header_fill; })
+        .def_property_readonly("tail_fill", [](const XcpFramingConfig &self) { return self.tail_fill; })
+        .def_property_readonly("tail_cs", [](const XcpFramingConfig &self) { return self.tail_cs; });
 
     py::class_<XcpFraming>(m, "XcpFraming")
         .def(py::init<const XcpFramingConfig&>())
         .def("prepare_request", &XcpFraming::prepare_request)
         .def("unpack_header", &XcpFraming::unpack_header, py::arg("data"), py::arg("initial_offset") = 0)
+        .def("verify_checksum", &XcpFraming::verify_checksum)
         .def_property_readonly("counter_send", &XcpFraming::get_counter_send)
         .def_property_readonly("header_size", &XcpFraming::get_header_size);
 

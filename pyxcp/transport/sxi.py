@@ -5,7 +5,13 @@ from typing import Optional
 import serial
 
 import pyxcp.types as types
-from pyxcp.transport.base import BaseTransport, XcpFramingConfig, parse_header_format
+from pyxcp.transport.base import (
+    BaseTransport,
+    ChecksumType,
+    XcpFramingConfig,
+    XcpTransportLayerType,
+    parse_header_format,
+)
 
 
 @dataclass
@@ -31,7 +37,12 @@ class SxI(BaseTransport):
         self.mode = self.config.mode
         header_len, header_ctr, header_fill = parse_header_format(self.config.header_format)
         framing_config = XcpFramingConfig(
-            header_len=header_len, header_ctr=header_ctr, header_fill=header_fill, tail_fill=False, tail_cs=0
+            transport_layer_type=XcpTransportLayerType.SXI,
+            header_len=header_len,
+            header_ctr=header_ctr,
+            header_fill=header_fill,
+            tail_fill=False,
+            tail_cs=0,
         )
         super().__init__(config, framing_config, policy, transport_layer_interface)
         self.tail_format = self.config.tail_format

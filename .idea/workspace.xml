@@ -70,7 +70,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="master" />
+        <entry key="$PROJECT_DIR$" value="rc" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -440,8 +440,8 @@
     <recent_temporary>
       <list>
         <item itemvalue="Python tests.pytest in test_transport.py" />
-        <item itemvalue="Python tests.pytest in test_daq_opt.py" />
         <item itemvalue="Python tests.pytest in test_reko.py" />
+        <item itemvalue="Python tests.pytest in test_daq_opt.py" />
         <item itemvalue="Python.config_tr" />
         <item itemvalue="Python.config_new" />
       </list>

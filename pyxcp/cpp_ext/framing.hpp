@@ -97,28 +97,35 @@ std::string_view bytes_as_string_view(const py::bytes& data) {
     return std::string_view(buf, static_cast<std::size_t>(len));
 }
 
+enum class ChecksumType : std::uint8_t {
+    NO_CHECKSUM = 0,
+    BYTE_CHECKSUM = 1,
+    WORD_CHECKSUM = 2
+};
+
 enum class XcpTransportLayerType : std::uint8_t {
-	CAN,
-	ETH,
-	SXI,
-	USB
+    CAN,
+    ETH,
+    SXI,
+    USB
 };
 
 struct XcpFramingConfig {
-	std::uint8_t header_len;
-	std::uint8_t header_ctr;
-	std::uint8_t header_fill;
+    XcpTransportLayerType transport_layer_type;
+    std::uint8_t header_len;
+    std::uint8_t header_ctr;
+    std::uint8_t header_fill;
 
-	bool tail_fill;
-	std::uint8_t tail_cs;
+    bool tail_fill;
+    ChecksumType tail_cs;
 
 };
 
 class XcpFraming {
 public:
 
-    XcpFraming(/* XcpTransportLayerType transport_layer_type, */const XcpFramingConfig& framing_type) : m_counter_send(0),
-        /* m_transport_layer_type(transport_layer_type), */ m_framing_type(framing_type) {
+    XcpFraming(const XcpFramingConfig& framing_type) : m_counter_send(0),
+        m_framing_type(framing_type) {
 
         m_send_buffer = new std::uint8_t[0xff + 8];
 		reset_send_buffer_pointer();
@@ -166,11 +173,27 @@ public:
 		set_send_buffer(command_bytes);
 		set_send_buffer(data);
 
-		if (m_framing_type.tail_fill == true) {	// TODO: fix-me!!!
-			frame_tail_size += m_framing_type.tail_fill;
-		}
-		if (m_framing_type.tail_cs > 0) {
-			frame_tail_size += m_framing_type.tail_cs;
+		if (m_framing_type.transport_layer_type == XcpTransportLayerType::SXI) {
+			if (m_framing_type.tail_fill == true) {
+				// Align to a word boundary if word checksum is used
+				if (m_framing_type.tail_cs == ChecksumType::WORD_CHECKSUM && (current_send_buffer_pointer() % 2 != 0)) {
+					fill_send_buffer(1);
+				}
+			}
+
+			if (m_framing_type.tail_cs != ChecksumType::NO_CHECKSUM) {
+				if (m_framing_type.tail_cs == ChecksumType::BYTE_CHECKSUM) {
+					auto cs = checksum_byte(0, current_send_buffer_pointer());
+					set_send_buffer(cs);
+					frame_tail_size += 1;
+				}
+				else if (m_framing_type.tail_cs == ChecksumType::WORD_CHECKSUM) {
+					auto cs = checksum_word(0, current_send_buffer_pointer());
+					auto cs_bytes = serialize_word_le(cs);
+					set_send_buffer(cs_bytes);
+					frame_tail_size += 2;
+				}
+			}
 		}
 
 		m_counter_send++;
@@ -209,6 +232,44 @@ public:
             return std::make_tuple(length, counter);
         }
         return std::nullopt;
+    }
+
+    bool verify_checksum(const py::bytes& data) const noexcept {
+        if (m_framing_type.transport_layer_type != XcpTransportLayerType::SXI || m_framing_type.tail_cs == ChecksumType::NO_CHECKSUM) {
+            return true; // No checksum verification needed
+        }
+
+        auto data_view = bytes_as_string_view(data);
+        auto data_size = std::size(data_view);
+
+        if (m_framing_type.tail_cs == ChecksumType::BYTE_CHECKSUM) {
+            if (data_size < 1) return false;
+            std::uint8_t received_cs = static_cast<std::uint8_t>(data_view[data_size - 1]);
+            std::uint8_t calculated_cs = 0;
+            for (size_t i = 0; i < data_size - 1; ++i) {
+                calculated_cs += static_cast<std::uint8_t>(data_view[i]);
+            }
+            return received_cs == calculated_cs;
+        }
+        else if (m_framing_type.tail_cs == ChecksumType::WORD_CHECKSUM) {
+            if (data_size < 2 || data_size % 2 != 0) return false; // Must have even length for word checksum
+
+            std::uint16_t received_cs = static_cast<std::uint16_t>(
+                static_cast<std::uint8_t>(data_view[data_size - 2]) |
+                (static_cast<std::uint16_t>(static_cast<std::uint8_t>(data_view[data_size - 1])) << 8)
+            );
+
+            std::uint16_t calculated_cs = 0;
+            for (size_t i = 0; i < data_size - 2; i += 2) {
+                calculated_cs += static_cast<std::uint16_t>(
+                    static_cast<std::uint8_t>(data_view[i]) |
+                    (static_cast<std::uint16_t>(static_cast<std::uint8_t>(data_view[i + 1])) << 8)
+                );
+            }
+            return received_cs == calculated_cs;
+        }
+
+        return true; // Should not be reached if NO_CHECKSUM is handled
     }
 
     std::uint16_t get_header_size() const noexcept {
@@ -264,23 +325,16 @@ private:
 
 	std::uint16_t checksum_word(std::uint16_t begin, std::uint16_t end, bool little_endian=true) const noexcept {
 		std::uint16_t cs = 0UL;
-		std::uint16_t offs0 = 0UL;
-		std::uint16_t offs1 = 0UL;
 
-		if (little_endian) {
-			offs0 = 1;
-		} else {
-			offs1 = 1;
-		}
+		// For SXI, checksum is always little-endian word sum
 		for (auto idx = begin; idx < end; idx+=2) {
-			cs += static_cast<std::uint16_t>((m_send_buffer[idx + offs0] << 8) | m_send_buffer[idx + offs1]);;
+			cs += static_cast<std::uint16_t>(m_send_buffer[idx] | (m_send_buffer[idx + 1] << 8));
 		}
 		return cs;
 	}
 
 private:
     std::uint16_t m_counter_send;
-    // XcpTransportLayerType m_transport_layer_type;
     XcpFramingConfig m_framing_type;
     std::uint8_t * m_send_buffer = nullptr;
     std::uint16_t m_send_buffer_offset = 0UL;

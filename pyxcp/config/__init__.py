@@ -916,7 +916,6 @@ class General(Configurable):
     # Structured diagnostics dump options
     diagnostics_on_failure = Bool(True, help="Append a structured diagnostics dump to timeout errors.").tag(config=True)
     diagnostics_last_pdus = Integer(20, help="How many recent PDUs to include in diagnostics dump.").tag(config=True)
-
     seed_n_key_dll = Unicode("", allow_none=False, help="Dynamic library used for slave resource unlocking.").tag(config=True)
     seed_n_key_dll_same_bit_width = Bool(False, help="").tag(config=True)
     custom_dll_loader = Unicode(allow_none=True, default_value=None, help="Use an custom seed and key DLL loader.").tag(config=True)

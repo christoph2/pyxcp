@@ -6,10 +6,23 @@ from collections import deque
 from typing import Any, Dict, Optional, Set, Type
 
 import pyxcp.types as types
-from pyxcp.cpp_ext.cpp_ext import Timestamp, TimestampType, XcpFraming, XcpFramingConfig
+from pyxcp.cpp_ext.cpp_ext import (
+    ChecksumType,
+    Timestamp,
+    TimestampType,
+    XcpFraming,
+    XcpFramingConfig,
+    XcpTransportLayerType,
+)
 from pyxcp.recorder import XcpLogFileWriter
 from pyxcp.timing import Timing
-from pyxcp.utils import CurrentDatetime, hexDump, seconds_to_nanoseconds, short_sleep
+from pyxcp.utils import (
+    CurrentDatetime,
+    flatten,
+    hexDump,
+    seconds_to_nanoseconds,
+    short_sleep,
+)
 
 
 class FrameAcquisitionPolicy:

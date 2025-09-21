@@ -16,11 +16,15 @@ from can import (
     detect_available_configs,
 )
 from can.bus import BusABC
-from can.interface import _get_class_for_interface
 from rich.console import Console
 
 from pyxcp.config import CAN_INTERFACE_MAP
-from pyxcp.transport.base import BaseTransport, XcpFramingConfig
+from pyxcp.transport.base import (
+    BaseTransport,
+    ChecksumType,
+    XcpFramingConfig,
+    XcpTransportLayerType,
+)
 
 from ..utils import seconds_to_nanoseconds, short_sleep
 
@@ -397,7 +401,14 @@ class Can(BaseTransport):
     HEADER_SIZE = 0
 
     def __init__(self, config, policy=None, transport_layer_interface: Optional[BusABC] = None):
-        framing_config = XcpFramingConfig(header_len=0, header_ctr=0, header_fill=0, tail_fill=False, tail_cs=0)
+        framing_config = XcpFramingConfig(
+            transport_layer_type=XcpTransportLayerType.CAN,
+            header_len=0,
+            header_ctr=0,
+            header_fill=0,
+            tail_fill=False,
+            tail_cs=ChecksumType.NO_CHECKSUM,
+        )
         super().__init__(config, framing_config, policy, transport_layer_interface)
         self.load_config(config)
         self.useDefaultListener = self.config.use_default_listener
