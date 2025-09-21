@@ -748,8 +748,10 @@ class Deserializer {
     DaqList create_daq_list() {
         std::string              name;
         std::uint16_t            event_num;
+        std::uint16_t            prescaler;
         bool                     stim;
         bool                     enable_timestamps;
+        bool                     predefined_list;
         std::vector<McObject>    measurements;
         std::vector<Bin>         measurements_opt;
         std::vector<std::string> header_names;
@@ -766,6 +768,8 @@ class Deserializer {
         event_num         = from_binary<std::uint16_t>();
         stim              = from_binary<bool>();
         enable_timestamps = from_binary<bool>();
+        prescaler         = from_binary<std::uint8_t>();
+        predefined_list   = from_binary<bool>();
 
         odt_count     = from_binary<std::uint16_t>();  // not used
         total_entries = from_binary<std::uint16_t>();  // not used
@@ -792,7 +796,7 @@ class Deserializer {
 
         auto odts = create_flatten_odts();
 
-        auto result = DaqList(name, event_num, stim, enable_timestamps, initializer_list);
+        auto result = DaqList(name, event_num, stim, enable_timestamps, initializer_list, prescaler, predefined_list);
         result.set_measurements_opt(measurements_opt);
         return result;
     }
@@ -1109,8 +1113,9 @@ class DaqRecorderPolicy : public DAQPolicyBase {
     }
 
     void feed(std::uint8_t frame_cat, std::uint16_t counter, std::uint64_t timestamp, const std::string& payload) override {
-        if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
+        if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ) || (!m_initialized)) {
             // Only record DAQ frames for now.
+			// also make sure policy is initialized.
             return;
         }
         m_writer->add_frame(frame_cat, counter, timestamp, static_cast<std::uint16_t>(payload.size()), payload.c_str());
@@ -1139,6 +1144,42 @@ class DaqRecorderPolicy : public DAQPolicyBase {
     bool                              m_initialized{ false };
 };
 
+class DaqTimeTracker {
+public:
+
+    DaqTimeTracker(std::uint64_t overflow_value) : m_overflow_value(overflow_value), m_overflow_counter(0ULL), m_previous_timestamp(0ULL) {
+		m_ts_base_set=false;
+		m_ts0_base=0ULL; m_ts1_base=0ULL;
+		//std::cout << "\tOverflow value: " << overflow_value << "\n";
+	}
+
+    std::pair<std::uint64_t,std::uint64_t> normalize(std::uint64_t ts0, std::uint64_t ts1) noexcept {
+
+		if (m_previous_timestamp > ts1) {
+			m_overflow_counter++;
+		}
+		m_previous_timestamp = ts1;
+
+        if (!m_ts_base_set) {
+            m_ts0_base = ts0;
+            m_ts1_base = ts1;
+            m_ts_base_set = true;
+			// std::cout << "\tSet ts0: " << ts0 << " ts1:" << ts1 << "\n";
+        }
+		// std::cout << "\t\tts0: " << ts0 << " Base: " << m_ts0_base << "  ts1: " << ts1 << " Base: " << m_ts1_base << "\n";
+        return {ts0 - m_ts0_base, (ts1 - m_ts1_base) + (m_overflow_value * m_overflow_counter) };
+    }
+private:
+
+    std::uint64_t m_overflow_value{};
+    std::uint64_t m_overflow_counter{};
+    std::uint64_t m_previous_timestamp{};
+    bool m_ts_base_set{false};
+    std::uint64_t m_ts0_base{0ULL};
+    std::uint64_t m_ts1_base{0ULL};
+};
+
+
 class DaqOnlinePolicy : public DAQPolicyBase {
    public:
 
@@ -1149,6 +1190,9 @@ class DaqOnlinePolicy : public DAQPolicyBase {
 
     void set_parameters(const MeasurementParameters& params) noexcept {
         m_decoder = std::make_unique<DAQProcessor>(params);
+		for (auto idx=0; idx < params.get_daq_lists().size(); ++idx) {
+            m_overflows.emplace_back(DaqTimeTracker(params.get_overflow_value()));
+        }
         DAQPolicyBase::set_parameters(params);
     }
 
@@ -1164,7 +1208,11 @@ class DaqOnlinePolicy : public DAQPolicyBase {
         auto result = m_decoder->feed(timestamp, payload);
         if (result) {
             const auto& [daq_list, ts0, ts1, meas] = *result;
-            on_daq_list(daq_list, ts0, ts1, meas);
+			auto& overflow = m_overflows[daq_list];
+
+            auto [norm_ts0, norm_ts1] = overflow.normalize(ts0, ts1);
+
+			on_daq_list(daq_list, norm_ts0, norm_ts1, meas);
         }
     }
 
@@ -1177,58 +1225,9 @@ class DaqOnlinePolicy : public DAQPolicyBase {
    private:
 
     std::unique_ptr<DAQProcessor> m_decoder;
+	std::vector<DaqTimeTracker>   m_overflows;
 };
 
-struct ValueHolder {
-    ValueHolder()                   = delete;
-    ValueHolder(const ValueHolder&) = default;
-
-    ValueHolder(const std::any& value) : m_value(value) {
-    }
-
-    ValueHolder(std::any&& value) : m_value(std::move(value)) {
-    }
-
-    std::any get_value() const noexcept {
-        return m_value;
-    }
-
-   private:
-
-    std::any m_value;
-};
-
-class Overflow {
-public:
-
-    Overflow(std::uint64_t overflow_value) : m_overflow_value(overflow_value), m_overflow_counter(0ULL), m_previous_timestamp(0ULL) {
-    }
-
-    auto get_previous_timestamp() const noexcept {
-        return m_previous_timestamp;
-    }
-
-    void set_previous_timestamp(std::uint64_t timestamp) noexcept {
-        m_previous_timestamp = timestamp;
-    }
-
-    void inc_overflow_counter() noexcept {
-        m_overflow_counter++;
-    }
-
-    auto get_overflow_counter() const noexcept {
-        return m_overflow_counter;
-    }
-
-    auto get_value() const noexcept {
-        return m_overflow_value * m_overflow_counter;
-    }
-
-private:
-    std::uint64_t m_overflow_value{};
-    std::uint64_t m_overflow_counter{};
-    std::uint64_t m_previous_timestamp{};
-};
 
 class XcpLogFileDecoder {
    public:
@@ -1240,12 +1239,12 @@ class XcpLogFileDecoder {
             m_params  = des.run();
 
             for (auto idx=0; idx < m_params.get_daq_lists().size(); ++idx) {
-                m_overflows.emplace_back(Overflow(m_params.get_overflow_value()));
+                m_overflows.emplace_back(DaqTimeTracker(m_params.get_overflow_value()));
             }
 
             m_decoder = std::make_unique<DAQProcessor>(m_params);
         } else {
-            // cannot proceed!!!
+            throw std::runtime_error("XcpLogFileDecoder: missing metadata.");
         }
     }
 
@@ -1286,18 +1285,11 @@ class XcpLogFileDecoder {
                 auto result = m_decoder->feed(timestamp, str_data);
                 if (result) {
                     const auto& [daq_list, ts0, ts1, meas] = *result;
-
                     auto& overflow = m_overflows[daq_list];
 
-                    if (overflow.get_previous_timestamp() > ts1) {
-                        overflow.inc_overflow_counter();
-                        // Maybe on debug-level?
-                        // std::cout << "Overflow detected, counter: " << overflow.get_overflow_counter() << " " << overflow.get_previous_timestamp() << " " << ts1 << std::endl;
-                    }
+                    auto [norm_ts0, norm_ts1] = overflow.normalize(ts0, ts1);
 
-                    on_daq_list(daq_list, ts0, ts1 + overflow.get_value(), meas);
-
-                    overflow.set_previous_timestamp(ts1);
+                    on_daq_list(daq_list, norm_ts0, norm_ts1, meas);
                 }
             }
         }
@@ -1326,7 +1318,7 @@ class XcpLogFileDecoder {
     XcpLogFileReader              m_reader;
     std::unique_ptr<DAQProcessor> m_decoder;
     MeasurementParameters         m_params;
-    std::vector<Overflow>           m_overflows;
+    std::vector<DaqTimeTracker>   m_overflows;
 };
 
 #endif  // RECORDER_UNFOLDER_HPP

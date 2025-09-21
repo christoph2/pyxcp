@@ -197,6 +197,13 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.pre_send_timestamp: int = self.timestamp.value
         self.post_send_timestamp: int = self.timestamp.value
         self.recv_timestamp: int = self.timestamp.value
+        # Ring buffer for last PDUs to aid diagnostics on failures
+        try:
+            from collections import deque as _dq
+
+            self._last_pdus = _dq(maxlen=200)
+        except Exception:
+            self._last_pdus = []
 
     def __del__(self) -> None:
         self.finish_listener()
@@ -246,6 +253,10 @@ class BaseTransport(metaclass=abc.ABCMeta):
             self.finish_listener()
             self.listener.join()
 
+        # Ensure the close event is cleared before starting a new listener thread.
+        if hasattr(self, "closeEvent"):
+            self.closeEvent.clear()
+
         self.listener = threading.Thread(target=self.listen)
         self.listener.start()
 
@@ -258,8 +269,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
             frame = self._prepare_request(cmd, *data)
             self.timing.start()
             with self.policy_lock:
-                self.policy.feed(types.FrameCategory.CMD, self.framing.counter_send, self.timestamp.value, frame)
-            self.send(frame)
+                self.policy.feed(types.FrameCategory.CMD, self.counter_send, self.timestamp.value, frame)
+            # Record outgoing CMD for diagnostics
+            self._record_pdu("out", types.FrameCategory.CMD, self.counter_send, self.timestamp.value, frame)            self.send(frame)
             try:
                 xcpPDU = self.get()
             except EmptyFrameError:
@@ -267,8 +279,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
                     MSG = f"Response timed out (timeout={self.timeout / 1_000_000_000}s)"
                     with self.policy_lock:
                         self.policy.feed(
-                            types.FrameCategory.METADATA, self.framing.counter_send, self.timestamp.value, bytes(MSG, "ascii")
-                        )
+                    # Build diagnostics and include in exception
+                    diag = self._build_diagnostics_dump() if self._diagnostics_enabled() else ""
+                    self.logger.debug("XCP request timeout", extra={"event": "timeout", "command": cmd.name})
                     raise types.XcpTimeoutError(MSG) from None
                 else:
                     self.timing.stop()
@@ -324,6 +337,31 @@ class BaseTransport(metaclass=abc.ABCMeta):
             self.logger.debug(cmd.name)
         self.parent._setService(cmd)
         frame = self.framing.prepare_request(cmd, *data)
+        cmd_len = cmd.bit_length() // 8  # calculate bytes needed for cmd
+        cmd_bytes = cmd.to_bytes(cmd_len, "big")
+        try:
+            from pyxcp.cpp_ext import accel as _accel
+        except Exception:
+            _accel = None  # type: ignore
+
+        # Build payload (command + data) using optional accelerator
+        if _accel is not None and hasattr(_accel, "build_packet"):
+            packet = _accel.build_packet(cmd_bytes, data)
+        else:
+            packet = bytes(flatten(cmd_bytes, data))
+
+        header = self.HEADER.pack(len(packet), self.counter_send)
+        self.counter_send = (self.counter_send + 1) & 0xFFFF
+
+        frame = header + packet
+
+        # Align using optional accelerator
+        if _accel is not None and hasattr(_accel, "add_alignment"):
+            frame = _accel.add_alignment(frame, self.alignment)
+        else:
+            remainder = len(frame) % self.alignment
+            if remainder:
+                frame += b"\0" * (self.alignment - remainder)
         if self._debug:
             self.logger.debug(f"-> {hexDump(frame)}")
         return frame
@@ -355,7 +393,14 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 block_response += partial_response[1:]
             else:
                 if self.timestamp.value - start > self.timeout:
-                    raise types.XcpTimeoutError("Response timed out [block_receive].") from None
+                    waited = (self.timestamp.value - start) / 1e9 if hasattr(self.timestamp, "value") else None
+                    msg = f"Response timed out [block_receive]: received {len(block_response)} of {length_required} bytes"
+                    if waited is not None:
+                        msg += f" after {waited:.3f}s"
+                    # Attach diagnostics
+                    diag = self._build_diagnostics_dump() if self._diagnostics_enabled() else ""
+                    self.logger.debug("XCP block_receive timeout", extra={"event": "timeout"})
+                    raise types.XcpTimeoutError(msg) from None
                 short_sleep()
         return block_response
 
@@ -382,16 +427,29 @@ class BaseTransport(metaclass=abc.ABCMeta):
             self.timer_restart_event.set()
 
     def process_response(self, response: bytes, length: int, counter: int, recv_timestamp: int) -> None:
-        if counter == self.counter_received:
-            self.logger.warning(f"Duplicate message counter {counter} received from the XCP slave")
-            if self._debug:
-                self.logger.debug(f"<- L{length} C{counter} {hexDump(response[:512])}")
-            return
-        self.counter_received = counter
+        # Important: determine PID first so duplicate counter handling can be applied selectively.
         pid = response[0]
+
         if pid >= 0xFC:
+            # Do not drop RESPONSE/EVENT/SERV frames even if the transport counter repeats.
+            # Some slaves may reuse the counter while DAQ traffic is active, and we must not lose
+            # command responses; otherwise request() can stall until timeout.
             if self._debug:
                 self.logger.debug(f"<- L{length} C{counter} {hexDump(response)}")
+            self.counter_received = counter
+            # Record incoming non-DAQ frames for diagnostics
+            self._record_pdu(
+                "in",
+                (
+                    types.FrameCategory.RESPONSE
+                    if pid >= 0xFE
+                    else types.FrameCategory.SERV if pid == 0xFC else types.FrameCategory.EVENT
+                ),
+                counter,
+                recv_timestamp,
+                response,
+                length,
+            )
             if pid >= 0xFE:
                 self.resQueue.append(response)
                 with self.policy_lock:
@@ -405,6 +463,15 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 with self.policy_lock:
                     self.policy.feed(types.FrameCategory.SERV, self.counter_received, self.timestamp.value, response)
         else:
+            # DAQ traffic: Some transports reuse or do not advance the counter for DAQ frames.
+            # Do not drop DAQ frames on duplicate counters to avoid losing measurements.
+            if counter == self.counter_received:
+                self.logger.debug(f"Duplicate message counter {counter} received (DAQ) - not dropping")
+                # DAQ still flowing – reset request timeout window to avoid false timeouts while
+                # the slave is busy but has not yet responded to a command.
+                self.timer_restart_event.set()
+                # Fall through and process the frame as usual.
+            self.counter_received = counter
             if self._debug:
                 self.logger.debug(f"<- L{length} C{counter} ODT_Data[0:8] {hexDump(response[:8])}")
             if self.first_daq_timestamp is None:
@@ -413,8 +480,103 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 timestamp = recv_timestamp
             else:
                 timestamp = 0
+            # Record DAQ frame (only keep small prefix in payload string later)
+            self._record_pdu("in", types.FrameCategory.DAQ, counter, timestamp, response, length)
+            # DAQ activity indicates the slave is alive/busy; keep extending the wait window for any
+            # outstanding request, similar to EV_CMD_PENDING behavior on stacks that don't emit it.
+            self.timer_restart_event.set()
             with self.policy_lock:
                 self.policy.feed(types.FrameCategory.DAQ, self.counter_received, timestamp, response)
+
+    def _record_pdu(
+        self,
+        direction: str,
+        category: types.FrameCategory,
+        counter: int,
+        timestamp: int,
+        payload: bytes,
+        length: Optional[int] = None,
+    ) -> None:
+        try:
+            entry = {
+                "dir": direction,
+                "cat": category.name,
+                "ctr": int(counter),
+                "ts": int(timestamp),
+                "len": int(length if length is not None else len(payload)),
+                "data": hexDump(payload if category != types.FrameCategory.DAQ else payload[:8])[:512],
+            }
+            self._last_pdus.append(entry)
+        except Exception:
+            pass
+
+    def _build_diagnostics_dump(self) -> str:
+        import json as _json
+
+        # transport params
+        tp = {"transport": self.__class__.__name__}
+        cfg = getattr(self, "config", None)
+        # Extract common Eth/Can fields when available
+        for key in (
+            "host",
+            "port",
+            "protocol",
+            "ipv6",
+            "bind_to_address",
+            "bind_to_port",
+            "fd",
+            "bitrate",
+            "data_bitrate",
+            "can_id_master",
+            "can_id_slave",
+        ):
+            if cfg is not None and hasattr(cfg, key):
+                try:
+                    tp[key] = getattr(cfg, key)
+                except Exception:
+                    pass
+        # negotiated properties
+        negotiated = None
+        try:
+            master = getattr(self, "parent", None)
+            if master is not None and hasattr(master, "slaveProperties"):
+                sp = getattr(master, "slaveProperties")
+                negotiated = getattr(sp, "__dict__", None) or str(sp)
+        except Exception:
+            negotiated = None
+        # last PDUs
+        general = None
+        last_n = 20
+        try:
+            app = getattr(self.config, "parent", None)
+            app = getattr(app, "parent", None)
+            if app is not None and hasattr(app, "general") and hasattr(app.general, "diagnostics_last_pdus"):
+                last_n = int(app.general.diagnostics_last_pdus or last_n)
+                general = app.general
+        except Exception:
+            pass
+        pdus = list(self._last_pdus)[-last_n:]
+        payload = {
+            "transport_params": tp,
+            "last_pdus": pdus,
+        }
+        try:
+            body = _json.dumps(payload, ensure_ascii=False, default=str, indent=2)
+        except Exception:
+            body = str(payload)
+        # Add a small header to explain what follows
+        header = "--- Diagnostics (for troubleshooting) ---"
+        return f"{header}\n{body}"
+
+    def _diagnostics_enabled(self) -> bool:
+        try:
+            app = getattr(self.config, "parent", None)
+            app = getattr(app, "parent", None)
+            if app is not None and hasattr(app, "general"):
+                return bool(getattr(app.general, "diagnostics_on_failure", True))
+        except Exception:
+            return True
+        return True
 
     # @abc.abstractproperty
     # @property

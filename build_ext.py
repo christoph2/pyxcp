@@ -107,17 +107,20 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
     debug = debug or get_env_bool("BUILD_DEBUG")
 
     cfg = "Debug" if debug else "Release"
-    print(f" BUILD-TYPE: {cfg!r}")
+    bits, linkage = platform.architecture()
+    print(f"Bits: {bits!r} Linkage: {linkage!r} Build-Type: {cfg!r}")
 
-    py_cfg = get_py_config()
-
-    cmake_args = [
-        f"-DPython3_EXECUTABLE={py_cfg['exe']}",
-        f"-DPython3_INCLUDE_DIR={py_cfg['include']}",
-        f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
-    ]
-    if py_cfg["libdir"]:
-        cmake_args.append(f"-DPython3_LIBRARY={str(Path(py_cfg['libdir']) / Path(py_cfg['library']))}")
+    if bits == "32bit" and linkage == "ELF":
+        cmake_args = []
+    else:
+        py_cfg = get_py_config()
+        cmake_args = [
+            f"-DPython3_EXECUTABLE={py_cfg['exe']}",
+            f"-DPython3_INCLUDE_DIR={py_cfg['include']}",
+            f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
+        ]
+        if py_cfg["libdir"]:
+            cmake_args.append(f"-DPython3_LIBRARY={str(Path(py_cfg['libdir']) / Path(py_cfg['library']))}")
 
     build_args = ["--config Release", "--verbose"]
     # cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 /path/to/src

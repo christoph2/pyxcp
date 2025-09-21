@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 import datetime
-from enum import IntEnum
 import functools
 import operator
 import sys
 from binascii import hexlify
+from enum import IntEnum
 from time import perf_counter, sleep
+from typing import Any, List, Optional, Union
 
 import chardet
 import pytz
@@ -13,7 +14,7 @@ import pytz
 from pyxcp.cpp_ext.cpp_ext import TimestampInfo
 
 
-def hexDump(arr):
+def hexDump(arr: Union[bytes | bytearray]):
     if isinstance(arr, (bytes, bytearray)):
         size = len(arr)
         try:
@@ -112,8 +113,8 @@ def enum_from_str(enum_class: IntEnum, enumerator: str) -> IntEnum:
 
     enumerator: str
 
-    Example
-    -------
+    Examples
+    --------
 
     class Color(enum.IntEnum):
         RED = 0

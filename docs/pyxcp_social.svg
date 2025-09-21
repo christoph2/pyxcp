@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="120" viewBox="0 0 400 120">
+  <style>
+    .text-main { font: bold 32px sans-serif; fill: black; }
+    .text-sub { font: 16px sans-serif; fill: black; }
+  </style>
+  <!-- Icon Circle -->
+  <circle cx="60" cy="60" r="40" stroke="#0057B7" stroke-width="8" fill="none"/>
+  <!-- Molecular Nodes -->
+  <circle cx="45" cy="40" r="10" fill="#F4A300"/>
+  <circle cx="35" cy="70" r="8" fill="#F4A300"/>
+  <circle cx="75" cy="55" r="6" fill="#F4A300"/>
+  <!-- Connecting Lines -->
+  <path d="M45 40 C40 55, 40 65, 35 70" stroke="#F4A300" stroke-width="3" fill="none"/>
+  <path d="M45 40 C55 45, 70 50, 75 55" stroke="#F4A300" stroke-width="3" fill="none"/>
+  <!-- Text -->
+  <text x="120" y="65" class="text-main">pyXCP</text>
+  <text x="120" y="95" class="text-sub">Python Interface for ASAM XCP</text>
+</svg>

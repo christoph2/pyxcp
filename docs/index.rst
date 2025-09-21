@@ -1,24 +1,27 @@
-.. pyXCP documentation master file, created by
-   sphinx-quickstart on Sun Mar 18 08:53:54 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+Welcome to pyXCP’s documentation
+================================
 
-Welcome to pyXCP's documentation!
-=================================
+.. image:: pyxcp_social.svg
+    :align: center
+
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
+   README
    installation
    tutorial
    configuration
+   custom_can_driver
    howto
-   modules
-
+   howto_can_driver
+   howto_cli_tools
+   recorder
+   troubleshooting
+   pyxcp
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`

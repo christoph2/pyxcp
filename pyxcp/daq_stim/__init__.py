@@ -31,9 +31,10 @@ DAQ_TIMESTAMP_SIZE = {
 
 class DaqProcessor:
     def __init__(self, daq_lists: List[DaqList]):
-        # super().__init__()
         self.daq_lists = daq_lists
         self.log = get_application().log
+        # Flag indicating a fatal OS-level error occurred during DAQ (e.g., disk full, out-of-memory)
+        self._fatal_os_error: bool = False
 
     def setup(self, start_datetime: Optional[CurrentDatetime] = None, write_multiple: bool = True):
         if not self.xcp_master.slaveProperties.supportsDaq:
@@ -71,9 +72,10 @@ class DaqProcessor:
             max_payload_size = min(max_odt_entry_size, max_dto - header_len)
             # First ODT may contain timestamp.
             self.selectable_timestamps = False
+            max_payload_size_first = max_payload_size
             if not self.supports_timestampes:
-                max_payload_size_first = max_payload_size
                 # print("NO TIMESTAMP SUPPORT")
+                pass
             else:
                 if self.ts_fixed:
                     # print("Fixed timestamp")
@@ -164,6 +166,31 @@ class DaqProcessor:
         self.xcp_master.startStopSynch(0x01)
 
     def stop(self):
+        # If a fatal OS error occurred during acquisition, skip sending stop to the slave to avoid
+        # cascading timeouts/unrecoverable errors and shut down transport gracefully instead.
+        if getattr(self, "_fatal_os_error", False):
+            try:
+                self.log.error(
+                    "DAQ stop skipped due to previous fatal OS error (e.g., disk full or out-of-memory). Closing transport."
+                )
+            except Exception:
+                pass
+            try:
+                # Best-effort: stop listener and close transport so threads finish cleanly.
+                if hasattr(self.xcp_master, "transport") and self.xcp_master.transport is not None:
+                    # Signal listeners to stop
+                    try:
+                        if hasattr(self.xcp_master.transport, "closeEvent"):
+                            self.xcp_master.transport.closeEvent.set()
+                    except Exception:
+                        pass
+                    # Close transport connection
+                    try:
+                        self.xcp_master.transport.close()
+                    except Exception:
+                        pass
+            finally:
+                return
         self.xcp_master.startStopSynch(0x00)
 
     def first_pids(self):
@@ -219,7 +246,40 @@ class DaqToCsv(DaqOnlinePolicy):
             out_file.write(f"{hdr}\n")
 
     def on_daq_list(self, daq_list: int, timestamp0: int, timestamp1: int, payload: list):
-        self.files[daq_list].write(f"{timestamp0},{timestamp1},{', '.join([str(x) for x in payload])}\n")
+        # Guard against hard OS errors (e.g., disk full) during file writes.
+        if getattr(self, "_fatal_os_error", False):
+            return
+        try:
+            self.files[daq_list].write(f"{timestamp0},{timestamp1},{', '.join([str(x) for x in payload])}\n")
+        except (OSError, MemoryError) as ex:
+            # Mark fatal condition to alter shutdown path and avoid further writes/commands.
+            self._fatal_os_error = True
+            try:
+                self.log.critical(f"DAQ file write failed: {ex.__class__.__name__}: {ex}. Initiating graceful shutdown.")
+            except Exception:
+                pass
+            # Stop listener to prevent more DAQ traffic and avoid thread crashes.
+            try:
+                if hasattr(self.xcp_master, "transport") and self.xcp_master.transport is not None:
+                    if hasattr(self.xcp_master.transport, "closeEvent"):
+                        self.xcp_master.transport.closeEvent.set()
+            except Exception:
+                pass
+            # Best-effort: close any opened files to flush buffers and release resources.
+            try:
+                for f in getattr(self, "files", {}).values():
+                    try:
+                        f.flush()
+                    except Exception:
+                        pass
+                    try:
+                        f.close()
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            # Do not re-raise; allow the system to continue to a controlled shutdown.
+            return
 
     def finalize(self):
         self.log.debug("DaqCsv::finalize()")

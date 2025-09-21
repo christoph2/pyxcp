@@ -17,6 +17,26 @@ from pyxcp.types import COMMAND_CATEGORIES, XcpError, XcpResponseError, XcpTimeo
 
 handle_errors = True  # enable/disable XCP error-handling.
 
+# Thread-local flag to suppress logging for expected XCP negative responses
+import threading
+
+
+_thread_flags = threading.local()
+
+
+def set_suppress_xcp_error_log(value: bool) -> None:
+    try:
+        _thread_flags.suppress_xcp_error_log = bool(value)
+    except Exception:
+        pass
+
+
+def is_suppress_xcp_error_log() -> bool:
+    try:
+        return bool(getattr(_thread_flags, "suppress_xcp_error_log", False))
+    except Exception:
+        return False
+
 
 class SingletonBase:
     _lock = threading.Lock()
@@ -196,6 +216,35 @@ class Handler:
         self._repeater = None
         self.logger = logging.getLogger("PyXCP")
 
+    def _diagnostics_enabled(self) -> bool:
+        try:
+            app = getattr(self.instance, "config", None)
+            if app is None:
+                return True
+            general = getattr(app, "general", None)
+            if general is None:
+                return True
+            return bool(getattr(general, "diagnostics_on_failure", True))
+        except Exception:
+            return True
+
+    def _build_transport_diagnostics(self) -> str:
+        try:
+            transport = getattr(self.instance, "transport", None)
+            if transport is None:
+                return ""
+            if hasattr(transport, "_build_diagnostics_dump"):
+                return transport._build_diagnostics_dump()  # type: ignore[attr-defined]
+        except Exception:
+            pass
+        return ""
+
+    def _append_diag(self, msg: str) -> str:
+        if not self._diagnostics_enabled():
+            return msg
+        diag = self._build_transport_diagnostics()
+        return msg + ("\n" + diag if diag else "")
+
     def __str__(self):
         return f"Handler(func = {func_name(self.func)} -- {self.arguments} service = {self.service} error_code = {self.error_code})"
 
@@ -268,16 +317,16 @@ class Handler:
             if item == Action.NONE:
                 pass
             elif item == Action.DISPLAY_ERROR:
-                raise SystemExit("Could not proceed due to unhandled error (DISPLAY_ERROR).", self.error_code)
+                raise SystemExit(self._append_diag("Could not proceed due to unhandled error (DISPLAY_ERROR)."), self.error_code)
             elif item == Action.RETRY_SYNTAX:
-                raise SystemExit("Could not proceed due to unhandled error (RETRY_SYNTAX).", self.error_code)
+                raise SystemExit(self._append_diag("Could not proceed due to unhandled error (RETRY_SYNTAX)."), self.error_code)
             elif item == Action.RETRY_PARAM:
-                raise SystemExit("Could not proceed due to unhandled error (RETRY_PARAM).", self.error_code)
+                raise SystemExit(self._append_diag("Could not proceed due to unhandled error (RETRY_PARAM)."), self.error_code)
             elif item == Action.USE_A2L:
-                raise SystemExit("Could not proceed due to unhandled error (USE_A2L).", self.error_code)
+                raise SystemExit(self._append_diag("Could not proceed due to unhandled error (USE_A2L)."), self.error_code)
             elif item == Action.USE_ALTERATIVE:
                 raise SystemExit(
-                    "Could not proceed due to unhandled error (USE_ALTERATIVE).", self.error_code
+                    self._append_diag("Could not proceed due to unhandled error (USE_ALTERATIVE)."), self.error_code
                 )  # TODO: check alternatives.
             elif item == Action.REPEAT:
                 repetitionCount = Repeater.REPEAT
@@ -286,13 +335,15 @@ class Handler:
             elif item == Action.REPEAT_INF_TIMES:
                 repetitionCount = Repeater.INFINITE
             elif item == Action.RESTART_SESSION:
-                raise SystemExit("Could not proceed due to unhandled error (RESTART_SESSION).", self.error_code)
+                raise SystemExit(self._append_diag("Could not proceed due to unhandled error (RESTART_SESSION)."), self.error_code)
             elif item == Action.TERMINATE_SESSION:
-                raise SystemExit("Could not proceed due to unhandled error (TERMINATE_SESSION).", self.error_code)
+                raise SystemExit(
+                    self._append_diag("Could not proceed due to unhandled error (TERMINATE_SESSION)."), self.error_code
+                )
             elif item == Action.SKIP:
                 pass
             elif item == Action.NEW_FLASH_WARE:
-                raise SystemExit("Could not proceed due to unhandled error (NEW_FLASH_WARE)", self.error_code)
+                raise SystemExit(self._append_diag("Could not proceed due to unhandled error (NEW_FLASH_WARE)"), self.error_code)
         return result_pre_actions, result_actions, Repeater(repetitionCount)
 
 
@@ -366,6 +417,48 @@ class Executor(SingletonBase):
                     # self.logger.critical(f"XcpResponseError [{e.get_error_code()}]")
                     self.error_code = e.get_error_code()
                     handler.error_code = self.error_code
+                    try:
+                        svc = getattr(inst.service, "name", None)
+                        # Derive a human-friendly error name if available
+                        try:
+                            err_name = (
+                                getattr(XcpError, int(self.error_code)).name
+                                if hasattr(XcpError, "__members__")
+                                else str(self.error_code)
+                            )
+                        except Exception:
+                            # Fallbacks: try enum-style .name or string conversion
+                            err_name = getattr(self.error_code, "name", None) or str(self.error_code)
+                        try:
+                            err_code_int = int(self.error_code)
+                        except Exception:
+                            err_code_int = self.error_code  # best effort
+                        msg = f"XCP negative response: {err_name} (0x{err_code_int:02X})"
+                        if svc:
+                            msg += f" on service {svc}"
+                        # Suppress noisy ERROR log if requested by caller context
+                        if is_suppress_xcp_error_log():
+                            self.logger.debug(
+                                msg,
+                                extra={
+                                    "event": "xcp_error_suppressed",
+                                    "service": svc,
+                                    "error_code": err_code_int,
+                                    "error_name": err_name,
+                                },
+                            )
+                        else:
+                            self.logger.error(
+                                msg,
+                                extra={
+                                    "event": "xcp_error",
+                                    "service": svc,
+                                    "error_code": err_code_int,
+                                    "error_name": err_name,
+                                },
+                            )
+                    except Exception:
+                        pass
                 except XcpTimeoutError:
                     is_connect = func.__name__ == "connect"
                     self.logger.warning(f"XcpTimeoutError -- Service: {func.__name__!r}")
@@ -405,9 +498,21 @@ class Executor(SingletonBase):
                     if handler.repeater.repeat():
                         continue
                     else:
-                        raise UnrecoverableError(
-                            f"Max. repetition count reached while trying to execute service {handler.func.__name__!r}."
-                        )
+                        msg = f"Max. repetition count reached while trying to execute service {handler.func.__name__!r}."
+                        # Try to append diagnostics from the transport
+                        try:
+                            if hasattr(handler, "_append_diag"):
+                                msg = handler._append_diag(msg)
+                        except Exception:
+                            pass
+                        try:
+                            self.logger.error(
+                                "XCP unrecoverable",
+                                extra={"event": "xcp_unrecoverable", "service": getattr(inst.service, "name", None)},
+                            )
+                        except Exception:
+                            pass
+                        raise UnrecoverableError(msg)
         finally:
             # cleanup of class variables
             self.previous_error_code = None

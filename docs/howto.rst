@@ -1,10 +1,7 @@
-
-HOW-TOs
+HOW‑TOs
 =======
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+This page collects short guides and tips for common tasks.
 
-   howto_cli_tools
-   howto_can_driver
+- `Using pyXCP Command-Line Tools <howto_cli_tools.md>`__
+- `How to build your own CAN drivers <howto_can_driver.md>`__

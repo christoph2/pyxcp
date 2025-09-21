@@ -17,6 +17,7 @@ from traitlets import (
     Dict,
     Enum,
     Float,
+    HasTraits,
     Integer,
     List,
     TraitError,
@@ -24,6 +25,7 @@ from traitlets import (
     Union,
 )
 from traitlets.config import Application, Configurable, Instance, default
+from traitlets.config.loader import Config
 
 from pyxcp.config import legacy
 
@@ -490,6 +492,24 @@ If set, the `app_name` does not have to be previously defined in
     )
 
 
+class CanCustom(Configurable, CanBase):
+    """Generic custom CAN interface.
+
+    Enable basic CanBase options so user-provided python-can backends can
+    consume common parameters like bitrate, fd, data_bitrate, poll_interval,
+    receive_own_messages, and optional timing.
+    """
+
+    interface_name = "custom"
+
+    # Allow usage of the basic options from CanBase for custom backends
+    has_fd = True
+    has_data_bitrate = True
+    has_poll_interval = True
+    has_receive_own_messages = True
+    has_timing = True
+
+
 class Virtual(Configurable, CanBase):
     """ """
 
@@ -542,11 +562,13 @@ CAN_INTERFACE_MAP = {
     "usb2can": Usb2Can,
     "vector": Vector,
     "virtual": Virtual,
+    "custom": CanCustom,
 }
 
 
 class Can(Configurable):
-    VALID_INTERFACES = can.interfaces.VALID_INTERFACES
+    VALID_INTERFACES = set(can.interfaces.VALID_INTERFACES)
+    VALID_INTERFACES.add("custom")
 
     interface = Enum(
         values=VALID_INTERFACES, default_value=None, allow_none=True, help="CAN interface supported by python-can"
@@ -605,6 +627,7 @@ timing-related parameters.
     classes = List(
         [
             CanAlystii,
+            CanCustom,
             CanTact,
             Etas,
             Gs_Usb,
@@ -640,6 +663,7 @@ timing-related parameters.
                     " {type(self.interface).__name__} {self.interface}."
                 )
         self.canalystii = CanAlystii(config=self.config, parent=self)
+        self.cancustom = CanCustom(config=self.config, parent=self)
         self.cantact = CanTact(config=self.config, parent=self)
         self.etas = Etas(config=self.config, parent=self)
         self.gs_usb = Gs_Usb(config=self.config, parent=self)
@@ -798,7 +822,7 @@ class Transport(Configurable):
         allow_none=True,
         help="Choose one of the supported XCP transport layers.",
     ).tag(config=True)
-    create_daq_timestamps = Bool(False, help="Record time of frame reception or set timestamp to 0.").tag(config=True)
+    create_daq_timestamps = Bool(True, help="Record time of frame reception or set timestamp to 0.").tag(config=True)
     timeout = Float(
         2.0,
         help="""raise `XcpTimeoutError` after `timeout` seconds
@@ -819,6 +843,68 @@ if there is no response to a command.""",
         self.usb = Usb(config=self.config, parent=self)
 
 
+class CustomArgs(Configurable):
+    """Class to handle custom command-line arguments."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._custom_args = {}
+
+    def add_argument(self, short_opt, long_opt="", dest="", help="", type=None, default=None, action=None):
+        """Add a custom argument dynamically.
+
+        This mimics the argparse.ArgumentParser.add_argument method.
+        """
+        if not dest and long_opt:
+            dest = long_opt.lstrip("-").replace("-", "_")
+
+        # Store the argument definition
+        self._custom_args[dest] = {
+            "short_opt": short_opt,
+            "long_opt": long_opt,
+            "help": help,
+            "type": type,
+            "default": default,
+            "action": action,
+            "value": default,
+        }
+
+        # Dynamically add a trait for this argument
+        trait_type = Any()
+        if type == bool or action == "store_true" or action == "store_false":
+            trait_type = Bool(default)
+        elif type == int:
+            trait_type = Integer(default)
+        elif type == float:
+            trait_type = Float(default)
+        elif type == str:
+            trait_type = Unicode(default)
+
+        # Add the trait to this instance
+        self.add_trait(dest, trait_type)
+        setattr(self, dest, default)
+
+    def update_from_options(self, options):
+        """Update trait values from parsed options."""
+        for option in options:
+            if option.dest and option.dest in self._custom_args:
+                if option.default is not None:
+                    setattr(self, option.dest, option.default)
+                    self._custom_args[option.dest]["value"] = option.default
+
+    def get_args(self):
+        """Return an object with all custom arguments as attributes."""
+
+        class Args:
+            pass
+
+        args = Args()
+        for name, arg_def in self._custom_args.items():
+            setattr(args, name, arg_def["value"])
+
+        return args
+
+
 class General(Configurable):
     """ """
 
@@ -827,11 +913,12 @@ class General(Configurable):
     connect_retries = Integer(help="Number of CONNECT retries (None for infinite retries).", allow_none=True, default_value=3).tag(
         config=True
     )
-    additional_module_path = List(
-        trait=Unicode(), default_value=[], allow_none=True, help="Extend search path for Python modules."
-    ).tag(config=True)
+    # Structured diagnostics dump options
+    diagnostics_on_failure = Bool(True, help="Append a structured diagnostics dump to timeout errors.").tag(config=True)
+    diagnostics_last_pdus = Integer(20, help="How many recent PDUs to include in diagnostics dump.").tag(config=True)
     seed_n_key_dll = Unicode("", allow_none=False, help="Dynamic library used for slave resource unlocking.").tag(config=True)
     seed_n_key_dll_same_bit_width = Bool(False, help="").tag(config=True)
+    custom_dll_loader = Unicode(allow_none=True, default_value=None, help="Use an custom seed and key DLL loader.").tag(config=True)
     seed_n_key_function = Callable(
         default_value=None,
         allow_none=True,
@@ -921,7 +1008,17 @@ class PyXCP(Application):
     description = "pyXCP application"
     config_file = Unicode(default_value="pyxcp_conf.py", help="base name of config file").tag(config=True)
 
-    classes = List([General, Transport])
+    # Add callout function support
+    callout = Callable(default_value=None, allow_none=True, help="Callback function to be called with master and args").tag(
+        config=True
+    )
+
+    # Logging options
+    structured_logging = Bool(False, help="Emit one-line JSON logs instead of rich text.").tag(config=True)
+    # Use log_output_format to avoid clashing with traitlets.Application.log_format (a %-style template)
+    log_output_format = Enum(values=["rich", "json"], default_value="rich", help="Select logging output format.").tag(config=True)
+
+    classes = List([General, Transport, CustomArgs])
 
     subcommands = dict(
         profile=(
@@ -937,34 +1034,79 @@ class PyXCP(Application):
             self.subapp.start()
             exit(2)
         else:
-            has_handlers = logging.getLogger().hasHandlers()
-            if has_handlers:
-                self.log = logging.getLogger()
-                self._read_configuration(self.config_file)
-            else:
-                self._read_configuration(self.config_file)
-                self._setup_logger()
+            # Always read configuration and then set up our logger explicitly to avoid
+            # traitlets.Application default logging using an incompatible 'log_format'.
+            self._read_configuration(self.config_file)
+            try:
+                # Ensure base Application.log_format is a valid %-style template
+                # (Users might set c.PyXCP.log_format = "json" which clashes with traitlets behavior.)
+                self.log_format = "%(message)s"  # type: ignore[assignment]
+            except Exception:
+                pass
+            self._setup_logger()
         self.log.debug(f"pyxcp version: {self.version}")
 
     def _setup_logger(self):
         from pyxcp.types import Command
 
         # Remove any handlers installed by `traitlets`.
-        for hdl in self.log.handlers:
+        for hdl in list(self.log.handlers):
             self.log.removeHandler(hdl)
 
-        # formatter = logging.Formatter(fmt=self.log_format, datefmt=self.log_datefmt)
+        # Decide formatter/handler based on config
+        use_json = False
+        try:
+            # Prefer explicit log_output_format; fallback to structured_logging for compatibility
+            use_json = getattr(self, "log_output_format", "rich") == "json" or getattr(self, "structured_logging", False)
+            # Backward-compat: if someone set PyXCP.log_format="json" in config, honor it here too
+            if not use_json:
+                lf = getattr(self, "log_format", None)
+                if isinstance(lf, str) and lf.lower() == "json":
+                    use_json = True
+        except Exception:
+            use_json = False
 
-        keywords = list(Command.__members__.keys()) + ["ARGS", "KWS"]  # Syntax highlight XCP commands and other stuff.
-        rich_handler = RichHandler(
-            rich_tracebacks=True,
-            tracebacks_show_locals=True,
-            log_time_format=self.log_datefmt,
-            level=self.log_level,
-            keywords=keywords,
-        )
-        # rich_handler.setFormatter(formatter)
-        self.log.addHandler(rich_handler)
+        if use_json:
+
+            class JSONFormatter(logging.Formatter):
+                def format(self, record: logging.LogRecord) -> str:
+                    # Build a minimal structured payload
+                    payload = {
+                        "time": self.formatTime(record, self.datefmt),
+                        "level": record.levelname,
+                        "logger": record.name,
+                        "message": record.getMessage(),
+                    }
+                    # Include extras if present
+                    for key in ("transport", "host", "port", "protocol", "event", "command"):
+                        if hasattr(record, key):
+                            payload[key] = getattr(record, key)
+                    # Exceptions
+                    if record.exc_info:
+                        payload["exc_type"] = record.exc_info[0].__name__ if record.exc_info[0] else None
+                        payload["exc_text"] = self.formatException(record.exc_info)
+                    try:
+                        import json as _json
+
+                        return _json.dumps(payload, ensure_ascii=False)
+                    except Exception:
+                        return f"{payload}"
+
+            handler = logging.StreamHandler()
+            formatter = JSONFormatter(datefmt=self.log_datefmt)
+            handler.setFormatter(formatter)
+            handler.setLevel(self.log_level)
+            self.log.addHandler(handler)
+        else:
+            keywords = list(Command.__members__.keys()) + ["ARGS", "KWS"]  # Syntax highlight XCP commands and other stuff.
+            rich_handler = RichHandler(
+                rich_tracebacks=True,
+                tracebacks_show_locals=True,
+                log_time_format=self.log_datefmt,
+                level=self.log_level,
+                keywords=keywords,
+            )
+            self.log.addHandler(rich_handler)
 
     def initialize(self, argv=None):
         from pyxcp import __version__ as pyxcp_version
@@ -977,6 +1119,7 @@ class PyXCP(Application):
         self.read_configuration_file(file_name, emit_warning)
         self.general = General(config=self.config, parent=self)
         self.transport = Transport(parent=self)
+        self.custom_args = CustomArgs(config=self.config, parent=self)
 
     def read_configuration_file(self, file_name: str, emit_warning: bool = True):
         self.legacy_config: bool = False
@@ -1078,7 +1221,7 @@ class PyXCP(Application):
 application: typing.Optional[PyXCP] = None
 
 
-def create_application(options: typing.Optional[typing.List[typing.Any]] = None) -> PyXCP:
+def create_application(options: typing.Optional[typing.List[typing.Any]] = None, callout=None) -> PyXCP:
     global application
     if options is None:
         options = []
@@ -1087,15 +1230,24 @@ def create_application(options: typing.Optional[typing.List[typing.Any]] = None)
     application = PyXCP()
     application.initialize(sys.argv)
     application.start()
+
+    # Set callout function if provided
+    if callout is not None:
+        application.callout = callout
+
+    # Process custom arguments if provided
+    if options and hasattr(application, "custom_args"):
+        application.custom_args.update_from_options(options)
+
     return application
 
 
-def get_application(options: typing.Optional[typing.List[typing.Any]] = None) -> PyXCP:
+def get_application(options: typing.Optional[typing.List[typing.Any]] = None, callout=None) -> PyXCP:
     if options is None:
         options = []
     global application
     if application is None:
-        application = create_application(options)
+        application = create_application(options, callout)
     return application
 
 

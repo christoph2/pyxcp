@@ -27,8 +27,14 @@ from pyxcp.constants import (
     makeWordUnpacker,
 )
 from pyxcp.daq_stim.stim import DaqEventInfo, Stim
-from pyxcp.master.errorhandler import SystemExit, disable_error_handling, wrapped
-from pyxcp.transport.base import BaseTransport, create_transport
+from pyxcp.master.errorhandler import (
+    SystemExit,
+    disable_error_handling,
+    is_suppress_xcp_error_log,
+    set_suppress_xcp_error_log,
+    wrapped,
+)
+from pyxcp.transport.base import create_transport
 from pyxcp.utils import decode_bytes, delay, short_sleep
 
 
@@ -389,6 +395,12 @@ class Master:
             self.AG_pack = self.DWORD_pack
             self.AG_unpack = self.DWORD_unpack
             self.slaveProperties.bytesPerElement = 4
+            # self.connected = True
+        status = self.getStatus()
+        if status.sessionStatus.daqRunning:
+            # TODO: resume
+            self.startStopSynch(0x00)
+        return result
 
     @wrapped
     def disconnect(self) -> bytes:
@@ -2399,6 +2411,7 @@ class Master:
                 self.logger.debug(f"Using seed and key DLL {self.seed_n_key_dll!r}.")
                 result, key = getKey(
                     self.logger,
+                    self.config.custom_dll_loader,
                     self.seed_n_key_dll,
                     resource_value,
                     bytes(seed),
@@ -2493,12 +2506,25 @@ class Master:
 
         gen = make_generator(scan_ranges)
         for id_value, name in gen:
-            status, response = self.try_command(self.identifier, id_value)
+            # Avoid noisy warnings while probing
+            status, response = self.try_command(self.identifier, id_value, silent=True)
             if status == types.TryCommandResult.OK and response:
                 result[name] = response
-            elif status == types.TryCommandResult.XCP_ERROR and response.error_code == types.XcpError.ERR_CMD_UNKNOWN:
-                break  # Nothing to do here.
-            elif status == types.TryCommandResult.OTHER_ERROR:
+                continue
+            if status == types.TryCommandResult.NOT_IMPLEMENTED:
+                # GET_ID not supported by the slave at all → stop scanning
+                break
+            if status == types.TryCommandResult.XCP_ERROR:
+                # Some IDs may not be supported; ignore typical probe errors
+                try:
+                    err = response.error_code
+                except Exception:
+                    err = None
+                if err in (types.XcpError.ERR_OUT_OF_RANGE, types.XcpError.ERR_CMD_SYNTAX):
+                    continue
+                # For any other XCP error, keep scanning (best-effort) instead of aborting
+                continue
+            if status == types.TryCommandResult.OTHER_ERROR:
                 raise RuntimeError(f"Error while scanning for ID {id_value}: {response!r}")
         return result
 
@@ -2530,6 +2556,9 @@ class Master:
         is normal for this kind of applications -- or to test for optional commands.
         Use carefuly not to hide serious error causes.
         """
+        # Suppress logging of expected XCP negative responses during try_command
+        _prev_suppress = is_suppress_xcp_error_log()
+        set_suppress_xcp_error_log(True)
         try:
             extra_msg: str | None = kws.get("extra_msg")
             if extra_msg:
@@ -2543,6 +2572,8 @@ class Master:
                 silent = False
             res = cmd(*args, **kws)
         except SystemExit as e:
+            # restore suppression flag before handling
+            set_suppress_xcp_error_log(_prev_suppress)
             # print(f"\tUnexpected error while executing command {cmd.__name__!r}: {e!r}")
             if e.error_code == types.XcpError.ERR_CMD_UNKNOWN:
                 # This is a rather common use-case, so let the user know that there is some functionality missing.
@@ -2558,6 +2589,12 @@ class Master:
             return (types.TryCommandResult.OTHER_ERROR, e)
         else:
             return (types.TryCommandResult.OK, res)
+        finally:
+            # Ensure suppression flag is restored even on success/other exceptions
+            try:
+                set_suppress_xcp_error_log(_prev_suppress)
+            except Exception:
+                pass  # nosec B110
 
 
 def ticks_to_seconds(ticks, resolution):

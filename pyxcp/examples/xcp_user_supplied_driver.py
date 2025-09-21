@@ -1,54 +1,44 @@
 #!/usr/bin/env python
-"""User supplied CAN driver.
 
-Run as:
+from typing import Dict, List, Optional
 
-.. code-block:: shell
+import can
 
-    python xcp_user_supplied_driver.py -c conf_can_user.toml
-"""
 from pyxcp.cmdline import ArgumentParser
 from pyxcp.transport.can import CanInterfaceBase
 
 
-class MyCI(CanInterfaceBase):
-    """
+class CustomCANInterface(CanInterfaceBase):
 
-    Relevant options in your configuration file (e.g. conf_can_user.toml):
+    def init(self):
+        """Initialize the CAN interface here."""
 
-    TRANSPORT = "CAN"
-    CAN_DRIVER = "MyCI"     # The name of your custom driver class.
+    def set_filters(self, filters):
+        print(f"set_filters({filters})")
+        self._filters = filters
 
-    """
+    def recv(self, timeout: Optional[float] = None) -> Optional[can.message.Message]:
+        """Receive CAN frames."""
+        return can.message.Message()
 
-    def init(self, parent, receive_callback):
-        self.parent = parent
+    def send(self, msg: can.message.Message):
+        """Send CAN frames."""
+        print(f"send({msg})")
 
-    def connect(self):
-        pass
+    @property
+    def filters(self):
+        """Return the current CAN filters."""
+        return self._filters
 
-    def close(self):
-        pass
+    @property
+    def state(self):
+        """Return the current state of the CAN interface."""
+        return can.BusState.ACTIVE
 
-    def get_timestamp_resolution(self):
-        pass
 
-    def read(self):
-        pass
-
-    def transmit(self, payload: bytes):
-        print("\tTX-PAYLOAD", payload)
-
+custom_interface = CustomCANInterface()
 
 ap = ArgumentParser(description="User supplied CAN driver.")
-with ap.run() as x:
+with ap.run(transport_layer_interface=custom_interface) as x:
     x.connect()
     x.disconnect()
-
-"""
-This do-nothing example will output
-
-    TX-PAYLOAD b'\xff\x00'
-
-and then timeout (0xff is the service code for CONNECT_REQ).
-"""

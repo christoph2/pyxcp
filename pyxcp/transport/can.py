@@ -3,10 +3,18 @@
 
 import functools
 import operator
+from abc import ABC, abstractmethod
 from bisect import bisect_left
-from typing import Any, Dict, Optional, Type
+from enum import IntEnum
+from typing import Any, Dict, List, Optional, Union
 
-from can import CanError, CanInitializationError, Message, detect_available_configs
+from can import (
+    BusState,
+    CanError,
+    CanInitializationError,
+    Message,
+    detect_available_configs,
+)
 from can.bus import BusABC
 from rich.console import Console
 
@@ -28,6 +36,55 @@ MAX_11_BIT_IDENTIFIER = (1 << 11) - 1
 MAX_29_BIT_IDENTIFIER = (1 << 29) - 1
 MAX_DLC_CLASSIC = 8
 CAN_FD_DLCS = (12, 16, 20, 24, 32, 48, 64)  # Discrete CAN-FD DLCs in case DLC > 8.
+
+
+class FilterState(IntEnum):
+    REJECT_ALL = 0
+    ACCEPT_ALL = 1
+    FILTERING = 2
+
+
+class SoftwareFilter:
+    """Additional CAN filters in software."""
+
+    def __init__(self) -> None:
+        self.filters = None
+        self.reject_all()
+
+    def set_filters(self, filters: List[Dict]) -> None:
+        self.filters = filters
+        self.filtering()
+
+    def reject_all(self) -> None:
+        self.filter_state = FilterState.REJECT_ALL
+
+    def accept_all(self) -> None:
+        self.filter_state = FilterState.ACCEPT_ALL
+
+    def filtering(self) -> None:
+        self.filter_state = FilterState.FILTERING
+
+    @property
+    def state(self) -> FilterState:
+        return self.filter_state
+
+    def accept(self, msg: Message) -> bool:
+        """
+        Based on: https://github.com/hardbyte/python-can/blob/bc248e8aaf96280a574c06e8e7d2778a67f091e3/can/bus.py#L430
+        """
+        if self.filter_state == FilterState.REJECT_ALL:
+            return False
+        elif self.filter_state == FilterState.ACCEPT_ALL or self.filters is None:
+            return True
+        for filter in self.filters:
+            if "extended" in filter:
+                if filter["extended"] != msg.is_extended_id:
+                    continue
+            can_id = filter["can_id"]
+            can_mask = filter["can_mask"]
+            if (can_id ^ msg.arbitration_id) & can_mask == 0:
+                return True
+        return False
 
 
 class IdentifierOutOfRangeError(Exception):
@@ -238,32 +295,61 @@ class PythonCanWrapper:
         self.interface_name: str = interface_name
         self.timeout: int = timeout
         self.parameters = parameters
-        self.can_interface_class: Type[BusABC] = _get_class_for_interface(self.interface_name)
+        if not self.parent.has_user_supplied_interface:
+            try:
+                self.can_interface_class = _get_class_for_interface(self.interface_name)
+            except Exception as ex:
+                # Provide clearer message if interface not supported by python-can on this platform
+                raise CanInitializationError(
+                    f"Unsupported or unavailable CAN interface {self.interface_name!r}: {ex.__class__.__name__}: {ex}"
+                ) from ex
+        else:
+            self.can_interface_class = None
         self.can_interface: BusABC
         self.connected: bool = False
+        self.software_filter = SoftwareFilter()
+        self.saved_filters = []
 
-    def connect(self):
+    def connect(self) -> None:
         if self.connected:
             return
         can_filters = []
         can_filters.append(self.parent.can_id_slave.create_filter_from_id())  # Primary CAN filter.
-        if self.parent.has_user_supplied_interface:
-            self.can_interface = self.parent.transport_layer_interface
-        else:
-            self.can_interface = self.can_interface_class(interface=self.interface_name, **self.parameters)
         if self.parent.daq_identifier:
             # Add filters for DAQ identifiers.
             for daq_id in self.parent.daq_identifier:
                 can_filters.append(daq_id.create_filter_from_id())
-        self.can_interface.set_filters(can_filters)
+        if self.parent.has_user_supplied_interface:
+            self.saved_filters = self.parent.transport_layer_interface.filters
+            if self.saved_filters:
+                merged_filters = can_filters[::]
+                for fltr in self.saved_filters:
+                    if fltr not in merged_filters:
+                        merged_filters.append(fltr)
+            self.can_interface = self.parent.transport_layer_interface
+            self.can_interface.set_filters(merged_filters)
+            self.software_filter.set_filters(can_filters)  # Filter unwanted traffic.
+        else:
+            try:
+                self.can_interface = self.can_interface_class(
+                    interface=self.interface_name, can_filters=can_filters, **self.parameters
+                )
+            except OSError as ex:
+                # Typical when selecting socketcan on unsupported OS (e.g., Windows)
+                raise CanInitializationError(
+                    f"OS error while creating CAN interface {self.interface_name!r}: {ex.__class__.__name__}: {ex}"
+                ) from ex
+            self.software_filter.accept_all()
         self.parent.logger.info(f"XCPonCAN - Using Interface: '{self.can_interface!s}'")
         self.parent.logger.info(f"XCPonCAN - Filters used: {self.can_interface.filters}")
         self.parent.logger.info(f"XCPonCAN - State: {self.can_interface.state!s}")
         self.connected = True
 
-    def close(self):
+    def close(self) -> None:
         if self.connected and not self.parent.has_user_supplied_interface:
             self.can_interface.shutdown()
+        if self.saved_filters:
+            self.can_interface.set_filters(self.saved_filters)
         self.connected = False
 
     def transmit(self, payload: bytes) -> None:
@@ -285,6 +371,8 @@ class PythonCanWrapper:
         else:
             if frame is None or not len(frame.data):
                 return None  # Timeout condition.
+            if not self.software_filter.accept(frame):
+                return None  # Filter out unwanted traffic.
             extended = frame.is_extended_id
             identifier = Identifier.make_identifier(frame.arbitration_id, extended)
             return Frame(
@@ -337,10 +425,35 @@ class Can(BaseTransport):
                 self.daq_identifier.append(Identifier(daq_id))
         self.max_dlc_required = self.config.max_dlc_required
         self.padding_value = self.config.padding_value
-        self.interface_name = self.config.interface
-        self.interface_configuration = detect_available_configs(interfaces=[self.interface_name])
-        parameters = self.get_interface_parameters()
-        self.can_interface = PythonCanWrapper(self, self.interface_name, config.timeout, **parameters)
+        if transport_layer_interface is None:
+            self.interface_name = self.config.interface
+            # On platforms that do not support certain backends (e.g., SocketCAN on Windows),
+            # python-can may raise OSError deep inside interface initialization. We want to
+            # fail fast with a clearer hint and avoid unhandled low-level errors.
+            try:
+                self.interface_configuration = detect_available_configs(interfaces=[self.interface_name])
+            except Exception as ex:
+                # Best-effort graceful message; keep original exception context
+                self.logger.critical(
+                    f"XCPonCAN - Failed to query available configs for interface {self.interface_name!r}: {ex.__class__.__name__}: {ex}"
+                )
+                self.interface_configuration = []
+            parameters = self.get_interface_parameters()
+        else:
+            self.interface_name = "custom"
+            # print("TRY GET PARAMs", self.get_interface_parameters())
+            parameters = {}
+        try:
+            self.can_interface = PythonCanWrapper(self, self.interface_name, config.timeout, **parameters)
+        except OSError as ex:
+            # Catch platform-specific socket errors early (e.g., SocketCAN on Windows)
+            msg = (
+                f"XCPonCAN - Failed to initialize CAN interface {self.interface_name!r}: "
+                f"{ex.__class__.__name__}: {ex}.\n"
+                f"Hint: Interface may be unsupported on this OS or missing drivers."
+            )
+            self.logger.critical(msg)
+            raise CanInitializationError(msg) from ex
         self.logger.info(f"XCPonCAN - Interface-Type: {self.interface_name!r} Parameters: {list(parameters.items())}")
         self.logger.info(
             f"XCPonCAN - Master-ID (Tx): 0x{self.can_id_master.id:08X}{self.can_id_master.type_str} -- "
@@ -430,15 +543,34 @@ class Can(BaseTransport):
                 last_sleep = self.timestamp.value
 
     def connect(self):
-        if self.useDefaultListener:
-            self.start_listener()
+        # Start listener lazily after a successful interface connection to avoid a dangling
+        # thread waiting on a not-yet-connected interface if initialization fails.
         try:
             self.can_interface.connect()
         except CanInitializationError:
+            # Ensure any previously-started listener is stopped to prevent hangs.
+            self.finish_listener()
             console.print("[red]\nThere may be a problem with the configuration of your CAN-interface.\n")
             console.print(f"[grey]Current configuration of interface {self.interface_name!r}:")
             console.print(self.interface_configuration)
             raise
+        except OSError as ex:
+            # Ensure any previously-started listener is stopped to prevent hangs.
+            self.finish_listener()
+            # E.g., attempting to instantiate SocketCAN on Windows raises an OSError from socket layer.
+            # Provide a clearer, actionable message and keep the original exception.
+            msg = (
+                f"XCPonCAN - OS error while initializing interface {self.interface_name!r}: "
+                f"{ex.__class__.__name__}: {ex}.\n"
+                f"Hint: This interface may not be supported on your platform. "
+                f"On Windows, use e.g. 'vector', 'kvaser', 'pcan', or other vendor backends instead of 'socketcan'."
+            )
+            self.logger.critical(msg)
+            raise CanInitializationError(msg) from ex
+        else:
+            # Only now start the default listener if requested.
+            if self.useDefaultListener:
+                self.start_listener()
         self.status = 1  # connected
 
     def send(self, frame: bytes) -> None:
@@ -488,3 +620,40 @@ def calculate_filter(ids: list):
     cmask = functools.reduce(operator.or_, raw_ids) ^ cfilter
     cmask ^= 0x1FFFFFFF if any_extended_ids else 0x7FF
     return (cfilter, cmask)
+
+
+class CanInterfaceBase(ABC):
+    """
+    Base class for custom CAN interfaces.
+    This is basically a subset of python-CANs `BusABC`.
+    """
+
+    @abstractmethod
+    def set_filters(self, filters: Optional[List[Dict[str, Union[int, bool]]]] = None) -> None:
+        """Apply filtering to all messages received by this Bus.
+
+        filters:
+            A list of dictionaries, each containing a 'can_id', 'can_mask', and 'extended' field, e.g.:
+            [{"can_id": 0x11, "can_mask": 0x21, "extended": False}]
+        """
+
+    @abstractmethod
+    def recv(self, timeout: Optional[float] = None) -> Optional[Message]:
+        """Block waiting for a message from the Bus."""
+
+    @abstractmethod
+    def send(self, msg: Message) -> None:
+        """Transmit a message to the CAN bus."""
+
+    @property
+    @abstractmethod
+    def filters(self) -> Optional[List[Dict[str, Union[int, bool]]]]:
+        """Modify the filters of this bus."""
+
+    @property
+    @abstractmethod
+    def state(self) -> BusState:
+        """Return the current state of the hardware."""
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}"
