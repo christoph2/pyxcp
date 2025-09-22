@@ -220,21 +220,6 @@ class DaqList : public DaqListBase {
         for (const auto& hdr_obj : m_header_names) {
             ss << to_binary(hdr_obj);
         }
-#if 0
-        std::size_t odt_size = m_flatten_odts.size();
-        ss << to_binary(odt_size);
-        for (const auto& odt : m_flatten_odts) {
-            ss << to_binary(odt.size());
-            for (const auto& odt_entry : odt) {
-                const auto& [name, address, ext, size, type_index] = odt_entry;
-                ss << to_binary(name);
-                ss << to_binary(address);
-                ss << to_binary(ext);
-                ss << to_binary(size);
-                ss << to_binary(type_index);
-            }
-        }
-#endif
         return ss.str();
     }
 
@@ -320,21 +305,6 @@ class PredefinedDaqList : public DaqListBase {
         for (const auto& hdr_obj : m_header_names) {
             ss << to_binary(hdr_obj);
         }
-#if 0
-        std::size_t odt_size = m_flatten_odts.size();
-        ss << to_binary(odt_size);
-        for (const auto& odt : m_flatten_odts) {
-            ss << to_binary(odt.size());
-            for (const auto& odt_entry : odt) {
-                const auto& [name, address, ext, size, type_index] = odt_entry;
-                ss << to_binary(name);
-                ss << to_binary(address);
-                ss << to_binary(ext);
-                ss << to_binary(size);
-                ss << to_binary(type_index);
-            }
-        }
-#endif
         return ss.str();
     }
 

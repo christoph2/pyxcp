@@ -400,7 +400,6 @@ class Master:
         if status.sessionStatus.daqRunning:
             # TODO: resume
             self.startStopSynch(0x00)
-        return result
 
     @wrapped
     def disconnect(self) -> bytes:

@@ -706,8 +706,6 @@ class Deserializer {
         std::vector<std::uint16_t> first_pids;
         // TimestampInfo              timestamp_info{ 0 };
 
-        std::cout << "Enter Deserializer\n";
-
         byte_order            = from_binary<std::uint8_t>();
         id_field_size         = from_binary<std::uint8_t>();
         timestamps_supported  = from_binary<bool>();
@@ -812,7 +810,7 @@ class Deserializer {
         bool                     enable_timestamps;
         std::vector<Bin>         measurements_opt;
         std::vector<std::string> header_names;
-
+        PredefinedDaqList::predefined_daq_list_initializer_t odts;
         std::uint16_t odt_count;
         std::uint16_t total_entries;
         std::uint16_t total_length;
@@ -828,20 +826,6 @@ class Deserializer {
         total_entries = from_binary<std::uint16_t>();  // not used
         total_length  = from_binary<std::uint16_t>();  // not used
 
-        std::size_t odts_size = from_binary<std::size_t>();
-        PredefinedDaqList::predefined_daq_list_initializer_t odt_inits;
-        odt_inits.reserve(odts_size);
-        for (std::size_t i = 0; i < odts_size; ++i) {
-            std::size_t entries_size = from_binary<std::size_t>();
-            PredefinedDaqList::odt_initializer_t odt_init;
-            odt_init.reserve(entries_size);
-            for (std::size_t j = 0; j < entries_size; ++j) {
-                auto entry = create_mc_object();
-                odt_init.emplace_back(entry.get_name(), entry.get_data_type());
-            }
-            odt_inits.emplace_back(std::move(odt_init));
-        }
-
         std::size_t meas_opt_size = from_binary<std::size_t>();
         for (std::size_t i = 0; i < meas_opt_size; ++i) {
             measurements_opt.emplace_back(create_bin());
@@ -855,7 +839,7 @@ class Deserializer {
 
 		// auto flatten_odts = create_flatten_odts();
 
-        auto dl = std::make_shared<PredefinedDaqList>(name, event_num, stim, enable_timestamps, odt_inits, priority, prescaler);
+        auto dl = std::make_shared<PredefinedDaqList>(name, event_num, stim, enable_timestamps, odts, priority, prescaler);
         dl->set_measurements_opt(measurements_opt);
         return dl;
     }
