@@ -36,13 +36,19 @@ class SxI(BaseTransport):
         self.stopbits = self.config.stopbits
         self.mode = self.config.mode
         header_len, header_ctr, header_fill = parse_header_format(self.config.header_format)
+        tail_cs_map = {
+            "NO_CHECKSUM": ChecksumType.NO_CHECKSUM,
+            "CHECKSUM_BYTE": ChecksumType.BYTE_CHECKSUM,
+            "CHECKSUM_WORD": ChecksumType.WORD_CHECKSUM,
+        }
+        tail_cs = tail_cs_map[self.config.tail_format]
         framing_config = XcpFramingConfig(
             transport_layer_type=XcpTransportLayerType.SXI,
             header_len=header_len,
             header_ctr=header_ctr,
             header_fill=header_fill,
             tail_fill=False,
-            tail_cs=0,
+            tail_cs=tail_cs,
         )
         super().__init__(config, framing_config, policy, transport_layer_interface)
         self.tail_format = self.config.tail_format
@@ -74,8 +80,11 @@ class SxI(BaseTransport):
 
     def connect(self) -> None:
         self.logger.info(
-            f"XCPonSxI - serial comm_port {self.comm_port.portstr!r} openend [{self.baudrate}/{self.bytesize}-{self.parity}-{self.stopbits}]"
+            f"XCPonSxI - serial comm_port {self.comm_port.portstr!r} openend "
+            f"[{self.baudrate}/{self.bytesize}-{self.parity}-{self.stopbits}] "
+            f"mode: {self.config.mode}"
         )
+        self.logger.info(f"Framing: {self.config.header_format} {self.config.tail_format}")
         self.start_listener()
 
     def output(self, enable) -> None:
