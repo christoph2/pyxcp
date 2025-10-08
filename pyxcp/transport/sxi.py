@@ -1,10 +1,30 @@
+import threading
 from collections import deque
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
 
 import serial
+from pyxcp.cpp_ext.cpp_ext import (
+    SxiFrLBCN,
+    SxiFrLBC8,
+    SxiFrLBC16,
+    SxiFrLCBCN,
+    SxiFrLCBC8,
+    SxiFrLCBC16,
+    SxiFrLFBCN,
+    SxiFrLFBC8,
+    SxiFrLFBC16,
+    SxiFrLWCN,
+    SxiFrLWC8,
+    SxiFrLWC16,
+    SxiFrLCWCN,
+    SxiFrLCWC8,
+    SxiFrLCWC16,
+    SxiFrLFWCN,
+    SxiFrLFWC8,
+    SxiFrLFWC16,
+)
 
-import pyxcp.types as types
 from pyxcp.transport.base import (
     BaseTransport,
     ChecksumType,
@@ -24,6 +44,19 @@ class HeaderValues:
 RECV_SIZE = 16384
 
 
+def get_receiver_class(header_format: str, checksum_format: str) -> Any:
+    COLUMN = {"NO_CHECKSUM": 0, "CHECKSUM_BYTE": 1, "CHECKSUM_WORD": 2}
+    FORMATS = {
+        "HEADER_LEN_BYTE": (SxiFrLBCN, SxiFrLBC8, SxiFrLBC16),
+        "HEADER_LEN_CTR_BYTE": (SxiFrLCBCN, SxiFrLCBC8, SxiFrLCBC16),
+        "HEADER_LEN_FILL_BYTE": (SxiFrLFBCN, SxiFrLFBC8, SxiFrLFBC16),
+        "HEADER_LEN_WORD": (SxiFrLWCN, SxiFrLWC8, SxiFrLWC16),
+        "HEADER_LEN_CTR_WORD": (SxiFrLCWCN, SxiFrLCWC8, SxiFrLCWC16),
+        "HEADER_LEN_FILL_WORD": (SxiFrLFWCN, SxiFrLFWC8, SxiFrLFWC16),
+    }
+    return FORMATS[header_format][COLUMN[checksum_format]]
+
+
 class SxI(BaseTransport):
     """"""
 
@@ -41,7 +74,10 @@ class SxI(BaseTransport):
             "CHECKSUM_BYTE": ChecksumType.BYTE_CHECKSUM,
             "CHECKSUM_WORD": ChecksumType.WORD_CHECKSUM,
         }
+        self._listener_running = threading.Event()
         tail_cs = tail_cs_map[self.config.tail_format]
+        ReceiverKlass = get_receiver_class(self.config.header_format, self.config.tail_format)
+        self.receiver = ReceiverKlass(self.frame_dispatcher)
         framing_config = XcpFramingConfig(
             transport_layer_type=XcpTransportLayerType.SXI,
             header_len=header_len,
@@ -67,13 +103,19 @@ class SxI(BaseTransport):
                     bytesize=self.bytesize,
                     parity=self.parity,
                     stopbits=self.stopbits,
-                    timeout=self.timeout,
+                    timeout=0.1,  # self.timeout,
                     write_timeout=self.timeout,
                 )
             except serial.SerialException as e:
                 self.logger.critical(f"XCPonSxI - {e}")
                 raise
-        self._packets = deque()
+        self._condition = threading.Condition()
+        self._frames = deque()
+        # self._frame_listener = threading.Thread(
+        #    target=self._frame_listen,
+        #    args=(),
+        #    kwargs={},
+        # )
 
     def __del__(self) -> None:
         self.close_connection()
@@ -100,25 +142,61 @@ class SxI(BaseTransport):
 
     def start_listener(self) -> None:
         super().start_listener()
+        if hasattr(self, "_frame_listener") and self._frame_listener.is_alive():
+            self._frame_listener.join()
+        self._frame_listener = threading.Thread(target=self._frame_listen)
+        self._frame_listener.start()
+        print("Waiting for listener to start...")
+        self._listener_running.wait(2.0)
+        print("Listener started!")
+
+    def close(self) -> None:
+        """Close the transport-layer connection and event-loop."""
+        self.finish_listener()
+        self.closeEvent.set()
+        if self.listener.is_alive():
+            self.listener.join()
+        if self._frame_listener.is_alive():
+            self._frame_listener.join()
+        self.close_connection()
 
     def listen(self) -> None:
         while True:
             if self.closeEvent.is_set():
                 return
-            if not self.comm_port.in_waiting:
-                continue
-            recv_timestamp = self.timestamp.value
-            header_values = self.framing.unpack_header(self.comm_port.read(self.framing.header_size))
-            if header_values is not None:
-                length, counter = header_values
-                # print(f"Received frame: {length} bytes, counter: {counter}")
-                response = self.comm_port.read(length)
-                self.timing.stop()
-                if len(response) != length:
-                    raise types.FrameSizeError("Size mismatch.")
-                self.process_response(response, length, counter, recv_timestamp)
+            frame_to_process = None
+            with self._condition:
+                while not self._frames:
+                    res = self._condition.wait(1.0)
+                    if not res:
+                        break
+                if self._frames:
+                    frame_to_process = self._frames.popleft()
 
-    def send(self, frame) -> None:
+            if frame_to_process:
+                frame, length, counter, timestamp = frame_to_process
+                self.process_response(frame, length, counter, timestamp)
+
+    def _frame_listen(self) -> None:
+        print("_frame_listen STARTED!")
+        self._listener_running.set()
+        while True:
+            if self.closeEvent.is_set():
+                return
+            data = self.comm_port.read(1)
+            if data:
+                self.receiver.feed_bytes(data)
+                data = self.comm_port.read(self.comm_port.in_waiting)
+                if data:
+                    self.receiver.feed_bytes(data)
+
+    def frame_dispatcher(self, data: bytes, length: int, counter: int) -> None:
+        # print("FR:", bytes(data))
+        with self._condition:
+            self._frames.append((bytes(data), length, counter, self.timestamp.value))
+            self._condition.notify()
+
+    def send(self, frame: bytes) -> None:
         self.pre_send_timestamp = self.timestamp.value
         self.comm_port.write(frame)
         self.post_send_timestamp = self.timestamp.value

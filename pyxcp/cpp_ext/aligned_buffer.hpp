@@ -91,7 +91,7 @@ public:
     }
 
 
-    void extend(/*const std::vector<std::uint8_t>*/const py::bytes& values) noexcept {
+    void extend(const py::bytes& values)  {
         auto data_view = bytes_as_string_view(values);
 
         if ((data_view.size() + m_current_pos) > m_size) {
@@ -103,7 +103,7 @@ public:
         }
 	}
 
-	void extend(const std::vector<std::uint8_t>& values) noexcept {
+	void extend(const std::vector<std::uint8_t>& values)  {
         if ((values.size() + m_current_pos) > m_size) {
             throw std::invalid_argument("Values vector is too large");
         }

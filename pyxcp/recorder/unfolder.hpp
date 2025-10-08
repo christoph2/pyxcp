@@ -794,8 +794,6 @@ class Deserializer {
             header_names.push_back(header);
         }
 
-		// auto flatten_odts = create_flatten_odts();
-
         auto dl = std::make_shared<DaqList>(name, event_num, stim, enable_timestamps, initializer_list, priority, prescaler);
         dl->set_measurements_opt(measurements_opt);
         return dl;
@@ -837,38 +835,27 @@ class Deserializer {
             header_names.push_back(header);
         }
 
-		// auto flatten_odts = create_flatten_odts();
+        // Build `odts` from `measurements_opt` so the constructor is properly initialized
+        odts.clear();
+        odts.reserve(measurements_opt.size());
+        for (const auto& bin : measurements_opt) {
+            PredefinedDaqList::odt_initializer_t odt_init;
+            for (const auto& mc_obj : bin.get_entries()) {
+                const auto& comps = mc_obj.get_components();
+                if (comps.empty()) {
+                    odt_init.emplace_back(mc_obj.get_name(), mc_obj.get_data_type());
+                } else {
+                    for (const auto& component : comps) {
+                        odt_init.emplace_back(component.get_name(), component.get_data_type());
+                    }
+                }
+            }
+            odts.emplace_back(std::move(odt_init));
+        }
 
         auto dl = std::make_shared<PredefinedDaqList>(name, event_num, stim, enable_timestamps, odts, priority, prescaler);
         dl->set_measurements_opt(measurements_opt);
         return dl;
-    }
-
-    flatten_odts_t create_flatten_odts() {
-        std::string   name;
-        std::uint32_t address;
-        std::uint8_t  ext;
-        std::uint16_t size;
-        std::int16_t  type_index;
-
-        flatten_odts_t odts;
-
-        std::size_t odt_count = from_binary<std::size_t>();
-        for (std::size_t i = 0; i < odt_count; ++i) {
-            std::vector<std::tuple<std::string, std::uint32_t, std::uint8_t, std::uint16_t, std::int16_t>> flatten_odt{};
-            std::size_t odt_entry_count = from_binary<std::size_t>();
-            for (std::size_t j = 0; j < odt_entry_count; ++j) {
-                name       = from_binary_str();
-                address    = from_binary<std::uint32_t>();
-                ext        = from_binary<std::uint8_t>();
-                size       = from_binary<std::uint16_t>();
-                type_index = from_binary<std::int16_t>();
-                flatten_odt.push_back(std::make_tuple(name, address, ext, size, type_index));
-            }
-            odts.push_back(flatten_odt);
-        }
-
-        return odts;
     }
 
     McObject create_mc_object() {

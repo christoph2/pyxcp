@@ -13,6 +13,7 @@
 #include "daqlist.hpp"
 #include "mcobject.hpp"
 #include "framing.hpp"
+#include "sxi_framing.hpp"
 
 namespace py = pybind11;
 using namespace pybind11::literals;
@@ -22,6 +23,31 @@ class PyTimestampInfo : public TimestampInfo {
 
     using TimestampInfo::TimestampInfo;
 };
+
+using SxiFrLBCN   = SxiReceiver< SxiHeaderFormat::LenByte, SxiChecksumType::None>;
+using SxiFrLBC8   = SxiReceiver< SxiHeaderFormat::LenByte, SxiChecksumType::Sum8>;
+using SxiFrLBC16  = SxiReceiver< SxiHeaderFormat::LenByte, SxiChecksumType::Sum16>;
+
+using SxiFrLCBCN  = SxiReceiver< SxiHeaderFormat::LenCtrByte, SxiChecksumType::None>;
+using SxiFrLCBC8  = SxiReceiver< SxiHeaderFormat::LenCtrByte, SxiChecksumType::Sum8>;
+using SxiFrLCBC16 = SxiReceiver< SxiHeaderFormat::LenCtrByte, SxiChecksumType::Sum16>;
+
+using SxiFrLFBCN  = SxiReceiver< SxiHeaderFormat::LenFillByte, SxiChecksumType::None>;
+using SxiFrLFBC8  = SxiReceiver< SxiHeaderFormat::LenFillByte, SxiChecksumType::Sum8>;
+using SxiFrLFBC16 = SxiReceiver< SxiHeaderFormat::LenFillByte, SxiChecksumType::Sum16>;
+
+using SxiFrLWCN   = SxiReceiver< SxiHeaderFormat::LenWord, SxiChecksumType::None>;
+using SxiFrLWC8   = SxiReceiver< SxiHeaderFormat::LenWord, SxiChecksumType::Sum8>;
+using SxiFrLWC16  = SxiReceiver< SxiHeaderFormat::LenWord, SxiChecksumType::Sum16>;
+
+using SxiFrLCWCN  = SxiReceiver< SxiHeaderFormat::LenCtrWord, SxiChecksumType::None>;
+using SxiFrLCWC8  = SxiReceiver< SxiHeaderFormat::LenCtrWord, SxiChecksumType::Sum8>;
+using SxiFrLCWC16 = SxiReceiver< SxiHeaderFormat::LenCtrWord, SxiChecksumType::Sum16>;
+
+using SxiFrLFWCN  = SxiReceiver< SxiHeaderFormat::LenFillWord, SxiChecksumType::None>;
+using SxiFrLFWC8  = SxiReceiver< SxiHeaderFormat::LenFillWord, SxiChecksumType::Sum8>;
+using SxiFrLFWC16 = SxiReceiver< SxiHeaderFormat::LenFillWord, SxiChecksumType::Sum16>;
+
 
 PYBIND11_MODULE(cpp_ext, m) {
     m.doc() = "C++ extensions for pyXCP.";
@@ -86,7 +112,15 @@ PYBIND11_MODULE(cpp_ext, m) {
             std::uint8_t, std::uint8_t>(), "name"_a, "event_num"_a, "stim"_a, "enable_timestamps"_a, "odts"_a,
             "priority"_a=0, "prescaler"_a=1
         )
-        .def("__repr__", [](const DaqList& self) { return self.to_string(); })
+        .def("__repr__", [](const PredefinedDaqList& self) {
+            try {
+                return self.to_string();
+            } catch (const std::exception& e) {
+                return std::string("PredefinedDaqList(<repr error: ") + e.what() + ">)";
+            } catch (...) {
+                return std::string("PredefinedDaqList(<repr error: unknown>)");
+            }
+        })
 		;
 
     py::enum_<TimestampType>(m, "TimestampType")
@@ -151,4 +185,94 @@ PYBIND11_MODULE(cpp_ext, m) {
         .def("extend", py::overload_cast<const std::vector<std::uint8_t>&>(&AlignedBuffer::extend))
         .def("__len__", [](const AlignedBuffer& self) { return self.size(); })
         .def("__getitem__", [](const AlignedBuffer& self, py::object index) { return self.get_item(index); });
+
+    py::class_<SxiFrLBCN>(m, "SxiFrLBCN")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLBCN::feed_bytes, py::arg("data"))
+    ;
+
+    py::class_<SxiFrLBC8>(m, "SxiFrLBC8")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLBC8::feed_bytes, py::arg("data"))
+    ;
+
+    py::class_<SxiFrLBC16>(m, "SxiFrLBC16")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLBC16::feed_bytes, py::arg("data"))
+    ;
+
+    py::class_<SxiFrLCBCN>(m, "SxiFrLCBCN")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLCBCN::feed_bytes, py::arg("data"))
+    ;
+
+    py::class_<SxiFrLCBC8>(m, "SxiFrLCBC8")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLCBC8::feed_bytes, py::arg("data"))
+    ;
+
+    py::class_<SxiFrLCBC16>(m, "SxiFrLCBC16")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLCBC16::feed_bytes, py::arg("data"))
+    ;
+
+    py::class_<SxiFrLFBCN>(m, "SxiFrLFBCN")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLFBCN::feed_bytes, py::arg("data"))
+    ;
+
+    py::class_<SxiFrLFBC8>(m, "SxiFrLFBC8")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLFBC8::feed_bytes, py::arg("data"))
+    ;
+
+    py::class_<SxiFrLFBC16>(m, "SxiFrLFBC16")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLFBC16::feed_bytes, py::arg("data"))
+    ;
+
+    py::class_<SxiFrLWCN>(m, "SxiFrLWCN")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLWCN::feed_bytes, py::arg("data"))
+    ;
+
+    py::class_<SxiFrLWC8>(m, "SxiFrLWC8")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLWC8::feed_bytes, py::arg("data"))
+    ;
+
+    py::class_<SxiFrLWC16>(m, "SxiFrLWC16")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLWC16::feed_bytes, py::arg("data"))
+    ;
+
+    py::class_<SxiFrLCWCN>(m, "SxiFrLCWCN")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLCWCN::feed_bytes, py::arg("data"))
+    ;
+
+    py::class_<SxiFrLCWC8>(m, "SxiFrLCWC8")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLCWC8::feed_bytes, py::arg("data"))
+    ;
+
+    py::class_<SxiFrLCWC16>(m, "SxiFrLCWC16")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLCWC16::feed_bytes, py::arg("data"))
+    ;
+
+    py::class_<SxiFrLFWCN>(m, "SxiFrLFWCN")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLFWCN::feed_bytes, py::arg("data"))
+    ;
+
+    py::class_<SxiFrLFWC8>(m, "SxiFrLFWC8")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLFWC8::feed_bytes, py::arg("data"))
+    ;
+
+    py::class_<SxiFrLFWC16>(m, "SxiFrLFWC16")
+        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
+        .def("feed_bytes", &SxiFrLFWC16::feed_bytes, py::arg("data"))
+    ;
 }

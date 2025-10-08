@@ -17,7 +17,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="1febaf4b-3911-495c-8b89-d73da684e6d5" name="Changes" comment="framing.hpp: Fix offset issue.">
+      <change afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/sxi_framing.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.pre-commit-config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/.pre-commit-config.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/cpp_ext/aligned_buffer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/aligned_buffer.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/cpp_ext/bin.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/bin.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/cpp_ext/daqlist.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/daqlist.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/cpp_ext/extension_wrapper.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/extension_wrapper.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/cpp_ext/mcobject.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/mcobject.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/daq_stim/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/daq_stim/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/master/errorhandler.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/master/errorhandler.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/recorder/unfolder.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/recorder/unfolder.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/transport/can.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/transport/can.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/transport/sxi.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/transport/sxi.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -109,57 +121,58 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "GenProtobuf.pythonLoc": ".\\",
-    "GenProtobuf.quickGen": "Python",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python docs.Sphinx Task in docs.executor": "Run",
-    "Python tests.pytest in test_conformance_mocked.py.executor": "Run",
-    "Python tests.pytest in test_daq_opt.py.executor": "Debug",
-    "Python tests.pytest in test_master.py.executor": "Debug",
-    "Python tests.pytest in test_transport.py.executor": "Debug",
-    "Python.__init__.executor": "Debug",
-    "Python._multiarray_umath.executor": "Run",
-    "Python.base.executor": "Run",
-    "Python.dackel_lite.executor": "Debug",
-    "Python.dackel_new.executor": "Run",
-    "Python.kaunta.executor": "Debug",
-    "Python.run_daq.executor": "Debug",
-    "Python.test_daq_opt.executor": "Debug",
-    "Python.xcp_daq_polling.executor": "Debug",
-    "Python.xcp_examples.executor": "Debug",
-    "Python.xcp_recording.executor": "Debug",
-    "Python.xcphello.executor": "Debug",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.cidr.known.project.marker": "true",
-    "RunOnceActivity.com.insyncwithfoo.pyrightls.configuration.converter.ProjectConfigurationsConverter": "true",
-    "RunOnceActivity.readMode.enableVisualFormatting": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "cf.advertisement.text.overridden": "true",
-    "cf.first.check.clang-format": "false",
-    "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "framing__cpp",
-    "ignore.virus.scanning.warn.message": "true",
-    "junie.onboarding.icon.badge.shown": "true",
-    "last_opened_file_path": "C:/Users/Chris/PycharmProjects/pyxcp",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
-    "to.speed.mode.migration.done": "true",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;GenProtobuf.pythonLoc&quot;: &quot;.\\&quot;,
+    &quot;GenProtobuf.quickGen&quot;: &quot;Python&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python docs.Sphinx Task in docs.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest in test_conformance_mocked.py.executor&quot;: &quot;Run&quot;,
+    &quot;Python tests.pytest in test_daq_opt.py.executor&quot;: &quot;Debug&quot;,
+    &quot;Python tests.pytest in test_master.py.executor&quot;: &quot;Debug&quot;,
+    &quot;Python tests.pytest in test_transport.py.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.__init__.executor&quot;: &quot;Debug&quot;,
+    &quot;Python._multiarray_umath.executor&quot;: &quot;Run&quot;,
+    &quot;Python.base.executor&quot;: &quot;Run&quot;,
+    &quot;Python.dackel_lite.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.dackel_new.executor&quot;: &quot;Run&quot;,
+    &quot;Python.kaunta.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.pre_def.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.run_daq.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.test_daq_opt.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.xcp_daq_polling.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.xcp_examples.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.xcp_recording.executor&quot;: &quot;Debug&quot;,
+    &quot;Python.xcphello.executor&quot;: &quot;Debug&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.com.insyncwithfoo.pyrightls.configuration.converter.ProjectConfigurationsConverter&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;cf.advertisement.text.overridden&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;framing__cpp&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/Chris/PycharmProjects/pyxcp&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   },
-  "keyToStringList": {
-    "com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File": [
-      "Python"
+  &quot;keyToStringList&quot;: {
+    &quot;com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File&quot;: [
+      &quot;Python&quot;
     ]
   }
-}]]></component>
+}</component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
       <console-settings module-name="pyxcp" sdk-home="C:\Users\Chris\PycharmProjects\pyxcp\venv\Scripts\python.exe">
@@ -415,8 +428,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-b598e85cdad2-JavaScript-PY-252.25557.178" />
-        <option value="bundled-python-sdk-ce6832f46686-7b97d883f26b-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.25557.178" />
+        <option value="bundled-js-predefined-d6986cc7102b-9c94529fcfe0-JavaScript-PY-252.26199.168" />
+        <option value="bundled-python-sdk-b3d66beaba9a-c6efb3732140-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-252.26199.168" />
       </set>
     </attachedChunks>
   </component>
@@ -700,6 +713,19 @@
       <workItem from="1758521082434" duration="1725000" />
       <workItem from="1758523916229" duration="366000" />
       <workItem from="1758530930414" duration="1027000" />
+      <workItem from="1758644969357" duration="499000" />
+      <workItem from="1758646371720" duration="5338000" />
+      <workItem from="1758679623016" duration="2087000" />
+      <workItem from="1758686952070" duration="6227000" />
+      <workItem from="1758705271425" duration="8338000" />
+      <workItem from="1758796964439" duration="3523000" />
+      <workItem from="1758939355142" duration="5519000" />
+      <workItem from="1759480468196" duration="31000" />
+      <workItem from="1759740687716" duration="15587000" />
+      <workItem from="1759805639465" duration="1419000" />
+      <workItem from="1759808508522" duration="1256000" />
+      <workItem from="1759810025749" duration="24169000" />
+      <workItem from="1759881772781" duration="4889000" />
     </task>
     <task id="LOCAL-00001" summary="Try to fix Linux build, again ....">
       <created>1648542766058</created>
@@ -876,6 +902,11 @@
           <line>109</line>
           <option name="timeStamp" value="128" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/pyxcp/examples/pre_def.py</url>
+          <line>30</line>
+          <option name="timeStamp" value="129" />
+        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
   </component>
@@ -890,6 +921,7 @@
     <SUITE FILE_PATH="coverage/pyxcp$pytest_in_test_daq_opt_py.coverage" NAME="pytest in test_daq_opt.py Coverage Results" MODIFIED="1747734217166" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyxcp/tests" />
     <SUITE FILE_PATH="coverage/pyxcp$xcp_examples.coverage" NAME="xcp_examples Coverage Results" MODIFIED="1726673117936" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyxcp/scripts" />
     <SUITE FILE_PATH="coverage/pyxcp$xcp_recording.coverage" NAME="xcp_recording Coverage Results" MODIFIED="1757675939660" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyxcp/examples" />
+    <SUITE FILE_PATH="coverage/pyxcp$pre_def.coverage" NAME="pre_def Coverage Results" MODIFIED="1758690361048" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyxcp/examples" />
     <SUITE FILE_PATH="coverage/pyxcp$dackel_lite.coverage" NAME="dackel_lite Coverage Results" MODIFIED="1729143076932" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/pyxcp$xcphello.coverage" NAME="xcphello Coverage Results" MODIFIED="1721924861473" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyxcp/examples" />
     <SUITE FILE_PATH="coverage/pyxcp$test_daq_opt.coverage" NAME="test_daq_opt Coverage Results" MODIFIED="1747733986058" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/pyxcp/tests" />

@@ -236,9 +236,11 @@ std::string to_string(const McObject& obj) {
 
 std::string mc_components_to_string(const std::vector<McObject>& components) {
     std::stringstream ss;
-
-    for (const auto& obj : components) {
-        ss << to_string(obj) << ",\n ";
+    for (std::size_t i = 0; i < components.size(); ++i) {
+        ss << to_string(components[i]);
+        if (i + 1 < components.size()) {
+            ss << ", ";
+        }
     }
     return ss.str();
 }
