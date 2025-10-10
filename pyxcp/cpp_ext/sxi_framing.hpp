@@ -211,12 +211,14 @@ class SxiReceiver {
                 if constexpr (Checksum == SxiChecksumType::Sum8) {
                     remaining_ += 1;
                 } else if constexpr (Checksum == SxiChecksumType::Sum16) {
-                    if constexpr (Format == SxiHeaderFormat::LenByte) {
-                        fill_ = ((dlc_ + 1) & 1u) ? 1u : 0u;
-                    } else {
-                        fill_ = ((dlc_) & 1u) ? 1u : 0u;
-                    }
-                    remaining_ += (2 + fill_) ;
+                    uint16_t header_size = 0;
+                    if constexpr (Format == SxiHeaderFormat::LenByte) header_size = 1;
+                    else if constexpr (Format == SxiHeaderFormat::LenCtrByte || Format == SxiHeaderFormat::LenFillByte) header_size = 2;
+                    else if constexpr (Format == SxiHeaderFormat::LenWord) header_size = 2;
+                    else if constexpr (Format == SxiHeaderFormat::LenCtrWord || Format == SxiHeaderFormat::LenFillWord) header_size = 4;
+
+                    fill_ = ((header_size + dlc_) % 2 != 0) ? 1u : 0u;
+                    remaining_ += (2 + fill_);
                 }
                 state_ = State::Remaining;
                 if (remaining_ != 0) {
@@ -249,6 +251,7 @@ class SxiReceiver {
                     }
                     uint8_t rx = buffer_[payload_off + dlc_];
                     if (sum != rx) {
+                        std::cout << "Invalid Checkusum. calculated:  " << static_cast<int>(sum) << " received: " << static_cast<int>(rx) << std::endl;
                         reset();
                         return;
                     }
@@ -261,6 +264,7 @@ class SxiReceiver {
                     }
                     uint16_t rx = detail::make_word_le(&buffer_[payload_off + dlc_ + fill_]);
                     if (sum != rx) {
+                        std::cout << "Invalid Checkusum. calculated:  " << static_cast<int>(sum) << " received: " << static_cast<int>(rx) << std::endl;
                         reset();
                         return;
                     }

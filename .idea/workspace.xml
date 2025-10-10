@@ -17,19 +17,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="1febaf4b-3911-495c-8b89-d73da684e6d5" name="Changes" comment="framing.hpp: Fix offset issue.">
-      <change afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/sxi_framing.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.pre-commit-config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/.pre-commit-config.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyxcp/cpp_ext/aligned_buffer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/aligned_buffer.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyxcp/cpp_ext/bin.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/bin.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyxcp/cpp_ext/daqlist.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/daqlist.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyxcp/cpp_ext/extension_wrapper.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/extension_wrapper.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyxcp/cpp_ext/mcobject.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/mcobject.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyxcp/daq_stim/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/daq_stim/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyxcp/master/errorhandler.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/master/errorhandler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyxcp/recorder/unfolder.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/recorder/unfolder.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyxcp/transport/can.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/transport/can.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyxcp/transport/sxi.py" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/transport/sxi.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyxcp/cpp_ext/sxi_framing.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/pyxcp/cpp_ext/sxi_framing.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -726,6 +715,9 @@
       <workItem from="1759808508522" duration="1256000" />
       <workItem from="1759810025749" duration="24169000" />
       <workItem from="1759881772781" duration="4889000" />
+      <workItem from="1760011922394" duration="1346000" />
+      <workItem from="1760021904771" duration="2489000" />
+      <workItem from="1760091873884" duration="8841000" />
     </task>
     <task id="LOCAL-00001" summary="Try to fix Linux build, again ....">
       <created>1648542766058</created>

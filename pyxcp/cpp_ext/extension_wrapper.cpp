@@ -170,7 +170,13 @@ PYBIND11_MODULE(cpp_ext, m) {
 
     py::class_<XcpFraming>(m, "XcpFraming")
         .def(py::init<const XcpFramingConfig&>())
-        .def("prepare_request", &XcpFraming::prepare_request)
+        .def("prepare_request", [](XcpFraming &self, std::uint32_t cmd, py::args data) {
+            std::vector<uint8_t> data_vec;
+            for (auto item : data) {
+                data_vec.push_back(py::cast<uint8_t>(item));
+            }
+            return self.prepare_request(cmd, data_vec);
+        }, "cmd"_a)
         .def("unpack_header", &XcpFraming::unpack_header, py::arg("data"), py::arg("initial_offset") = 0)
         .def("verify_checksum", &XcpFraming::verify_checksum)
         .def_property_readonly("counter_send", &XcpFraming::get_counter_send)
