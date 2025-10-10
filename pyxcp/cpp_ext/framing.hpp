@@ -14,8 +14,9 @@
 #include <set>
 #include <thread>
 #include <tuple>
+#include <variant>
 #include <vector>
-#include <cstring>  // memcpy
+#include <cstring>
 
 namespace py = pybind11;
 
@@ -200,6 +201,14 @@ public:
 		py::bytes result(reinterpret_cast<const char*>(m_send_buffer), current_send_buffer_pointer());
 		return result;
 	}
+
+	    FrameType prepare_request(std::uint32_t cmd, const std::vector<std::uint8_t>& data_vec) {
+        py::tuple data_tuple(data_vec.size());
+        for (size_t i = 0; i < data_vec.size(); ++i) {
+            data_tuple[i] = py::int_(data_vec[i]);
+        }
+        return prepare_request(cmd, data_tuple);
+    }
 
     std::optional<std::tuple<std::uint16_t, std::uint16_t>> unpack_header(const py::bytes& data, std::uint16_t initial_offset=0) const noexcept {
         auto data_view = bytes_as_string_view(data);
