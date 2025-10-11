@@ -293,6 +293,11 @@ public:
     	return m_counter_send;
     }
 
+	void set_counter_send(std::uint16_t counter) noexcept {
+    	m_counter_send = counter;
+    }
+
+
 private:
 	void set_send_buffer(std::uint8_t value) noexcept {
 	    m_send_buffer[m_send_buffer_offset] = value;
@@ -336,10 +341,9 @@ private:
 		return cs;
 	}
 
-	std::uint16_t checksum_word(std::uint16_t begin, std::uint16_t end, bool little_endian=true) const noexcept {
+	std::uint16_t checksum_word(std::uint16_t begin, std::uint16_t end) const noexcept {
 		std::uint16_t cs = 0UL;
 
-		// For SXI, checksum is always little-endian word sum
 		for (auto idx = begin; idx < end; idx+=2) {
 			cs += static_cast<std::uint16_t>(m_send_buffer[idx] | (m_send_buffer[idx + 1] << 8));
 		}

@@ -179,7 +179,7 @@ PYBIND11_MODULE(cpp_ext, m) {
         }, "cmd"_a)
         .def("unpack_header", &XcpFraming::unpack_header, py::arg("data"), py::arg("initial_offset") = 0)
         .def("verify_checksum", &XcpFraming::verify_checksum)
-        .def_property_readonly("counter_send", &XcpFraming::get_counter_send)
+        .def_property("counter_send", &XcpFraming::get_counter_send, &XcpFraming::set_counter_send)
         .def_property_readonly("header_size", &XcpFraming::get_header_size);
 
     // Aligned buffer utility
