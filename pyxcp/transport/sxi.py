@@ -74,7 +74,7 @@ class SxI(BaseTransport):
             "CHECKSUM_BYTE": ChecksumType.BYTE_CHECKSUM,
             "CHECKSUM_WORD": ChecksumType.WORD_CHECKSUM,
         }
-        self._listener_running = threading.Event()
+        # self._listener_running = threading.Event()
         tail_cs = tail_cs_map[self.config.tail_format]
         ReceiverKlass = get_receiver_class(self.config.header_format, self.config.tail_format)
         self.receiver = ReceiverKlass(self.frame_dispatcher)
@@ -146,9 +146,7 @@ class SxI(BaseTransport):
             self._frame_listener.join()
         self._frame_listener = threading.Thread(target=self._frame_listen)
         self._frame_listener.start()
-        print("Waiting for listener to start...")
-        self._listener_running.wait(2.0)
-        print("Listener started!")
+        # self._listener_running.wait(2.0)
 
     def close(self) -> None:
         """Close the transport-layer connection and event-loop."""
@@ -178,8 +176,7 @@ class SxI(BaseTransport):
                 self.process_response(frame, length, counter, timestamp)
 
     def _frame_listen(self) -> None:
-        print("_frame_listen STARTED!")
-        self._listener_running.set()
+        # self._listener_running.set()
         while True:
             if self.closeEvent.is_set():
                 return
@@ -191,7 +188,6 @@ class SxI(BaseTransport):
                     self.receiver.feed_bytes(data)
 
     def frame_dispatcher(self, data: bytes, length: int, counter: int) -> None:
-        # print("FR:", bytes(data))
         with self._condition:
             self._frames.append((bytes(data), length, counter, self.timestamp.value))
             self._condition.notify()

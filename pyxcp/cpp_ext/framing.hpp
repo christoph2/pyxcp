@@ -189,6 +189,10 @@ public:
 					frame_tail_size += 1;
 				}
 				else if (m_framing_type.tail_cs == ChecksumType::WORD_CHECKSUM) {
+					// Align to a word boundary before calculating word checksum
+					if (current_send_buffer_pointer() % 2 != 0) {
+						fill_send_buffer(1);
+					}
 					auto cs = checksum_word(0, current_send_buffer_pointer());
 					auto cs_bytes = serialize_word_le(cs);
 					set_send_buffer(cs_bytes);
