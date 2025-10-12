@@ -11,6 +11,8 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <iomanip>
+#include <iostream>
 
 // Header format options
 enum class SxiHeaderFormat {
@@ -251,7 +253,7 @@ class SxiReceiver {
                     }
                     uint8_t rx = buffer_[payload_off + dlc_];
                     if (sum != rx) {
-                        std::cout << "Invalid Checkusum. calculated:  " << static_cast<int>(sum) << " received: " << static_cast<int>(rx) << std::endl;
+                        log_checksum_error(sum, rx, payload_off + dlc_ + 1);
                         reset();
                         return;
                     }
@@ -264,7 +266,7 @@ class SxiReceiver {
                     }
                     uint16_t rx = detail::make_word_le(&buffer_[payload_off + dlc_ + fill_]);
                     if (sum != rx) {
-                        std::cout << "Invalid Checkusum. calculated:  " << static_cast<int>(sum) << " received: " << static_cast<int>(rx) << std::endl;
+                        log_checksum_error(sum, rx, payload_off + dlc_ + fill_ + 2);
                         reset();
                         return;
                     }
@@ -289,6 +291,23 @@ class SxiReceiver {
         UntilLength,
         Remaining
     };
+
+    template<typename T>
+    void log_checksum_error(T calculated, T received, uint16_t packet_len) {
+        std::cerr << "SXI checksum error: Calculated " << std::hex << "0x" << static_cast<int>(calculated)
+                  << ", but received " << "0x" << static_cast<int>(received) << "." << std::dec << std::endl;
+        std::cerr << "Packet dump (" << packet_len << " bytes):" << std::endl;
+
+        std::ios_base::fmtflags flags(std::cerr.flags()); // save flags
+        for (uint16_t i = 0; i < packet_len; ++i) {
+            std::cerr << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(buffer_[i]) << " ";
+            if ((i + 1) % 16 == 0) {
+                std::cerr << std::endl;
+            }
+        }
+        std::cerr << std::endl;
+        std::cerr.flags(flags); // restore flags
+    }
 
     void reset() {
         state_     = State::Idle;
