@@ -7,11 +7,15 @@ from typing import Any, Dict, Optional, Type
 from pyxcp.timing import Timing
 import pyxcp.types as types
 
-from pyxcp.cpp_ext.cpp_ext import Timestamp, TimestampType, XcpFraming, XcpFramingConfig
-
+from pyxcp.cpp_ext.cpp_ext import (
+    Timestamp,
+    TimestampType,
+    XcpFraming,
+    XcpFramingConfig,
+)
 from pyxcp.transport.transport_ext import (
-    FrameAcquisitionPolicy,
     FrameCategory,
+    FrameAcquisitionPolicy,
     LegacyFrameAcquisitionPolicy,
 )
 from pyxcp.utils import (

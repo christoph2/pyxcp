@@ -249,5 +249,4 @@ def test_prepare_request_sxiL2C2CB():
     framing.counter_send = 3
     cmd = 0xFF
     request = framing.prepare_request(cmd, 0x00)
-    print("RQ", list(request))
     assert list(request) == [2, 0, 3, 0, 255, 0, 4]
