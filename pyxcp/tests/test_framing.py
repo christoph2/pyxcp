@@ -1,26 +1,5 @@
 from pyxcp.transport.base import XcpFraming, XcpFramingConfig, XcpTransportLayerType, ChecksumType
 
-"""
-const uint8_t FRAME0[] = {0x02, 0x00, 0x03, 0x00, 0xff, 0x00, 0x04, 0x01};
-
-const uint8_t FRAME1[] = {0x02, 0x03, 0xff, 0x00, 0x04};
-const uint8_t FRAME2[] = {0x02, 0xff, 0x00, 0x01};
-const uint8_t FRAME3[] = {0x02, 0xaa, 0xff, 0x00, 0xab};
-
-const uint8_t FRAME4[] = {0x02, 0x00, 0xff, 0x00};
-
-const uint8_t FRAMEtws[] = {0x01, 0x00, 0x05, 0x00, 0xfc, 0x02, 0x02};
-const uint8_t FRAMEtwsf[] = {0x01, 0x00, 0x05, 0x00, 0xfc, 0x00, 0x02, 0x01};
-/////
-/////
-/////
-
-const uint8_t FRAME5[] = {0x02, 0x00, 0x03, 0x00, 0xff, 0x00};  // LEN_CTR_WORD / NO_CS
-const uint8_t FRAME5bc[] = {0x02, 0x00, 0x03, 0x00, 0xff, 0x00, 0x04};  // LEN_CTR_WORD / BYTE_CS
-const uint8_t FRAME5wc[] = {0x02, 0x00, 0x03, 0x00, 0xff, 0x00, 0x04, 0x01};  // LEN_CTR_WORD / WORD_CS
-const uint8_t FRAME5wcn[] = {0x03, 0x00, 0x03, 0x00, 0xff, 0x00, 0x55, 0xaa, 0x5a, 0xab};  // LEN_CTR_WORD / WORD_CS
-"""
-
 
 def test_prepare_request_sxiL1CN():
     config = XcpFramingConfig(
@@ -201,7 +180,6 @@ def test_prepare_request_sxiL2CW_1():
     assert list(request) == [0x02, 0x00, 0xFF, 0x00, 0x01, 0x01]
 
 
-# const uint8_t FRAME4wcn[] = {0x03, 0x00, 0xff, 0x00, 0x00, 0x00, 0x02, 0x01};  // LEN_WORD / WORD_CS
 def test_prepare_request_sxiL2CW_2():
     config = XcpFramingConfig(
         transport_layer_type=XcpTransportLayerType.SXI,
@@ -219,6 +197,7 @@ def test_prepare_request_sxiL2CW_2():
     assert list(request) == [0x03, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x02, 0x01]
 
 
+# const uint8_t FRAME5[] = {0x02, 0x00, 0x03, 0x00, 0xff, 0x00};  // LEN_CTR_WORD / NO_CS
 def test_prepare_request_sxiL2C2CN():
     config = XcpFramingConfig(
         transport_layer_type=XcpTransportLayerType.SXI,
@@ -232,8 +211,7 @@ def test_prepare_request_sxiL2C2CN():
     framing.counter_send = 3
     cmd = 0xFF
     request = framing.prepare_request(cmd, 0x00)
-    # print("RQ", list(request))
-    assert list(request) == [2, 0, 3, 0, 255, 0]
+    assert list(request) == [0x02, 0x00, 0x03, 0x00, 0xFF, 0x00]
 
 
 def test_prepare_request_sxiL2C2CB():
@@ -249,4 +227,36 @@ def test_prepare_request_sxiL2C2CB():
     framing.counter_send = 3
     cmd = 0xFF
     request = framing.prepare_request(cmd, 0x00)
-    assert list(request) == [2, 0, 3, 0, 255, 0, 4]
+    assert list(request) == [0x02, 0x00, 0x03, 0x00, 0xFF, 0x00, 0x04]
+
+
+def test_prepare_request_sxiL2C2CW_1():
+    config = XcpFramingConfig(
+        transport_layer_type=XcpTransportLayerType.SXI,
+        header_len=2,
+        header_ctr=2,
+        header_fill=0,
+        tail_fill=False,
+        tail_cs=ChecksumType.WORD_CHECKSUM,
+    )
+    framing = XcpFraming(config)
+    framing.counter_send = 3
+    cmd = 0xFF
+    request = framing.prepare_request(cmd, 0x00)
+    assert list(request) == [0x02, 0x00, 0x03, 0x00, 0xFF, 0x00, 0x04, 0x01]
+
+
+def test_prepare_request_sxiL2C2CW_2():
+    config = XcpFramingConfig(
+        transport_layer_type=XcpTransportLayerType.SXI,
+        header_len=2,
+        header_ctr=2,
+        header_fill=0,
+        tail_fill=False,
+        tail_cs=ChecksumType.WORD_CHECKSUM,
+    )
+    framing = XcpFraming(config)
+    framing.counter_send = 3
+    cmd = 0xFF
+    request = framing.prepare_request(cmd, 0x00, 0x55)
+    assert list(request) == [0x03, 0x00, 0x03, 0x00, 0xFF, 0x00, 0x55, 0x00, 0x5A, 0x01]

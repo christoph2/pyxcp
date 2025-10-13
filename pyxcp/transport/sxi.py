@@ -4,7 +4,8 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 import serial
-from pyxcp.cpp_ext.cpp_ext import (
+
+from pyxcp.transport.transport_ext import (
     SxiFrLBCN,
     SxiFrLBC8,
     SxiFrLBC16,

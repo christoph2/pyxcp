@@ -7,16 +7,15 @@ from typing import Any, Dict, Optional, Type
 from pyxcp.timing import Timing
 import pyxcp.types as types
 
-from pyxcp.cpp_ext.cpp_ext import (
-    Timestamp,
-    TimestampType,
-    XcpFraming,
-    XcpFramingConfig,
-)
+from pyxcp.cpp_ext.cpp_ext import Timestamp, TimestampType
 from pyxcp.transport.transport_ext import (
     FrameCategory,
     FrameAcquisitionPolicy,
     LegacyFrameAcquisitionPolicy,
+    XcpFraming,
+    XcpFramingConfig,
+    XcpTransportLayerType,  # noqa: F401
+    ChecksumType,  # noqa: F401
 )
 from pyxcp.utils import (
     CurrentDatetime,
