@@ -23,6 +23,7 @@ from traitlets import (
     TraitError,
     Unicode,
     Union,
+    validate,
 )
 from traitlets.config import Application, Configurable, Instance, default
 from traitlets.config.loader import Config
@@ -747,9 +748,26 @@ HEADER_LEN_FILL_WORD    |   2   X   2
     tail_format = Enum(
         values=["NO_CHECKSUM", "CHECKSUM_BYTE", "CHECKSUM_WORD"], default_value="NO_CHECKSUM", help="XCPonSxI tail format."
     ).tag(config=True)
-    framing = Bool(False, help="Enable SCI framing mechanism (ESC chars).").tag(config=True)
-    esc_sync = Integer(0x01, min=0, max=255, help="SCI framing protocol character SYNC.").tag(config=True)
-    esc_esc = Integer(0x00, min=0, max=255, help="SCI framing protocol character ESC.").tag(config=True)
+    framing = Enum(
+        values=["NO_FRAMING", "FRAMING", "IMPROVED_FRAMING"],
+        default_value="NO_FRAMING",
+        help="""SCI framing mechanism:
+
+NO_FRAMING: framing fully disabled.
+FRAMING: a SYNC char is prepended to each frame
+IMPROVED_FRAMING: same like FRAMING and additionally inside a frame following replacement rules are applied for improved frame detection: SYNC -> ESC+ESC_SYNC and ESC -> ESC+ESC_ESC
+""",
+    ).tag(config=True)
+
+    @validate("framing")
+    def _validate_framing(self, proposal):
+        framing = proposal["value"]
+        if framing != "NO_FRAMING" and self.mode != "ASYNCH_FULL_DUPLEX_MODE":
+            raise TraitError("Framing can only be used in asynchronous (SCI) full duplex mode.")
+        return framing
+
+    sync = Integer(0x01, min=0, max=255, help="SCI framing protocol character SYNC.").tag(config=True)
+    esc = Integer(0x00, min=0, max=255, help="SCI framing protocol character ESC.").tag(config=True)
 
 
 class Usb(Configurable):

@@ -1,3 +1,4 @@
+import enum
 import struct
 from collections import deque
 from dataclasses import dataclass
@@ -7,6 +8,7 @@ import serial
 
 import pyxcp.types as types
 from pyxcp.transport.base import BaseTransport
+from pyxcp.utils import hexDump
 
 
 @dataclass
@@ -14,6 +16,11 @@ class HeaderValues:
     length: int = 0
     counter: int = 0
     filler: int = 0
+
+
+class ESC(enum.IntEnum):
+    ESC_ESC = 0x00
+    ESC_SYNC = 0x01
 
 
 RECV_SIZE = 16384
@@ -34,8 +41,8 @@ class SxI(BaseTransport):
         self.header_format = self.config.header_format
         self.tail_format = self.config.tail_format
         self.framing = self.config.framing
-        self.esc_sync = self.config.esc_sync
-        self.esc_esc = self.config.esc_esc
+        self.sync = self.config.sync
+        self.esc = self.config.esc
         self.make_header()
         self.comm_port: serial.Serial
 
@@ -87,6 +94,21 @@ class SxI(BaseTransport):
         self.HEADER_SIZE = self.HEADER.size
         self.unpacker = unpacker
 
+    def handle_framing(self, frame):
+
+        if self.framing == "IMPROVED_FRAMING":
+
+            # Replace SYNC by ESC+ESC_SYNC
+            frame = b"".join(bytes([self.esc]) + bytes([ESC.ESC_SYNC]) if byte == self.sync else bytes([byte]) for byte in frame)
+
+            # Replace ESC by ESC+ESC_ESC
+            frame = b"".join(bytes([self.esc]) + bytes([ESC.ESC_ESC]) if byte == self.esc else bytes([byte]) for byte in frame)
+
+        # Add sync char in front of each frame
+        frame = bytes([self.sync]) + frame
+
+        return frame
+
     def connect(self) -> None:
         self.logger.info(
             f"XCPonSxI - serial comm_port {self.comm_port.portstr!r} openend [{self.baudrate}/{self.bytesize}-{self.parity}-{self.stopbits}]"
@@ -115,6 +137,12 @@ class SxI(BaseTransport):
                 continue
 
             recv_timestamp = self.timestamp.value
+
+            if self.framing != "NO_FRAMING":
+                sync = self.comm_port.read(1)  # first byte before a frame must always be the sync byte
+                if sync != bytes([self.sync]):
+                    raise types.FrameStructureError("Frame Wrong sync byte received.")
+
             header_values = self.unpacker(self.HEADER.unpack(self.comm_port.read(self.HEADER_SIZE)))
             length, counter, _ = header_values.length, header_values.counter, header_values.filler
 
@@ -127,8 +155,12 @@ class SxI(BaseTransport):
 
     def send(self, frame) -> None:
         self.pre_send_timestamp = self.timestamp.value
+        if self.framing != "NO_FRAMING":
+            frame = self.handle_framing(frame)
         self.comm_port.write(frame)
         self.post_send_timestamp = self.timestamp.value
+        if self._debug:
+            self.logger.debug(f"XCPonSxI - Raw data -> {hexDump(frame)}")
 
     def close_connection(self) -> None:
         if hasattr(self, "comm_port") and self.comm_port.is_open and not self.has_user_supplied_interface:
