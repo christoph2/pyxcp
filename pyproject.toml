@@ -90,6 +90,7 @@ toml = "^0.10.2"
 bandit = "^1.7.8"
 tomlkit = "^0.13.3"
 pytz = "^2025.2"
+pydantic = ">=2.5,<3"
 
 [tool.poetry.scripts]
 pyxcp-probe-can-drivers = "pyxcp.scripts.pyxcp_probe_can_drivers:main"

@@ -93,6 +93,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             target=self.listen,
             args=(),
             kwargs={},
+            daemon=True,
         )
 
         self.first_daq_timestamp: Optional[int] = None
@@ -121,8 +122,12 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def close(self) -> None:
         """Close the transport-layer connection and event-loop."""
         self.finish_listener()
-        if self.listener.is_alive():
-            self.listener.join()
+        # Avoid indefinite blocking on buggy threads
+        try:
+            if self.listener.is_alive():
+                self.listener.join(timeout=2.0)
+        except Exception:
+            pass
         self.close_connection()
 
     @abc.abstractmethod
@@ -155,13 +160,14 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def start_listener(self):
         if self.listener.is_alive():
             self.finish_listener()
-            self.listener.join()
+            # Avoid indefinite blocking on buggy threads
+            self.listener.join(timeout=2.0)
 
         # Ensure the close event is cleared before starting a new listener thread.
         if hasattr(self, "closeEvent"):
             self.closeEvent.clear()
 
-        self.listener = threading.Thread(target=self.listen)
+        self.listener = threading.Thread(target=self.listen, daemon=True)
         self.listener.start()
 
     def finish_listener(self):

@@ -108,6 +108,7 @@ class Eth(BaseTransport):
             target=self._packet_listen,
             args=(),
             kwargs={},
+            daemon=True,
         )
         self._packets = deque()
 
@@ -121,17 +122,23 @@ class Eth(BaseTransport):
     def start_listener(self) -> None:
         super().start_listener()
         if self._packet_listener.is_alive():
-            self._packet_listener.join()
-        self._packet_listener = threading.Thread(target=self._packet_listen)
+            self._packet_listener.join(timeout=2.0)
+        self._packet_listener = threading.Thread(target=self._packet_listen, daemon=True)
         self._packet_listener.start()
 
     def close(self) -> None:
         """Close the transport-layer connection and event-loop."""
         self.finish_listener()
-        if self.listener.is_alive():
-            self.listener.join()
-        if self._packet_listener.is_alive():
-            self._packet_listener.join()
+        try:
+            if self.listener.is_alive():
+                self.listener.join(timeout=2.0)
+        except Exception:
+            pass
+        try:
+            if self._packet_listener.is_alive():
+                self._packet_listener.join(timeout=2.0)
+        except Exception:
+            pass
         self.close_connection()
 
     def _packet_listen(self) -> None:

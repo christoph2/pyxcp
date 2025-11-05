@@ -144,8 +144,8 @@ class SxI(BaseTransport):
     def start_listener(self) -> None:
         super().start_listener()
         if hasattr(self, "_frame_listener") and self._frame_listener.is_alive():
-            self._frame_listener.join()
-        self._frame_listener = threading.Thread(target=self._frame_listen)
+            self._frame_listener.join(timeout=2.0)
+        self._frame_listener = threading.Thread(target=self._frame_listen, daemon=True)
         self._frame_listener.start()
         # self._listener_running.wait(2.0)
 
@@ -153,10 +153,16 @@ class SxI(BaseTransport):
         """Close the transport-layer connection and event-loop."""
         self.finish_listener()
         self.closeEvent.set()
-        if self.listener.is_alive():
-            self.listener.join()
-        if self._frame_listener.is_alive():
-            self._frame_listener.join()
+        try:
+            if self.listener.is_alive():
+                self.listener.join(timeout=2.0)
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "_frame_listener") and self._frame_listener.is_alive():
+                self._frame_listener.join(timeout=2.0)
+        except Exception:
+            pass
         self.close_connection()
 
     def listen(self) -> None:
