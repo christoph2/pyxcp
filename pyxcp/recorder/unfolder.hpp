@@ -706,8 +706,6 @@ class Deserializer {
         std::vector<std::uint16_t> first_pids;
         // TimestampInfo              timestamp_info{ 0 };
 
-        std::cout << "Enter Deserializer\n";
-
         byte_order            = from_binary<std::uint8_t>();
         id_field_size         = from_binary<std::uint8_t>();
         timestamps_supported  = from_binary<bool>();
@@ -796,8 +794,6 @@ class Deserializer {
             header_names.push_back(header);
         }
 
-		// auto flatten_odts = create_flatten_odts();
-
         auto dl = std::make_shared<DaqList>(name, event_num, stim, enable_timestamps, initializer_list, priority, prescaler);
         dl->set_measurements_opt(measurements_opt);
         return dl;
@@ -812,7 +808,7 @@ class Deserializer {
         bool                     enable_timestamps;
         std::vector<Bin>         measurements_opt;
         std::vector<std::string> header_names;
-
+        PredefinedDaqList::predefined_daq_list_initializer_t odts;
         std::uint16_t odt_count;
         std::uint16_t total_entries;
         std::uint16_t total_length;
@@ -828,20 +824,6 @@ class Deserializer {
         total_entries = from_binary<std::uint16_t>();  // not used
         total_length  = from_binary<std::uint16_t>();  // not used
 
-        std::size_t odts_size = from_binary<std::size_t>();
-        PredefinedDaqList::predefined_daq_list_initializer_t odt_inits;
-        odt_inits.reserve(odts_size);
-        for (std::size_t i = 0; i < odts_size; ++i) {
-            std::size_t entries_size = from_binary<std::size_t>();
-            PredefinedDaqList::odt_initializer_t odt_init;
-            odt_init.reserve(entries_size);
-            for (std::size_t j = 0; j < entries_size; ++j) {
-                auto entry = create_mc_object();
-                odt_init.emplace_back(entry.get_name(), entry.get_data_type());
-            }
-            odt_inits.emplace_back(std::move(odt_init));
-        }
-
         std::size_t meas_opt_size = from_binary<std::size_t>();
         for (std::size_t i = 0; i < meas_opt_size; ++i) {
             measurements_opt.emplace_back(create_bin());
@@ -853,38 +835,27 @@ class Deserializer {
             header_names.push_back(header);
         }
 
-		// auto flatten_odts = create_flatten_odts();
-
-        auto dl = std::make_shared<PredefinedDaqList>(name, event_num, stim, enable_timestamps, odt_inits, priority, prescaler);
-        dl->set_measurements_opt(measurements_opt);
-        return dl;
-    }
-
-    flatten_odts_t create_flatten_odts() {
-        std::string   name;
-        std::uint32_t address;
-        std::uint8_t  ext;
-        std::uint16_t size;
-        std::int16_t  type_index;
-
-        flatten_odts_t odts;
-
-        std::size_t odt_count = from_binary<std::size_t>();
-        for (std::size_t i = 0; i < odt_count; ++i) {
-            std::vector<std::tuple<std::string, std::uint32_t, std::uint8_t, std::uint16_t, std::int16_t>> flatten_odt{};
-            std::size_t odt_entry_count = from_binary<std::size_t>();
-            for (std::size_t j = 0; j < odt_entry_count; ++j) {
-                name       = from_binary_str();
-                address    = from_binary<std::uint32_t>();
-                ext        = from_binary<std::uint8_t>();
-                size       = from_binary<std::uint16_t>();
-                type_index = from_binary<std::int16_t>();
-                flatten_odt.push_back(std::make_tuple(name, address, ext, size, type_index));
+        // Build `odts` from `measurements_opt` so the constructor is properly initialized
+        odts.clear();
+        odts.reserve(measurements_opt.size());
+        for (const auto& bin : measurements_opt) {
+            PredefinedDaqList::odt_initializer_t odt_init;
+            for (const auto& mc_obj : bin.get_entries()) {
+                const auto& comps = mc_obj.get_components();
+                if (comps.empty()) {
+                    odt_init.emplace_back(mc_obj.get_name(), mc_obj.get_data_type());
+                } else {
+                    for (const auto& component : comps) {
+                        odt_init.emplace_back(component.get_name(), component.get_data_type());
+                    }
+                }
             }
-            odts.push_back(flatten_odt);
+            odts.emplace_back(std::move(odt_init));
         }
 
-        return odts;
+        auto dl = std::make_shared<PredefinedDaqList>(name, event_num, stim, enable_timestamps, odts, priority, prescaler);
+        dl->set_measurements_opt(measurements_opt);
+        return dl;
     }
 
     McObject create_mc_object() {

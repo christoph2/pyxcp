@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import struct
+
 import threading
 from array import array
 from collections import deque
@@ -12,7 +12,13 @@ import usb.core
 import usb.util
 from usb.core import USBError, USBTimeoutError
 
-from pyxcp.transport.base import BaseTransport
+from pyxcp.transport.base import (
+    BaseTransport,
+    ChecksumType,
+    XcpFramingConfig,
+    XcpTransportLayerType,
+    parse_header_format,
+)
 from pyxcp.utils import short_sleep
 
 
@@ -23,21 +29,26 @@ FIVE_MS = 5_000_000  # Five milliseconds in nanoseconds.
 class Usb(BaseTransport):
     """"""
 
-    HEADER = struct.Struct("<2H")
-    HEADER_SIZE = HEADER.size
-
     def __init__(self, config=None, policy=None, transport_layer_interface: Optional[usb.core.Device] = None):
-        super().__init__(config, policy, transport_layer_interface)
         self.load_config(config)
+        header_len, header_ctr, header_fill = parse_header_format(self.config.header_format)
+        framing_config = XcpFramingConfig(
+            transport_layer_type=XcpTransportLayerType.USB,
+            header_len=header_len,
+            header_ctr=header_ctr,
+            header_fill=header_fill,
+            tail_fill=False,
+            tail_cs=ChecksumType.NO_CHECKSUM,
+        )
         self.serial_number: str = self.config.serial_number
         self.vendor_id: int = self.config.vendor_id
         self.product_id: int = self.config.product_id
         self.configuration_number: int = self.config.configuration_number
         self.interface_number: int = self.config.interface_number
         self.library: str = self.config.library
-        self.header_format: str = self.config.header_format
         self.library = self.config.get("library")
         self.device = None
+        super().__init__(config, framing_config, policy, transport_layer_interface)
 
         ## IN-EP (RES/ERR, DAQ, and EV/SERV) Parameters.
         self.in_ep_number: int = self.config.in_ep_number
@@ -58,6 +69,7 @@ class Usb(BaseTransport):
             target=self._packet_listen,
             args=(),
             kwargs={},
+            daemon=True,
         )
         self._packets = deque()
 
@@ -109,17 +121,23 @@ class Usb(BaseTransport):
     def start_listener(self):
         super().start_listener()
         if self._packet_listener.is_alive():
-            self._packet_listener.join()
-        self._packet_listener = threading.Thread(target=self._packet_listen)
+            self._packet_listener.join(timeout=2.0)
+        self._packet_listener = threading.Thread(target=self._packet_listen, daemon=True)
         self._packet_listener.start()
 
     def close(self):
         """Close the transport-layer connection and event-loop."""
         self.finish_listener()
-        if self.listener.is_alive():
-            self.listener.join()
-        if self._packet_listener.is_alive():
-            self._packet_listener.join()
+        try:
+            if self.listener.is_alive():
+                self.listener.join(timeout=2.0)
+        except Exception:
+            pass
+        try:
+            if self._packet_listener.is_alive():
+                self._packet_listener.join(timeout=2.0)
+        except Exception:
+            pass
         self.close_connection()
 
     def _packet_listen(self):
@@ -148,9 +166,19 @@ class Usb(BaseTransport):
                 self.status = 0  # disconnected
                 break
 
+    def send(self, frame):
+        self.pre_send_timestamp = self.timestamp.value
+        try:
+            self.out_ep.write(frame)
+        except (USBError, USBTimeoutError):
+            # sometimes usb.core.USBError: [Errno 5] Input/Output Error is raised
+            # even though the command is send and a reply is received from the device.
+            # Ignore this here since a Timeout error will be raised anyway if
+            # the device does not respond
+            pass
+        self.post_send_timestamp = self.timestamp.value
+
     def listen(self):
-        HEADER_UNPACK_FROM = self.HEADER.unpack_from
-        HEADER_SIZE = self.HEADER_SIZE
         popleft = self._packets.popleft
         process_response = self.process_response
         close_event_set = self.closeEvent.is_set
@@ -178,10 +206,10 @@ class Usb(BaseTransport):
                         short_sleep()
                         last_sleep = self.timestamp.value
                     if length is None:
-                        if current_size >= HEADER_SIZE:
-                            length, counter = HEADER_UNPACK_FROM(data, current_position)
-                            current_position += HEADER_SIZE
-                            current_size -= HEADER_SIZE
+                        if current_size >= self.framing.header_size:
+                            length, counter = self.framing.unpack_header(bytes(data), initial_offset=current_position)
+                            current_position += self.framing.header_size
+                            current_size -= self.framing.header_size
                         else:
                             data = data[current_position:]
                             break
@@ -195,18 +223,6 @@ class Usb(BaseTransport):
                         else:
                             data = data[current_position:]
                             break
-
-    def send(self, frame):
-        self.pre_send_timestamp = self.timestamp.value
-        try:
-            self.out_ep.write(frame)
-        except (USBError, USBTimeoutError):
-            # sometimes usb.core.USBError: [Errno 5] Input/Output Error is raised
-            # even though the command is send and a reply is received from the device.
-            # Ignore this here since a Timeout error will be raised anyway if
-            # the device does not respond
-            pass
-        self.post_send_timestamp = self.timestamp.value
 
     def close_connection(self):
         if self.device is not None:

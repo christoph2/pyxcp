@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-"""Implements error-handling according to XCP spec.
-"""
+"""Implements error-handling according to XCP spec."""
+
 import functools
 import logging
 import threading
@@ -18,7 +18,6 @@ from pyxcp.types import COMMAND_CATEGORIES, XcpError, XcpResponseError, XcpTimeo
 handle_errors = True  # enable/disable XCP error-handling.
 
 # Thread-local flag to suppress logging for expected XCP negative responses
-import threading
 
 
 _thread_flags = threading.local()
@@ -240,10 +239,141 @@ class Handler:
         return ""
 
     def _append_diag(self, msg: str) -> str:
+        # Suppress diagnostics entirely when XCP error logging is suppressed (e.g., try_command probing)
+        if is_suppress_xcp_error_log():
+            return msg
         if not self._diagnostics_enabled():
             return msg
         diag = self._build_transport_diagnostics()
-        return msg + ("\n" + diag if diag else "")
+        if not diag:
+            return msg
+        # Prefer a Rich-formatted table for compact, readable diagnostics.
+        try:
+            header = "--- Diagnostics (for troubleshooting) ---"
+            body = diag
+            if "\n" in diag and diag.startswith("--- Diagnostics"):
+                header, body = diag.split("\n", 1)
+
+            # Try to parse the structured JSON body produced by transports
+            import json as _json  # Local import to avoid hard dependency at module import time
+
+            payload = _json.loads(body)
+            transport_params = payload.get("transport_params") or {}
+            last_pdus = payload.get("last_pdus") or []
+
+            # Try to use rich if available
+            try:
+                from rich.console import Console
+                from rich.table import Table
+                from rich.panel import Panel
+                from textwrap import shorten
+
+                console = Console(file=None, force_terminal=False, width=120, record=True, markup=False)
+
+                # Transport parameters table
+                tp_table = Table(title="Transport Parameters", title_style="bold", show_header=True, header_style="bold magenta")
+                tp_table.add_column("Key", style="cyan", no_wrap=True)
+                tp_table.add_column("Value", style="white")
+                from rich.markup import escape as _escape
+
+                for k, v in (transport_params or {}).items():
+                    # Convert complex values to compact repr
+                    sv = repr(v)
+                    sv = shorten(sv, width=80, placeholder="…")
+                    tp_table.add_row(_escape(str(k)), _escape(sv))
+
+                # Last PDUs table (most recent last)
+                pdu_table = Table(
+                    title="Last PDUs (most recent last)", title_style="bold", show_header=True, header_style="bold magenta"
+                )
+                for col in ("dir", "cat", "ctr", "ts", "len", "data"):
+                    pdu_table.add_column(col, no_wrap=(col in {"dir", "cat", "ctr", "len"}), style="white")
+                for pdu in last_pdus:
+                    try:
+                        dir_ = str(pdu.get("dir", ""))
+                        cat = str(pdu.get("cat", ""))
+                        ctr = str(pdu.get("ctr", ""))
+                        # Format timestamp: convert ns -> s with 5 decimals if numeric
+                        ts_val = pdu.get("ts", "")
+                        try:
+                            ts_num = int(ts_val)
+                            ts = f"{ts_num / 1_000_000_000:.5f}"
+                        except Exception:
+                            ts = str(ts_val)
+                        ln = str(pdu.get("len", ""))
+                        # Prefer showing actual data content; avoid repr quotes
+                        data_val = pdu.get("data", "")
+                        try:
+                            if isinstance(data_val, (bytes, bytearray, list, tuple)):
+                                # Lazily import to avoid hard dependency
+                                from pyxcp.utils import hexDump as _hexDump
+
+                                data_str = _hexDump(data_val)
+                            else:
+                                data_str = str(data_val)
+                        except Exception:
+                            data_str = str(data_val)
+                        # Shorten potentially huge values to keep table compact
+                        from textwrap import shorten as _shorten
+
+                        ts = _shorten(ts, width=20, placeholder="…")
+                        data = _shorten(data_str, width=40, placeholder="…")
+                        # Escape strings to avoid Rich markup interpretation (e.g., '[' ']' in hex dumps)
+                        dir_e = _escape(dir_)
+                        cat_e = _escape(cat)
+                        ctr_e = _escape(ctr)
+                        ts_e = _escape(ts)
+                        ln_e = _escape(ln)
+                        data_e = _escape(data)
+                        pdu_table.add_row(dir_e, cat_e, ctr_e, ts_e, ln_e, data_e)
+                    except Exception:
+                        # If anything odd in structure, add a single-cell row with repr
+                        from textwrap import shorten as _shorten
+
+                        pdu_table.add_row(_shorten(repr(pdu), width=80, placeholder="…"), "", "", "", "", "")
+
+                # Combine into a single panel and capture as text
+                console.print(Panel.fit(tp_table, title=header))
+                if last_pdus:
+                    console.print(pdu_table)
+                rendered = console.export_text(clear=False)
+
+            except Exception:
+                # Rich not available or rendering failed; fallback to compact logger lines
+                self.logger.error(header)
+                if transport_params:
+                    self.logger.error("transport_params: %s", transport_params)
+                if last_pdus:
+                    self.logger.error("last_pdus (most recent last):")
+                    for pdu in last_pdus:
+                        try:
+                            ts_val = pdu.get("ts", "")
+                            try:
+                                ts_num = int(ts_val)
+                                ts_fmt = f"{ts_num / 1_000_000_000:.5f}"
+                            except Exception:
+                                ts_fmt = str(ts_val)
+                            data_val = pdu.get("data", "")
+                            if isinstance(data_val, (bytes, bytearray, list, tuple)):
+                                from pyxcp.utils import hexDump as _hexDump
+
+                                data_str = _hexDump(data_val)
+                            else:
+                                data_str = str(data_val)
+                            pdu_copy = dict(pdu)
+                            pdu_copy["ts"] = ts_fmt
+                            pdu_copy["data"] = data_str
+                            self.logger.error("%s", pdu_copy)
+                        except Exception:
+                            self.logger.error("%s", pdu)
+        except Exception:
+            # As a last resort, emit the whole diagnostics blob verbatim
+            try:
+                for line in diag.splitlines():
+                    self.logger.error(line)
+            except Exception:
+                pass
+        return msg
 
     def __str__(self):
         return f"Handler(func = {func_name(self.func)} -- {self.arguments} service = {self.service} error_code = {self.error_code})"

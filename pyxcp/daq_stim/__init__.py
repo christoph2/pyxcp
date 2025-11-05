@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-# from pprint import pprint
 from time import time_ns
 from typing import Dict, List, Optional, TextIO, Union
 
@@ -13,7 +12,6 @@ from pyxcp.recorder import DaqOnlinePolicy as _DaqOnlinePolicy
 from pyxcp.recorder import DaqRecorderPolicy as _DaqRecorderPolicy
 from pyxcp.recorder import MeasurementParameters
 from pyxcp.utils import CurrentDatetime
-
 
 DAQ_ID_FIELD_SIZE = {
     "IDF_ABS_ODT_NUMBER": 1,
@@ -44,7 +42,6 @@ class DaqProcessor:
         if start_datetime is None:
             start_datetime = CurrentDatetime(time_ns())
         self.start_datetime = start_datetime
-        # print(self.start_datetime)
         try:
             processor = self.daq_info.get("processor")
             properties = processor.get("properties")
@@ -75,9 +72,10 @@ class DaqProcessor:
             max_payload_size = min(max_odt_entry_size, max_dto - header_len)
             # First ODT may contain timestamp.
             self.selectable_timestamps = False
+            max_payload_size_first = max_payload_size
             if not self.supports_timestampes:
-                max_payload_size_first = max_payload_size
                 # print("NO TIMESTAMP SUPPORT")
+                pass
             else:
                 if self.ts_fixed:
                     # print("Fixed timestamp")
@@ -89,7 +87,10 @@ class DaqProcessor:
             raise TypeError(f"DAQ_INFO corrupted: {e}") from e
 
         # DAQ optimization.
+        # For dynamic DaqList instances, compute physical layout; skip for PredefinedDaqList.
         for idx, daq_list in enumerate(self.daq_lists):
+            if isinstance(daq_list, PredefinedDaqList):
+                continue
             if self.selectable_timestamps:
                 if daq_list.enable_timestamps:
                     max_payload_size_first = max_payload_size - self.ts_size
@@ -100,34 +101,47 @@ class DaqProcessor:
         byte_order = 0 if self.xcp_master.slaveProperties.byteOrder == "INTEL" else 1
         self._first_pids = []
         daq_count = len(self.daq_lists)
-        self.xcp_master.freeDaq()
 
-        # Allocate
-        self.xcp_master.allocDaq(daq_count)
-        measurement_list = []
-        for i, daq_list in enumerate(self.daq_lists, self.min_daq):
-            measurements = daq_list.measurements_opt
-            measurement_list.append((i, measurements))
-            odt_count = len(measurements)
-            self.xcp_master.allocOdt(i, odt_count)
-        # Iterate again over ODT entries -- we need to respect sequencing requirements.
-        for i, measurements in measurement_list:
-            for j, measurement in enumerate(measurements):
-                entry_count = len(measurement.entries)
-                self.xcp_master.allocOdtEntry(i, j, entry_count)
-        # Write DAQs
-        for i, daq_list in enumerate(self.daq_lists, self.min_daq):
-            measurements = daq_list.measurements_opt
-            for j, measurement in enumerate(measurements):
-                if len(measurement.entries) == 0:
-                    continue  # CAN special case: No room for data in first ODT.
-                self.xcp_master.setDaqPtr(i, j, 0)
-                for entry in measurement.entries:
-                    self.xcp_master.writeDaq(0xFF, entry.length, entry.ext, entry.address)
+        # Decide whether DAQ allocation must be performed.
+        config_static = self.daq_info.get("processor", {}).get("properties", {}).get("configType") == "STATIC"
+
+        if not config_static:
+            # For dynamic configuration, program only dynamic (non-predefined) DAQ lists.
+            self.xcp_master.freeDaq()
+            # Allocate the number of DAQ lists required.
+            self.xcp_master.allocDaq(daq_count)
+            measurement_list = []
+            for i, daq_list in enumerate(self.daq_lists, self.min_daq):
+                if isinstance(daq_list, PredefinedDaqList):
+                    # Skip allocation for predefined DAQ lists.
+                    continue
+                measurements = daq_list.measurements_opt
+                measurement_list.append((i, measurements))
+                odt_count = len(measurements)
+                self.xcp_master.allocOdt(i, odt_count)
+            # Iterate again over ODT entries -- we need to respect sequencing requirements.
+            for i, measurements in measurement_list:
+                for j, measurement in enumerate(measurements):
+                    entry_count = len(measurement.entries)
+                    self.xcp_master.allocOdtEntry(i, j, entry_count)
+            # Write DAQs (only for dynamic lists)
+            for i, daq_list in enumerate(self.daq_lists, self.min_daq):
+                if isinstance(daq_list, PredefinedDaqList):
+                    continue
+                measurements = daq_list.measurements_opt
+                for j, measurement in enumerate(measurements):
+                    if len(measurement.entries) == 0:
+                        continue  # CAN special case: No room for data in first ODT.
+                    self.xcp_master.setDaqPtr(i, j, 0)
+                    for entry in measurement.entries:
+                        self.xcp_master.writeDaq(0xFF, entry.length, entry.ext, entry.address)
+        else:
+            # STATIC configuration on the slave: skip allocation and programming; lists/ODTs are predefined.
+            pass
 
         # arm DAQ lists -- this is technically a function on its own.
-        for i, daq_list in enumerate(self.daq_lists, self.min_daq):
-            # print(daq_list.name, daq_list.event_num, daq_list.stim)
+        first_daq_list = 0 if config_static else self.min_daq
+        for i, daq_list in enumerate(self.daq_lists, first_daq_list):
             mode = 0x00
             if self.supports_timestampes and (self.ts_fixed or (self.selectable_timestamps and daq_list.enable_timestamps)):
                 mode = 0x10
@@ -175,7 +189,7 @@ class DaqProcessor:
                     "DAQ stop skipped due to previous fatal OS error (e.g., disk full or out-of-memory). Closing transport."
                 )
             except Exception:
-                pass
+                pass  # nosec
             try:
                 # Best-effort: stop listener and close transport so threads finish cleanly.
                 if hasattr(self.xcp_master, "transport") and self.xcp_master.transport is not None:
@@ -184,12 +198,12 @@ class DaqProcessor:
                         if hasattr(self.xcp_master.transport, "closeEvent"):
                             self.xcp_master.transport.closeEvent.set()
                     except Exception:
-                        pass
+                        pass  # nosec
                     # Close transport connection
                     try:
                         self.xcp_master.transport.close()
                     except Exception:
-                        pass
+                        pass  # nosec
             finally:
                 return
         self.xcp_master.startStopSynch(0x00)
@@ -199,7 +213,6 @@ class DaqProcessor:
 
 
 class DaqRecorder(DaqProcessor, _DaqRecorderPolicy):
-
     def __init__(self, daq_lists: List[DaqList], file_name: str, prealloc: int = 200, chunk_size: int = 1):
         DaqProcessor.__init__(self, daq_lists)
         _DaqRecorderPolicy.__init__(self)
@@ -258,27 +271,27 @@ class DaqToCsv(DaqOnlinePolicy):
             try:
                 self.log.critical(f"DAQ file write failed: {ex.__class__.__name__}: {ex}. Initiating graceful shutdown.")
             except Exception:
-                pass
+                pass  # nosec
             # Stop listener to prevent more DAQ traffic and avoid thread crashes.
             try:
                 if hasattr(self.xcp_master, "transport") and self.xcp_master.transport is not None:
                     if hasattr(self.xcp_master.transport, "closeEvent"):
                         self.xcp_master.transport.closeEvent.set()
             except Exception:
-                pass
+                pass  # nosec
             # Best-effort: close any opened files to flush buffers and release resources.
             try:
                 for f in getattr(self, "files", {}).values():
                     try:
                         f.flush()
                     except Exception:
-                        pass
+                        pass  # nosec
                     try:
                         f.close()
                     except Exception:
-                        pass
+                        pass  # nosec
             except Exception:
-                pass
+                pass  # nosec
             # Do not re-raise; allow the system to continue to a controlled shutdown.
             return
 

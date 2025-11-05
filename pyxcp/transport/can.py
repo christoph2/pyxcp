@@ -20,9 +20,14 @@ from can.interface import _get_class_for_interface
 from rich.console import Console
 
 from pyxcp.config import CAN_INTERFACE_MAP
-from pyxcp.transport.base import BaseTransport
+from pyxcp.transport.base import (
+    BaseTransport,
+    ChecksumType,
+    XcpFramingConfig,
+    XcpTransportLayerType,
+)
 
-from ..utils import seconds_to_nanoseconds
+from ..utils import seconds_to_nanoseconds, short_sleep
 
 
 console = Console()
@@ -397,7 +402,15 @@ class Can(BaseTransport):
     HEADER_SIZE = 0
 
     def __init__(self, config, policy=None, transport_layer_interface: Optional[BusABC] = None):
-        super().__init__(config, policy, transport_layer_interface)
+        framing_config = XcpFramingConfig(
+            transport_layer_type=XcpTransportLayerType.CAN,
+            header_len=0,
+            header_ctr=0,
+            header_fill=0,
+            tail_fill=False,
+            tail_cs=ChecksumType.NO_CHECKSUM,
+        )
+        super().__init__(config, framing_config, policy, transport_layer_interface)
         self.load_config(config)
         self.useDefaultListener = self.config.use_default_listener
         self.can_id_master = Identifier(self.config.can_id_master)
@@ -485,12 +498,50 @@ class Can(BaseTransport):
         )
 
     def listen(self):
+        """Process CAN frames received from the interface.
+
+        This method runs in a separate thread and continuously polls the CAN interface
+        for new frames. When a frame is received, it extracts the data and timestamp
+        and passes them to the data_received method for further processing.
+
+        The method includes periodic sleep to prevent CPU hogging and error handling
+        to ensure the listener thread doesn't crash on exceptions.
+        """
+        # Cache frequently used methods and attributes for better performance
+        close_event_set = self.closeEvent.is_set
+        can_interface_read = self.can_interface.read
+        data_received = self.data_received
+
+        # State variables for processing
+        last_sleep = self.timestamp.value
+        FIVE_MS = 5_000_000  # Five milliseconds in nanoseconds
+
         while True:
-            if self.closeEvent.is_set():
+            # Check if we should exit the loop
+            if close_event_set():
                 return
-            frame = self.can_interface.read()
-            if frame:
-                self.data_received(frame.data, frame.timestamp)
+
+            # Periodically sleep to prevent CPU hogging
+            if self.timestamp.value - last_sleep >= FIVE_MS:
+                short_sleep()
+                last_sleep = self.timestamp.value
+
+            try:
+                # Try to read a frame from the CAN interface
+                frame = can_interface_read()
+                if frame:
+                    # Process the frame if one was received
+                    data_received(frame.data, frame.timestamp)
+                else:
+                    # No frame available, sleep briefly to avoid busy waiting
+                    short_sleep()
+                    last_sleep = self.timestamp.value
+            except Exception as e:
+                # Log any exceptions but continue processing
+                self.logger.error(f"Error in CAN listen thread: {e}")
+                # Sleep briefly to avoid tight error loops
+                short_sleep()
+                last_sleep = self.timestamp.value
 
     def connect(self):
         # Start listener lazily after a successful interface connection to avoid a dangling

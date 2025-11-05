@@ -79,17 +79,18 @@ std::string bin_entries_to_string(const std::vector<McObject>& entries);
 
 std::string to_string(const Bin& obj) {
     std::stringstream ss;
-
-    ss << "Bin(residual_capacity=" << obj.get_residual_capacity() << ", entries=[" << bin_entries_to_string(obj.get_entries())
-       << "])";
+    ss << "Bin(size=" << obj.get_size() << ", residual_capacity=" << obj.get_residual_capacity() << ", entries=["
+       << bin_entries_to_string(obj.get_entries()) << "])";
     return ss.str();
 }
 
 std::string bin_entries_to_string(const std::vector<McObject>& entries) {
     std::stringstream ss;
-
-    for (const auto& entry : entries) {
-        ss << to_string(entry) << ",\n ";
+    for (std::size_t i = 0; i < entries.size(); ++i) {
+        ss << to_string(entries[i]);
+        if (i + 1 < entries.size()) {
+            ss << ", ";
+        }
     }
     return ss.str();
 }

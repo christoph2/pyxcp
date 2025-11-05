@@ -6,7 +6,12 @@ import threading
 from collections import deque
 from typing import Optional
 
-from pyxcp.transport.base import BaseTransport
+from pyxcp.transport.base import (
+    BaseTransport,
+    ChecksumType,
+    XcpFramingConfig,
+    XcpTransportLayerType,
+)
 from pyxcp.utils import short_sleep
 
 
@@ -36,11 +41,18 @@ class Eth(BaseTransport):
 
     MAX_DATAGRAM_SIZE = 512
     HEADER = struct.Struct("<HH")
-    HEADER_SIZE = HEADER.size
 
     def __init__(self, config=None, policy=None, transport_layer_interface: Optional[socket.socket] = None) -> None:
-        super().__init__(config, policy, transport_layer_interface)
         self.load_config(config)
+        framing_config = XcpFramingConfig(
+            transport_layer_type=XcpTransportLayerType.ETH,
+            header_len=2,
+            header_ctr=2,
+            header_fill=0,
+            tail_fill=False,
+            tail_cs=ChecksumType.NO_CHECKSUM,
+        )
+        super().__init__(config, framing_config, policy, transport_layer_interface)
         self.host: str = self.config.host
         self.port: int = self.config.port
         self.protocol: int = self.config.protocol
@@ -96,6 +108,7 @@ class Eth(BaseTransport):
             target=self._packet_listen,
             args=(),
             kwargs={},
+            daemon=True,
         )
         self._packets = deque()
 
@@ -109,17 +122,23 @@ class Eth(BaseTransport):
     def start_listener(self) -> None:
         super().start_listener()
         if self._packet_listener.is_alive():
-            self._packet_listener.join()
-        self._packet_listener = threading.Thread(target=self._packet_listen)
+            self._packet_listener.join(timeout=2.0)
+        self._packet_listener = threading.Thread(target=self._packet_listen, daemon=True)
         self._packet_listener.start()
 
     def close(self) -> None:
         """Close the transport-layer connection and event-loop."""
         self.finish_listener()
-        if self.listener.is_alive():
-            self.listener.join()
-        if self._packet_listener.is_alive():
-            self._packet_listener.join()
+        try:
+            if self.listener.is_alive():
+                self.listener.join(timeout=2.0)
+        except Exception:
+            pass
+        try:
+            if self._packet_listener.is_alive():
+                self._packet_listener.join(timeout=2.0)
+        except Exception:
+            pass
         self.close_connection()
 
     def _packet_listen(self) -> None:
@@ -162,8 +181,6 @@ class Eth(BaseTransport):
                 break
 
     def listen(self) -> None:
-        HEADER_UNPACK_FROM = self.HEADER.unpack_from
-        HEADER_SIZE = self.HEADER_SIZE
         process_response = self.process_response
         popleft = self._packets.popleft
         close_event_set = self.closeEvent.is_set
@@ -186,10 +203,10 @@ class Eth(BaseTransport):
                 current_position: int = 0
                 while True:
                     if length is None:
-                        if current_size >= HEADER_SIZE:
-                            length, counter = HEADER_UNPACK_FROM(data, current_position)
-                            current_position += HEADER_SIZE
-                            current_size -= HEADER_SIZE
+                        if current_size >= self.framing.header_size:
+                            length, counter = self.framing.unpack_header(bytes(data), initial_offset=current_position)
+                            current_position += self.framing.header_size
+                            current_size -= self.framing.header_size
                         else:
                             data = data[current_position:]
                             break

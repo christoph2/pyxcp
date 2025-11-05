@@ -34,9 +34,12 @@ class Odt {
 
     std::string to_string() const {
         std::stringstream ss;
-        ss << "Odt(entries=[\n";
-        for (const auto& entry : m_entries) {
-            ss << ::to_string(entry) << ",\n";
+        ss << "Odt(entries=[";
+        for (std::size_t i = 0; i < m_entries.size(); ++i) {
+            ss << ::to_string(m_entries[i]);
+            if (i + 1 < m_entries.size()) {
+                ss << ", ";
+            }
         }
         ss << "])";
         return ss.str();
@@ -73,43 +76,35 @@ class DaqListBase {
         return m_enable_timestamps;
     }
 
-    const std::string& get_name() const noexcept {
+    const std::string& get_name() const {
         return m_name;
     }
 
-    std::uint16_t get_event_num() const noexcept {
+    std::uint16_t get_event_num() const {
         return m_event_num;
     }
 
-    std::uint8_t get_priority() const noexcept {
+    std::uint8_t get_priority() const {
         return m_priority;
     }
 
-    std::uint8_t get_prescaler() const noexcept {
+    std::uint8_t get_prescaler() const {
         return m_prescaler;
     }
 
-	bool get_predefined_list() const noexcept {
-		return m_predefined_list;
-	}
-
-    void set_event_num(std::uint16_t event_num) noexcept {
+    void set_event_num(std::uint16_t event_num) {
         m_event_num = event_num;
     }
 
-    bool get_stim() const noexcept {
+    bool get_stim() const {
         return m_stim;
-    }
-
-    const std::vector<McObject>& get_measurements() const {
-        return m_measurements;
     }
 
     const std::vector<Bin>& get_measurements_opt() const {
         return m_measurements_opt;
     }
 
-    const std::vector<std::string>& get_header_names() const noexcept {
+    const std::vector<std::string>& get_header_names() const {
         return m_header_names;
     }
 
@@ -117,24 +112,28 @@ class DaqListBase {
         return m_headers;
     }
 
-    std::uint16_t get_odt_count() const noexcept {
+    std::uint16_t get_odt_count() const {
         return m_odt_count;
     }
 
-    std::uint16_t get_total_entries() const noexcept {
+    std::uint16_t get_total_entries() const {
         return m_total_entries;
     }
 
-    std::uint16_t get_total_length() const noexcept {
+    std::uint16_t get_total_length() const {
         return m_total_length;
     }
 
-    const flatten_odts_t& get_flatten_odts() const noexcept {
+    const flatten_odts_t& get_flatten_odts() const {
         return m_flatten_odts;
     }
 
-    void set_measurements_opt(const std::vector<Bin>& measurements_opt) noexcept {
+    void set_measurements_opt(const std::vector<Bin>& measurements_opt) {
         m_measurements_opt = measurements_opt;
+        m_header_names.clear();
+        m_headers.clear();
+        m_flatten_odts.clear();
+
         auto odt_count     = 0u;
         auto total_entries = 0u;
         auto total_length  = 0u;
@@ -142,22 +141,35 @@ class DaqListBase {
             odt_count++;
             std::vector<std::tuple<std::string, std::uint32_t, std::uint8_t, std::uint16_t, std::int16_t>> flatten_odt{};
             for (const auto& mc_obj : bin.get_entries()) {
-                for (const auto& component : mc_obj.get_components()) {
-                    m_header_names.emplace_back(component.get_name());
+                const auto& components = mc_obj.get_components();
+                if (!components.empty()) {
+                    for (const auto& component : components) {
+                        m_header_names.emplace_back(component.get_name());
+                        flatten_odt.emplace_back(
+                            component.get_name(), component.get_address(), component.get_ext(), component.get_length(),
+                            component.get_type_index()
+                        );
+                        // TYPE_MAP_REV::at may throw if key is invalid; this indicates a programming error upstream.
+                        m_headers.emplace_back(component.get_name(), TYPE_MAP_REV.at(static_cast<std::uint16_t>(component.get_type_index())));
+                        total_entries++;
+                        total_length += component.get_length();
+                    }
+                } else {
+                    // Treat the McObject itself as an entry when it has no components.
+                    m_header_names.emplace_back(mc_obj.get_name());
                     flatten_odt.emplace_back(
-                        component.get_name(), component.get_address(), component.get_ext(), component.get_length(),
-                        component.get_type_index()
+                        mc_obj.get_name(), mc_obj.get_address(), mc_obj.get_ext(), mc_obj.get_length(), mc_obj.get_type_index()
                     );
-                    m_headers.emplace_back(component.get_name(), TYPE_MAP_REV.at(component.get_type_index()));
+                    m_headers.emplace_back(mc_obj.get_name(), TYPE_MAP_REV.at(static_cast<std::uint16_t>(mc_obj.get_type_index())));
                     total_entries++;
-                    total_length += component.get_length();
+                    total_length += mc_obj.get_length();
                 }
             }
-            m_flatten_odts.emplace_back(flatten_odt);
+            m_flatten_odts.emplace_back(std::move(flatten_odt));
         }
-        m_odt_count     = odt_count;
-        m_total_entries = total_entries;
-        m_total_length  = total_length;
+        m_odt_count     = static_cast<std::uint16_t>(odt_count);
+        m_total_entries = static_cast<std::uint16_t>(total_entries);
+        m_total_length  = static_cast<std::uint16_t>(total_length);
     }
 
    protected:
@@ -206,8 +218,8 @@ class DaqList : public DaqListBase {
         ss << to_binary(m_event_num);
         ss << to_binary(m_stim);
         ss << to_binary(m_enable_timestamps);
-		ss << to_binary(m_prescaler);
-		ss << to_binary(m_predefined_list);
+        ss << to_binary(m_priority);
+        ss << to_binary(m_prescaler);
 
         ss << to_binary(m_odt_count);
         ss << to_binary(m_total_entries);
@@ -228,54 +240,43 @@ class DaqList : public DaqListBase {
         for (const auto& hdr_obj : m_header_names) {
             ss << to_binary(hdr_obj);
         }
-#if 0
-        std::size_t odt_size = m_flatten_odts.size();
-        ss << to_binary(odt_size);
-        for (const auto& odt : m_flatten_odts) {
-            ss << to_binary(odt.size());
-            for (const auto& odt_entry : odt) {
-                const auto& [name, address, ext, size, type_index] = odt_entry;
-                ss << to_binary(name);
-                ss << to_binary(address);
-                ss << to_binary(ext);
-                ss << to_binary(size);
-                ss << to_binary(type_index);
-            }
-        }
-#endif
         return ss.str();
     }
 
     std::string to_string() const override {
         std::stringstream ss;
-
         ss << "DaqList(";
-        ss << "name=\"" << m_name << "\", ";
+        ss << "name='" << m_name << "', ";
         ss << "event_num=" << static_cast<std::uint16_t>(m_event_num) << ", ";
         ss << "stim=" << bool_to_string(m_stim) << ", ";
         ss << "enable_timestamps=" << bool_to_string(m_enable_timestamps) << ", ";
-		ss << "predefined_list=" << bool_to_string(m_predefined_list) << ", ";
+        ss << "priority=" << static_cast<std::uint16_t>(m_priority) << ", ";
         ss << "prescaler=" << static_cast<std::uint16_t>(m_prescaler) << ", ";
-		ss << "measurements=[\n";
-        for (const auto& meas : m_measurements) {
-            ss << ::to_string(meas) << ",\n";
+        ss << "odt_count=" << static_cast<std::uint16_t>(m_odt_count) << ", ";
+        ss << "total_entries=" << static_cast<std::uint16_t>(m_total_entries) << ", ";
+        ss << "total_length=" << static_cast<std::uint16_t>(m_total_length) << ", ";
+        ss << "measurements=[";
+        for (std::size_t i = 0; i < m_measurements.size(); ++i) {
+            ss << ::to_string(m_measurements[i]);
+            if (i + 1 < m_measurements.size()) ss << ", ";
         }
-        ss << "],\n";
-        ss << "measurements_opt=[\n";
-        for (const auto& meas : m_measurements_opt) {
-            ss << ::to_string(meas) << ",\n";
+        ss << "], ";
+        ss << "measurements_opt=[";
+        for (std::size_t i = 0; i < m_measurements_opt.size(); ++i) {
+            ss << ::to_string(m_measurements_opt[i]);
+            if (i + 1 < m_measurements_opt.size()) ss << ", ";
         }
-        ss << "],\n";
-        ss << "header_names=[\n";
-        for (const auto& header : m_header_names) {
-            ss << """ << header << "",";
+        ss << "], ";
+        ss << "header_names=[";
+        for (std::size_t i = 0; i < m_header_names.size(); ++i) {
+            ss << "'" << m_header_names[i] << "'";
+            if (i + 1 < m_header_names.size()) ss << ", ";
         }
-        ss << "\n]";
-        ss << ")";
+        ss << "])";
         return ss.str();
     }
 
-    static void loads(std::string_view buffer) noexcept {
+    static void loads(std::string_view buffer) {
     }
 
    private:
@@ -291,15 +292,24 @@ class PredefinedDaqList : public DaqListBase {
         std::string_view name, std::uint16_t event_num, bool stim, bool enable_timestamps,
         const predefined_daq_list_initializer_t& odts, std::uint8_t priority = 0x00, std::uint8_t prescaler = 0x01) :
         DaqListBase(name, event_num, stim, enable_timestamps, priority, prescaler) {
+        std::vector<Bin> bins;
+        bins.reserve(odts.size());
         for (const auto& odt_init : odts) {
-			Bin bin(0);
-
-			for (const auto& entry : odt_init) {
-				const auto& [name, dt_name] = entry;
-				bin.append(McObject(name, 0, 0, 0, dt_name));
-			}
-			m_measurements_opt.emplace_back(bin);
+            Bin bin(0);
+            std::uint16_t total_length = 0;
+            for (const auto& entry : odt_init) {
+                const auto& [name, dt_name] = entry;
+                // McObject will validate dt_name and set length accordingly.
+                McObject obj(name, 0, 0, 0, dt_name);
+                total_length = static_cast<std::uint16_t>(total_length + obj.get_length());
+                bin.append(obj);
+            }
+            // Derive Bin size and residual capacity from sum of entry lengths.
+            bin.set_size(total_length);
+            bin.set_residual_capacity(total_length);
+            bins.emplace_back(std::move(bin));
         }
+        set_measurements_opt(bins);
     }
 
     std::string dumps() const override {
@@ -330,44 +340,33 @@ class PredefinedDaqList : public DaqListBase {
         for (const auto& hdr_obj : m_header_names) {
             ss << to_binary(hdr_obj);
         }
-#if 0
-        std::size_t odt_size = m_flatten_odts.size();
-        ss << to_binary(odt_size);
-        for (const auto& odt : m_flatten_odts) {
-            ss << to_binary(odt.size());
-            for (const auto& odt_entry : odt) {
-                const auto& [name, address, ext, size, type_index] = odt_entry;
-                ss << to_binary(name);
-                ss << to_binary(address);
-                ss << to_binary(ext);
-                ss << to_binary(size);
-                ss << to_binary(type_index);
-            }
-        }
-#endif
         return ss.str();
     }
 
     std::string to_string() const override {
         std::stringstream ss;
-
         ss << "PredefinedDaqList(";
-        ss << "name="" << m_name << "", ";
+        ss << "name='" << m_name << "', ";
         ss << "event_num=" << static_cast<std::uint16_t>(m_event_num) << ", ";
         ss << "stim=" << bool_to_string(m_stim) << ", ";
         ss << "enable_timestamps=" << bool_to_string(m_enable_timestamps) << ", ";
-
-        ss << "measurements_opt=[\n";
-        for (const auto& meas : m_measurements_opt) {
-            ss << ::to_string(meas) << ",\n";
+        ss << "priority=" << static_cast<std::uint16_t>(m_priority) << ", ";
+        ss << "prescaler=" << static_cast<std::uint16_t>(m_prescaler) << ", ";
+        ss << "odt_count=" << static_cast<std::uint16_t>(m_odt_count) << ", ";
+        ss << "total_entries=" << static_cast<std::uint16_t>(m_total_entries) << ", ";
+        ss << "total_length=" << static_cast<std::uint16_t>(m_total_length) << ", ";
+        ss << "measurements_opt=[";
+        for (std::size_t i = 0; i < m_measurements_opt.size(); ++i) {
+            ss << ::to_string(m_measurements_opt[i]);
+            if (i + 1 < m_measurements_opt.size()) ss << ", ";
         }
-        ss << "],\n";
-        ss << "header_names=[\n";
-        for (const auto& header : m_header_names) {
-            ss << """ << header << "",";
+        ss << "], ";
+        ss << "header_names=[";
+        for (std::size_t i = 0; i < m_header_names.size(); ++i) {
+            ss << "'" << m_header_names[i] << "'";
+            if (i + 1 < m_header_names.size()) ss << ", ";
         }
-        ss << "\n]";
-        ss << ")";
+        ss << "])";
         return ss.str();
     }
 };
