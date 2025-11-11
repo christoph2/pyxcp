@@ -139,6 +139,11 @@ PYBIND11_MODULE(transport_ext, m) {
 
     py::class_<XcpFraming>(m, "XcpFraming")
         .def(py::init<const XcpFramingConfig&>())
+        .def("prepare_request", [](XcpFraming &self, std::uint32_t cmd, py::bytes data) {
+            std::string s = data;
+            std::vector<uint8_t> data_vec(s.begin(), s.end());
+            return self.prepare_request(cmd, data_vec);
+        }, "cmd"_a, "data"_a)
         .def("prepare_request", [](XcpFraming &self, std::uint32_t cmd, py::args data) {
             std::vector<uint8_t> data_vec;
             for (auto item : data) {
