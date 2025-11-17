@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-"""Scan for available IDs.
-"""
+"""Scan for available IDs."""
 
 from pyxcp.cmdline import ArgumentParser
 

@@ -6,7 +6,6 @@ and create a XCP master instance.
 
 import warnings
 from dataclasses import dataclass
-from typing import List
 
 from pyxcp.config import (  # noqa: F401
     create_application,

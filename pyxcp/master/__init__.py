@@ -6,4 +6,5 @@
 
 .. [1] XCP Specification, Part 2 - Protocol Layer Specification
 """
+
 from .master import Master  # noqa: F401

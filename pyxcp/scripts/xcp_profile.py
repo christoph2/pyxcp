@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-"""Create / convert pyxcp profiles (configurations).
-"""
+"""Create / convert pyxcp profiles (configurations)."""
 
 import sys
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 import can
 
@@ -9,7 +9,6 @@ from pyxcp.transport.can import CanInterfaceBase
 
 
 class CustomCANInterface(CanInterfaceBase):
-
     def init(self):
         """Initialize the CAN interface here."""
 

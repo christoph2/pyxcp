@@ -5,7 +5,6 @@ import serial
 from can.bus import BusABC
 
 import pyxcp.transport.base as tr
-import pyxcp.transport.can as can_transport
 
 
 def create_mock_serial():

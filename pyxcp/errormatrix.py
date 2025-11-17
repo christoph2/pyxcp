@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-"""Types and structures to support error-handling as specified by XCP.
-"""
+"""Types and structures to support error-handling as specified by XCP."""
+
 import enum
 from collections import namedtuple
 

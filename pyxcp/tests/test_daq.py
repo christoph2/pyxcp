@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from pyxcp.daq_stim import DaqList, DaqProcessor
+from pyxcp.daq_stim import DaqList
 
 
 DAQ_INFO = {

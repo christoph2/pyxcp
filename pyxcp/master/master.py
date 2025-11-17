@@ -6,6 +6,7 @@
 
 .. [1] XCP Specification, Part 2 - Protocol Layer Specification
 """
+
 from __future__ import annotations
 
 import functools
@@ -13,7 +14,7 @@ import logging
 import struct
 import traceback
 import warnings
-from typing import Any, Callable, Collection, Dict, Optional, Tuple, TypeVar
+from typing import Any, Callable, Collection, TypeVar
 
 from pyxcp import checksum, types
 from pyxcp.constants import (
@@ -2326,7 +2327,7 @@ class Master:
         if self.currentProtectionStatus is None:
             try:
                 status = self.getStatus()
-            except Exception as e:  # may temporary ERR_OUT_OF_RANGE
+            except Exception:  # may temporary ERR_OUT_OF_RANGE
                 return {"dbg": None, "pgm": None, "stim": None, "daq": None, "calpag": None}
             self._setProtectionStatus(status.resourceProtectionStatus)
         return self.currentProtectionStatus
@@ -2499,7 +2500,10 @@ class Master:
                         name = STD_IDS[id_value]
                     else:
                         name = f"USER_{idx}"
-                    yield id_value, name,
+                    yield (
+                        id_value,
+                        name,
+                    )
 
             return generate()
 
