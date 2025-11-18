@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-"""Use this as a copy-and-paste template for your own scripts.
-"""
+"""Use this as a copy-and-paste template for your own scripts."""
 
 from pyxcp.cmdline import ArgumentParser
 

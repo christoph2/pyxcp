@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Very basic hello-world example."""
+
 from pprint import pprint
 
 from pyxcp.cmdline import ArgumentParser

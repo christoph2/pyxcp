@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import selectors
-import socket
 import struct
 import threading
 import time

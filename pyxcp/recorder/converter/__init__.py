@@ -154,7 +154,6 @@ class XcpLogFileDecoder(_XcpLogFileDecoder):
 
 
 class CollectRows:
-
     def on_daq_list(self, daq_list_num: int, timestamp0: int, timestamp1: int, measurements: list) -> None:
         storage_container = self.tables[daq_list_num]
         storage_container.timestamp0.append(timestamp0)
@@ -214,7 +213,6 @@ class ArrowConverter(CollectRows, XcpLogFileDecoder):
 
 
 class CsvConverter(XcpLogFileDecoder):
-
     def __init__(self, recording_file_name: str, target_file_name: str = ""):
         super().__init__(
             recording_file_name=recording_file_name, out_file_suffix=".csv", remove_file=False, target_file_name=target_file_name
@@ -242,7 +240,6 @@ class CsvConverter(XcpLogFileDecoder):
 
 
 class ExcelConverter(XcpLogFileDecoder):
-
     def __init__(self, recording_file_name: str, target_file_name: str = ""):
         super().__init__(recording_file_name=recording_file_name, out_file_suffix=".xlsx", target_file_name=target_file_name)
 
@@ -273,7 +270,6 @@ class ExcelConverter(XcpLogFileDecoder):
 
 
 class HdfConverter(CollectRows, XcpLogFileDecoder):
-
     def __init__(self, recording_file_name: str, target_file_name: str = ""):
         super().__init__(recording_file_name=recording_file_name, out_file_suffix=".h5", target_file_name=target_file_name)
 
@@ -296,7 +292,6 @@ class HdfConverter(CollectRows, XcpLogFileDecoder):
 
 
 class MdfConverter(CollectRows, XcpLogFileDecoder):
-
     def __init__(self, recording_file_name: str, target_file_name: str = ""):
         super().__init__(
             recording_file_name=recording_file_name,
@@ -367,8 +362,8 @@ class SqliteConverter(XcpLogFileDecoder):
         self.create_table(sc)
         self.logger.info(f"Creating table {sc.name!r}.")
         self.insert_stmt[sc.name] = (
-            f"""INSERT INTO {sc.name}({', '.join(['timestamp0', 'timestamp1'] + [r.name for r in sc.arr])})"""
-            f""" VALUES({', '.join(["?" for _ in range(len(sc.arr) + 2)])})"""
+            f"""INSERT INTO {sc.name}({", ".join(["timestamp0", "timestamp1"] + [r.name for r in sc.arr])})"""
+            f""" VALUES({", ".join(["?" for _ in range(len(sc.arr) + 2)])})"""
         )
 
     def on_finalize(self) -> None:

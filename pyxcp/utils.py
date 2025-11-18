@@ -6,7 +6,7 @@ import sys
 from binascii import hexlify
 from enum import IntEnum
 from time import perf_counter, sleep
-from typing import Any, List, Optional, Union
+from typing import Union
 
 import chardet
 import pytz
@@ -86,7 +86,6 @@ def delay(amount: float):
 
 
 class CurrentDatetime(TimestampInfo):
-
     def __init__(self, timestamp_ns: int):
         TimestampInfo.__init__(self, timestamp_ns)
         timezone = pytz.timezone(self.timezone)

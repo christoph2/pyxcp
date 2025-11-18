@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-"""Fetch A2L file from XCP slave (if supported).
-"""
+"""Fetch A2L file from XCP slave (if supported)."""
+
 import sys
 from pathlib import Path
 

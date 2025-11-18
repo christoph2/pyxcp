@@ -12,7 +12,7 @@ class Timing:
         T_MS: "mS",
         T_S: "S",
     }
-    FMT = "min:  {0:2.3f} {4}\nmax:  {1:2.3f} {4}\n" "avg:  {2:2.3f} {4}\nlast: {3:2.3f} {4}"
+    FMT = "min:  {0:2.3f} {4}\nmax:  {1:2.3f} {4}\navg:  {2:2.3f} {4}\nlast: {3:2.3f} {4}"
 
     def __init__(self, unit=T_MS, record=False):
         self.min = None

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-"""Very basic hello-world example.
-"""
+"""Very basic hello-world example."""
+
 from pyxcp.cmdline import ArgumentParser
 
 

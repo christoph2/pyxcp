@@ -12,6 +12,7 @@ See
 
 -  ``_ for reading.
 """
+
 import enum
 import mmap
 import struct

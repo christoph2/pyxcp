@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-"""Bin-packing algorithms.
-"""
+"""Bin-packing algorithms."""
+
 from typing import List, Optional
 
 from pyxcp.cpp_ext.cpp_ext import Bin
