@@ -1176,7 +1176,7 @@ class Master:
 
         # Process full blocks
         for _ in blocks:
-            block = data[offset : offset + max_payload]
+            block = data[offset: offset + max_payload]
             block_downloader(block)
             offset += max_payload
             remaining -= max_payload
@@ -1188,7 +1188,7 @@ class Master:
 
         # Process remaining partial block
         if remaining_block_size:
-            block = data[offset : offset + remaining_block_size]
+            block = data[offset: offset + remaining_block_size]
             block_downloader(block)
             if callback:
                 callback(percent_complete)
@@ -1228,7 +1228,7 @@ class Master:
 
         # Process full chunks
         for _ in chunks:
-            block = data[offset : offset + max_payload]
+            block = data[offset: offset + max_payload]
             dl_func(block, max_payload, last=False)
             offset += max_payload
             callback_remaining -= chunk_size
@@ -1240,7 +1240,7 @@ class Master:
 
         # Process remaining partial chunk
         if remaining:
-            block = data[offset : offset + remaining]
+            block = data[offset: offset + remaining]
             dl_func(block, remaining, last=True)
             if callback:
                 callback(percent_complete)
@@ -1284,7 +1284,7 @@ class Master:
         index = 0
         for index in packets:
             # Extract packet data
-            packet_data = data[offset : offset + max_packet_size]
+            packet_data = data[offset: offset + max_packet_size]
 
             # Determine if this is the last packet
             last = (remaining_block_size - max_packet_size) == 0
@@ -1307,7 +1307,7 @@ class Master:
         # Process remaining partial packet
         if remaining:
             # Extract remaining data
-            packet_data = data[offset : offset + remaining]
+            packet_data = data[offset: offset + remaining]
 
             # Send packet using appropriate function
             if index == 0:
