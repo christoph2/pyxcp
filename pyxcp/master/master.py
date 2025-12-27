@@ -2371,7 +2371,8 @@ class Master:
 
         protection_status = self.getCurrentProtectionStatus()
         if any(protection_status.values()) and (not (self.seed_n_key_dll or self.seed_n_key_function)):
-            raise RuntimeError("Neither seed-and-key DLL nor function specified, cannot proceed.")  # TODO: ConfigurationError
+            raise RuntimeError(
+                "Neither seed-and-key DLL nor function specified, cannot proceed.")  # TODO: ConfigurationError
         if resources is None:
             result = []
             if self.slaveProperties["supportsCalpag"]:
