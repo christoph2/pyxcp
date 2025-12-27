@@ -6,7 +6,6 @@
 
 .. [1] XCP Specification, Part 2 - Protocol Layer Specification
 """
-
 from __future__ import annotations
 
 import functools
@@ -14,7 +13,10 @@ import logging
 import struct
 import traceback
 import warnings
-from typing import Any, Callable, Collection, TypeVar
+from contextlib import suppress
+from typing import Any, Callable, Collection, Dict, Optional, TypeVar
+
+from pyxcp.daq_stim.stim import DaqEventInfo, Stim
 
 from pyxcp import checksum, types
 from pyxcp.constants import (
@@ -2327,7 +2329,7 @@ class Master:
         if self.currentProtectionStatus is None:
             try:
                 status = self.getStatus()
-            except Exception:  # may temporary ERR_OUT_OF_RANGE
+            except Exception as e:  # may temporary ERR_OUT_OF_RANGE
                 return {"dbg": None, "pgm": None, "stim": None, "daq": None, "calpag": None}
             self._setProtectionStatus(status.resourceProtectionStatus)
         return self.currentProtectionStatus
@@ -2500,10 +2502,7 @@ class Master:
                         name = STD_IDS[id_value]
                     else:
                         name = f"USER_{idx}"
-                    yield (
-                        id_value,
-                        name,
-                    )
+                    yield id_value, name,
 
             return generate()
 
@@ -2594,10 +2593,8 @@ class Master:
             return (types.TryCommandResult.OK, res)
         finally:
             # Ensure suppression flag is restored even on success/other exceptions
-            try:
+            with suppress(Exception):
                 set_suppress_xcp_error_log(_prev_suppress)
-            except Exception:
-                pass  # nosec B110
 
 
 def ticks_to_seconds(ticks, resolution):

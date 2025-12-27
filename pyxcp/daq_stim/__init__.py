@@ -182,26 +182,21 @@ class DaqProcessor:
         # If a fatal OS error occurred during acquisition, skip sending stop to the slave to avoid
         # cascading timeouts/unrecoverable errors and shut down transport gracefully instead.
         if getattr(self, "_fatal_os_error", False):
-            try:
+            with suppress(Exception):
                 self.log.error(
                     "DAQ stop skipped due to previous fatal OS error (e.g., disk full or out-of-memory). Closing transport."
                 )
-            except Exception:
-                pass  # nosec
             try:
                 # Best-effort: stop listener and close transport so threads finish cleanly.
                 if hasattr(self.xcp_master, "transport") and self.xcp_master.transport is not None:
                     # Signal listeners to stop
-                    try:
+                    with suppress(Exception):
                         if hasattr(self.xcp_master.transport, "closeEvent"):
                             self.xcp_master.transport.closeEvent.set()
-                    except Exception:
-                        pass  # nosec
+
                     # Close transport connection
-                    try:
+                    with suppress(Exception):
                         self.xcp_master.transport.close()
-                    except Exception:
-                        pass  # nosec
             finally:
                 return
         self.xcp_master.startStopSynch(0x00)
@@ -266,30 +261,21 @@ class DaqToCsv(DaqOnlinePolicy):
         except (OSError, MemoryError) as ex:
             # Mark fatal condition to alter shutdown path and avoid further writes/commands.
             self._fatal_os_error = True
-            try:
+            with suppress(Exception):
                 self.log.critical(f"DAQ file write failed: {ex.__class__.__name__}: {ex}. Initiating graceful shutdown.")
-            except Exception:
-                pass  # nosec
+
             # Stop listener to prevent more DAQ traffic and avoid thread crashes.
-            try:
+            with suppress(Exception):
                 if hasattr(self.xcp_master, "transport") and self.xcp_master.transport is not None:
                     if hasattr(self.xcp_master.transport, "closeEvent"):
                         self.xcp_master.transport.closeEvent.set()
-            except Exception:
-                pass  # nosec
             # Best-effort: close any opened files to flush buffers and release resources.
-            try:
+            with suppress(Exception):
                 for f in getattr(self, "files", {}).values():
-                    try:
+                    with suppress(Exception):
                         f.flush()
-                    except Exception:
-                        pass  # nosec
-                    try:
+                    with suppress(Exception):
                         f.close()
-                    except Exception:
-                        pass  # nosec
-            except Exception:
-                pass  # nosec
             # Do not re-raise; allow the system to continue to a controlled shutdown.
             return
 

@@ -1,5 +1,6 @@
 """Convert pyXCPs .xmraw files to common data formats."""
 
+from contextlib import suppress
 import csv
 import logging
 import os
@@ -119,10 +120,8 @@ class XcpLogFileDecoder(_XcpLogFileDecoder):
         self.out_file_suffix = out_file_suffix
         self.target_type_map = target_type_map or {}
         if remove_file:
-            try:
+            with suppress(FileNotFoundError):
                 os.unlink(self.out_file_name)
-            except FileNotFoundError:
-                pass
 
     def initialize(self) -> None:
         self.on_initialize()
