@@ -544,11 +544,7 @@ class Master:
         """
         # Send GET_ID command to the slave
         response = self.transport.request(types.Command.GET_ID, mode)
-
-        # Parse the response with the correct byte order
         result = types.GetIDResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
-
-        # Extract the length from the response
         result.length = self.DWORD_unpack(response[3:7])[0]
 
         return result
@@ -758,11 +754,10 @@ class Master:
             while remaining_bytes:
                 if len(self.transport.resQueue):
                     data = self.transport.resQueue.popleft()
-                    response += data[1 : remaining_bytes + 1]
+                    response += data[1: remaining_bytes + 1]
                     remaining_bytes = byte_count - len(response)
                 else:
                     short_sleep()
-
         return response
 
     @wrapped
