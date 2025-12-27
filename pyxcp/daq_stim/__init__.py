@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
+from contextlib import suppress
 from time import time_ns
 from typing import Dict, List, Optional, TextIO, Union
 
+from pyxcp.cpp_ext.cpp_ext import DaqList, PredefinedDaqList
+
 from pyxcp import types
 from pyxcp.config import get_application
-from pyxcp.cpp_ext.cpp_ext import DaqList, PredefinedDaqList
 from pyxcp.daq_stim.optimize import make_continuous_blocks
 from pyxcp.daq_stim.optimize.binpacking import first_fit_decreasing
 from pyxcp.recorder import DaqOnlinePolicy as _DaqOnlinePolicy
@@ -74,14 +76,13 @@ class DaqProcessor:
             self.selectable_timestamps = False
             max_payload_size_first = max_payload_size
             if not self.supports_timestampes:
-                # print("NO TIMESTAMP SUPPORT")
-                pass
+                self.log.info("No timestamp support")
             else:
                 if self.ts_fixed:
-                    # print("Fixed timestamp")
+                    self.log.debug("Fixed timestamps")
                     max_payload_size_first = max_payload_size - self.ts_size
                 else:
-                    # print("timestamp variable.")
+                    self.log.debug("Variable timestamps.")
                     self.selectable_timestamps = True
         except Exception as e:
             raise TypeError(f"DAQ_INFO corrupted: {e}") from e
