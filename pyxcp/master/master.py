@@ -2623,7 +2623,7 @@ def make_tick_converter(resolution):
     """
     exponent = types.DAQ_TIMESTAMP_UNIT_TO_EXP[resolution.timestampMode.unit]
     tick_resolution = resolution.timestampTicks
-    base = (10**exponent) * tick_resolution
+    base = (10 ** exponent) * tick_resolution
 
     def ticks_to_seconds(ticks):
         """Convert DAQ timestamp/tick value to seconds.
