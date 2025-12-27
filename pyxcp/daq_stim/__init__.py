@@ -159,8 +159,6 @@ class DaqProcessor:
             )
             res = self.xcp_master.startStopDaqList(0x02, i)
             self._first_pids.append(res.firstPid)
-        if start_datetime:
-            pass
         self.measurement_params = MeasurementParameters(
             byte_order,
             header_len,
