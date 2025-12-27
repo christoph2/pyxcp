@@ -133,7 +133,8 @@ class Master:
         Custom transport layer interface, by default None
     """
 
-    def __init__(self, transport_name: str | None, config: Any, policy: Any = None, transport_layer_interface: Any = None) -> None:
+    def __init__(self, transport_name: str | None, config: Any, policy: Any = None,
+                 transport_layer_interface: Any = None) -> None:
         """Initialize a new Master instance.
 
         Parameters
@@ -167,7 +168,8 @@ class Master:
         # Set up transport layer
         self.transport_name: str = transport_name.lower()
         transport_config: Any = config.transport
-        self.transport: BaseTransport = create_transport(transport_name, transport_config, policy, transport_layer_interface)
+        self.transport: BaseTransport = create_transport(transport_name, transport_config, policy,
+                                                         transport_layer_interface)
 
         # Set up STIM (stimulation) support
         self.stim: Stim = Stim(self.config.stim_support)
@@ -211,7 +213,7 @@ class Master:
         self.slaveProperties.pgmProcessor = SlaveProperties()
         self.slaveProperties.transport_layer = self.transport_name.upper()
 
-    def __enter__(self) -> Master:
+    def __enter__(self):
         """Context manager entry part.
 
         This method is called when entering a context manager block.
@@ -226,7 +228,8 @@ class Master:
         return self
 
     def __exit__(
-        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: traceback.TracebackType | None
+            self, exc_type: type[BaseException] | None, exc_val: BaseException | None,
+            exc_tb
     ) -> None:
         """Context manager exit part.
 
@@ -1066,17 +1069,17 @@ class Master:
         )
 
     def _generalized_downloader(
-        self,
-        address: int,
-        address_ext: int,
-        data: bytes,
-        maxCto: int,
-        maxBs: int,
-        minSt: int,
-        master_block_mode: bool,
-        dl_func: Callable[[bytes, int, bool], Any],
-        dl_next_func: Callable[[bytes, int, bool], Any],
-        callback: Callable[[int], None] | None = None,
+            self,
+            address: int,
+            address_ext: int,
+            data: bytes,
+            maxCto: int,
+            maxBs: int,
+            minSt: int,
+            master_block_mode: bool,
+            dl_func: Callable[[bytes, int, bool], Any],
+            dl_next_func: Callable[[bytes, int, bool], Any],
+            callback: Callable[[int], None] | None = None,
     ) -> None:
         """Generic implementation for downloading data to the slave.
 
@@ -1140,13 +1143,13 @@ class Master:
             self._download_normal_mode(data, total_length, max_payload, offset, dl_func, callback)
 
     def _download_master_block_mode(
-        self,
-        data: bytes,
-        total_length: int,
-        max_payload: int,
-        offset: int,
-        block_downloader: Callable[[bytes], Any],
-        callback: Callable[[int], None] | None = None,
+            self,
+            data: bytes,
+            total_length: int,
+            max_payload: int,
+            offset: int,
+            block_downloader: Callable[[bytes], Any],
+            callback: Callable[[int], None] | None = None,
     ) -> None:
         """Download data using master block mode.
 
@@ -1191,13 +1194,13 @@ class Master:
                 callback(percent_complete)
 
     def _download_normal_mode(
-        self,
-        data: bytes,
-        total_length: int,
-        max_payload: int,
-        offset: int,
-        dl_func: Callable[[bytes, int, bool], Any],
-        callback: Callable[[int], None] | None = None,
+            self,
+            data: bytes,
+            total_length: int,
+            max_payload: int,
+            offset: int,
+            dl_func: Callable[[bytes, int, bool], Any],
+            callback: Callable[[int], None] | None = None,
     ) -> None:
         """Download data using normal mode.
 
@@ -1243,11 +1246,11 @@ class Master:
                 callback(percent_complete)
 
     def _block_downloader(
-        self,
-        data: bytes,
-        dl_func: Callable[[bytes, int, bool], Any] | None = None,
-        dl_next_func: Callable[[bytes, int, bool], Any] | None = None,
-        minSt: float = 0.0,
+            self,
+            data: bytes,
+            dl_func: Callable[[bytes, int, bool], Any] | None = None,
+            dl_next_func: Callable[[bytes, int, bool], Any] | None = None,
+            minSt: float = 0.0,
     ) -> None:
         """Re-usable block downloader for transferring data in blocks.
 
@@ -1747,7 +1750,8 @@ class Master:
 
     @wrapped
     def setDaqPackedMode(
-        self, daq_list_number: int, daq_packed_mode: int, dpm_timestamp_mode: int = None, dpm_sample_count: int = None
+            self, daq_list_number: int, daq_packed_mode: int, dpm_timestamp_mode: int = None,
+            dpm_sample_count: int = None
     ):
         """Set DAQ List Packed Mode.
 
@@ -1922,7 +1926,8 @@ class Master:
         return self.transport.request(types.Command.PROGRAM_PREPARE, 0x00, *cs)
 
     @wrapped
-    def programFormat(self, compression_method: int, encryption_method: int, programming_method: int, access_method: int):
+    def programFormat(self, compression_method: int, encryption_method: int, programming_method: int,
+                      access_method: int):
         return self.transport.request(
             types.Command.PROGRAM_FORMAT,
             compression_method,
@@ -2190,7 +2195,8 @@ class Master:
     @wrapped
     def timeCorrelationProperties(self, set_properties: int, get_properties_request: int, cluster_id: int):
         response = self.transport.request(
-            types.Command.TIME_CORRELATION_PROPERTIES, set_properties, get_properties_request, 0, *self.WORD_pack(cluster_id)
+            types.Command.TIME_CORRELATION_PROPERTIES, set_properties, get_properties_request, 0,
+            *self.WORD_pack(cluster_id)
         )
         return types.TimeCorrelationPropertiesResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
