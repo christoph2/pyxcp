@@ -6,7 +6,6 @@
 
 .. [1] XCP Specification, Part 2 - Protocol Layer Specification
 """
-from __future__ import annotations
 
 import functools
 import logging
@@ -29,7 +28,6 @@ from pyxcp.constants import (
     makeWordPacker,
     makeWordUnpacker,
 )
-from pyxcp.daq_stim.stim import DaqEventInfo, Stim
 from pyxcp.master.errorhandler import (
     SystemExit,
     disable_error_handling,
@@ -39,7 +37,6 @@ from pyxcp.master.errorhandler import (
 )
 from pyxcp.transport.base import create_transport
 from pyxcp.utils import decode_bytes, delay, short_sleep
-
 
 # Type variables for better type hinting
 T = TypeVar("T")
