@@ -38,7 +38,7 @@ dynamic = ["license", "readme", "authors", "requires-python", "description", "cl
 [tool.poetry]
 authors = ["Christoph Schueler <cpu.gems@googlemail.com>"]
 name = "pyxcp"
-version = "0.25.2"
+version = "0.25.3"
 readme = "docs/README.rst"
 description = "Universal Calibration Protocol for Python"
 keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
@@ -63,6 +63,9 @@ include = [
     { path = "pyxcp/daq_stim/*.pyd", format = "wheel" },
     { path = "pyxcp/recorder/*.so", format = "wheel" },
     { path = "pyxcp/recorder/*.pyd", format = "wheel" },
+    { path = "pyxcp/transport/*.so", format = "wheel" },
+    { path = "pyxcp/transport/*.pyd", format = "wheel" },
+    { path = "pyxcp/*.exe", format = "wheel" },
     { path = "pyxcp/*.exe", format = "wheel" },
     { path = "CMakeLists.txt", format = "sdist" },
 
@@ -72,6 +75,8 @@ include = [
 	{ path = "pyxcp/daq_stim/*cpp", format = "sdist" },
 	{ path = "pyxcp/recorder/*hpp", format = "sdist" },
 	{ path = "pyxcp/recorder/*cpp", format = "sdist" },
+	{ path = "pyxcp/transport/*hpp", format = "sdist" },
+	{ path = "pyxcp/transport/*cpp", format = "sdist" },
 ]
 
 [tool.poetry.dependencies]
