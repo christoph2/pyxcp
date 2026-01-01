@@ -14,7 +14,9 @@ pyXCP includes the following command-line tools:
    on your system.
 2. **xcp-id-scanner**: Scans for XCP slaves on a CAN bus.
 3. **xcp-fetch-a2l**: Fetches A2L file from an XCP slave.
-4. **xcp-info**: Displays information about an XCP slave.
+4. **xcp-info**: Displays information about an XCP slave. It supports
+   skipping certain categories of information (DAQ, PAG, PGM, IDs) to
+   speed up the process or avoid issues with specific slaves.
 5. **xcp-profile**: Creates new configuration files and converts legacy
    configuration files.
 6. **xcp-examples**: Shows available examples and how to run them.
@@ -50,6 +52,13 @@ configuration (recommended):
 .. code:: bash
 
    xcp-info -t eth --config conf_eth.py
+
+You can also skip certain parts of the information gathering:
+
+.. code:: bash
+
+   # Skip DAQ and PAG information
+   xcp-info -t eth --host 127.0.0.1 --port 5555 --no-daq --no-pag
 
 Display information about an XCP slave using Ethernet with legacy TOML
 configuration:

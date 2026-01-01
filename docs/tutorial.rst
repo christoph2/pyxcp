@@ -106,7 +106,27 @@ retrieve information about it:
 
 The ``ArgumentParser`` class handles command-line arguments for
 specifying the transport layer (CAN, Ethernet, USB, etc.) and connection
-parameters.
+parameters. It can also wrap an existing ``argparse.ArgumentParser`` to
+support custom application-specific arguments:
+
+.. code:: python
+
+   import argparse
+   from pyxcp.cmdline import ArgumentParser
+
+   # 1. Create a standard argparse parser for your custom options
+   parser = argparse.ArgumentParser(description="My custom tool")
+   parser.add_argument("--my-option", action="store_true", help="Custom flag")
+
+   # 2. Wrap it with pyXCP's ArgumentParser
+   ap = ArgumentParser(parser)
+
+   # 3. Access both pyXCP and custom arguments
+   with ap.run() as x:
+       if ap.args.my_option:
+           print("Custom option enabled!")
+       # ... use the master instance x ...
+
 
 Examples: Ethernet and CAN invocations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

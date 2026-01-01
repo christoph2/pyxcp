@@ -71,7 +71,9 @@ Online vs offline and Policies
 
 - Online processing: Use ``DaqToCsv`` (a ``DaqOnlinePolicy``) to process
   data in-process and write CSV files on-the-fly. This is a convenient
-  starting point for building custom online processing.
+  starting point for building custom online processing. Another option
+  is ``Hdf5OnlinePolicy`` which records data to HDF5 files using
+  the ``h5py`` library.
 - Offline recording: Use ``DaqRecorder`` to record into a
   high-throughput ``.xmraw`` file for later, flexible post-processing
   into multiple formats. This keeps runtime overhead low and allows
