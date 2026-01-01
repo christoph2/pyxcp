@@ -22,6 +22,11 @@ class StrippingParser:
         """Initialize with an existing ArgumentParser instance."""
         self._parser = parser
 
+    @property
+    def parser(self) -> argparse.ArgumentParser:
+        """Return the underlying ArgumentParser instance."""
+        return self._parser
+
     def parse_known(self, argv: Sequence[str] | None = None) -> tuple[argparse.Namespace, list[str]]:
         """Parse known args from ``argv`` and return (namespace, remaining).
 

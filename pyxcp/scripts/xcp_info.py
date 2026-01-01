@@ -2,6 +2,7 @@
 
 """XCP info/exploration tool."""
 
+import argparse
 from pprint import pprint
 
 from pyxcp.cmdline import ArgumentParser
@@ -46,7 +47,12 @@ def getPagInfo(x):
 
 
 def main():
-    ap = ArgumentParser(description="XCP info/exploration tool.")
+    parser = argparse.ArgumentParser(description="XCP info/exploration tool.")
+    parser.add_argument("--no-daq", action="store_true", help="Do not query DAQ information.")
+    parser.add_argument("--no-pag", action="store_true", help="Do not query PAG information.")
+    parser.add_argument("--no-pgm", action="store_true", help="Do not query PGM information.")
+    parser.add_argument("--no-ids", action="store_true", help="Do not scan implemented IDs.")
+    ap = ArgumentParser(parser)
 
     with ap.run() as x:
         x.connect()
@@ -56,64 +62,73 @@ def main():
         print("=================")
         pprint(x.slaveProperties)
 
-        result = x.id_scanner()
-        print("\n")
-        print("Implemented IDs:")
-        print("================")
-        for key, value in result.items():
-            print(f"{key}: {value}", end="\n\n")
+        if not ap.args.no_ids:
+            result = x.id_scanner()
+            print("\n")
+            print("Implemented IDs:")
+            print("================")
+            for key, value in result.items():
+                print(f"{key}: {value}", end="\n\n")
+
         cps = x.getCurrentProtectionStatus()
         print("\nProtection Status")
         print("=================")
         for k, v in cps.items():
             print(f"    {k:6s}: {v}")
         x.cond_unlock()
-        print("\nDAQ Info:")
-        print("=========")
-        if x.slaveProperties.supportsDaq:
-            daq_info = x.getDaqInfo()
-            pprint(daq_info)
 
-            daq_pro = daq_info["processor"]
-            daq_properties = daq_pro["properties"]
-            if x.slaveProperties.transport_layer == "CAN":
-                print("")
-                if daq_properties["pidOffSupported"]:
-                    print("*** pidOffSupported -- i.e. one CAN-ID per DAQ-list.")
+        if not ap.args.no_daq:
+            print("\nDAQ Info:")
+            print("=========")
+            if x.slaveProperties.supportsDaq:
+                daq_info = x.getDaqInfo()
+                pprint(daq_info)
+
+                daq_pro = daq_info["processor"]
+                daq_properties = daq_pro["properties"]
+                if x.slaveProperties.transport_layer == "CAN":
+                    print("")
+                    if daq_properties["pidOffSupported"]:
+                        print("*** pidOffSupported -- i.e. one CAN-ID per DAQ-list.")
+                    else:
+                        print("*** NO support for PID_OFF")
+                num_predefined = daq_pro["minDaq"]
+                print("\nPredefined DAQ-Lists")
+                print("====================")
+                if num_predefined > 0:
+                    print(f"There are {num_predefined} predefined DAQ-lists")
+                    for idx in range(num_predefined):
+                        print(f"DAQ-List #{idx}\n____________\n")
+                        status, dm = x.try_command(x.getDaqListMode, idx)
+                        if status == TryCommandResult.OK:
+                            print(dm)
+                        status, di = x.try_command(x.getDaqListInfo, idx)
+                        if status == TryCommandResult.OK:
+                            print(di)
                 else:
-                    print("*** NO support for PID_OFF")
-            num_predefined = daq_pro["minDaq"]
-            print("\nPredefined DAQ-Lists")
-            print("====================")
-            if num_predefined > 0:
-                print(f"There are {num_predefined} predefined DAQ-lists")
-                for idx in range(num_predefined):
-                    print(f"DAQ-List #{idx}\n____________\n")
-                    status, dm = x.try_command(x.getDaqListMode, idx)
-                    if status == TryCommandResult.OK:
-                        print(dm)
-                    status, di = x.try_command(x.getDaqListInfo, idx)
-                    if status == TryCommandResult.OK:
-                        print(di)
+                    print("*** NO Predefined DAQ-Lists")
             else:
-                print("*** NO Predefined DAQ-Lists")
-        else:
-            print("*** DAQ IS NOT SUPPORTED .")
-        print("\nPAG Info:")
-        print("=========")
-        if x.slaveProperties.supportsCalpag:
-            pgi = getPagInfo(x)
-            pprint(pgi)
-        else:
-            print("*** PAGING IS NOT SUPPORTED.")
-        print("\nPGM Info:")
-        print("=========")
-        if x.slaveProperties.supportsPgm:
-            status, pgm = x.try_command(x.getPgmProcessorInfo)
-            if status == TryCommandResult.OK:
-                print(pgm)
-        else:
-            print("*** FLASH PROGRAMMING IS NOT SUPPORTED.")
+                print("*** DAQ IS NOT SUPPORTED .")
+
+        if not ap.args.no_pag:
+            print("\nPAG Info:")
+            print("=========")
+            if x.slaveProperties.supportsCalpag:
+                pgi = getPagInfo(x)
+                pprint(pgi)
+            else:
+                print("*** PAGING IS NOT SUPPORTED.")
+
+        if not ap.args.no_pgm:
+            print("\nPGM Info:")
+            print("=========")
+            if x.slaveProperties.supportsPgm:
+                status, pgm = x.try_command(x.getPgmProcessorInfo)
+                if status == TryCommandResult.OK:
+                    print(pgm)
+            else:
+                print("*** FLASH PROGRAMMING IS NOT SUPPORTED.")
+
         if x.slaveProperties.transport_layer == "CAN":
             print("\nTransport-Layer CAN:")
             print("====================")

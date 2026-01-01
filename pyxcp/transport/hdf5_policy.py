@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from pathlib import Path
 from typing import List, Dict
 
 import h5py
@@ -81,9 +82,12 @@ def create_timestamp_column(hdf_file: h5py.File, group_name: str, num: int) -> h
 
 
 class Hdf5OnlinePolicy(DaqOnlinePolicy):
-    def __init__(self, daq_lists: List[DaqList]):
+    def __init__(self, file_name: str | Path, daq_lists: List[DaqList]):
         super().__init__(daq_lists=daq_lists)
-        self.hdf = h5py.File("streamed_data.h5", "w", libver="latest")
+        path = Path(file_name)
+        if path.suffix != ".h5":
+            path = path.with_suffix(".h5")
+        self.hdf = h5py.File(path, "w", libver="latest")
 
     def initialize(self):
         self.log.debug("Hdf5OnlinePolicy::Initialize()")

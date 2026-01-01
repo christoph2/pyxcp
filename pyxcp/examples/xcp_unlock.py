@@ -1,20 +1,13 @@
 #!/usr/bin/env python
 """Very basic hello-world example."""
 
+import argparse
+
 from pyxcp.cmdline import ArgumentParser
 
 
-"""
-"""
-
-
-def callout(master, args):
-    if args.sk_dll:
-        master.seedNKeyDLL = args.sk_dll
-
-
-ap = ArgumentParser(callout)
-ap.parser.add_argument(
+parser = argparse.ArgumentParser(description="XCP unlock example")
+parser.add_argument(
     "-s",
     "--sk-dll",
     dest="sk_dll",
@@ -23,7 +16,12 @@ ap.parser.add_argument(
     default=None,
 )
 
+ap = ArgumentParser(parser)
+
 with ap.run() as x:
+    if ap.args.sk_dll:
+        x.seedNKeyDLL = ap.args.sk_dll
+
     x.connect()
 
     print("")
