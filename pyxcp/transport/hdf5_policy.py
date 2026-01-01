@@ -1,0 +1,125 @@
+#!/usr/bin/env python
+
+from typing import List, Dict
+
+import h5py
+import numpy as np
+from pyxcp.daq_stim import DaqOnlinePolicy, DaqList
+
+
+BATCH_SIZE = 4096
+
+MAP_TO_NP = {
+    "U8": np.uint8,
+    "I8": np.int8,
+    "U16": np.uint16,
+    "I16": np.int16,
+    "U32": np.uint32,
+    "I32": np.int32,
+    "U64": np.uint64,
+    "I64": np.int64,
+    "F32": np.float32,
+    "F64": np.float64,
+    "F16": np.float16,
+    "BF16": np.float16,
+}
+
+
+class BufferedDataset:
+    def __init__(self, dataset: h5py.Dataset):
+        self.dataset = dataset
+        self.buffer: List[int | float] = []
+
+    def add_sample(self, sample: int | float):
+        self.buffer.append(sample)
+        if len(self.buffer) >= BATCH_SIZE:
+            self.flush()
+
+    def flush(self):
+        batch = np.array(self.buffer)
+        self.dataset.resize((self.dataset.shape[0] + len(batch),))
+        self.dataset[-len(batch) :] = batch
+        self.buffer.clear()
+        self.dataset.flush()
+
+    def __len__(self):
+        return len(self.buffer)
+
+
+class DatasetGroup:
+    def __init__(
+        self,
+        ts0_ds: BufferedDataset,
+        ts1_ds: BufferedDataset,
+        datasets: List[BufferedDataset],
+    ):
+        self.ts0_ds = ts0_ds
+        self.ts1_ds = ts1_ds
+        self.datasets = datasets
+
+    def feed(self, ts0: int, ts1: int, *datasets):
+        self.ts0_ds.add_sample(ts0)
+        self.ts1_ds.add_sample(ts1)
+        for dataset, value in zip(self.datasets, datasets):
+            dataset.add_sample(value)
+
+    def finalize(self):
+        for dataset in self.datasets:
+            dataset.flush()
+        self.ts0_ds.flush()
+        self.ts1_ds.flush()
+
+
+def create_timestamp_column(hdf_file: h5py.File, group_name: str, num: int) -> h5py.Dataset:
+    return hdf_file.create_dataset(
+        f"/{group_name}/timestamp{num}",
+        shape=(0,),
+        maxshape=(None,),
+        dtype=np.uint64,
+        chunks=True,
+    )
+
+
+class Hdf5OnlinePolicy(DaqOnlinePolicy):
+    def __init__(self, daq_lists: List[DaqList]):
+        super().__init__(daq_lists=daq_lists)
+        self.hdf = h5py.File("streamed_data.h5", "w", libver="latest")
+
+    def initialize(self):
+        self.log.debug("Hdf5OnlinePolicy::Initialize()")
+        self.datasets: Dict[int, DatasetGroup] = {}
+        for num, daq_list in enumerate(self.daq_lists):
+            if daq_list.stim:
+                continue
+            self.hdf.create_group(daq_list.name)
+            ts0 = BufferedDataset(create_timestamp_column(self.hdf, daq_list.name, 0))
+            ts1 = BufferedDataset(create_timestamp_column(self.hdf, daq_list.name, 1))
+            meas_map = {m.name: m for m in self.daq_lists[num].measurements}
+            dsets = []
+            for name, _ in daq_list.headers:
+                meas = meas_map[name]
+                dataset = self.hdf.create_dataset(
+                    f"/{daq_list.name}/{meas.name}",
+                    shape=(0,),
+                    maxshape=(None,),
+                    dtype=MAP_TO_NP[meas.data_type],
+                    chunks=(1024,),
+                )
+                dsets.append(BufferedDataset(dataset))
+            self.datasets[num] = DatasetGroup(ts0_ds=ts0, ts1_ds=ts1, datasets=dsets)
+        self.hdf.flush()
+
+    def finalize(self):
+        self.log.debug("Hdf5OnlinePolicy::finalize()")
+        if hasattr(self, "datasets"):
+            for group in self.datasets.values():
+                group.finalize()
+        if hasattr(self, "hdf"):
+            self.hdf.close()
+
+    def on_daq_list(self, daq_list: int, timestamp0: int, timestamp1: int, payload: list):
+        group = self.datasets.get(daq_list)
+        if group is None:
+            self.log.warning(f"Received data for unknown DAQ list {daq_list}")
+            return
+        group.feed(timestamp0, timestamp1, *payload)
