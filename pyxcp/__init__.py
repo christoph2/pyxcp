@@ -17,4 +17,4 @@ tb_install(show_locals=True, max_frames=3)  # Install custom exception handler.
 
 # if you update this manually, do not forget to update
 # .bumpversion.cfg and pyproject.toml.
-__version__ = "0.25.3"
+__version__ = "0.25.4"
