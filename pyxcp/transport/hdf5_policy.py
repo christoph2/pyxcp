@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
+import datetime
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Any
 
 import h5py
 import numpy as np
 from pyxcp.daq_stim import DaqOnlinePolicy, DaqList
-
+from pyxcp import __version__ as pyxcp_version
 
 BATCH_SIZE = 4096
 
@@ -39,7 +40,7 @@ class BufferedDataset:
     def flush(self):
         batch = np.array(self.buffer)
         self.dataset.resize((self.dataset.shape[0] + len(batch),))
-        self.dataset[-len(batch) :] = batch
+        self.dataset[-len(batch):] = batch
         self.buffer.clear()
         self.dataset.flush()
 
@@ -49,10 +50,10 @@ class BufferedDataset:
 
 class DatasetGroup:
     def __init__(
-        self,
-        ts0_ds: BufferedDataset,
-        ts1_ds: BufferedDataset,
-        datasets: List[BufferedDataset],
+            self,
+            ts0_ds: BufferedDataset,
+            ts1_ds: BufferedDataset,
+            datasets: List[BufferedDataset],
     ):
         self.ts0_ds = ts0_ds
         self.ts1_ds = ts1_ds
@@ -82,12 +83,22 @@ def create_timestamp_column(hdf_file: h5py.File, group_name: str, num: int) -> h
 
 
 class Hdf5OnlinePolicy(DaqOnlinePolicy):
-    def __init__(self, file_name: str | Path, daq_lists: List[DaqList]):
+    def __init__(self, file_name: str | Path, daq_lists: List[DaqList], **metadata):
         super().__init__(daq_lists=daq_lists)
         path = Path(file_name)
         if path.suffix != ".h5":
             path = path.with_suffix(".h5")
         self.hdf = h5py.File(path, "w", libver="latest")
+        self.metadata = self.set_metadata(**metadata)
+
+    def set_metadata(self, **metadata):
+        basic = {
+            "tool_name": "pyXCP",
+            "tool_version": f"{pyxcp_version}",
+            "created": f"{datetime.datetime.now().astimezone().isoformat()}",
+        }
+        for k, v in (basic | metadata).items():
+            self.hdf.attrs[k] = v
 
     def initialize(self):
         self.log.debug("Hdf5OnlinePolicy::Initialize()")
