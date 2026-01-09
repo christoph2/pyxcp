@@ -13,7 +13,7 @@ import struct
 import traceback
 import warnings
 from contextlib import suppress
-from typing import Any, Callable, Collection, Dict, Optional, TypeVar
+from typing import Any, Callable, Collection, TypeVar
 
 from pyxcp.daq_stim.stim import DaqEventInfo, Stim
 
@@ -133,8 +133,7 @@ class Master:
         Custom transport layer interface, by default None
     """
 
-    def __init__(self, transport_name: str | None, config: Any, policy: Any = None,
-                 transport_layer_interface: Any = None) -> None:
+    def __init__(self, transport_name: str | None, config: Any, policy: Any = None, transport_layer_interface: Any = None) -> None:
         """Initialize a new Master instance.
 
         Parameters
@@ -168,8 +167,7 @@ class Master:
         # Set up transport layer
         self.transport_name: str = transport_name.lower()
         transport_config: Any = config.transport
-        self.transport: BaseTransport = create_transport(transport_name, transport_config, policy,
-                                                         transport_layer_interface)
+        self.transport: BaseTransport = create_transport(transport_name, transport_config, policy, transport_layer_interface)
 
         # Set up STIM (stimulation) support
         self.stim: Stim = Stim(self.config.stim_support)
@@ -227,10 +225,7 @@ class Master:
         self.transport.connect()
         return self
 
-    def __exit__(
-            self, exc_type: type[BaseException] | None, exc_val: BaseException | None,
-            exc_tb
-    ) -> None:
+    def __exit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb) -> None:
         """Context manager exit part.
 
         This method is called when exiting a context manager block.
@@ -754,7 +749,7 @@ class Master:
             while remaining_bytes:
                 if len(self.transport.resQueue):
                     data = self.transport.resQueue.popleft()
-                    response += data[1: remaining_bytes + 1]
+                    response += data[1 : remaining_bytes + 1]
                     remaining_bytes = byte_count - len(response)
                 else:
                     short_sleep()
@@ -1064,17 +1059,17 @@ class Master:
         )
 
     def _generalized_downloader(
-            self,
-            address: int,
-            address_ext: int,
-            data: bytes,
-            maxCto: int,
-            maxBs: int,
-            minSt: int,
-            master_block_mode: bool,
-            dl_func: Callable[[bytes, int, bool], Any],
-            dl_next_func: Callable[[bytes, int, bool], Any],
-            callback: Callable[[int], None] | None = None,
+        self,
+        address: int,
+        address_ext: int,
+        data: bytes,
+        maxCto: int,
+        maxBs: int,
+        minSt: int,
+        master_block_mode: bool,
+        dl_func: Callable[[bytes, int, bool], Any],
+        dl_next_func: Callable[[bytes, int, bool], Any],
+        callback: Callable[[int], None] | None = None,
     ) -> None:
         """Generic implementation for downloading data to the slave.
 
@@ -1138,13 +1133,13 @@ class Master:
             self._download_normal_mode(data, total_length, max_payload, offset, dl_func, callback)
 
     def _download_master_block_mode(
-            self,
-            data: bytes,
-            total_length: int,
-            max_payload: int,
-            offset: int,
-            block_downloader: Callable[[bytes], Any],
-            callback: Callable[[int], None] | None = None,
+        self,
+        data: bytes,
+        total_length: int,
+        max_payload: int,
+        offset: int,
+        block_downloader: Callable[[bytes], Any],
+        callback: Callable[[int], None] | None = None,
     ) -> None:
         """Download data using master block mode.
 
@@ -1171,7 +1166,7 @@ class Master:
 
         # Process full blocks
         for _ in blocks:
-            block = data[offset: offset + max_payload]
+            block = data[offset : offset + max_payload]
             block_downloader(block)
             offset += max_payload
             remaining -= max_payload
@@ -1183,19 +1178,19 @@ class Master:
 
         # Process remaining partial block
         if remaining_block_size:
-            block = data[offset: offset + remaining_block_size]
+            block = data[offset : offset + remaining_block_size]
             block_downloader(block)
             if callback:
                 callback(percent_complete)
 
     def _download_normal_mode(
-            self,
-            data: bytes,
-            total_length: int,
-            max_payload: int,
-            offset: int,
-            dl_func: Callable[[bytes, int, bool], Any],
-            callback: Callable[[int], None] | None = None,
+        self,
+        data: bytes,
+        total_length: int,
+        max_payload: int,
+        offset: int,
+        dl_func: Callable[[bytes, int, bool], Any],
+        callback: Callable[[int], None] | None = None,
     ) -> None:
         """Download data using normal mode.
 
@@ -1223,7 +1218,7 @@ class Master:
 
         # Process full chunks
         for _ in chunks:
-            block = data[offset: offset + max_payload]
+            block = data[offset : offset + max_payload]
             dl_func(block, max_payload, last=False)
             offset += max_payload
             callback_remaining -= chunk_size
@@ -1235,17 +1230,17 @@ class Master:
 
         # Process remaining partial chunk
         if remaining:
-            block = data[offset: offset + remaining]
+            block = data[offset : offset + remaining]
             dl_func(block, remaining, last=True)
             if callback:
                 callback(percent_complete)
 
     def _block_downloader(
-            self,
-            data: bytes,
-            dl_func: Callable[[bytes, int, bool], Any] | None = None,
-            dl_next_func: Callable[[bytes, int, bool], Any] | None = None,
-            minSt: float = 0.0,
+        self,
+        data: bytes,
+        dl_func: Callable[[bytes, int, bool], Any] | None = None,
+        dl_next_func: Callable[[bytes, int, bool], Any] | None = None,
+        minSt: float = 0.0,
     ) -> None:
         """Re-usable block downloader for transferring data in blocks.
 
@@ -1279,7 +1274,7 @@ class Master:
         index = 0
         for index in packets:
             # Extract packet data
-            packet_data = data[offset: offset + max_packet_size]
+            packet_data = data[offset : offset + max_packet_size]
 
             # Determine if this is the last packet
             last = (remaining_block_size - max_packet_size) == 0
@@ -1302,7 +1297,7 @@ class Master:
         # Process remaining partial packet
         if remaining:
             # Extract remaining data
-            packet_data = data[offset: offset + remaining]
+            packet_data = data[offset : offset + remaining]
 
             # Send packet using appropriate function
             if index == 0:
@@ -1745,8 +1740,7 @@ class Master:
 
     @wrapped
     def setDaqPackedMode(
-            self, daq_list_number: int, daq_packed_mode: int, dpm_timestamp_mode: int = None,
-            dpm_sample_count: int = None
+        self, daq_list_number: int, daq_packed_mode: int, dpm_timestamp_mode: int = None, dpm_sample_count: int = None
     ):
         """Set DAQ List Packed Mode.
 
@@ -1921,8 +1915,7 @@ class Master:
         return self.transport.request(types.Command.PROGRAM_PREPARE, 0x00, *cs)
 
     @wrapped
-    def programFormat(self, compression_method: int, encryption_method: int, programming_method: int,
-                      access_method: int):
+    def programFormat(self, compression_method: int, encryption_method: int, programming_method: int, access_method: int):
         return self.transport.request(
             types.Command.PROGRAM_FORMAT,
             compression_method,
@@ -2190,8 +2183,7 @@ class Master:
     @wrapped
     def timeCorrelationProperties(self, set_properties: int, get_properties_request: int, cluster_id: int):
         response = self.transport.request(
-            types.Command.TIME_CORRELATION_PROPERTIES, set_properties, get_properties_request, 0,
-            *self.WORD_pack(cluster_id)
+            types.Command.TIME_CORRELATION_PROPERTIES, set_properties, get_properties_request, 0, *self.WORD_pack(cluster_id)
         )
         return types.TimeCorrelationPropertiesResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
@@ -2327,7 +2319,7 @@ class Master:
         if self.currentProtectionStatus is None:
             try:
                 status = self.getStatus()
-            except Exception as e:  # may temporary ERR_OUT_OF_RANGE
+            except Exception:  # may temporary ERR_OUT_OF_RANGE
                 return {"dbg": None, "pgm": None, "stim": None, "daq": None, "calpag": None}
             self._setProtectionStatus(status.resourceProtectionStatus)
         return self.currentProtectionStatus
@@ -2372,8 +2364,7 @@ class Master:
 
         protection_status = self.getCurrentProtectionStatus()
         if any(protection_status.values()) and (not (self.seed_n_key_dll or self.seed_n_key_function)):
-            raise RuntimeError(
-                "Neither seed-and-key DLL nor function specified, cannot proceed.")  # TODO: ConfigurationError
+            raise RuntimeError("Neither seed-and-key DLL nor function specified, cannot proceed.")  # TODO: ConfigurationError
         if resources is None:
             result = []
             if self.slaveProperties["supportsCalpag"]:
@@ -2501,7 +2492,10 @@ class Master:
                         name = STD_IDS[id_value]
                     else:
                         name = f"USER_{idx}"
-                    yield id_value, name,
+                    yield (
+                        id_value,
+                        name,
+                    )
 
             return generate()
 
@@ -2623,7 +2617,7 @@ def make_tick_converter(resolution):
     """
     exponent = types.DAQ_TIMESTAMP_UNIT_TO_EXP[resolution.timestampMode.unit]
     tick_resolution = resolution.timestampTicks
-    base = (10 ** exponent) * tick_resolution
+    base = (10**exponent) * tick_resolution
 
     def ticks_to_seconds(ticks):
         """Convert DAQ timestamp/tick value to seconds.
