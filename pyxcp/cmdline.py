@@ -37,7 +37,7 @@ class ArgumentParser:
             self._parser = StrippingParser(parser)
             self._callout = user_parser
         self._description = description
-        self.args = None
+        self.args = self._parser.parse_and_strip()
 
     def run(self, policy=None, transport_layer_interface=None):
         """Create and configure a synchronous master instance.
@@ -49,8 +49,6 @@ class ArgumentParser:
         Returns:
             A configured master instance
         """
-        self.args = self._parser.parse_and_strip()
-
         # Create the application with custom arguments and callout
         application = get_application(options=[], callout=self._callout)
 

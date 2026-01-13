@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 from contextlib import suppress
+import json
 from time import time_ns
-from typing import Dict, List, Optional, TextIO, Union
+from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
 
 from pyxcp.cpp_ext.cpp_ext import DaqList, PredefinedDaqList
 
@@ -27,6 +28,83 @@ DAQ_TIMESTAMP_SIZE = {
     "S2": 2,
     "S4": 4,
 }
+
+
+def load_daq_lists_from_json(file_path: str) -> List[DaqList]:
+    """Load and validate DAQ-list from JSON file."""
+    with open(file_path, "r", encoding="utf-8") as f:
+        config = json.load(f)
+
+    if not isinstance(config, list):
+        raise ValueError("DAQ configuration must be a JSON array (list)")
+
+    daq_lists: List[DaqList] = []
+    for idx, entry in enumerate(config):
+        if not isinstance(entry, dict):
+            raise TypeError(f"Entry {idx} must be an object/dict")
+
+        required = {"name", "event_num", "stim", "enable_timestamps", "measurements", "priority", "prescaler"}
+        missing = required - set(entry.keys())
+        if missing:
+            raise ValueError(f"Entry {idx} missing required keys: {missing}")
+
+        # Basic type conversions / checks
+        name = entry["name"]
+        if not isinstance(name, str):
+            raise TypeError(f"Entry {idx} 'name' must be a string")
+
+        try:
+            event_num = int(entry["event_num"])
+        except Exception as e:
+            raise TypeError(f"Entry {idx} 'event_num' must be an integer") from e
+
+        stim = bool(entry["stim"])
+        enable_timestamps = bool(entry["enable_timestamps"])
+
+        try:
+            priority = int(entry["priority"])
+            prescaler = int(entry["prescaler"])
+        except Exception as e:
+            raise TypeError(f"Entry {idx} 'priority' and 'prescaler' must be integers") from e
+
+        measurements_raw = entry["measurements"]
+        if not isinstance(measurements_raw, list):
+            raise TypeError(f"Entry {idx} 'measurements' must be a list")
+
+        measurements: List[Tuple[str, int, int, str]] = []
+        for m_idx, m in enumerate(measurements_raw):
+            if not (isinstance(m, (list, tuple)) and len(m) == 4):
+                raise ValueError(f"Entry {idx} measurement {m_idx} must be a 4-element list/tuple")
+            m_name, m_addr, m_offset, m_type = m
+
+            if not isinstance(m_name, str):
+                raise TypeError(f"Entry {idx} measurement {m_idx} name must be a string")
+            try:
+                m_addr = int(m_addr)
+            except Exception as e:
+                raise TypeError(f"Entry {idx} measurement {m_idx} address must be an integer") from e
+            try:
+                m_offset = int(m_offset)
+            except Exception as e:
+                raise TypeError(f"Entry {idx} measurement {m_idx} offset must be an integer") from e
+            if not isinstance(m_type, str):
+                raise TypeError(f"Entry {idx} measurement {m_idx} type must be a string")
+
+            measurements.append((m_name, m_addr, m_offset, m_type))
+
+        daq_kwargs: Dict[str, Any] = {
+            "name": name,
+            "event_num": event_num,
+            "stim": stim,
+            "enable_timestamps": enable_timestamps,
+            "measurements": measurements,
+            "priority": priority,
+            "prescaler": prescaler,
+        }
+
+        daq_lists.append(DaqList(**daq_kwargs))
+
+    return daq_lists
 
 
 class DaqProcessor:
