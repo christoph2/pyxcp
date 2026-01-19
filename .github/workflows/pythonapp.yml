@@ -59,17 +59,18 @@ jobs:
           retention-days: 1
 
   upload_pypi:
-    needs: [build_wheels, build_sdist] # , build_sdist
+    needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
-    #    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/')
-    # alternatively, to publish when a GitHub Release is created, use the following rule:
-    # if: github.event_name == 'release' && github.event.action == 'published'
+    permissions:
+      id-token: write
+      contents: read
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v4.1.7
         with:
           path: dist
           merge-multiple: true
-      - uses: pypa/gh-action-pypi-publish@v1.13.0
+
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.13.0
         with:
-          user: __token__
-          password: ${{ secrets.PYPI_PASSWORD }}
+          attestations: true
