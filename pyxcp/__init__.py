@@ -16,5 +16,5 @@ console = Console()
 tb_install(show_locals=True, max_frames=3)  # Install custom exception handler.
 
 # if you update this manually, do not forget to update
-# .bumpversion.cfg and pyproject.toml.
+# pyproject.toml.
 __version__ = "0.25.7"
