@@ -12,8 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        python: ["3.10", "3.11", "3.12"]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
 
@@ -22,17 +22,34 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
+      - name: Cache pip and Poetry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ matrix.python }}-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-${{ matrix.python }}-
+
       - name: Install Poetry
         run: |
           python -m pip install --upgrade pip
-          pip install poetry
+          pip install "poetry==1.8.1"
 
       - name: Install project + dev dependencies with Poetry
         run: |
-          # Für Poetry >=1.2: Gruppe 'dev' ist unter tool.poetry.group.dev definiert.
-          # Nutze '--with dev' (Poetry >=1.4+) oder '--dev' (ältere Poetry).
+          # Install into the current Python environment for CI reproducibility
+          poetry config virtualenvs.create false --local
           poetry install --no-interaction --no-ansi --with dev
 
       - name: Run tests
         run: |
-          poetry run pytest -q
+          poetry run pytest -q --junitxml=result.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-report-${{ matrix.os }}-py${{ matrix.python }}
+          path: result.xml
