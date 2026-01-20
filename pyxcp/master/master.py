@@ -745,7 +745,7 @@ class Master:
             # Larger sizes will send in multiple CAN messages
             # Each valid message will start with 0xFF followed by the upload bytes
             # The last message might be padded to the required DLC
-            remaining_bytes = byte_count - len(response)    # NOTE: Due to padding the result may negative!
+            remaining_bytes = byte_count - len(response)  # NOTE: Due to padding the result may negative!
             while remaining_bytes > 0:
                 if len(self.transport.resQueue):
                     data = self.transport.resQueue.popleft()
