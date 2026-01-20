@@ -35,7 +35,7 @@ from pyxcp.master.errorhandler import (
     set_suppress_xcp_error_log,
     wrapped,
 )
-from pyxcp.transport.base import create_transport
+from pyxcp.transport.base import create_transport, BaseTransport
 from pyxcp.utils import decode_bytes, delay, short_sleep
 
 # Type variables for better type hinting
@@ -394,10 +394,10 @@ class Master:
             self.AG_unpack = self.DWORD_unpack
             self.slaveProperties.bytesPerElement = 4
             # self.connected = True
-        status = self.getStatus()
-        if status.sessionStatus.daqRunning:
-            # TODO: resume
-            self.startStopSynch(0x00)
+        # status = self.getStatus()
+        # if status.sessionStatus.daqRunning:
+        # TODO: resume
+        #    self.startStopSynch(0x00)
 
     @wrapped
     def disconnect(self) -> bytes:
@@ -2028,7 +2028,15 @@ class Master:
     @wrapped
     def dbgSequenceMultiple(self, mode: int, num: int, *seq):
         """"""
-        response = self.transport.request(types.Command.DBG_SEQUENCE_MULTIPLE, mode, self.WORD_pack(num), *seq)
+        d = bytearray()
+        d.append(mode)
+        d.extend(self.WORD_pack(num))
+        for s in seq:
+            if isinstance(s, bytes):
+                d.extend(s)
+            else:
+                d.append(s)
+        response = self.transport.request(types.Command.DBG_SEQUENCE_MULTIPLE, *d)
         return types.DbgSequenceMultipleResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
@@ -2177,7 +2185,7 @@ class Master:
         d.extend(self.WORD_pack(len(data)))
         for b in data:
             d.extend(self.BYTE_pack(b))
-        response = self.transport.request(types.Command.DBG_LLBT, d)
+        response = self.transport.request(types.Command.DBG_LLBT, *d)
         return types.DbgLlbtResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     @wrapped
