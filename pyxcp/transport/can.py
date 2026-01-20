@@ -26,9 +26,7 @@ from pyxcp.transport.base import (
     XcpFramingConfig,
     XcpTransportLayerType,
 )
-
 from ..utils import seconds_to_nanoseconds, short_sleep
-
 
 console = Console()
 
@@ -322,8 +320,8 @@ class PythonCanWrapper:
                 can_filters.append(daq_id.create_filter_from_id())
         if self.parent.has_user_supplied_interface:
             self.saved_filters = self.parent.transport_layer_interface.filters
+            merged_filters = can_filters[::]
             if self.saved_filters:
-                merged_filters = can_filters[::]
                 for fltr in self.saved_filters:
                     if fltr not in merged_filters:
                         merged_filters.append(fltr)
