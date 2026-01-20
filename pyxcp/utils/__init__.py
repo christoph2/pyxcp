@@ -10,7 +10,6 @@ from typing import Union
 
 import chardet
 import pytz
-
 from pyxcp.cpp_ext.cpp_ext import TimestampInfo
 
 
@@ -54,7 +53,7 @@ def flatten(*args):
 
     s. https://stackoverflow.com/questions/952914/how-do-i-make-a-flat-list-out-of-a-list-of-lists
     """
-    return functools.reduce(operator.iconcat, args, [])
+    return functools.reduce(operator.iconcat, args[0], [])
 
 
 def getPythonVersion():
@@ -124,4 +123,7 @@ def enum_from_str(enum_class: IntEnum, enumerator: str) -> IntEnum:
 
 
     """
-    return enum_class(enum_class.__members__.get(enumerator))
+    member = enum_class.__members__.get(enumerator)
+    if member is None:
+        return None
+    return enum_class(member)
