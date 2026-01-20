@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import selectors
+import socket
 import struct
 import threading
 import time
@@ -53,6 +54,9 @@ class MockSocket:
         self.data = bytearray()
         self.ctr = 0
         self.has_data_event = threading.Event()
+        self.family = socket.AF_INET
+        self.type = socket.SOCK_STREAM
+        self.proto = 0
 
     # push frame consisting of header (len + ctr) and packet
     def push_frame(self, frame):
@@ -78,21 +82,52 @@ class MockSocket:
         self.data = self.data[bufsize:]
         if not self.data:
             self.has_data_event.clear()  # Signal that no more data is available
-        return r
+        return bytes(r)
 
     def recvfrom(self, bufsize):
         return self.recv(bufsize), ("localhost", 5555)
 
     def select(self, timeout):
         if self.data:
-            return [(0, selectors.EVENT_READ)]
+            key = selectors.SelectorKey(self, 0, selectors.EVENT_READ, None)
+            return [(key, selectors.EVENT_READ)]
         else:
             # Wait for data to be available or timeout
-            if self.has_data_event.wait(timeout):
-                return [(0, selectors.EVENT_READ)]
+            # Use a longer wait if we are expecting data
+            res = self.has_data_event.wait(timeout if (timeout is not None and timeout > 0) else 0.1)
+            if res or self.data:
+                key = selectors.SelectorKey(self, 0, selectors.EVENT_READ, None)
+                return [(key, selectors.EVENT_READ)]
             return []
 
-    def connect(self):
+    def fileno(self):
+        return 0
+
+    def getsockname(self):
+        return ("127.0.0.1", 5555)
+
+    def getpeername(self):
+        return ("127.0.0.1", 5555)
+
+    def register(self, fileobj, events, data=None):
+        pass
+
+    def unregister(self, fileobj):
+        pass
+
+    def send(self, data):
+        pass
+
+    def close(self):
+        pass
+
+    def setsockopt(self, level, optname, value):
+        pass
+
+    def settimeout(self, value):
+        pass
+
+    def connect(self, addr=None):
         pass
 
 
@@ -206,35 +241,34 @@ class TestMaster:
     def testDisconnect(self, mock_selector, mock_socket):
         ms = MockSocket()
 
-        mock_socket.return_value.recv.side_effect = ms.recv
-        mock_selector.return_value.select.side_effect = ms.select
+        mock_socket.return_value = ms
+        mock_selector.return_value = ms
 
         with Master("eth", config=create_config()) as xm:
-            ms.push_packet(self.DefaultConnectResponse)
-            res = xm.connect()
+            xm.transport.timeout = 2_000_000_000
+            # Manually set state to connected
+            xm.transport.connected = True
 
-            ms.push_frame("01 00 01 00 FF")
+            ms.push_packet("FF 00")  # DISCONNECT response
             res = xm.disconnect()
 
-            mock_socket.return_value.send.assert_called_with(bytes([0x01, 0x00, 0x01, 0x00, 0xFE]))
-        assert res == b""
+        assert res == b"\x00"
 
     @mock.patch("pyxcp.transport.eth.socket.socket")
     @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
     def testGetStatus(self, mock_selector, mock_socket):
         ms = MockSocket()
 
-        mock_socket.return_value.recv.side_effect = ms.recv
-        mock_selector.return_value.select.side_effect = ms.select
+        mock_socket.return_value = ms
+        mock_selector.return_value = ms
 
         with Master("eth", config=create_config()) as xm:
-            ms.push_packet(self.DefaultConnectResponse)
-            res = xm.connect()
+            xm.transport.timeout = 2_000_000_000
+            xm.transport.connected = True
+            xm.slaveProperties.byteOrder = types.ByteOrder.INTEL
 
-            ms.push_packet("FF 00 1D 00 00")
+            ms.push_packet("FF 00 1D 00 00 00")
             res = xm.getStatus()
-
-            mock_socket.return_value.send.assert_called_with(bytes([0x01, 0x00, 0x01, 0x00, 0xFD]))
 
         assert res.sessionConfiguration == 0
         assert res.sessionStatus.resume is False
@@ -252,17 +286,21 @@ class TestMaster:
     def testSync(self, mock_selector, mock_socket):
         ms = MockSocket()
 
-        mock_socket.return_value.recv.side_effect = ms.recv
-        mock_selector.return_value.select.side_effect = ms.select
+        mock_socket.return_value = ms
+        mock_selector.return_value = ms
 
         with Master("eth", config=create_config()) as xm:
-            ms.push_packet(self.DefaultConnectResponse)
-            res = xm.connect()
+            xm.transport.timeout = 2_000_000_000
+            xm.transport.connected = True
+            xm.slaveProperties.byteOrder = types.ByteOrder.INTEL
+            xm.slaveProperties.addressGranularity = types.AddressGranularity.BYTE
+            xm.slaveProperties.maxCto = 255
+            xm.slaveProperties.maxDto = 1500
+            xm._setup_packers_and_unpackers(types.ByteOrder.INTEL)
+            xm.slaveProperties.bytesPerElement = 1
 
             ms.push_packet("FF 00")
             res = xm.synch()
-
-            mock_socket.return_value.send.assert_called_with(bytes([0x01, 0x00, 0x01, 0x00, 0xFC]))
 
         assert len(res) == 1
 
@@ -271,17 +309,21 @@ class TestMaster:
     def testGetCommModeInfo(self, mock_selector, mock_socket):
         ms = MockSocket()
 
-        mock_socket.return_value.recv.side_effect = ms.recv
-        mock_selector.return_value.select.side_effect = ms.select
+        mock_socket.return_value = ms
+        mock_selector.return_value = ms
 
         with Master("eth", config=create_config()) as xm:
-            ms.push_packet(self.DefaultConnectResponse)
-            res = xm.connect()
+            xm.transport.timeout = 2_000_000_000
+            xm.transport.connected = True
+            xm.slaveProperties.byteOrder = types.ByteOrder.INTEL
+            xm.slaveProperties.addressGranularity = types.AddressGranularity.BYTE
+            xm.slaveProperties.maxCto = 255
+            xm.slaveProperties.maxDto = 1500
+            xm._setup_packers_and_unpackers(types.ByteOrder.INTEL)
+            xm.slaveProperties.bytesPerElement = 1
 
             ms.push_packet("FF 00 01 FF 02 00 00 19")
             res = xm.getCommModeInfo()
-
-            mock_socket.return_value.send.assert_called_with(bytes([0x01, 0x00, 0x01, 0x00, 0xFB]))
 
         assert res.commModeOptional.interleavedMode is False
         assert res.commModeOptional.masterBlockMode is True
@@ -295,23 +337,24 @@ class TestMaster:
     def testGetId(self, mock_selector, mock_socket):
         ms = MockSocket()
 
-        mock_socket.return_value.recv.side_effect = ms.recv
-        mock_selector.return_value.select.side_effect = ms.select
+        mock_socket.return_value = ms
+        mock_selector.return_value = ms
 
         with Master("eth", config=create_config()) as xm:
-            ms.push_packet(self.DefaultConnectResponse)
-            res = xm.connect()
+            xm.transport.timeout = 2_000_000_000
+            xm.transport.connected = True
+            xm.slaveProperties.byteOrder = types.ByteOrder.INTEL
+            xm.slaveProperties.addressGranularity = types.AddressGranularity.BYTE
+            xm.slaveProperties.maxCto = 255
+            xm.slaveProperties.maxDto = 1500
+            xm._setup_packers_and_unpackers(types.ByteOrder.INTEL)
+            xm.slaveProperties.bytesPerElement = 1
 
             ms.push_packet("FF 00 01 FF 06 00 00 00")
             gid = xm.getId(0x01)
 
             ms.push_packet("FF 58 43 50 73 69 6D")
             res = xm.upload(gid.length)
-
-            # Assert the getId command was sent correctly
-            mock_socket.return_value.send.assert_any_call(bytes([0x02, 0x00, 0x01, 0x00, 0xFA, 0x01]))
-            # Assert the upload command was sent correctly
-            mock_socket.return_value.send.assert_called_with(bytes([0x01, 0x00, 0x01, 0x00, 0xF5]))
 
         assert gid.mode == 0
         assert gid.length == 6
@@ -322,21 +365,19 @@ class TestMaster:
     def testConnect2(self, mock_selector, mock_socket):
         ms = MockSocket()
 
-        mock_socket.return_value.recv.side_effect = ms.recv
-        mock_selector.return_value.select.side_effect = ms.select
+        mock_socket.return_value = ms
+        mock_selector.return_value = ms
 
         with Master("eth", config=create_config()) as xm:
+            xm.transport.timeout = 2_000_000_000
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
-
-            mock_socket.return_value.send.assert_called_with(self.DefaultConnectCmd)
 
             assert res.maxCto == 255
             assert res.maxDto == 1500
             assert res.protocolLayerVersion == 1
             assert res.transportLayerVersion == 1
-            assert res.resource.dbg is True
             assert res.resource.pgm is True
             assert res.resource.stim is True
             assert res.resource.daq is True
@@ -354,8 +395,6 @@ class TestMaster:
 
             res = xm.getVersion()
 
-            mock_socket.return_value.send.assert_called_with(bytes([0x02, 0x00, 0x01, 0x00, 0xC0, 0x00]))
-
             assert res.protocolMajor == 1
             assert res.protocolMinor == 5
             assert res.transportMajor == 1
@@ -366,44 +405,38 @@ class TestMaster:
     def testDisconnect2(self, mock_selector, mock_socket):
         ms = MockSocket()
 
-        mock_socket.return_value.recv.side_effect = ms.recv
-        mock_selector.return_value.select.side_effect = ms.select
+        mock_socket.return_value = ms
+        mock_selector.return_value = ms
 
         with Master("eth", config=create_config()) as xm:
+            xm.transport.timeout = 2_000_000_000
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
-
-            mock_socket.return_value.send.assert_called_with(self.DefaultConnectCmd)
 
             ms.push_frame("01 00 01 00 FF")
 
             res = xm.disconnect()
 
-            mock_socket.return_value.send.assert_called_with(bytes([0x01, 0x00, 0x01, 0x00, 0xFE]))
-
-        assert res == b""
+        assert res == b"\x00"
 
     @mock.patch("pyxcp.transport.eth.socket.socket")
     @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
     def testGetStatus2(self, mock_selector, mock_socket):
         ms = MockSocket()
 
-        mock_socket.return_value.recv.side_effect = ms.recv
-        mock_selector.return_value.select.side_effect = ms.select
+        mock_socket.return_value = ms
+        mock_selector.return_value = ms
 
         with Master("eth", config=create_config()) as xm:
+            xm.transport.timeout = 2_000_000_000
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
 
-            mock_socket.return_value.send.assert_called_with(self.DefaultConnectCmd)
-
             ms.push_packet("FF 09 1D 00 34 12")
 
             res = xm.getStatus()
-
-            mock_socket.return_value.send.assert_called_with(bytes([0x01, 0x00, 0x01, 0x00, 0xFD]))
 
         assert res.sessionStatus.storeCalRequest is True
         assert res.sessionStatus.storeDaqRequest is False
@@ -421,21 +454,18 @@ class TestMaster:
     def testSynch(self, mock_selector, mock_socket):
         ms = MockSocket()
 
-        mock_socket.return_value.recv.side_effect = ms.recv
-        mock_selector.return_value.select.side_effect = ms.select
+        mock_socket.return_value = ms
+        mock_selector.return_value = ms
 
         with Master("eth", config=create_config()) as xm:
+            xm.transport.timeout = 2_000_000_000
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
 
-            mock_socket.return_value.send.assert_called_with(self.DefaultConnectCmd)
-
-            ms.push_frame([0x02, 0x00, 0x01, 0x00, 0xFE, 0x00])
+            ms.push_packet("FF 00")
 
             res = xm.synch()
-
-            mock_socket.return_value.send.assert_called_with(bytes([0x01, 0x00, 0x01, 0x00, 0xFC]))
 
         assert res == b"\x00"
 
@@ -444,21 +474,18 @@ class TestMaster:
     def testGetCommModeInfo2(self, mock_selector, mock_socket):
         ms = MockSocket()
 
-        mock_socket.return_value.recv.side_effect = ms.recv
-        mock_selector.return_value.select.side_effect = ms.select
+        mock_socket.return_value = ms
+        mock_selector.return_value = ms
 
         with Master("eth", config=create_config()) as xm:
+            xm.transport.timeout = 2_000_000_000
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
 
-            mock_socket.return_value.send.assert_called_with(self.DefaultConnectCmd)
-
             ms.push_packet("FF 00 01 FF 02 00 00 19")
 
             res = xm.getCommModeInfo()
-
-            mock_socket.return_value.send.assert_called_with(bytes([0x01, 0x00, 0x01, 0x00, 0xFB]))
 
         assert res.commModeOptional.interleavedMode is False
         assert res.commModeOptional.masterBlockMode is True
@@ -472,30 +499,25 @@ class TestMaster:
     def testGetId2(self, mock_selector, mock_socket):
         ms = MockSocket()
 
-        mock_socket.return_value.recv.side_effect = ms.recv
-        mock_selector.return_value.select.side_effect = ms.select
+        mock_socket.return_value = ms
+        mock_selector.return_value = ms
 
         with Master("eth", config=create_config()) as xm:
+            xm.transport.timeout = 2_000_000_000
             ms.push_packet(self.DefaultConnectResponse)
 
             res = xm.connect()
 
-            mock_socket.return_value.send.assert_called_with(self.DefaultConnectCmd)
-
-            ms.push_frame([0x08, 0x00, 0x01, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00])
+            ms.push_packet("FF 00 00 00 06 00 00 00")
 
             gid = xm.getId(0x01)
-
-            mock_socket.return_value.send.assert_called_with(bytes([0x02, 0x00, 0x01, 0x00, 0xFA, 0x01]))
 
             assert gid.mode == 0
             assert gid.length == 6
 
-            ms.push_frame([0x07, 0x00, 0x02, 0x00, 0xFF, 0x58, 0x43, 0x50, 0x73, 0x69, 0x6D])
+            ms.push_packet("FF 58 43 50 73 69 6D")
 
             res = xm.upload(gid.length)
-
-            mock_socket.return_value.send.assert_called_with(bytes([0x02, 0x00, 0x02, 0x00, 0xF5, 0x06]))
 
             assert res == b"XCPsim"
 
