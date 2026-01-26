@@ -136,6 +136,8 @@ def create_config():
             self.protocol = "UDP"
             self.ipv6 = False
             self.tcp_nodelay = False
+            self.ptp_timestamping = False
+            self.ptp_interface = ""
 
     class SxiConfig:
         def __init__(self):

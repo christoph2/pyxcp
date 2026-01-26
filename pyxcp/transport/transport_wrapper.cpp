@@ -11,6 +11,7 @@
 #include "transport_ext.hpp"
 #include "framing.hpp"
 #include "sxi_framing.hpp"
+#include "eth_framing.hpp"
 
 
 namespace py = pybind11;
@@ -156,94 +157,54 @@ PYBIND11_MODULE(transport_ext, m) {
         .def_property("counter_send", &XcpFraming::get_counter_send, &XcpFraming::set_counter_send)
         .def_property_readonly("header_size", &XcpFraming::get_header_size);
 
-    py::class_<SxiFrLBCN>(m, "SxiFrLBCN")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLBCN::feed_bytes, py::arg("data"))
+#define PYBIND11_SXI_RECEIVER(name)                                                                                                    \
+    py::class_<name>(m, #name)                                                                                                         \
+        .def(py::init([](std::function<void(py::bytes, uint16_t, uint16_t)> dispatch_handler) {                                        \
+            return new name([dispatch_handler](const std::vector<uint8_t>& payload, uint16_t length, uint16_t counter) {                \
+                py::gil_scoped_acquire acquire;                                                                                        \
+                dispatch_handler(py::bytes(reinterpret_cast<const char*>(payload.data()), payload.size()), length, counter);           \
+            });                                                                                                                        \
+        }), py::arg("dispatch_handler"))                                                                                               \
+        .def("feed_bytes", [](name &self, const py::bytes &data) {                                                                     \
+            std::string s = data;                                                                                                      \
+            self.feed_bytes(s);                                                                                                        \
+        }, py::arg("data"))                                                                                                            \
     ;
 
-    py::class_<SxiFrLBC8>(m, "SxiFrLBC8")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLBC8::feed_bytes, py::arg("data"))
-    ;
+    PYBIND11_SXI_RECEIVER(SxiFrLBCN)
+    PYBIND11_SXI_RECEIVER(SxiFrLBC8)
+    PYBIND11_SXI_RECEIVER(SxiFrLBC16)
+    PYBIND11_SXI_RECEIVER(SxiFrLCBCN)
+    PYBIND11_SXI_RECEIVER(SxiFrLCBC8)
+    PYBIND11_SXI_RECEIVER(SxiFrLCBC16)
+    PYBIND11_SXI_RECEIVER(SxiFrLFBCN)
+    PYBIND11_SXI_RECEIVER(SxiFrLFBC8)
+    PYBIND11_SXI_RECEIVER(SxiFrLFBC16)
+    PYBIND11_SXI_RECEIVER(SxiFrLWCN)
+    PYBIND11_SXI_RECEIVER(SxiFrLWC8)
+    PYBIND11_SXI_RECEIVER(SxiFrLWC16)
+    PYBIND11_SXI_RECEIVER(SxiFrLCWCN)
+    PYBIND11_SXI_RECEIVER(SxiFrLCWC8)
+    PYBIND11_SXI_RECEIVER(SxiFrLCWC16)
+    PYBIND11_SXI_RECEIVER(SxiFrLFWCN)
+    PYBIND11_SXI_RECEIVER(SxiFrLFWC8)
+    PYBIND11_SXI_RECEIVER(SxiFrLFWC16)
 
-    py::class_<SxiFrLBC16>(m, "SxiFrLBC16")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLBC16::feed_bytes, py::arg("data"))
+    py::class_<EthReceiver>(m, "EthReceiver")
+        .def(py::init([](std::function<void(py::bytes, uint16_t, uint16_t, uint64_t)> dispatch_handler) {
+            return new EthReceiver([dispatch_handler](const std::vector<uint8_t>& payload, uint16_t length, uint16_t counter, uint64_t timestamp) {
+                py::gil_scoped_acquire acquire;
+                dispatch_handler(py::bytes(reinterpret_cast<const char*>(payload.data()), payload.size()), length, counter, timestamp);
+            });
+        }), py::arg("dispatch_handler"))
+        .def("feed_bytes", [](EthReceiver &self, const py::bytes &data, uint64_t timestamp) {
+            std::string s = data;
+            self.feed_bytes(s, timestamp);
+        }, py::arg("data"), py::arg("timestamp") = 0)
+        .def("feed_frame", [](EthReceiver &self, const py::bytes &data, uint64_t timestamp) {
+            std::string s = data;
+            self.feed_frame(std::string_view(s), timestamp);
+        }, py::arg("data"), py::arg("timestamp") = 0)
+        .def("reset", &EthReceiver::reset)
     ;
-
-    py::class_<SxiFrLCBCN>(m, "SxiFrLCBCN")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLCBCN::feed_bytes, py::arg("data"))
-    ;
-
-    py::class_<SxiFrLCBC8>(m, "SxiFrLCBC8")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLCBC8::feed_bytes, py::arg("data"))
-    ;
-
-    py::class_<SxiFrLCBC16>(m, "SxiFrLCBC16")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLCBC16::feed_bytes, py::arg("data"))
-    ;
-
-    py::class_<SxiFrLFBCN>(m, "SxiFrLFBCN")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLFBCN::feed_bytes, py::arg("data"))
-    ;
-
-    py::class_<SxiFrLFBC8>(m, "SxiFrLFBC8")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLFBC8::feed_bytes, py::arg("data"))
-    ;
-
-    py::class_<SxiFrLFBC16>(m, "SxiFrLFBC16")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLFBC16::feed_bytes, py::arg("data"))
-    ;
-
-    py::class_<SxiFrLWCN>(m, "SxiFrLWCN")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLWCN::feed_bytes, py::arg("data"))
-    ;
-
-    py::class_<SxiFrLWC8>(m, "SxiFrLWC8")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLWC8::feed_bytes, py::arg("data"))
-    ;
-
-    py::class_<SxiFrLWC16>(m, "SxiFrLWC16")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLWC16::feed_bytes, py::arg("data"))
-    ;
-
-    py::class_<SxiFrLCWCN>(m, "SxiFrLCWCN")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLCWCN::feed_bytes, py::arg("data"))
-    ;
-
-    py::class_<SxiFrLCWC8>(m, "SxiFrLCWC8")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLCWC8::feed_bytes, py::arg("data"))
-    ;
-
-    py::class_<SxiFrLCWC16>(m, "SxiFrLCWC16")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLCWC16::feed_bytes, py::arg("data"))
-    ;
-
-    py::class_<SxiFrLFWCN>(m, "SxiFrLFWCN")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLFWCN::feed_bytes, py::arg("data"))
-    ;
-
-    py::class_<SxiFrLFWC8>(m, "SxiFrLFWC8")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLFWC8::feed_bytes, py::arg("data"))
-    ;
-
-    py::class_<SxiFrLFWC16>(m, "SxiFrLFWC16")
-        .def(py::init<std::function<void(const std::vector<uint8_t>&, uint16_t, uint16_t)>>(), py::arg("dispatch_handler"))
-        .def("feed_bytes", &SxiFrLFWC16::feed_bytes, py::arg("data"))
-    ;
-
 }

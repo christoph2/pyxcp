@@ -12,6 +12,8 @@ from pyxcp.transport.base import (
     XcpFramingConfig,
     XcpTransportLayerType,
 )
+from pyxcp.cpp_ext.cpp_ext import get_ptp_capabilities, enable_ptp_timestamping, receive_with_timestamp
+from pyxcp.transport.transport_ext import EthReceiver
 from pyxcp.utils import short_sleep
 
 
@@ -90,6 +92,14 @@ class Eth(BaseTransport):
         self.selector.register(self.sock, selectors.EVENT_READ)
         self.use_tcp = self.protocol == "TCP"
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        self.ptp_enabled = False
+        if self.config.ptp_timestamping:
+            if self.use_tcp:
+                self.logger.warning("PTP hardware timestamping is typically not supported for TCP. Only UDP will be attempted.")
+            else:
+                self._setup_ptp()
+
         if self.use_tcp and self.use_tcp_no_delay:
             self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         if hasattr(socket, "SO_REUSEPORT"):
@@ -111,6 +121,7 @@ class Eth(BaseTransport):
             daemon=True,
         )
         self._packets = deque()
+        self._eth_receiver = EthReceiver(self.process_response)
 
     def connect(self) -> None:
         if self.status == 0:
@@ -148,10 +159,21 @@ class Eth(BaseTransport):
         socket_fileno = self.sock.fileno
         select = self.selector.select
         _packets = self._packets
+        ptp_enabled = self.ptp_enabled
+
         if use_tcp:
             sock_recv = self.sock.recv
         else:
-            sock_recv = self.sock.recvfrom
+            if ptp_enabled:
+                if hasattr(socket, "SO_TIMESTAMPING"): # Linux
+                    sock_recvmsg = self.sock.recvmsg
+                else:
+                    # Windows uses C++ helper
+                    def win_recv_with_ts(size):
+                        return receive_with_timestamp(socket_fileno(), size)
+            else:
+                sock_recv = self.sock.recvfrom
+
         while True:
             try:
                 if close_event_set() or socket_fileno() == -1:
@@ -159,36 +181,74 @@ class Eth(BaseTransport):
                 sel = select(0.02)
                 for _, events in sel:
                     if events & EVENT_READ:
-                        recv_timestamp = self.timestamp.value
                         if use_tcp:
+                            recv_timestamp = self.timestamp.value
                             response = sock_recv(RECV_SIZE)
                             if not response:
                                 self.sock.close()
                                 self.status = 0
                                 break
                             else:
-                                _packets.append((response, recv_timestamp))
+                                _packets.append((bytes(response), recv_timestamp))
                         else:
-                            response, _ = sock_recv(Eth.MAX_DATAGRAM_SIZE)
-                            if not response:
-                                self.sock.close()
-                                self.status = 0
-                                break
+                            if ptp_enabled:
+                                if hasattr(socket, "SO_TIMESTAMPING"): # Linux
+                                    # 32 is a guess for ancdata size, might need adjustment
+                                    response, ancdata, flags, address = sock_recvmsg(Eth.MAX_DATAGRAM_SIZE, 1024)
+                                    recv_timestamp = self._extract_linux_timestamp(ancdata) or self.timestamp.value
+                                else: # Windows
+                                    res = win_recv_with_ts(Eth.MAX_DATAGRAM_SIZE)
+                                    if res:
+                                        response, recv_timestamp = res
+                                    else:
+                                        # Fallback if helper fails
+                                        response, _ = self.sock.recvfrom(Eth.MAX_DATAGRAM_SIZE)
+                                        recv_timestamp = self.timestamp.value
+                                
+                                if not response:
+                                    self.sock.close()
+                                    self.status = 0
+                                    break
+                                else:
+                                    _packets.append((bytes(response), recv_timestamp))
                             else:
-                                _packets.append((response, recv_timestamp))
+                                recv_timestamp = self.timestamp.value
+                                response, _ = self.sock.recvfrom(Eth.MAX_DATAGRAM_SIZE)
+                                if not response:
+                                    self.sock.close()
+                                    self.status = 0
+                                    break
+                                else:
+                                    _packets.append((bytes(response), recv_timestamp))
             except BaseException:  # noqa: B036
                 self.status = 0  # disconnected
                 break
 
+    def _extract_linux_timestamp(self, ancdata) -> Optional[int]:
+        # SO_TIMESTAMPING returns a struct scm_timestamping
+        # which contains 3 timespecs: software, transformed, hardware.
+        # We want the hardware one (index 2) if available, otherwise software (index 0).
+        for cmsg_level, cmsg_type, cmsg_data in ancdata:
+            if cmsg_level == socket.SOL_SOCKET and cmsg_type == socket.SO_TIMESTAMPING:
+                # struct timespec { long tv_sec; long tv_nsec; } x 3
+                # On 64-bit Linux, long is 8 bytes.
+                # Format: 3 * (qq)
+                if len(cmsg_data) >= 48:
+                    ts = struct.unpack("qqqqqq", cmsg_data)
+                    # Try hardware first (ts[4], ts[5])
+                    if ts[4] != 0:
+                        return ts[4] * 1_000_000_000 + ts[5]
+                    # Fallback to software (ts[0], ts[1])
+                    return ts[0] * 1_000_000_000 + ts[1]
+        return None
+
     def listen(self) -> None:
-        process_response = self.process_response
         popleft = self._packets.popleft
         close_event_set = self.closeEvent.is_set
         socket_fileno = self.sock.fileno
         _packets = self._packets
-        length: Optional[int] = None
-        counter: int = 0
-        data: bytearray = bytearray(b"")
+        feed_frame = self._eth_receiver.feed_frame
+
         while True:
             if close_event_set() or socket_fileno() == -1:
                 return
@@ -198,44 +258,7 @@ class Eth(BaseTransport):
                 continue
             for _ in range(count):
                 bts, timestamp = popleft()
-                data += bts
-                current_size: int = len(data)
-                current_position: int = 0
-                while True:
-                    if length is None:
-                        if current_size >= self.framing.header_size:
-                            length, counter = self.framing.unpack_header(bytes(data), initial_offset=current_position)
-                            current_position += self.framing.header_size
-                            current_size -= self.framing.header_size
-                        else:
-                            data = data[current_position:]
-                            break
-                    else:
-                        if current_size >= length:
-                            response = data[current_position : current_position + length]
-                            try:
-                                process_response(response, length, counter, timestamp)
-                            except BaseException as ex:  # Guard listener against unhandled exceptions (e.g., disk full in policy)
-                                try:
-                                    self.logger.critical(
-                                        f"Listener error in process_response: {ex.__class__.__name__}: {ex}. Stopping listener.",
-                                        extra={"event": "listener_error"},
-                                    )
-                                except Exception:
-                                    pass
-                                try:
-                                    # Signal all loops to stop
-                                    if hasattr(self, "closeEvent"):
-                                        self.closeEvent.set()
-                                except Exception:
-                                    pass
-                                return
-                            current_size -= length
-                            current_position += length
-                            length = None
-                        else:
-                            data = data[current_position:]
-                            break
+                feed_frame(bts, timestamp)
 
     def send(self, frame) -> None:
         self.pre_send_timestamp = self.timestamp.value
@@ -252,3 +275,17 @@ class Eth(BaseTransport):
     @property
     def invalidSocket(self) -> bool:
         return not hasattr(self, "sock") or self.sock.fileno() == -1
+
+    def _setup_ptp(self) -> None:
+        iface = self.config.ptp_interface
+        if iface:
+            caps = get_ptp_capabilities(iface)
+            if not caps.hw_receive:
+                self.logger.error(f"Hardware RX timestamping not supported on interface {iface}")
+                return
+        
+        if enable_ptp_timestamping(self.sock.fileno()):
+            self.ptp_enabled = True
+            self.logger.info("PTP hardware timestamping enabled")
+        else:
+            self.logger.error("Failed to enable PTP hardware timestamping")

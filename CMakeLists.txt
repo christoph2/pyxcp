@@ -91,6 +91,10 @@ target_include_directories(cpp_ext PRIVATE ${EXTENSION_INCS})
 target_include_directories(stim PRIVATE ${EXTENSION_INCS} ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/daq_stim)
 target_include_directories(transport_ext PRIVATE ${EXTENSION_INCS} ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/transport ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/cpp_ext ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/recorder)
 
+if (WIN32)
+    target_link_libraries(cpp_ext PRIVATE Ws2_32.lib)
+endif()
+
 target_compile_options(rekorder PUBLIC "-DEXTENSION_NAME=pyxcp.recorder.rekorder")
 target_compile_options(cpp_ext PUBLIC "-DEXTENSION_NAME=pyxcp.cpp_ext.cpp_ext")
 target_compile_options(stim PUBLIC "-DEXTENSION_NAME=pyxcp.daq_stim.stim")

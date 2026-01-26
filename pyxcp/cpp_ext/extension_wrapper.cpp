@@ -12,6 +12,7 @@
 #include "bin.hpp"
 #include "daqlist.hpp"
 #include "mcobject.hpp"
+#include "eth_ptp.hpp"
 
 namespace py = pybind11;
 using namespace pybind11::literals;
@@ -204,5 +205,16 @@ PYBIND11_MODULE(cpp_ext, m) {
         .def_property("utc_offset", &TimestampInfo::get_utc_offset, &TimestampInfo::set_utc_offset)
         .def_property("dst_offset", &TimestampInfo::get_dst_offset, &TimestampInfo::set_dst_offset)
         .def_property("timezone", &TimestampInfo::get_timezone, &TimestampInfo::set_timezone);
+
+    py::class_<PtpCapabilities>(m, "PtpCapabilities")
+        .def_readonly("hw_transmit", &PtpCapabilities::hw_transmit)
+        .def_readonly("hw_receive", &PtpCapabilities::hw_receive)
+        .def_readonly("hw_raw_all", &PtpCapabilities::hw_raw_all)
+        .def_readonly("sw_transmit", &PtpCapabilities::sw_transmit)
+        .def_readonly("sw_receive", &PtpCapabilities::sw_receive);
+
+    m.def("get_ptp_capabilities", &EthPtp::get_capabilities, "interface_name"_a);
+    m.def("enable_ptp_timestamping", &EthPtp::enable_timestamping, "socket_fd"_a);
+    m.def("receive_with_timestamp", &EthPtp::receive_with_timestamp, "socket_fd"_a, "max_size"_a);
 
 }

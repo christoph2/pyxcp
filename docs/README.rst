@@ -97,6 +97,7 @@ Features
 --------
 
 - Multiple transport layers: Ethernet (TCP), CAN, USB, SxI (serial/UART)
+- High-precision IEEE 1588/PTP hardware timestamping (Ethernet/UDP on Windows and Linux)
 - Data Acquisition (DAQ) and Stimulation (STIM)
 - Calibration (read/write parameters)
 - Flashing/programming workflows
