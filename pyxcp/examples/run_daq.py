@@ -130,14 +130,13 @@ else:
     ]
 
 
-# daq_parser = DaqToCsv(DAQ_LISTS)  # Record to CSV file(s).
-daq_parser = DaqRecorder(DAQ_LISTS, "run_daq_21092025_01", 8)  # Record to ".xmraw" file.
+daq_parser = DaqToCsv(DAQ_LISTS)  # Record to CSV file(s).
+# daq_parser = DaqRecorder(DAQ_LISTS, "run_daq_21092025_01", 8)  # Record to ".xmraw" file.
 
 with ap.run(policy=daq_parser) as x:
     try:
         x.connect()
     except XcpTimeoutError:
-        print("TO")
         sys.exit(2)
 
     if x.slaveProperties.optionalCommMode:
