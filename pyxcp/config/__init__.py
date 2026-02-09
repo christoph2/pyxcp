@@ -699,8 +699,6 @@ class Eth(Configurable):
     bind_to_address = Unicode(default_value=None, allow_none=True, help="Bind to specific local address.").tag(config=True)
     bind_to_port = Integer(default_value=None, allow_none=True, help="Bind to specific local port.").tag(config=True)
     ptp_timestamping = Bool(False, help="Enable IEEE 1588/PTP hardware timestamping.").tag(config=True)
-    ptp_interface = Unicode(default_value=None, allow_none=True, help="Network interface for PTP (Linux only).").tag(config=True)
-
 
 class SxI(Configurable):
     """SCI and SPI connections."""

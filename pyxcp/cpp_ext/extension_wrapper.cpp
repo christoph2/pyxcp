@@ -12,6 +12,7 @@
 #include "bin.hpp"
 #include "daqlist.hpp"
 #include "mcobject.hpp"
+#include "eth_utils.hpp"
 #include "eth_ptp.hpp"
 
 namespace py = pybind11;
@@ -42,8 +43,26 @@ py::dict mcobject_asdict(const McObject& self) {
 PYBIND11_MODULE(cpp_ext, m) {
     m.doc() = "C++ extensions for pyXCP.";
 
-    //m.def("sleep_ms", &sleep_ms, "milliseconds"_a);
-    //m.def("sleep_ns", &sleep_ns, "nanoseconds"_a);
+    py::class_<TimestampingInfo>(m, "TimestampingInfo")
+        .def_readonly("interface_name", &TimestampingInfo::interface_name)
+        .def_readonly("timestamping_supported", &TimestampingInfo::timestamping_supported)
+        .def_readonly("rx_hardware", &TimestampingInfo::rx_handware)
+        .def_readonly("tx_hardware", &TimestampingInfo::tx_hardware)
+        .def("__repr__", [](const TimestampingInfo &t) {
+            return "<TimestampingInfo supported=" +
+                   std::string(t.timestamping_supported ? "True" : "False") +
+                   " rx_hw=" + (t.rx_handware ? "True" : "False") +
+                   " tx_hw=" + (t.tx_hardware ? "True" : "False") + ">";
+        })
+        .def("__str__", [](const TimestampingInfo &t) {
+            return std::string("timestamping_supported=") +
+                   (t.timestamping_supported ? "True" : "False") +
+                   ", rx_hardware=" + (t.rx_handware ? "True" : "False") +
+                   ", tx_hardware=" + (t.tx_hardware ? "True" : "False");
+        });
+
+    m.def("check_timestamping_support", &check_timestamping_support, "host_name"_a);
+    m.def("init_networking", &init_networking);
 
     py::class_<McObject>(m, "McObject")
         .def(

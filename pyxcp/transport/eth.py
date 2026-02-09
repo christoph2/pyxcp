@@ -6,16 +6,18 @@ import threading
 from collections import deque
 from typing import Optional
 
+from pyxcp.cpp_ext.cpp_ext import (enable_ptp_timestamping, init_networking,
+                                   receive_with_timestamp,
+                                   check_timestamping_support)
+from pyxcp.transport.transport_ext import EthReceiver
+
 from pyxcp.transport.base import (
     BaseTransport,
     ChecksumType,
     XcpFramingConfig,
     XcpTransportLayerType,
 )
-from pyxcp.cpp_ext.cpp_ext import get_ptp_capabilities, enable_ptp_timestamping, receive_with_timestamp
-from pyxcp.transport.transport_ext import EthReceiver
 from pyxcp.utils import short_sleep
-
 
 DEFAULT_XCP_PORT = 5555
 RECV_SIZE = 8196
@@ -84,7 +86,8 @@ class Eth(BaseTransport):
             ) = addrinfo[0]
         except BaseException as ex:  # noqa: B036
             msg = f"XCPonEth - Failed to resolve address {self.host}:{self.port} ({self.protocol}, ipv6={self.ipv6}): {ex.__class__.__name__}: {ex}"
-            self.logger.critical(msg, extra={"transport": "eth", "host": self.host, "port": self.port, "protocol": self.protocol})
+            self.logger.critical(msg, extra={"transport": "eth", "host": self.host, "port": self.port,
+                                             "protocol": self.protocol})
             raise Exception(msg) from ex
         self.status: int = 0
         self.sock = socket.socket(self.address_family, self.socktype, self.proto)
@@ -92,11 +95,12 @@ class Eth(BaseTransport):
         self.selector.register(self.sock, selectors.EVENT_READ)
         self.use_tcp = self.protocol == "TCP"
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
+        init_networking()
         self.ptp_enabled = False
         if self.config.ptp_timestamping:
             if self.use_tcp:
-                self.logger.warning("PTP hardware timestamping is typically not supported for TCP. Only UDP will be attempted.")
+                self.logger.warning(
+                    "PTP hardware timestamping is typically not supported for TCP. Only UDP will be attempted.")
             else:
                 self._setup_ptp()
 
@@ -165,7 +169,7 @@ class Eth(BaseTransport):
             sock_recv = self.sock.recv
         else:
             if ptp_enabled:
-                if hasattr(socket, "SO_TIMESTAMPING"): # Linux
+                if hasattr(socket, "SO_TIMESTAMPING"):  # Linux
                     sock_recvmsg = self.sock.recvmsg
                 else:
                     # Windows uses C++ helper
@@ -192,11 +196,11 @@ class Eth(BaseTransport):
                                 _packets.append((bytes(response), recv_timestamp))
                         else:
                             if ptp_enabled:
-                                if hasattr(socket, "SO_TIMESTAMPING"): # Linux
+                                if hasattr(socket, "SO_TIMESTAMPING"):  # Linux
                                     # 32 is a guess for ancdata size, might need adjustment
                                     response, ancdata, flags, address = sock_recvmsg(Eth.MAX_DATAGRAM_SIZE, 1024)
                                     recv_timestamp = self._extract_linux_timestamp(ancdata) or self.timestamp.value
-                                else: # Windows
+                                else:  # Windows
                                     res = win_recv_with_ts(Eth.MAX_DATAGRAM_SIZE)
                                     if res:
                                         response, recv_timestamp = res
@@ -204,7 +208,7 @@ class Eth(BaseTransport):
                                         # Fallback if helper fails
                                         response, _ = self.sock.recvfrom(Eth.MAX_DATAGRAM_SIZE)
                                         recv_timestamp = self.timestamp.value
-                                
+
                                 if not response:
                                     self.sock.close()
                                     self.status = 0
@@ -277,15 +281,13 @@ class Eth(BaseTransport):
         return not hasattr(self, "sock") or self.sock.fileno() == -1
 
     def _setup_ptp(self) -> None:
-        iface = self.config.ptp_interface
-        if iface:
-            caps = get_ptp_capabilities(iface)
-            if not caps.hw_receive:
-                self.logger.error(f"Hardware RX timestamping not supported on interface {iface}")
-                return
-        
-        if enable_ptp_timestamping(self.sock.fileno()):
-            self.ptp_enabled = True
-            self.logger.info("PTP hardware timestamping enabled")
+        ts_info = check_timestamping_support(self.host)
+        if ts_info.timestamping_supported:
+            self.logger.info(f"Hardware timestamping is supported on interface {ts_info.interface_name!r}")
+            if enable_ptp_timestamping(self.sock.fileno()):
+                self.ptp_enabled = True
+                self.logger.info("PTP hardware timestamping enabled")
+            else:
+                self.logger.error("Failed to enable PTP hardware timestamping")
         else:
-            self.logger.error("Failed to enable PTP hardware timestamping")
+            self.logger.info(f"Hardware timestamping NOT supported on interface {ts_info.interface_name!r}")

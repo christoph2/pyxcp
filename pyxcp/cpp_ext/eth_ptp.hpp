@@ -22,7 +22,6 @@
 #include <unistd.h>
 #include <cstring>
 #endif
-#include "helper.hpp"
 
 struct PtpCapabilities {
     bool hw_transmit;
@@ -119,11 +118,10 @@ public:
         }
 
         if (lpfnWSARecvMsg && lpfnWSARecvMsg(sock, &msg, &bytesReceived, NULL, NULL) != SOCKET_ERROR) {
-            Timestamp ts(TimestampType::ABSOLUTE_TS);
-            uint64_t timestamp = ts.get_value();
+            uint64_t timestamp = 0;
             for (WSACMSGHDR* cmsg = WSA_CMSG_FIRSTHDR(&msg); cmsg != NULL; cmsg = WSA_CMSG_NXTHDR(&msg, cmsg)) {
                 if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SO_TIMESTAMP) {
-                    timestamp = *reinterpret_cast<uint64_t*>(WSA_CMSG_DATA(cmsg));
+                    timestamp = (*reinterpret_cast<uint64_t*>(WSA_CMSG_DATA(cmsg))) * 100;  // Resolution in 100ns !?
                     break;
                 }
             }
