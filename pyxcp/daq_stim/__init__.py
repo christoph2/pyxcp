@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from contextlib import suppress
-import json
 from time import time_ns
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
 
@@ -30,11 +29,7 @@ DAQ_TIMESTAMP_SIZE = {
 }
 
 
-def load_daq_lists_from_json(file_path: str) -> List[DaqList]:
-    """Load and validate DAQ-list from JSON file."""
-    with open(file_path, "r", encoding="utf-8") as f:
-        config = json.load(f)
-
+def load_daq_lists_from_json(config: List[Dict]) -> List[DaqList]:
     if not isinstance(config, list):
         raise ValueError("DAQ configuration must be a JSON array (list)")
 
@@ -75,7 +70,7 @@ def load_daq_lists_from_json(file_path: str) -> List[DaqList]:
         for m_idx, m in enumerate(measurements_raw):
             if not (isinstance(m, (list, tuple)) and len(m) == 4):
                 raise ValueError(f"Entry {idx} measurement {m_idx} must be a 4-element list/tuple")
-            m_name, m_addr, m_offset, m_type = m
+            m_name, m_addr, m_addr_ext, m_type = m
 
             if not isinstance(m_name, str):
                 raise TypeError(f"Entry {idx} measurement {m_idx} name must be a string")
@@ -84,13 +79,13 @@ def load_daq_lists_from_json(file_path: str) -> List[DaqList]:
             except Exception as e:
                 raise TypeError(f"Entry {idx} measurement {m_idx} address must be an integer") from e
             try:
-                m_offset = int(m_offset)
+                m_addr_ext = int(m_addr_ext)
             except Exception as e:
-                raise TypeError(f"Entry {idx} measurement {m_idx} offset must be an integer") from e
+                raise TypeError(f"Entry {idx} measurement {m_idx} address extension must be an integer") from e
             if not isinstance(m_type, str):
                 raise TypeError(f"Entry {idx} measurement {m_idx} type must be a string")
 
-            measurements.append((m_name, m_addr, m_offset, m_type))
+            measurements.append((m_name, m_addr, m_addr_ext, m_type))
 
         daq_kwargs: Dict[str, Any] = {
             "name": name,

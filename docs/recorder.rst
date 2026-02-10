@@ -66,6 +66,35 @@ The example ``pyxcp/examples/run_daq.py`` demonstrates end-to-end DAQ:
        daq_parser.stop()
        x.disconnect()
 
+xcp_daq_recorder Scipt
+----------------------
+Usage:
+    xcp_daq_recorder <daq_config>.json -c <pyxcp_config>.py
+
+Description:
+This script connects to an XCP slave and records DAQ data according to a JSON
+configuration file. The configuration uses the "daq_lists" key for the DAQ lists.
+For backward compatibility, a plain JSON array (without a container object) is also supported.
+
+Expected JSON format (example):
+
+.. code:: python
+
+    {
+      "daq_lists": [ ... ],            # list of DAQ lists (or alternatively: JSON root is the list)
+      "output_type": "xmraw",          # "xmraw" or "csv"
+      "output_file": "xcp_rec_0892026",# filename for xmraw output
+      "runtime_seconds": 900           # runtime in seconds (optional)
+    }
+
+Behavior:
+
+- output_type == "xmraw": a DaqRecorder is created (binary/raw) and output_file is passed as filename.
+- output_type == "csv": a DaqToCsv instance is created; output_file is not used, instead CSV files are created per DAQ list with names derived from the DAQ list name.
+- runtime_seconds determines the sleep time (time.sleep) during recording.
+  If not provided, a default of 60 seconds is used.
+
+
 Online vs offline and Policies
 ------------------------------
 
