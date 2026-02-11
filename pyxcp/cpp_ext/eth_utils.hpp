@@ -189,47 +189,6 @@ void init_networking() {
 
 }
 
-TimestampingInfo check_timestamping_support(const std::string& host_name) {
-    const std::string& ifname{};
-    auto host_route = get_best_route(host_name);
-    if (!host_route.has_value()) {
-        return result;
-    }
-    auto hvr = *host_route;
-    ifname = host_route->name;
-
-    int fd = socket(AF_INET, SOCK_DGRAM, 0);
-
-    if (fd < 0) {
-        perror("socket");
-        return TimestampingInfo{"", false, false, false};
-    }
-
-    ifreq ifr;
-    memset(&ifr, 0, sizeof(ifr));
-    strncpy(ifr.ifr_name, ifname.c_str(), IFNAMSIZ-1);
-
-    ethtool_ts_info info;
-    memset(&info, 0, sizeof(info));
-    info.cmd = ETHTOOL_GET_TS_INFO;
-    ifr.ifr_data = (char *)&info;
-
-    if (ioctl(fd, SIOCETHTOOL, &ifr) < 0) {
-        perror("ioctl");
-        close(fd);
-        return TimestampingInfo{"", false, false, false};
-    }
-
-    close(fd);
-
-	return TimestampingInfo{
-	    host_route->name,
-		(info.so_timestamping & SOF_TIMESTAMPING_RAW_HARDWARE) == SOF_TIMESTAMPING_RAW_HARDWARE,
-		(info.so_timestamping & SOF_TIMESTAMPING_RX_HARDWARE) == SOF_TIMESTAMPING_RX_HARDWARE,
-		(info.so_timestamping & SOF_TIMESTAMPING_TX_HARDWARE) == SOF_TIMESTAMPING_TX_HARDWARE
-	};
-}
-
 struct best_route_base {
     int oif;
     int table;
@@ -509,6 +468,48 @@ static std::optional<InterfaceInfo> get_best_route(const std::string &ip_str) {
 	}
 
 	return std::nullopt;
+}
+
+
+TimestampingInfo check_timestamping_support(const std::string& host_name) {
+    const std::string& ifname{};
+    auto host_route = get_best_route(host_name);
+    if (!host_route.has_value()) {
+        return TimestampingInfo{"", false, false, false};
+    }
+    auto hvr = *host_route;
+    ifname = host_route->name;
+
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (fd < 0) {
+        perror("socket");
+        return TimestampingInfo{"", false, false, false};
+    }
+
+    ifreq ifr;
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, ifname.c_str(), IFNAMSIZ-1);
+
+    ethtool_ts_info info;
+    memset(&info, 0, sizeof(info));
+    info.cmd = ETHTOOL_GET_TS_INFO;
+    ifr.ifr_data = (char *)&info;
+
+    if (ioctl(fd, SIOCETHTOOL, &ifr) < 0) {
+        perror("ioctl");
+        close(fd);
+        return TimestampingInfo{"", false, false, false};
+    }
+
+    close(fd);
+
+	return TimestampingInfo{
+	    host_route->name,
+		(info.so_timestamping & SOF_TIMESTAMPING_RAW_HARDWARE) == SOF_TIMESTAMPING_RAW_HARDWARE,
+		(info.so_timestamping & SOF_TIMESTAMPING_RX_HARDWARE) == SOF_TIMESTAMPING_RX_HARDWARE,
+		(info.so_timestamping & SOF_TIMESTAMPING_TX_HARDWARE) == SOF_TIMESTAMPING_TX_HARDWARE
+	};
 }
 
 #else

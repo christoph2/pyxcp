@@ -57,7 +57,7 @@ class Eth(BaseTransport):
         super().__init__(config, framing_config, policy, transport_layer_interface)
         self.host: str = self.config.host
         self.port: int = self.config.port
-        self.protocol: int = self.config.protocol
+        self.protocol: str = self.config.protocol.upper()
         self.ipv6: bool = self.config.ipv6
         self.use_tcp_no_delay: bool = self.config.tcp_nodelay
         address_to_bind: str = self.config.bind_to_address

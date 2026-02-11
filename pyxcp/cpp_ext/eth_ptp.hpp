@@ -15,8 +15,12 @@
 #include <mswsock.h>
 #else
 #include <sys/socket.h>
+
+#if defined(_LINUX) || defined(__linux__)
 #include <linux/net_tstamp.h>
 #include <linux/sockios.h>
+#endif // LINUX
+
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <unistd.h>
