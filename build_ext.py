@@ -138,7 +138,7 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
     if not build_temp.exists():
         build_temp.mkdir(parents=True)
 
-# Clean CMake cache to avoid conflicts when building multiple Python versions in sequence
+    # Clean CMake cache to avoid conflicts when building multiple Python versions in sequence
     cmake_cache = build_temp / "CMakeCache.txt"
     if cmake_cache.exists():
         cmake_cache.unlink()
