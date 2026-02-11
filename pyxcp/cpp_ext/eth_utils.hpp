@@ -189,12 +189,20 @@ void init_networking() {
 
 }
 
-TimestampingInfo check_timestamping_support(const std::string& ifname) {
+TimestampingInfo check_timestamping_support(const std::string& host_name) {
+    const std::string& ifname{};
+    auto host_route = get_best_route(host_name);
+    if (!host_route.has_value()) {
+        return result;
+    }
+    auto hvr = *host_route;
+    ifname = host_route->name;
+
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
 
     if (fd < 0) {
         perror("socket");
-        return TimestampingInfo{false, false, false};
+        return TimestampingInfo{"", false, false, false};
     }
 
     ifreq ifr;
@@ -209,12 +217,13 @@ TimestampingInfo check_timestamping_support(const std::string& ifname) {
     if (ioctl(fd, SIOCETHTOOL, &ifr) < 0) {
         perror("ioctl");
         close(fd);
-        return TimestampingInfo{false, false, false};
+        return TimestampingInfo{"", false, false, false};
     }
 
     close(fd);
 
 	return TimestampingInfo{
+	    host_route->name,
 		(info.so_timestamping & SOF_TIMESTAMPING_RAW_HARDWARE) == SOF_TIMESTAMPING_RAW_HARDWARE,
 		(info.so_timestamping & SOF_TIMESTAMPING_RX_HARDWARE) == SOF_TIMESTAMPING_RX_HARDWARE,
 		(info.so_timestamping & SOF_TIMESTAMPING_TX_HARDWARE) == SOF_TIMESTAMPING_TX_HARDWARE
@@ -499,7 +508,7 @@ static std::optional<InterfaceInfo> get_best_route(const std::string &ip_str) {
 		}
 	}
 
-	return std::nullopt();
+	return std::nullopt;
 }
 
 #else
