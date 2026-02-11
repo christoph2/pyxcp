@@ -66,9 +66,9 @@ public:
 
     static bool enable_timestamping(int socket_fd) {
 #if defined(__linux__)
-        int flags = SOF_TIMESTAMPING_RX_HARDWARE | 
-                    SOF_TIMESTAMPING_RX_SOFTWARE | 
-                    SOF_TIMESTAMPING_RAW_HARDWARE | 
+        int flags = SOF_TIMESTAMPING_RX_HARDWARE |
+                    SOF_TIMESTAMPING_RX_SOFTWARE |
+                    SOF_TIMESTAMPING_RAW_HARDWARE |
                     SOF_TIMESTAMPING_SOFTWARE;
         if (setsockopt(socket_fd, SOL_SOCKET, SO_TIMESTAMPING, &flags, sizeof(flags)) < 0) {
             return false;
