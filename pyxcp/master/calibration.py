@@ -1,8 +1,7 @@
 from dataclasses import dataclass
-from typing import Dict, Optional
-from pyxcp import types
-from pyxcp.master.errorhandler import wrapped
+from typing import Any, Dict, Optional
 
+from pyxcp.master.errorhandler import wrapped
 
 # Constants for Page Management
 CAL_PAGE_MODE_ECU = 0x01
@@ -14,7 +13,7 @@ CAL_PAGE_MODE_ALL = 0x80
 class Page:
     segment_number: int
     page_number: int
-    properties: Optional[types.PageProperties] = None
+    properties: Optional[Any] = None
     init_segment: int = 0
 
     def __repr__(self):

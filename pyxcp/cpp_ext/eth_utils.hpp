@@ -472,7 +472,7 @@ static std::optional<InterfaceInfo> get_best_route(const std::string &ip_str) {
 
 
 TimestampingInfo check_timestamping_support(const std::string& host_name) {
-    std::string& ifname{};
+    std::string ifname{};
     auto host_route = get_best_route(host_name);
     if (!host_route.has_value()) {
         return TimestampingInfo{"", false, false, false};
