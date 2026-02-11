@@ -82,7 +82,7 @@ def get_py_config() -> dict:
                     break
         if not found:
             print("Could NOT locate Python library.")
-            return dict(exe=sys.executable, include=include, libdir="", library=library)
+            return None
     return dict(exe=sys.executable, include=include, libdir=libdir, library=library)
 
 
@@ -110,10 +110,9 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
     bits, linkage = platform.architecture()
     print(f"Bits: {bits!r} Linkage: {linkage!r} Build-Type: {cfg!r}")
 
-    if bits == "32bit" and linkage == "ELF":
-        cmake_args = []
-    else:
-        py_cfg = get_py_config()
+    cmake_args = []
+    py_cfg = get_py_config()
+    if py_cfg is not None:
         cmake_args = [
             f"-DPython3_EXECUTABLE={py_cfg['exe']}",
             f"-DPython3_INCLUDE_DIR={py_cfg['include']}",
@@ -138,6 +137,11 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
     # print("cwd:", os.getcwd(), "build-dir:", build_temp, "top:", str(TOP_DIR))
     if not build_temp.exists():
         build_temp.mkdir(parents=True)
+
+# Clean CMake cache to avoid conflicts when building multiple Python versions in sequence
+    cmake_cache = build_temp / "CMakeCache.txt"
+    if cmake_cache.exists():
+        cmake_cache.unlink()
 
     banner("Step #1: Configure")
     # cmake_args += ["--debug-output"]

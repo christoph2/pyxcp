@@ -28,17 +28,17 @@ jobs:
           - os: windows-latest
             cibw_archs_windows: AMD64
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up QEMU (for ARM emulation)
         if: ${{ matrix.cibw_archs_linux == 'armv7l' }}
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm
-      - uses: pypa/cibuildwheel@v3.1
+      - uses: pypa/cibuildwheel@v3.3
         env:
           CIBW_ARCHS_WINDOWS: ${{ matrix.cibw_archs_windows || '' }}
           CIBW_ARCHS_LINUX: ${{ matrix.cibw_archs_linux || '' }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
@@ -47,12 +47,12 @@ jobs:
     name: Build source distribution
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Build sdist
         run: |
           pip install -U build
           python -m build --sdist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           path: dist/*.tar.gz
           include-hidden-files: true
@@ -65,7 +65,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/download-artifact@v4.1.7
+      - uses: actions/download-artifact@v7
         with:
           path: dist
           merge-multiple: true
