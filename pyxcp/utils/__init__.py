@@ -15,8 +15,8 @@ from pyxcp.cpp_ext.cpp_ext import TimestampInfo
 def hexDump(arr: Union[bytes | bytearray]):
     if not isinstance(arr, (bytes, bytearray)):
         arr = bytes(arr)
-    
-    return f'[{arr.hex(" ")}]'
+
+    return f"[{arr.hex(' ')}]"
 
 
 def seconds_to_nanoseconds(value: float) -> int:
