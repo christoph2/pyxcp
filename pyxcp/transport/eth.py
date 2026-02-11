@@ -6,9 +6,7 @@ import threading
 from collections import deque
 from typing import Optional
 
-from pyxcp.cpp_ext.cpp_ext import (enable_ptp_timestamping, init_networking,
-                                   receive_with_timestamp,
-                                   check_timestamping_support)
+from pyxcp.cpp_ext.cpp_ext import enable_ptp_timestamping, init_networking, receive_with_timestamp, check_timestamping_support
 from pyxcp.transport.transport_ext import EthReceiver
 
 from pyxcp.transport.base import (
@@ -86,8 +84,7 @@ class Eth(BaseTransport):
             ) = addrinfo[0]
         except BaseException as ex:  # noqa: B036
             msg = f"XCPonEth - Failed to resolve address {self.host}:{self.port} ({self.protocol}, ipv6={self.ipv6}): {ex.__class__.__name__}: {ex}"
-            self.logger.critical(msg, extra={"transport": "eth", "host": self.host, "port": self.port,
-                                             "protocol": self.protocol})
+            self.logger.critical(msg, extra={"transport": "eth", "host": self.host, "port": self.port, "protocol": self.protocol})
             raise Exception(msg) from ex
         self.status: int = 0
         self.sock = socket.socket(self.address_family, self.socktype, self.proto)
@@ -99,8 +96,7 @@ class Eth(BaseTransport):
         self.ptp_enabled = False
         if self.config.ptp_timestamping:
             if self.use_tcp:
-                self.logger.warning(
-                    "PTP hardware timestamping is typically not supported for TCP. Only UDP will be attempted.")
+                self.logger.warning("PTP hardware timestamping is typically not supported for TCP. Only UDP will be attempted.")
             else:
                 self._setup_ptp()
 

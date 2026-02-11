@@ -700,6 +700,7 @@ class Eth(Configurable):
     bind_to_port = Integer(default_value=None, allow_none=True, help="Bind to specific local port.").tag(config=True)
     ptp_timestamping = Bool(False, help="Enable IEEE 1588/PTP hardware timestamping.").tag(config=True)
 
+
 class SxI(Configurable):
     """SCI and SPI connections."""
 

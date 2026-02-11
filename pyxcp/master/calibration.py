@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, Optional, Any
+from typing import Dict, Optional
 from pyxcp import types
 from pyxcp.master.errorhandler import wrapped
 
@@ -206,10 +206,7 @@ class Calibration:
             try:
                 ecu_page = self.get_page(seg_idx, CAL_PAGE_MODE_ECU)
                 xcp_page = self.get_page(seg_idx, CAL_PAGE_MODE_XCP)
-                config[seg_idx] = {
-                    "ecu_page": ecu_page,
-                    "xcp_page": xcp_page
-                }
+                config[seg_idx] = {"ecu_page": ecu_page, "xcp_page": xcp_page}
             except Exception:
                 # If a segment cannot be queried, skip it in the config report
                 pass
