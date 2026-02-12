@@ -3,7 +3,6 @@ import datetime
 import functools
 import operator
 import sys
-from binascii import hexlify
 from enum import IntEnum
 from time import perf_counter, sleep
 from typing import Union
@@ -14,23 +13,10 @@ from pyxcp.cpp_ext.cpp_ext import TimestampInfo
 
 
 def hexDump(arr: Union[bytes | bytearray]):
-    if isinstance(arr, (bytes, bytearray)):
-        size = len(arr)
-        try:
-            arr = arr.hex()
-        except BaseException:  # noqa: B036
-            arr = hexlify(arr).decode("ascii")
-        return "[{}]".format(" ".join([arr[i * 2 : (i + 1) * 2] for i in range(size)]))
-    elif isinstance(arr, (list, tuple)):
+    if not isinstance(arr, (bytes, bytearray)):
         arr = bytes(arr)
-        size = len(arr)
-        try:
-            arr = arr.hex()
-        except BaseException:  # noqa: B036
-            arr = hexlify(arr).decode("ascii")
-        return "[{}]".format(" ".join([arr[i * 2 : (i + 1) * 2] for i in range(size)]))
-    else:
-        return "[{}]".format(" ".join([f"{x:02x}" for x in arr]))
+
+    return f"[{arr.hex(' ')}]"
 
 
 def seconds_to_nanoseconds(value: float) -> int:
