@@ -413,7 +413,10 @@ class PythonCanWrapper:
         if not self.connected:
             return None
         try:
-            frame = self.can_interface.recv(self.timeout)
+            # Use short timeout (0.1s) for responsive shutdown while maintaining responsiveness
+            # This allows the listen thread to check closeEvent every 100ms instead of waiting
+            # the full timeout (default 2s), reducing Master.close() delay from ~5s to ~1s
+            frame = self.can_interface.recv(0.1)
         except CanError:
             return None
         else:

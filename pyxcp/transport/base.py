@@ -122,12 +122,13 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def close(self) -> None:
         """Close the transport-layer connection and event-loop."""
         self.finish_listener()
-        # Avoid indefinite blocking on buggy threads
+        # Optimized: reduced from 2.0s to 0.5s timeout since listener now uses
+        # 0.1s recv() timeout and should exit quickly when closeEvent is set
         try:
             if self.listener.is_alive():
-                self.listener.join(timeout=2.0)
-        except Exception:
-            pass
+                self.listener.join(timeout=0.5)
+        except Exception:  # nosec
+            pass  # Listener thread cleanup failure is non-critical
         self.close_connection()
 
     @abc.abstractmethod
@@ -160,8 +161,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def start_listener(self):
         if self.listener.is_alive():
             self.finish_listener()
-            # Avoid indefinite blocking on buggy threads
-            self.listener.join(timeout=2.0)
+            # Optimized: reduced from 2.0s to 0.5s timeout
+            self.listener.join(timeout=0.5)
 
         # Ensure the close event is cleared before starting a new listener thread.
         if hasattr(self, "closeEvent"):

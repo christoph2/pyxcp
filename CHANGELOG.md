@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Issue #70**: Verified CAN-FD support (resolved in v0.16.8, now fully documented)
+- **Issue #209**: Master.close() delay reduced from ~5s to ~0.6s (CAN transport recv timeout optimized)
+
+### Changed
+- **Performance**: CAN transport `recv()` now uses 0.1s timeout (down from 2.0s) for faster shutdown
+- **Performance**: Listener thread join timeout reduced to 0.5s (down from 2.0s)
 
 ## [0.26.6] - 2026-02-14
 
