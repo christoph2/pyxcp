@@ -458,6 +458,110 @@ daq_parser.setup()  # Works automatically!
 
 ## CAN Transport
 
+### Q: How do I configure CAN-FD?
+
+**A:** CAN-FD (Flexible Data-Rate) is fully supported in pyXCP. Both "mixed mode" (classic + FD) and "pure FD" configurations work.
+
+**Basic Configuration:**
+
+```python
+# pyxcp_conf.py
+c = get_config()
+
+# Enable CAN-FD
+c.Transport.Can.fd = True
+
+# Set data phase bitrate (faster than arbitration phase)
+c.Transport.Can.data_bitrate = 2000000  # 2 Mbps data phase
+c.Transport.Can.bitrate = 500000         # 500 kbps arbitration phase
+
+# For "pure FD" mode (AUTOSAR requirement):
+c.Transport.Can.max_dlc_required = True   # Always send with max DLC
+c.Transport.Can.padding_value = 0         # Padding byte value (default: 0)
+```
+
+**Platform-Specific Setup:**
+
+**Linux (SocketCAN):**
+```bash
+# Bring up CAN interface with FD support
+sudo ip link set can0 down
+sudo ip link set can0 type can bitrate 500000 dbitrate 2000000 fd on
+sudo ip link set can0 up
+
+# Verify FD is enabled
+ip -details link show can0
+# Should show: mtu 72 ... canfd on dbitrate 2000000 ...
+```
+
+**Windows (Vector):**
+```python
+c.Transport.Can.interface = "vector"
+c.Transport.Can.fd = True
+c.Transport.Can.data_bitrate = 2000000
+# Vector driver must support CAN-FD (VN series, e.g., VN1610)
+```
+
+**Configuration Modes:**
+
+1. **Mixed Mode (Default):** Sends FD frames only when needed (large responses)
+   ```python
+   c.Transport.Can.fd = True
+   c.Transport.Can.max_dlc_required = False  # Use DLC on-demand
+   ```
+
+2. **Pure FD Mode (AUTOSAR):** Always sends FD frames with max DLC
+   ```python
+   c.Transport.Can.fd = True
+   c.Transport.Can.max_dlc_required = True   # Always max DLC
+   c.Transport.Can.padding_value = 0         # Pad to 64 bytes
+   ```
+
+**Troubleshooting:**
+
+**Symptom:** Frames sent as classic CAN (8 bytes) despite `fd = True`  
+**Solution:**
+- Check ECU `maxCto` in CONNECT response - if ≤ 8, ECU doesn't support FD
+- Verify CAN interface supports FD: `ip -details link show can0` (Linux)
+- Use `max_dlc_required = True` for pure FD mode
+
+**Symptom:** ECU rejects FD frames  
+**Solution:**
+- ECU may filter non-matching DLC - use `max_dlc_required = True`
+- Check AUTOSAR CAN driver config: `CanFdPaddingValue` must match
+
+**Symptom:** "CAN-FD not supported" error  
+**Solution:**
+- Update python-can: `pip install --upgrade python-can`
+- Check hardware: Not all CAN adapters support FD
+- Linux: Kernel must support CAN-FD (kernel 4.0+)
+
+**Testing CAN-FD:**
+
+```python
+from pyxcp import Master
+
+# Connect with FD
+with Master("can") as xm:
+    xm.connect()
+
+    # Check if ECU supports FD
+    print(f"Max CTO: {xm.slaveProperties.maxCto}")  # Should be > 8 for FD
+
+    # Trigger FD frame (upload > 8 bytes)
+    data = xm.fetch(100)  # Should use FD if maxCto > 8
+```
+
+**Key Points:**
+- CAN-FD uses discrete DLCs: 0-8, 12, 16, 20, 24, 32, 48, 64
+- pyXCP automatically pads to next valid DLC
+- `max_dlc_required = True` pads all frames to 64 bytes (AUTOSAR compliant)
+- Both master AND slave must support FD
+
+**Related issues:** #70 (resolved in v0.16.8)
+
+---
+
 ### Q: CAN DAQ gets interrupted after connection / unexpected messages
 
 **A:** **FIXED in v0.26.3+**. The CAN filter timing has been improved to prevent Basic Traffic from entering the buffer between bus start and filter activation.

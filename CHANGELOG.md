@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **CAN-FD Documentation**: Comprehensive guide in FAQ.md covering mixed mode, pure FD mode, platform setup, and troubleshooting (#70)
+- **CAN-FD Example**: New `canfd_example.py` demonstrating CAN-FD configuration and usage patterns
+
+### Fixed
+- **Issue #70**: Verified CAN-FD support (resolved in v0.16.8, now fully documented)
+
 ## [0.26.6] - 2026-02-14
 
 ### Added
