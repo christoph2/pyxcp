@@ -10,16 +10,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **DAQ**: Optional logger parameter for DaqProcessor, DaqRecorder, DaqOnlinePolicy, DaqToCsv (#260)
 - **DAQ**: Automatic fallback logger when configuration file not available
+- **Config**: PYXCP_CONFIG environment variable for config file location
+- **Config**: Multi-path config discovery (CWD, script dir, ~/.pyxcp/, env var)
+- **Config**: Programmatic config creation via `create_application_from_config()` (#211)
+- **Config**: `set_application()` to set global application instance
 
 ### Changed
 - **DAQ**: DaqProcessor now works without pyxcp_conf.py configuration file (#260)
+- **Config**: Enhanced config file search with multiple fallback locations
+- **Config**: Better error messages when config file not found
 
 ### Fixed
 - **DAQ**: FileNotFoundError when using DaqToCsv in Robot Framework or pytest (#260)
+- **Config**: Config discovery now supports test frameworks and CI/CD environments (#211)
 
 ### Documented
 - **Config**: Robot Framework usage pattern with explicit logger
 - **Config**: DaqToCsv configuration options in FAQ
+- **Config**: Programmatic configuration examples for library usage
+- **Config**: Config file search order and environment variable usage
 
 ## [0.26.4] - 2026-02-14
 

@@ -172,17 +172,105 @@ My DAQ Test
     ${daq_policy} =  Create DaqToCsv  ${daq_lists}  logger=${logger}
 ```
 
-**Solution 3: Set PYXCP_CONFIG environment variable** (future enhancement):
+**Solution 3: Set PYXCP_CONFIG environment variable** (v0.26.5+):
 ```bash
 export PYXCP_CONFIG=/absolute/path/to/pyxcp_conf.py
 # Or in Robot Framework:
 Set Environment Variable  PYXCP_CONFIG  ${PROJECT_ROOT}/config/pyxcp_conf.py
 ```
 
+**Solution 4: Use programmatic configuration** (v0.26.5+):
+```python
+from pyxcp.config import create_application_from_config
+
+# Create config without file
+config = {
+    "Transport": {
+        "CAN": {
+            "device": "socketcan",
+            "channel": "can0",
+            "bitrate": 500000
+        }
+    }
+}
+app = create_application_from_config(config)
+# Use app.general, app.transport, etc.
+```
+
+**Config File Search Order** (v0.26.5+):
+1. `PYXCP_CONFIG` environment variable (absolute path)
+2. Current working directory
+3. Script directory (where your .py file is)
+4. User home `~/.pyxcp/pyxcp_conf.py`
+
 **Note:** As of v0.26.4, DAQ classes automatically use a fallback logger when no configuration
 is available, so you can also just create `DaqToCsv(daq_lists)` without any logger parameter.
 
 **Related issues:** #260
+
+---
+
+### Q: How to use pyxcp as a library without configuration files?
+
+**A:** **NEW in v0.26.5**: Use `create_application_from_config()` for programmatic configuration.
+
+**The Problem:**
+When using pyxcp as a library in your application, you may not want to maintain separate
+configuration files. Issue #211 requested better support for programmatic configuration.
+
+**Solution: Programmatic Configuration**
+```python
+from pyxcp.config import create_application_from_config, set_application
+import logging
+
+# Define config as Python dict
+config = {
+    "Transport": {
+        "CAN": {
+            "device": "socketcan",
+            "channel": "can0",
+            "bitrate": 500000,
+            "max_dlc": 8
+        }
+    }
+}
+
+# Create application programmatically
+app = create_application_from_config(config, log_level=logging.DEBUG)
+
+# Option 1: Use app directly
+print(f"CAN device: {app.transport.can.device}")
+print(f"Bitrate: {app.transport.can.bitrate}")
+
+# Option 2: Set as global application (if needed)
+set_application(app)
+
+# Now Master can use it
+from pyxcp.master import Master
+with Master("can") as x:
+    x.connect()
+    # ... XCP operations
+```
+
+**Minimal Example (defaults only)**:
+```python
+from pyxcp.config import create_application_from_config
+
+# Use all defaults
+app = create_application_from_config()
+# Configure only what you need
+app.transport.can.device = "socketcan"
+app.transport.can.channel = "can0"
+```
+
+**Benefits:**
+- No config files needed
+- Configuration lives in your code
+- Easy to version control
+- Works in CI/CD environments
+- Type-safe access to config values
+
+**Related issues:** #211
 
 ---
 

@@ -17,7 +17,6 @@ from traitlets import (
     Dict,
     Enum,
     Float,
-    HasTraits,
     Integer,
     List,
     TraitError,
@@ -25,7 +24,6 @@ from traitlets import (
     Union,
 )
 from traitlets.config import Application, Configurable, Instance, default
-from traitlets.config.loader import Config
 
 from pyxcp.config import legacy
 
@@ -872,13 +870,14 @@ class CustomArgs(Configurable):
 
         # Dynamically add a trait for this argument
         trait_type = Any()
-        if type == bool or action == "store_true" or action == "store_false":
+        # noqa: E721 - comparing types intentionally (traitlets pattern)
+        if type == bool or action == "store_true" or action == "store_false":  # noqa: E721
             trait_type = Bool(default)
-        elif type == int:
+        elif type == int:  # noqa: E721
             trait_type = Integer(default)
-        elif type == float:
+        elif type == float:  # noqa: E721
             trait_type = Float(default)
-        elif type == str:
+        elif type == str:  # noqa: E721
             trait_type = Unicode(default)
 
         # Add the trait to this instance
@@ -1042,7 +1041,7 @@ class PyXCP(Application):
                 # Ensure base Application.log_format is a valid %-style template
                 # (Users might set c.PyXCP.log_format = "json" which clashes with traitlets behavior.)
                 self.log_format = "%(message)s"  # type: ignore[assignment]
-            except Exception:
+            except Exception:  # nosec B110 - intentional fallback (legacy config)
                 pass
             self._setup_logger()
         self.log.debug(f"pyxcp version: {self.version}")
@@ -1125,9 +1124,13 @@ class PyXCP(Application):
     def read_configuration_file(self, file_name: str, emit_warning: bool = True):
         self.legacy_config: bool = False
 
-        pth = Path(file_name)
-        if not pth.exists():
-            raise FileNotFoundError(f"Configuration file {file_name!r} does not exist.")
+        # Try to find config file if relative path given
+        pth = self._find_config_file(file_name)
+        if pth is None:
+            raise FileNotFoundError(
+                f"Configuration file {file_name!r} does not exist. "
+                f"Searched in: CWD, script directory, ~/.pyxcp/, and PYXCP_CONFIG env var."
+            )
         suffix = pth.suffix.lower()
         if suffix == ".py":
             self.load_config_file(pth)
@@ -1157,6 +1160,54 @@ class PyXCP(Application):
     @default("log_level")
     def _default_value(self):
         return logging.INFO  # traitlets default is logging.WARN
+
+    def _find_config_file(self, file_name: str) -> typing.Optional[Path]:
+        """Search for configuration file in multiple locations.
+
+        Search order:
+        1. PYXCP_CONFIG environment variable (absolute path)
+        2. Given path (absolute or relative to CWD)
+        3. Script directory
+        4. User home ~/.pyxcp/
+
+        Args:
+            file_name: Config file name or path
+
+        Returns:
+            Path object if found, None otherwise
+        """
+        import os
+        import sys
+
+        # 1. Environment variable override
+        env_config = os.getenv("PYXCP_CONFIG")
+        if env_config:
+            env_path = Path(env_config)
+            if env_path.exists():
+                return env_path
+            # If env var set but file doesn't exist, log warning but continue search
+            self.log.warning(f"PYXCP_CONFIG points to non-existent file: {env_config}")
+
+        # 2. Direct path (absolute or relative to CWD)
+        direct_path = Path(file_name)
+        if direct_path.is_absolute():
+            return direct_path if direct_path.exists() else None
+        if direct_path.exists():
+            return direct_path.resolve()
+
+        # 3. Script directory (where the calling script is located)
+        if sys.argv and sys.argv[0]:
+            script_dir = Path(sys.argv[0]).parent.resolve()
+            script_path = script_dir / file_name
+            if script_path.exists():
+                return script_path
+
+        # 4. User home ~/.pyxcp/
+        home_path = Path.home() / ".pyxcp" / file_name
+        if home_path.exists():
+            return home_path
+
+        return None
 
     aliases = Dict(  # type:ignore[assignment]
         dict(
@@ -1244,6 +1295,20 @@ def create_application(options: typing.Optional[typing.List[typing.Any]] = None,
 
 
 def get_application(options: typing.Optional[typing.List[typing.Any]] = None, callout=None) -> PyXCP:
+    """Get or create the global PyXCP application instance.
+
+    Args:
+        options: Command line options (optional)
+        callout: Custom callout function (optional)
+
+    Returns:
+        PyXCP application instance
+
+    Note:
+        This function creates a global singleton application instance.
+        If no configuration file is found, it will raise FileNotFoundError.
+        For programmatic usage without config file, use create_application_from_config().
+    """
     if options is None:
         options = []
     global application
@@ -1252,7 +1317,89 @@ def get_application(options: typing.Optional[typing.List[typing.Any]] = None, ca
     return application
 
 
-def reset_application() -> None:
+def create_application_from_config(
+    config_dict: typing.Optional[typing.Dict[str, typing.Any]] = None,
+    log_level: int = logging.INFO,
+) -> PyXCP:
+    """Create a PyXCP application programmatically without config file.
+
+    This is useful when using pyxcp as a library where you want to configure
+    everything in code rather than via configuration files.
+
+    Args:
+        config_dict: Configuration dictionary (optional). If None, uses defaults.
+        log_level: Logging level (default: INFO)
+
+    Returns:
+        Configured PyXCP application instance
+
+    Example:
+        >>> from pyxcp.config import create_application_from_config
+        >>> config = {
+        ...     "Transport": {
+        ...         "CAN": {
+        ...             "device": "socketcan",
+        ...             "channel": "can0",
+        ...             "bitrate": 500000
+        ...         }
+        ...     }
+        ... }
+        >>> app = create_application_from_config(config)
+        >>> app.general.loglevel = "DEBUG"
+
+    Note:
+        This does NOT set the global application instance. Use set_application()
+        if you want to make this the global instance.
+    """
+    if config_dict is None:
+        config_dict = {}
+
+    # Create application with minimal initialization
+    app = PyXCP()
+    app.log_level = log_level
+
+    # Initialize logging manually (skip config file)
+    app._setup_logger()
+
+    # Initialize components first
+    app.general = General(config=app.config, parent=app)
+    app.transport = Transport(parent=app)
+    app.custom_args = CustomArgs(config=app.config, parent=app)
+
+    # Apply config_dict to attributes after components are created
+    if config_dict:
+        # Apply transport config
+        if "Transport" in config_dict:
+            transport_cfg = config_dict["Transport"]
+            if "CAN" in transport_cfg:
+                for key, value in transport_cfg["CAN"].items():
+                    setattr(app.transport.can, key, value)
+            if "Eth" in transport_cfg:
+                for key, value in transport_cfg["Eth"].items():
+                    setattr(app.transport.eth, key, value)
+            if "SxI" in transport_cfg:
+                for key, value in transport_cfg["SxI"].items():
+                    setattr(app.transport.sxi, key, value)
+
+        # Apply general config
+        if "General" in config_dict:
+            for key, value in config_dict["General"].items():
+                setattr(app.general, key, value)
+
+    return app
+
+
+def set_application(app: PyXCP) -> None:
+    """Set the global PyXCP application instance.
+
+    Args:
+        app: PyXCP application instance to set as global
+    """
     global application
-    del application
-    application = None
+    application = app
+
+
+def reset_application() -> None:
+    """Reset the global PyXCP application instance."""
+    global application
+    application = None  # noqa: F841
