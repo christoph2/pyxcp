@@ -1,0 +1,88 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for pyxcp
+title: "[FEATURE] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your interest in improving pyxcp! Please describe the feature you'd like to see.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem? Please describe.
+      placeholder: I'm always frustrated when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like to see
+      placeholder: I would like to be able to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions or workarounds?
+      placeholder: I tried... but...
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which area would this feature affect?
+      options:
+        - Transport Layer (CAN/ETH/USB/Serial)
+        - DAQ / Measurement
+        - Calibration
+        - Configuration System
+        - CLI Tools
+        - Documentation
+        - Performance
+        - API Design
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority (Your Assessment)
+      description: How important is this feature to your use case?
+      options:
+        - Critical - Blocking my work
+        - High - Significantly impacts my workflow
+        - Medium - Would be nice to have
+        - Low - Minor improvement
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Add any other context, mockups, code examples, or screenshots about the feature request
+      placeholder: |
+        Example usage:
+        ```python
+        # How I envision using this feature
+        x.new_feature(...)
+        ```
+
+  - type: checkboxes
+    id: willing
+    attributes:
+      label: Contribution
+      description: Would you be willing to contribute?
+      options:
+        - label: I am willing to submit a pull request for this feature
+          required: false
+        - label: I can help with testing / reviewing
+          required: false

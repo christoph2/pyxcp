@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions & Discussions
+    url: https://github.com/christoph2/pyxcp/discussions
+    about: For general questions, use GitHub Discussions instead of opening an issue
+  - name: Documentation
+    url: https://github.com/christoph2/pyxcp/tree/master/docs
+    about: Check the documentation first - many common questions are answered there
+  - name: Examples
+    url: https://github.com/christoph2/pyxcp/tree/master/pyxcp/examples
+    about: See working examples for common use cases

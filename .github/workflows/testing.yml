@@ -37,6 +37,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install "poetry==1.8.1"
 
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake pybind11-dev python3-dev
+
+      - name: Install system dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install cmake pybind11
+
       - name: Install project + dev dependencies with Poetry
         run: |
           # Install into the current Python environment for CI reproducibility

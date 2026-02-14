@@ -9,17 +9,23 @@ endif()
 cmake_policy(SET CMP0094 NEW)
 
 find_package(Python3 COMPONENTS Interpreter Development.Module REQUIRED)
-find_package(pybind11 CONFIG)
+find_package(pybind11 CONFIG REQUIRED)
 
 SET(CMAKE_C_STANDARD 17)
-set(CMAKE_CXX_STANDARD 23)
+# Use C++20 for better compatibility (GCC 10+, Clang 10+, MSVC 19.29+)
+# C++23 requires GCC 11+, Clang 12+, MSVC 19.33+ which may not be available on older systems
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 message( STATUS "Found pybind11 v${pybind11_VERSION} ${pybind11_VERSION_TYPE}: ${pybind11_INCLUDE_DIRS}")
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/dist")
 
 
-SET(GCC_N_CLANG_BASE_OPTIONS "-std=c++23 -Wall -Wextra -Wpedantic -Warray-bounds -mtune=native -fexceptions")
+# Note: mtune=native optimizes for build machine, may not be portable
+# Removed mtune=native for better binary portability
+SET(GCC_N_CLANG_BASE_OPTIONS "-Wall -Wextra -Wpedantic -Warray-bounds -fexceptions")
 
 SET(MSVC_BASE_OPTIONS "/W3 /permissive- /EHsc /bigobj /Zc:__cplusplus /std:c++latest")
 

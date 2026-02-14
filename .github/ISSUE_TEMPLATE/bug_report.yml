@@ -1,0 +1,174 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in pyxcp
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the information below to help us diagnose the issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of what the bug is.
+      placeholder: When I try to..., I expect... but instead...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: transport
+    attributes:
+      label: Transport Layer
+      description: Which transport layer are you using?
+      options:
+        - CAN
+        - Ethernet (TCP)
+        - Ethernet (UDP)
+        - USB
+        - Serial (SxI)
+        - Other / Unknown
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: What area is affected?
+      options:
+        - Installation / Build
+        - DAQ / Measurement
+        - Calibration
+        - Configuration
+        - Transport / Connection
+        - Performance
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: pyxcp-version
+    attributes:
+      label: pyxcp Version
+      description: Which version of pyxcp are you using?
+      placeholder: "e.g., 0.26.2 or 'installed from git main branch'"
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      description: Which Python version are you using?
+      placeholder: "e.g., 3.12.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: Which OS are you running on?
+      options:
+        - Windows 10
+        - Windows 11
+        - Ubuntu / Debian
+        - Other Linux
+        - macOS
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation
+    attributes:
+      label: Installation Method
+      description: How did you install pyxcp?
+      options:
+        - pip install pyxcp
+        - poetry install
+        - Built from source (pip install .)
+        - Built from source (python build_ext.py)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Minimal steps to reproduce the issue
+      placeholder: |
+        1. Create config with...
+        2. Run the following code...
+        3. See error...
+      value: |
+        ```python
+        # Your minimal reproducible example here
+        from pyxcp.cmdline import ArgumentParser
+
+        ap = ArgumentParser(description="Bug reproduction")
+        with ap.run() as x:
+            # Code that triggers the bug
+            pass
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened? Include full error messages and stack traces.
+      placeholder: |
+        ERROR:pyxcp:...
+        Traceback (most recent call last):
+          ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: If relevant, paste your configuration (remove sensitive data!)
+      placeholder: |
+        ```python
+        c = get_config()
+        c.Transport.layer = 'CAN'
+        c.Transport.Can.interface = 'vector'
+        # ...
+        ```
+      render: python
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Additional Logs
+      description: Any additional logs, debug output, or context
+      placeholder: Run with -l DEBUG flag for verbose output
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched existing issues for duplicates
+          required: true
+        - label: I have tested with the latest version of pyxcp
+          required: false
+        - label: I can provide a minimal reproducible example
+          required: false

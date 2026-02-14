@@ -82,7 +82,13 @@ def get_py_config() -> dict:
                     break
         if not found:
             print("Could NOT locate Python library.")
-            return None
+            print(f"Searched in: {DIR_VARS}")
+            print(f"LIBRARY variable: {library}")
+            if arch:
+                print(f"MULTIARCH: {arch}")
+            # Fallback: try without explicit library path (CMake might find it)
+            libdir = ""
+            print("WARNING: Proceeding without explicit library path. CMake will attempt auto-detection.")
     return dict(exe=sys.executable, include=include, libdir=libdir, library=library)
 
 
@@ -118,8 +124,11 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
             f"-DPython3_INCLUDE_DIR={py_cfg['include']}",
             f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
         ]
+        # Only add library path if we found one
         if py_cfg["libdir"]:
             cmake_args.append(f"-DPython3_LIBRARY={str(Path(py_cfg['libdir']) / Path(py_cfg['library']))}")
+        else:
+            print("INFO: No explicit Python library path - CMake will auto-detect")
 
     build_args = ["--config Release", "--verbose"]
     # cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 /path/to/src

@@ -1,0 +1,76 @@
+name: Documentation Issue
+description: Report missing, incorrect, or unclear documentation
+title: "[DOCS] "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help us improve the pyxcp documentation! Please describe what's missing or unclear.
+
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: Documentation Type
+      description: What kind of documentation issue is this?
+      options:
+        - Missing documentation
+        - Incorrect / outdated documentation
+        - Unclear / confusing documentation
+        - Typo / formatting issue
+        - Example needed
+        - API reference missing
+    validations:
+      required: true
+
+  - type: textarea
+    id: location
+    attributes:
+      label: Location
+      description: Where is the documentation issue? (URL, file path, or description)
+      placeholder: |
+        e.g., "docs/tutorial.rst, section on DAQ configuration"
+        or "No documentation exists for..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: What's Wrong or Missing?
+      description: Describe the documentation issue
+      placeholder: The documentation says... but it should say...
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested Improvement
+      description: If you have a suggestion for how to improve it, please share
+      placeholder: The documentation should explain...
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Topic Area
+      description: Which topic does this relate to?
+      options:
+        - Getting Started / Installation
+        - Configuration
+        - Transport Layers (CAN/ETH/USB/Serial)
+        - DAQ / Measurement
+        - Calibration
+        - CLI Tools
+        - API Reference
+        - Examples / Tutorials
+        - Troubleshooting
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other information that might help (screenshots, links, etc.)
