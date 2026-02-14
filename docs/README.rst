@@ -52,7 +52,9 @@ Requirements
 Quick start
 -----------
 
-The tutorial walks you through typical tasks end-to-end: see `tutorial <tutorial.rst>`_.
+**New to pyXCP?** Start with the 15-minute `Quickstart Guide <quickstart.md>`_ for a hands-on introduction.
+
+The comprehensive `tutorial <tutorial.rst>`_ walks you through typical tasks end-to-end.
 
 Minimal example using the built-in argument parser and context manager:
 

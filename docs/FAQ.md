@@ -1,5 +1,9 @@
 # FAQ - Frequently Asked Questions
 
+**New to pyXCP?** Check out the [Quickstart Guide](quickstart.md) for a 15-minute introduction!
+
+---
+
 ## Installation & Build Issues
 
 ### Q: `ModuleNotFoundError: No module named 'pyxcp.transport.transport_ext'`

@@ -9,6 +9,7 @@ Welcome to pyXCP’s documentation
    :maxdepth: 2
 
    README
+   quickstart
    installation
    tutorial
    configuration
