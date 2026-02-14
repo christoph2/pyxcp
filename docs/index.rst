@@ -11,6 +11,7 @@ Welcome to pyXCP’s documentation
    README
    quickstart
    installation
+   platform_setup
    tutorial
    configuration
    custom_can_driver

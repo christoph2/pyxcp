@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Docs**: Quickstart Guide - "From Zero to DAQ in 15 Minutes" (#184, #129, #143)
 - **Docs**: CLI Tools Reference - Comprehensive command-line tools guide (23 KB)
+- **Docs**: Platform Setup Guide - OS-specific installation and configuration (22 KB)
 - **Docs**: 6 production-ready example scripts (basic connection, calibration, DAQ, Ethernet, A2L, multi-ECU)
 
 ### Documented
@@ -31,6 +32,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CLI Tools**: Common workflows (first contact, DAQ setup, multi-ECU)
 - **CLI Tools**: Environment variables (PYXCP_CONFIG, PYXCP_LOGLEVEL)
 - **CLI Tools**: Troubleshooting matrix for common errors
+- **Platform Setup**: Windows installation (Python, MSVC, CAN drivers: Vector/PCAN/Kvaser)
+- **Platform Setup**: Linux installation (Ubuntu/Debian/Fedora/Arch + SocketCAN setup)
+- **Platform Setup**: macOS installation (Homebrew, Xcode tools, limited CAN options)
+- **Platform Setup**: Docker and CI/CD (Dockerfile, docker-compose, GitHub Actions, GitLab CI)
+- **Platform Setup**: CAN driver setup for all platforms (SocketCAN, Vector, PCAN, Virtual CAN)
+- **Platform Setup**: USB permissions (Linux udev rules)
+- **Platform Setup**: Build from source instructions (all platforms)
+- **Platform Setup**: Seed/key DLL bridging on Windows (32-bit to 64-bit)
+- **Platform Setup**: Platform-specific troubleshooting matrix
+- **Platform Setup**: Performance tuning tips (Linux real-time scheduling, network buffers)
 
 ## [0.26.5] - 2026-02-14
 
