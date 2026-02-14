@@ -1,9 +1,25 @@
 Using pyXCP Command-Line Tools
 ==============================
 
+.. note::
+   **New in v0.26.5+:** For comprehensive CLI tools documentation, see :doc:`cli_tools`.
+
+   This page provides a quick overview. The new guide includes:
+
+   - Detailed usage for all 7 CLI tools
+   - Complete troubleshooting matrix
+   - Transport-specific tips
+   - Common workflows
+   - Environment variables
+
 pyXCP provides several command-line tools to help you work with XCP
 devices. These tools are installed automatically when you install the
 pyXCP package.
+
+Quick Reference
+---------------
+
+See :doc:`cli_tools` for detailed documentation of all tools.
 
 Available Command-Line Tools
 ----------------------------

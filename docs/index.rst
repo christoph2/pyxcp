@@ -17,6 +17,7 @@ Welcome to pyXCP’s documentation
    howto
    howto_can_driver
    howto_cli_tools
+   cli_tools
    recorder
    troubleshooting
    pyxcp

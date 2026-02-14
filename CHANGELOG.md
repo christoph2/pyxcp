@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Docs**: Quickstart Guide - "From Zero to DAQ in 15 Minutes" (#184, #129, #143)
+- **Docs**: CLI Tools Reference - Comprehensive command-line tools guide (23 KB)
+- **Docs**: 6 production-ready example scripts (basic connection, calibration, DAQ, Ethernet, A2L, multi-ECU)
 
 ### Documented
 - **Quickstart**: Installation and verification
@@ -18,6 +20,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Quickstart**: Three configuration methods (CLI, file, programmatic)
 - **Quickstart**: Common troubleshooting scenarios
 - **Quickstart**: Quick reference table for essential commands
+- **Examples**: `basic_can_connection.py` - Hello world XCP workflow
+- **Examples**: `calibration_workflow.py` - Complete calibration with seed/key unlock (#184)
+- **Examples**: `daq_recording.py` - Full DAQ to CSV with conversions
+- **Examples**: `ethernet_connection.py` - TCP/UDP examples with error recovery
+- **Examples**: `a2l_integration.py` - Symbolic access with pya2ldb (#179)
+- **Examples**: `multi_ecu_setup.py` - Parallel and synchronized multi-ECU patterns (#227)
+- **CLI Tools**: All 7 CLI tools documented with usage, examples, troubleshooting
+- **CLI Tools**: Transport-specific configuration tips
+- **CLI Tools**: Common workflows (first contact, DAQ setup, multi-ECU)
+- **CLI Tools**: Environment variables (PYXCP_CONFIG, PYXCP_LOGLEVEL)
+- **CLI Tools**: Troubleshooting matrix for common errors
 
 ## [0.26.5] - 2026-02-14
 
