@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import logging
 from contextlib import suppress
 from time import time_ns
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
@@ -103,10 +104,34 @@ def load_daq_lists_from_json(config: List[Dict]) -> List[DaqList]:
 
 
 class DaqProcessor:
-    def __init__(self, daq_lists: List[Union[DaqList, PredefinedDaqList]]):
+    def __init__(self, daq_lists: List[Union[DaqList, PredefinedDaqList]], logger: Optional[logging.Logger] = None):
+        """Initialize DAQ Processor.
+
+        Parameters
+        ----------
+        daq_lists : List[Union[DaqList, PredefinedDaqList]]
+            List of DAQ lists to process
+        logger : Optional[logging.Logger]
+            Logger instance to use. If None, attempts to get logger from application.
+            If application is not available, creates a fallback logger.
+        """
         self.daq_lists = daq_lists
         self.is_predefined = [isinstance(d, PredefinedDaqList) for d in daq_lists]
-        self.log = get_application().log
+
+        # Get logger: explicit parameter > application > fallback
+        if logger is not None:
+            self.log = logger
+        else:
+            try:
+                self.log = get_application().log
+            except (FileNotFoundError, Exception) as e:
+                # Fallback: Create logger when running without config file
+                # This is common in test frameworks like Robot Framework or pytest
+                self.log = logging.getLogger("pyxcp.daq_stim")
+                if not self.log.handlers:
+                    self.log.addHandler(logging.NullHandler())
+                self.log.debug(f"Using fallback logger (application config not available: {e})")
+
         # Flag indicating a fatal OS-level error occurred during DAQ (e.g., disk full, out-of-memory)
         self._fatal_os_error: bool = False
 
@@ -280,8 +305,30 @@ class DaqProcessor:
 
 
 class DaqRecorder(DaqProcessor, _DaqRecorderPolicy):
-    def __init__(self, daq_lists: List[DaqList], file_name: str, prealloc: int = 200, chunk_size: int = 1):
-        DaqProcessor.__init__(self, daq_lists)
+    def __init__(
+        self,
+        daq_lists: List[DaqList],
+        file_name: str,
+        prealloc: int = 200,
+        chunk_size: int = 1,
+        logger: Optional[logging.Logger] = None,
+    ):
+        """Initialize DAQ Recorder.
+
+        Parameters
+        ----------
+        daq_lists : List[DaqList]
+            List of DAQ lists to record
+        file_name : str
+            Output file name for recording
+        prealloc : int, optional
+            Pre-allocation size (default: 200)
+        chunk_size : int, optional
+            Chunk size for writing (default: 1)
+        logger : Optional[logging.Logger], optional
+            Logger instance to use. If None, uses application logger or fallback.
+        """
+        DaqProcessor.__init__(self, daq_lists, logger=logger)
         _DaqRecorderPolicy.__init__(self)
         self.file_name = file_name
         self.prealloc = prealloc
@@ -304,8 +351,17 @@ class DaqOnlinePolicy(DaqProcessor, _DaqOnlinePolicy):
     Handles multiple inheritence.
     """
 
-    def __init__(self, daq_lists: List[DaqList]):
-        DaqProcessor.__init__(self, daq_lists)
+    def __init__(self, daq_lists: List[DaqList], logger: Optional[logging.Logger] = None):
+        """Initialize DAQ Online Policy.
+
+        Parameters
+        ----------
+        daq_lists : List[DaqList]
+            List of DAQ lists to process
+        logger : Optional[logging.Logger], optional
+            Logger instance to use. If None, uses application logger or fallback.
+        """
+        DaqProcessor.__init__(self, daq_lists, logger=logger)
         _DaqOnlinePolicy.__init__(self)
 
     def start(self):

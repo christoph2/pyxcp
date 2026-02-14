@@ -137,6 +137,55 @@ a = Analysis(
 
 ---
 
+## Configuration
+
+### Q: DaqToCsv fails with FileNotFoundError when running from Robot Framework
+
+**A:** **FIXED in v0.26.4+**. `DaqToCsv` and other DAQ classes now work without requiring a configuration file.
+
+**The Problem:**
+When running from test frameworks like Robot Framework or pytest, the current working directory
+is different from your project root, causing `FileNotFoundError: Configuration file 'pyxcp_conf.py' does not exist`.
+
+**Solution 1: Pass a logger explicitly** (recommended):
+```python
+import logging
+from pyxcp.daq_stim import DaqToCsv
+
+# Create your own logger
+logger = logging.getLogger('my_daq_logger')
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.INFO)
+
+# Pass logger to DaqToCsv
+daq_policy = DaqToCsv(daq_lists, logger=logger)
+```
+
+**Solution 2: Use in Robot Framework**:
+```robot
+*** Settings ***
+Library  pyxcp.daq_stim
+
+*** Test Cases ***
+My DAQ Test
+    ${logger} =  Get Logger  my_robot_logger
+    ${daq_policy} =  Create DaqToCsv  ${daq_lists}  logger=${logger}
+```
+
+**Solution 3: Set PYXCP_CONFIG environment variable** (future enhancement):
+```bash
+export PYXCP_CONFIG=/absolute/path/to/pyxcp_conf.py
+# Or in Robot Framework:
+Set Environment Variable  PYXCP_CONFIG  ${PROJECT_ROOT}/config/pyxcp_conf.py
+```
+
+**Note:** As of v0.26.4, DAQ classes automatically use a fallback logger when no configuration
+is available, so you can also just create `DaqToCsv(daq_lists)` without any logger parameter.
+
+**Related issues:** #260
+
+---
+
 ## DAQ (Data Acquisition)
 
 ### Q: How do I get DAQ data from the slave?

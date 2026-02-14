@@ -5,6 +5,22 @@ All notable changes to pyxcp will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **DAQ**: Optional logger parameter for DaqProcessor, DaqRecorder, DaqOnlinePolicy, DaqToCsv (#260)
+- **DAQ**: Automatic fallback logger when configuration file not available
+
+### Changed
+- **DAQ**: DaqProcessor now works without pyxcp_conf.py configuration file (#260)
+
+### Fixed
+- **DAQ**: FileNotFoundError when using DaqToCsv in Robot Framework or pytest (#260)
+
+### Documented
+- **Config**: Robot Framework usage pattern with explicit logger
+- **Config**: DaqToCsv configuration options in FAQ
+
 ## [0.26.4] - 2026-02-14
 
 ### Added
