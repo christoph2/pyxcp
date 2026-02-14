@@ -5,7 +5,7 @@ All notable changes to pyxcp will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.26.5] - 2026-02-14
 
 ### Added
 - **DAQ**: Optional logger parameter for DaqProcessor, DaqRecorder, DaqOnlinePolicy, DaqToCsv (#260)
@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Config**: Multi-path config discovery (CWD, script dir, ~/.pyxcp/, env var)
 - **Config**: Programmatic config creation via `create_application_from_config()` (#211)
 - **Config**: `set_application()` to set global application instance
+- **Tests**: 8 new config discovery tests in `test_config_discovery.py`
 
 ### Changed
 - **DAQ**: DaqProcessor now works without pyxcp_conf.py configuration file (#260)
