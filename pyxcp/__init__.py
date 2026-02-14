@@ -19,7 +19,7 @@ tb_install(show_locals=True, max_frames=3)  # Install custom exception handler.
 
 # if you update this manually, do not forget to update
 # pyproject.toml.
-__version__ = "0.26.6"
+__version__ = "0.26.7"
 
 
 # Deprecation warning for TOML config

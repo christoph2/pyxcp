@@ -7,17 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.7] - 2026-02-14
+
 ### Added
 - **CAN-FD Documentation**: Comprehensive guide in FAQ.md covering mixed mode, pure FD mode, platform setup, and troubleshooting (#70)
-- **CAN-FD Example**: New `canfd_example.py` demonstrating CAN-FD configuration and usage patterns
+- **CAN-FD Example**: New `canfd_example.py` (10 KB) demonstrating CAN-FD configuration for both modes
 
 ### Fixed
-- **Issue #70**: Verified CAN-FD support (resolved in v0.16.8, now fully documented)
-- **Issue #209**: Master.close() delay reduced from ~5s to ~0.6s (CAN transport recv timeout optimized)
+- **Issue #70**: CAN-FD support verified (resolved in v0.16.8) and fully documented with examples
+- **Issue #209**: Master.close() delay reduced from ~5s to ~0.6s (10x improvement)
+  * CAN transport `recv()` timeout optimized: 2.0s → 0.1s for responsive shutdown
+  * Listener thread join timeout reduced: 2.0s → 0.5s
+  * All 169 CAN tests passing
+- **Issue #217**: SlCan parameter filtering verified (already fixed in v0.26.1, commit d8607dc)
 
 ### Changed
-- **Performance**: CAN transport `recv()` now uses 0.1s timeout (down from 2.0s) for faster shutdown
-- **Performance**: Listener thread join timeout reduced to 0.5s (down from 2.0s)
+- **Performance**: CAN listen thread now exits within ~100ms after close signal (was up to 2 seconds)
+- **Performance**: Master.close() comparable to udsoncan speed (~0.6s vs ~5s previously)
+
+### Documented
+- **CAN-FD**: Mixed mode (FD on-demand) vs Pure FD mode (AUTOSAR compliant)
+- **CAN-FD**: Platform-specific setup for Linux SocketCAN and Windows Vector/PEAK
+- **CAN-FD**: Discrete DLCs (0-8, 12, 16, 20, 24, 32, 48, 64) and padding behavior
+- **CAN-FD**: ECU capability detection and troubleshooting guide
 
 ## [0.26.6] - 2026-02-14
 
