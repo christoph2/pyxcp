@@ -862,19 +862,33 @@ with ap.run() as x:
 
 ### Q: My issue is not listed here
 
-**A:** Check these resources:
+**A:** Use the comprehensive troubleshooting guide with symptom-based decision trees.
 
-1. **Documentation:** `docs/troubleshooting.rst` and `docs/troubleshooting_matrix.rst`
-2. **Examples:** `pyxcp/examples/` folder
-3. **GitHub Issues:** Search [existing issues](https://github.com/christoph2/pyxcp/issues)
-4. **GitHub Discussions:** Ask in [Discussions](https://github.com/christoph2/pyxcp/discussions)
+**Primary resource:** [**Troubleshooting Guide**](troubleshooting.rst) - Start here!
 
-When reporting an issue, please include:
+The troubleshooting guide provides:
+- **Decision trees** - Follow symptoms to solutions
+- **Platform-specific issues** - Windows/Linux/macOS
+- **Transport-specific** - CAN/Ethernet/USB/Serial
+- **Error code reference** - XCP error codes explained
+- **Quick diagnostic checklist** - 7 commands to verify setup
+
+**Other resources:**
+
+1. **Platform Setup:** [platform_setup.md](platform_setup.md) - Installation issues
+2. **CLI Tools:** [cli_tools.md](cli_tools.md) - Command-line tool problems
+3. **Examples:** `pyxcp/examples/` - Working code templates
+4. **GitHub Issues:** Search [existing issues](https://github.com/christoph2/pyxcp/issues)
+5. **GitHub Discussions:** Ask in [Discussions](https://github.com/christoph2/pyxcp/discussions)
+
+**When reporting an issue, include:**
 - pyxcp version: `python -c "import pyxcp; print(pyxcp.__version__)"`
 - Python version: `python --version`
-- Operating system
+- Operating system: `uname -a` (Linux/macOS) or `ver` (Windows)
 - Transport layer (CAN/ETH/USB/Serial)
 - Minimal code to reproduce
+- Full error traceback
+- Debug log: `export PYXCP_LOGLEVEL=DEBUG` before running
 
 ---
 

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Docs**: Quickstart Guide - "From Zero to DAQ in 15 Minutes" (#184, #129, #143)
 - **Docs**: CLI Tools Reference - Comprehensive command-line tools guide (23 KB)
 - **Docs**: Platform Setup Guide - OS-specific installation and configuration (22 KB)
+- **Docs**: Troubleshooting Guide - Symptom-based decision trees (24 KB)
 - **Docs**: 6 production-ready example scripts (basic connection, calibration, DAQ, Ethernet, A2L, multi-ECU)
 
 ### Documented
@@ -42,6 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Platform Setup**: Seed/key DLL bridging on Windows (32-bit to 64-bit)
 - **Platform Setup**: Platform-specific troubleshooting matrix
 - **Platform Setup**: Performance tuning tips (Linux real-time scheduling, network buffers)
+- **Troubleshooting**: Symptom-based decision trees (connection, import, config, DAQ, CAN, performance)
+- **Troubleshooting**: XCP error code reference with solutions
+- **Troubleshooting**: Python exception guide
+- **Troubleshooting**: Platform-specific issue matrix
+- **Troubleshooting**: USB permissions setup (Linux udev rules)
+- **Troubleshooting**: 7-step quick diagnostic checklist
+- **FAQ**: Enhanced troubleshooting section with links to decision trees
 
 ## [0.26.5] - 2026-02-14
 
