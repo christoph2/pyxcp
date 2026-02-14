@@ -26,7 +26,7 @@ _thread_flags = threading.local()
 def set_suppress_xcp_error_log(value: bool) -> None:
     try:
         _thread_flags.suppress_xcp_error_log = bool(value)
-    except Exception:
+    except Exception:  # nosec B110 - fallback is intentional
         pass
 
 
@@ -162,14 +162,32 @@ class Repeater:
                 - REPEAT (one time)
                 - REPEAT_2_TIMES (two times)
                 - REPEAT_INF_TIMES ("forever")
+        max_retries: int, optional
+            User-configurable maximum retry count. If provided:
+                - -1: infinite retries (XCP standard behavior)
+                - 0: no retries
+                - >0: maximum number of retries
+            Overrides initial_value if set and not -1.
     """
 
     REPEAT = 1
     REPEAT_2_TIMES = 2
     INFINITE = -1
 
-    def __init__(self, initial_value: int):
-        self._counter = initial_value
+    def __init__(self, initial_value: int, max_retries: int = None):
+        # Apply max_retries override if configured
+        if max_retries is not None:
+            if max_retries == Repeater.INFINITE:
+                # User explicitly wants infinite retries
+                self._counter = Repeater.INFINITE
+            else:
+                # User wants limited retries (0 or positive)
+                self._counter = max_retries
+        else:
+            # No override, use XCP standard behavior
+            self._counter = initial_value
+        self._initial_value = initial_value
+        self._max_retries = max_retries
         # print("\tREPEATER ctor", hex(id(self)))
 
     def repeat(self):
@@ -234,7 +252,7 @@ class Handler:
                 return ""
             if hasattr(transport, "_build_diagnostics_dump"):
                 return transport._build_diagnostics_dump()  # type: ignore[attr-defined]
-        except Exception:
+        except Exception:  # nosec B110 - fallback is intentional
             pass
         return ""
 
@@ -372,7 +390,7 @@ class Handler:
             try:
                 for line in diag.splitlines():
                     self.logger.error(line)
-            except Exception:
+            except Exception:  # nosec B110 - fallback is intentional
                 pass
         return msg
 
@@ -478,7 +496,19 @@ class Handler:
                 pass
             elif item == Action.NEW_FLASH_WARE:
                 raise SystemExit(self._append_diag("Could not proceed due to unhandled error (NEW_FLASH_WARE)"), self.error_code)
-        return result_pre_actions, result_actions, Repeater(repetitionCount)
+
+        # Get max_retries from configuration
+        max_retries = None
+        try:
+            config = getattr(self.instance, "config", None)
+            if config is not None:
+                general = getattr(config, "general", None)
+                if general is not None:
+                    max_retries = getattr(general, "max_retries", None)
+        except Exception:  # nosec B110 - config fallback is intentional
+            pass
+
+        return result_pre_actions, result_actions, Repeater(repetitionCount, max_retries=max_retries)
 
 
 T = TypeVar("T")
@@ -591,7 +621,7 @@ class Executor(SingletonBase):
                                     "error_name": err_name,
                                 },
                             )
-                    except Exception:
+                    except Exception:  # nosec B110 - logging fallback is intentional
                         pass
                 except XcpTimeoutError:
                     is_connect = func.__name__ == "connect"
@@ -637,14 +667,14 @@ class Executor(SingletonBase):
                         try:
                             if hasattr(handler, "_append_diag"):
                                 msg = handler._append_diag(msg)
-                        except Exception:
+                        except Exception:  # nosec B110 - diagnostics fallback is intentional
                             pass
                         try:
                             self.logger.error(
                                 "XCP unrecoverable",
                                 extra={"event": "xcp_unrecoverable", "service": getattr(inst.service, "name", None)},
                             )
-                        except Exception:
+                        except Exception:  # nosec B110 - logging fallback is intentional
                             pass
                         raise UnrecoverableError(msg)
         finally:

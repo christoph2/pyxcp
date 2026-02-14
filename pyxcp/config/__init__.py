@@ -913,6 +913,11 @@ class General(Configurable):
     connect_retries = Integer(help="Number of CONNECT retries (None for infinite retries).", allow_none=True, default_value=3).tag(
         config=True
     )
+    max_retries = Integer(
+        help="Maximum retry count for all XCP commands (-1 for infinite retries per XCP spec, 0 = no retries, >=1 = max attempts).",
+        allow_none=False,
+        default_value=-1,
+    ).tag(config=True)
     # Structured diagnostics dump options
     diagnostics_on_failure = Bool(True, help="Append a structured diagnostics dump to timeout errors.").tag(config=True)
     diagnostics_last_pdus = Integer(20, help="How many recent PDUs to include in diagnostics dump.").tag(config=True)

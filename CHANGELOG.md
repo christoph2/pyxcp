@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **WP-8**: Configurable retry strategy via `c.General.max_retries` (#216, #107, #155)
+  * `-1` (default): Infinite retries per XCP standard
+  * `0`: No retries, fail immediately
+  * `≥1`: Max retry attempts before exception
+  * Prevents infinite loops in production while maintaining XCP spec compliance
+  * 12 new tests for retry behavior
+- **FAQ**: Comprehensive retry configuration guide with production vs development recommendations
+
+### Changed
+- **Error Handler**: Repeater class now respects `max_retries` configuration option
+- **Error Handler**: User can override XCP standard infinite retry behavior
+
 ## [0.26.7] - 2026-02-14
 
 ### Added

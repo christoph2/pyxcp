@@ -774,18 +774,50 @@ Or create a local fork with adjusted dependencies.
 
 ## Error Handling & Timeouts
 
-### Q: Error handler repeats errors forever / infinite retry
+### Q: How do I control retry behavior for XCP commands?
 
-**A:** By default, pyxcp follows XCP standard (infinite retry). Configure timeouts:
+**A:** pyXCP follows XCP standard (infinite retry) by default. You can now configure this behavior:
+
+```python
+from pyxcp.cmdline import ArgumentParser
+
+ap = ArgumentParser(description="...")
+ap.parser.add_argument("--config", default="config.py")
+
+# In your config.py:
+c.General.max_retries = 3   # Max 3 retry attempts
+# OR
+c.General.max_retries = 0   # No retries (fail immediately)
+# OR
+c.General.max_retries = -1  # Infinite retries (XCP standard, DEFAULT)
+```
+
+**Behavior:**
+- `-1` (default): Infinite retries per XCP specification
+- `0`: No retries - fail immediately on first error
+- `1-N`: Retry up to N times before raising exception
+
+**When to use what:**
+- **Production code:** Use `max_retries = 3` to prevent infinite loops
+- **Development/Testing:** Use `max_retries = -1` for XCP standard compliance
+- **Automated testing:** Use `max_retries = 0` for fast failures
+
+**Note:** This overrides XCP protocol retry strategies for ALL commands (including CONNECT, which already has `c.General.connect_retries`).
+
+**Related issues:** #216, #107
+
+---
+
+### Q: Error handler repeats errors forever / infinite retry (DEPRECATED)
+
+### Q: Error handler repeats errors forever / infinite retry (DEPRECATED)
+
+**A:** See "How do I control retry behavior" above. Legacy approach:
 
 ```python
 c.Master.timeout = 2.0  # Global timeout in seconds
-c.Master.max_retries = 3  # Max retry attempts (default: infinite)
+c.General.max_retries = 3  # Use this instead!
 ```
-
-**Better retry configuration coming in future release.**
-
-**Related issues:** #216, #107
 
 ---
 
