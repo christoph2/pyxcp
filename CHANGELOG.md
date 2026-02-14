@@ -7,49 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.6] - 2026-02-14
+
 ### Added
-- **Docs**: Quickstart Guide - "From Zero to DAQ in 15 Minutes" (#184, #129, #143)
-- **Docs**: CLI Tools Reference - Comprehensive command-line tools guide (23 KB)
-- **Docs**: Platform Setup Guide - OS-specific installation and configuration (22 KB)
-- **Docs**: Troubleshooting Guide - Symptom-based decision trees (24 KB)
-- **Docs**: 6 production-ready example scripts (basic connection, calibration, DAQ, Ethernet, A2L, multi-ECU)
+- **Docs**: Quickstart Guide - "From Zero to DAQ in 15 Minutes" (11.8 KB) (#184, #129, #143)
+- **Docs**: CLI Tools Reference - Comprehensive command-line tools guide (23 KB) (#184, #113)
+- **Docs**: Platform Setup Guide - OS-specific installation and configuration (22 KB) (#262, #253, #169)
+- **Docs**: Troubleshooting Guide - Symptom-based decision trees (24 KB) (20+ issues addressed)
+- **Docs**: 6 production-ready example scripts (43 KB total) (#184, #179, #227, #113, #143, #129)
+  * `basic_can_connection.py` - Hello world XCP workflow (2.5 KB)
+  * `calibration_workflow.py` - Complete calibration with seed/key unlock (5.4 KB)
+  * `daq_recording.py` - Full DAQ to CSV with conversions (5.8 KB)
+  * `ethernet_connection.py` - TCP/UDP examples with error recovery (8.9 KB)
+  * `a2l_integration.py` - Symbolic access with pya2ldb (9.6 KB)
+  * `multi_ecu_setup.py` - Parallel and synchronized multi-ECU patterns (11.0 KB)
 
 ### Documented
-- **Quickstart**: Installation and verification
-- **Quickstart**: First CAN and Ethernet connections
-- **Quickstart**: Reading/writing parameters with examples
-- **Quickstart**: Basic DAQ recording to CSV
+- **Quickstart**: Installation and verification for new users
+- **Quickstart**: First CAN and Ethernet connections with examples
+- **Quickstart**: Reading/writing parameters with code samples
+- **Quickstart**: Basic DAQ recording to CSV workflow
 - **Quickstart**: Three configuration methods (CLI, file, programmatic)
-- **Quickstart**: Common troubleshooting scenarios
+- **Quickstart**: Common troubleshooting scenarios with solutions
 - **Quickstart**: Quick reference table for essential commands
-- **Examples**: `basic_can_connection.py` - Hello world XCP workflow
-- **Examples**: `calibration_workflow.py` - Complete calibration with seed/key unlock (#184)
-- **Examples**: `daq_recording.py` - Full DAQ to CSV with conversions
-- **Examples**: `ethernet_connection.py` - TCP/UDP examples with error recovery
-- **Examples**: `a2l_integration.py` - Symbolic access with pya2ldb (#179)
-- **Examples**: `multi_ecu_setup.py` - Parallel and synchronized multi-ECU patterns (#227)
-- **CLI Tools**: All 7 CLI tools documented with usage, examples, troubleshooting
-- **CLI Tools**: Transport-specific configuration tips
+- **CLI Tools**: All 7 CLI tools with usage, examples, troubleshooting
+- **CLI Tools**: Transport-specific configuration tips (CAN, Ethernet, USB, Serial)
 - **CLI Tools**: Common workflows (first contact, DAQ setup, multi-ECU)
 - **CLI Tools**: Environment variables (PYXCP_CONFIG, PYXCP_LOGLEVEL)
-- **CLI Tools**: Troubleshooting matrix for common errors
-- **Platform Setup**: Windows installation (Python, MSVC, CAN drivers: Vector/PCAN/Kvaser)
+- **CLI Tools**: Troubleshooting matrix for common CLI errors
+- **Platform Setup**: Windows installation (Python, MSVC, CAN drivers: Vector/PCAN/Kvaser/IXXAT)
 - **Platform Setup**: Linux installation (Ubuntu/Debian/Fedora/Arch + SocketCAN setup)
 - **Platform Setup**: macOS installation (Homebrew, Xcode tools, limited CAN options)
 - **Platform Setup**: Docker and CI/CD (Dockerfile, docker-compose, GitHub Actions, GitLab CI)
 - **Platform Setup**: CAN driver setup for all platforms (SocketCAN, Vector, PCAN, Virtual CAN)
-- **Platform Setup**: USB permissions (Linux udev rules)
+- **Platform Setup**: USB permissions (Linux udev rules for non-root access)
 - **Platform Setup**: Build from source instructions (all platforms)
 - **Platform Setup**: Seed/key DLL bridging on Windows (32-bit to 64-bit)
 - **Platform Setup**: Platform-specific troubleshooting matrix
 - **Platform Setup**: Performance tuning tips (Linux real-time scheduling, network buffers)
 - **Troubleshooting**: Symptom-based decision trees (connection, import, config, DAQ, CAN, performance)
-- **Troubleshooting**: XCP error code reference with solutions
-- **Troubleshooting**: Python exception guide
-- **Troubleshooting**: Platform-specific issue matrix
+- **Troubleshooting**: XCP error code reference (0x00-0x43) with solutions
+- **Troubleshooting**: Python exception guide (TimeoutError, PermissionError, OSError)
+- **Troubleshooting**: Platform-specific issue matrix (Linux/Windows/macOS)
 - **Troubleshooting**: USB permissions setup (Linux udev rules)
 - **Troubleshooting**: 7-step quick diagnostic checklist
-- **FAQ**: Enhanced troubleshooting section with links to decision trees
+- **FAQ**: Enhanced troubleshooting section with links to decision trees and guides
+
+### Summary
+This release adds **123.8 KB** of comprehensive documentation addressing the most common user questions and issues:
+- **New users**: Complete 15-minute quickstart guide eliminates initial confusion
+- **Developers**: 6 production-ready examples provide copy-paste templates for common tasks
+- **Operators**: CLI tools reference covers all command-line utilities
+- **Admins**: Platform setup guide with OS-specific installation for Windows/Linux/macOS
+- **Support**: Troubleshooting decision trees for quick problem resolution
+
+**Issues Addressed:** #184 (50 comments), #179, #227, #260, #211, #262, #253, #188, #199, #240,
+#169, #261, #203, #247, #263, #223, #226, #219, #212, #113, #143, #129 (20+ issues)
 
 ## [0.26.5] - 2026-02-14
 
