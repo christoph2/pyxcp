@@ -336,7 +336,8 @@ class Handler:
                 console.print(Panel.fit(tp_table, title=header))
                 if last_pdus:
                     console.print(pdu_table)
-                rendered = console.export_text(clear=False)
+                # Capture the rendered output (not used currently but may be logged in future)
+                _ = console.export_text(clear=False)
 
             except Exception:
                 # Rich not available or rendering failed; fallback to compact logger lines
@@ -431,7 +432,10 @@ class Handler:
             elif item == PreAction.START_STOP_X:
                 raise NotImplementedError("Pre-action START_STOP_X")
             elif item == PreAction.REINIT_DAQ:
-                raise NotImplementedError("Pre-action REINIT_DAQ")
+                # FREE_DAQ clears dynamic DAQ configuration
+                # Required when re-allocating DAQ lists
+                fn = Function(self.instance.freeDaq, Arguments())
+                result_pre_actions.append(fn)
             elif item == PreAction.DISPLAY_ERROR:
                 pass
             elif item == PreAction.DOWNLOAD:

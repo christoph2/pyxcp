@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CONTRIBUTING.md with development guidelines
 - Linux build test script (	est_linux_build.sh)
 - TOML configuration deprecation warnings
+- **DAQ**: Automatic fallback when GET_DAQ_PROCESSOR_INFO not supported (#230)
+- **DAQ**: Implemented REINIT_DAQ pre-action for multiple DAQ lists (#208)
 
 ### Changed
 - **BREAKING**: C++ standard downgraded from C++23 to C++20 for broader compatibility
@@ -24,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - build_ext.py: Added fallback for Python library detection
 - CI workflow: Added Linux/macOS system dependencies
 - Enhanced `.github/copilot-instructions.md`
+- **DAQ**: GET_DAQ_PROCESSOR_INFO is now optional (per XCP spec)
 
 ### Fixed
 - Linux build failures on Ubuntu 24.04 (#169)
@@ -31,11 +34,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Logging interference with user applications (#176)
 - PyInstaller bundling issues (#261, #203)
 - `UnboundLocalError: libdir` during build
+- **DAQ**: ECUs without GET_DAQ_PROCESSOR_INFO support now work (#230, #184)
+- **DAQ**: Multiple DAQ lists work without NotImplementedError (#208)
 
 ### Documented
 - FAQ addresses issues: #240, #188, #199, #169, #208, #253, #156, #142, #227, and more
 - LINUX_BUILD_FIXES.md with common build issues and solutions
 - Contributing guide with quick start and conventions
+- DAQ fallback behavior and ECU compatibility
 
 ## [0.26.2] - 2024-XX-XX
 

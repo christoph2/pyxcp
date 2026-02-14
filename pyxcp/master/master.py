@@ -2238,28 +2238,65 @@ class Master:
         return cs.checksum == cc
 
     def getDaqInfo(self, include_event_lists=True):
-        """Get DAQ information: processor, resolution, events."""
+        """Get DAQ information: processor, resolution, events.
+
+        Note:
+            GET_DAQ_PROCESSOR_INFO is optional per XCP spec. If the ECU doesn't
+            support it, fallback defaults will be used. See FAQ for details.
+        """
         result = {}
-        dpi = self.getDaqProcessorInfo()
-        processorInfo = {
-            "minDaq": dpi["minDaq"],
-            "maxDaq": dpi["maxDaq"],
-            "properties": {
-                "configType": dpi["daqProperties"]["daqConfigType"],
-                "overloadEvent": dpi["daqProperties"]["overloadEvent"],
-                "overloadMsb": dpi["daqProperties"]["overloadMsb"],
-                "prescalerSupported": dpi["daqProperties"]["prescalerSupported"],
-                "pidOffSupported": dpi["daqProperties"]["pidOffSupported"],
-                "timestampSupported": dpi["daqProperties"]["timestampSupported"],
-                "bitStimSupported": dpi["daqProperties"]["bitStimSupported"],
-                "resumeSupported": dpi["daqProperties"]["resumeSupported"],
-            },
-            "keyByte": {
-                "identificationField": dpi["daqKeyByte"]["Identification_Field"],
-                "addressExtension": dpi["daqKeyByte"]["Address_Extension"],
-                "optimisationType": dpi["daqKeyByte"]["Optimisation_Type"],
-            },
-        }
+
+        # Try GET_DAQ_PROCESSOR_INFO, but provide fallback if not supported
+        try:
+            dpi = self.getDaqProcessorInfo()
+            processorInfo = {
+                "minDaq": dpi["minDaq"],
+                "maxDaq": dpi["maxDaq"],
+                "properties": {
+                    "configType": dpi["daqProperties"]["daqConfigType"],
+                    "overloadEvent": dpi["daqProperties"]["overloadEvent"],
+                    "overloadMsb": dpi["daqProperties"]["overloadMsb"],
+                    "prescalerSupported": dpi["daqProperties"]["prescalerSupported"],
+                    "pidOffSupported": dpi["daqProperties"]["pidOffSupported"],
+                    "timestampSupported": dpi["daqProperties"]["timestampSupported"],
+                    "bitStimSupported": dpi["daqProperties"]["bitStimSupported"],
+                    "resumeSupported": dpi["daqProperties"]["resumeSupported"],
+                },
+                "keyByte": {
+                    "identificationField": dpi["daqKeyByte"]["Identification_Field"],
+                    "addressExtension": dpi["daqKeyByte"]["Address_Extension"],
+                    "optimisationType": dpi["daqKeyByte"]["Optimisation_Type"],
+                },
+            }
+            max_event_channel = dpi.maxEventChannel
+        except SystemExit as e:
+            # GET_DAQ_PROCESSOR_INFO not supported (ERR_CMD_UNKNOWN)
+            # Use conservative fallback defaults per XCP spec
+            self.logger.warning(
+                "GET_DAQ_PROCESSOR_INFO not supported by ECU (error: %s). "
+                "Using fallback defaults. DAQ functionality may be limited.",
+                e.error_code if hasattr(e, "error_code") else str(e),
+            )
+            processorInfo = {
+                "minDaq": 0,
+                "maxDaq": 0,  # Dynamic allocation required
+                "properties": {
+                    "configType": "DYNAMIC",
+                    "overloadEvent": False,
+                    "overloadMsb": True,
+                    "prescalerSupported": False,
+                    "pidOffSupported": False,
+                    "timestampSupported": False,
+                    "bitStimSupported": False,
+                    "resumeSupported": False,
+                },
+                "keyByte": {
+                    "identificationField": "IDF_ABS_ODT_NUMBER",
+                    "addressExtension": "AE_SAME_FOR_ALL",
+                    "optimisationType": "OM_DEFAULT",
+                },
+            }
+            max_event_channel = 0  # Will skip event info collection
         result["processor"] = processorInfo
 
         dri = self.getDaqResolutionInfo()
@@ -2278,8 +2315,8 @@ class Master:
         result["resolution"] = resolutionInfo
         channels = []
         daq_events = []
-        if include_event_lists:
-            for ecn in range(dpi.maxEventChannel):
+        if include_event_lists and max_event_channel > 0:
+            for ecn in range(max_event_channel):
                 eci = self.getDaqEventInfo(ecn)
                 cycle = eci["eventChannelTimeCycle"]
                 maxDaqList = eci["maxDaqList"]

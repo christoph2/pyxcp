@@ -189,27 +189,71 @@ with ap.run() as x:
 
 ---
 
-### Q: `NotImplementedError: REINIT_DAQ not implemented`
+### Q: My ECU doesn't support GET_DAQ_PROCESSOR_INFO and throws ERR_CMD_UNKNOWN. What should I do?
 
-**A:** This is a known limitation when using multiple DAQ lists. Current workaround:
+**A:** As of version 0.26.3, pyxcp automatically handles ECUs that don't support GET_DAQ_PROCESSOR_INFO (which is optional per XCP spec).
 
-1. **Use a single large DAQ list** instead of multiple small ones
-2. **Wait for fix** - This is tracked in issue #208 and will be implemented soon
+When this command fails, pyxcp uses conservative fallback defaults:
+- Dynamic DAQ configuration (requires ALLOC_DAQ)
+- No timestamp support
+- No prescaler support
+- Standard identification field (IDF_ABS_ODT_NUMBER)
 
-**Temporary workaround:**
+**To use DAQ with such ECUs:**
+
 ```python
-# Instead of multiple DAQ lists:
-daq_list_1 = DaqList(name="list1", entries=[...])
-daq_list_2 = DaqList(name="list2", entries=[...])
+# This will now work even if GET_DAQ_PROCESSOR_INFO is not supported
+daq_info = master.getDaqInfo(include_event_lists=False)
 
-# Combine into one:
-combined_list = DaqList(
-    name="combined",
-    entries=[...all entries...]
-)
+# You'll need to manually configure DAQ lists using dynamic allocation
+master.freeDaq()  # Clear any existing configuration
+master.allocDaq(1)  # Allocate 1 DAQ list
+master.allocOdt(0, 1)  # Allocate 1 ODT for DAQ list 0
+master.allocOdtEntry(0, 0, 2)  # Allocate 2 entries in ODT 0
+
+# Then configure and start as usual
+master.setDaqPtr(0, 0, 0)
+master.writeDaq(0, 4, 0, address1)  # Add measurements
+master.writeDaq(0, 4, 0, address2)
+master.setDaqListMode(0x10, 0, event_channel, 1, 0)
+master.startStopDaqList(1, 0)
+master.startStopSynch(1)
 ```
 
-**Related issues:** #208, #140
+**Note:** You'll see a warning in the logs when fallback mode is used:
+```
+WARNING: GET_DAQ_PROCESSOR_INFO not supported by ECU (error: ERR_CMD_UNKNOWN). Using fallback defaults. DAQ functionality may be limited.
+```
+
+**Related Issues:** #230, #184
+
+---
+
+### Q: I get "NotImplementedError: Pre-action REINIT_DAQ" when using multiple DAQ lists. How do I fix this?
+
+**A:** Fixed in version 0.26.3! This error occurred when the XCP slave required a FREE_DAQ command before re-allocating DAQ lists.
+
+The error handler now automatically calls `freeDaq()` as a pre-action when the slave indicates REINIT_DAQ is needed.
+
+**Before 0.26.3 (workaround):**
+```python
+# Had to manually free and re-setup
+master.freeDaq()
+daq_parser.setup()  # Setup all DAQ lists again
+```
+
+**After 0.26.3:**
+```python
+# Just configure multiple DAQ lists - automatic handling
+daq_lists = [
+    DaqList(name="List1", measurements=[...]),
+    DaqList(name="List2", measurements=[...]),
+]
+daq_parser = Daq(master, daq_lists)
+daq_parser.setup()  # Works automatically!
+```
+
+**Related Issues:** #208
 
 ---
 
