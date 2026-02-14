@@ -147,3 +147,32 @@ Makefile
 wheelhouse/
 
 asamkeydll
+
+# pyxcp specific
+*.pyd
+
+# Ruff cache
+.ruff_cache/
+
+# XCP data files
+*.xmraw
+*.h5
+*.sq3
+*.mf4
+
+# Example outputs
+pyxcp/examples/*.csv
+pyxcp/examples/*_conf*.py
+pyxcp/examples/pyxcp_conf.py
+
+# Personal notes
+Calist_Copilot.txt
+**/Local_*.txt
+**/Timecorrelation_*.txt
+
+# Temporary directories
+pyxcp/framing_test/
+pyxcp/gui/
+pyxcp/policy_sdk/
+pyxcp/testing/
+pyxcp/pyxcp/

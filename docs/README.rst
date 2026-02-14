@@ -8,7 +8,7 @@ Reliable Python tooling for the ASAM MCD-1 XCP protocol (measurement,
 calibration, flashing) with multiple transports (CAN, Ethernet, USB,
 Serial) and handy CLI utilities.
 
-|PyPI| |Python Versions| |License: LGPL v3+| |Code style: black|
+|PyPI| |Python Versions| |License: LGPL v3+| |Code style: ruff| |pre-commit|
 
 ``pyXCP`` is a production-ready Python library for communicating with
 XCP-enabled devices, most commonly automotive ECUs. Use it to take
@@ -289,7 +289,7 @@ Further resources
 - Related: CCP (legacy predecessor to XCP), ASAM MDF for measurement
   data storage
 
-.. |CI| image:: https://github.com/christoph2/pyxcp/workflows/Python%20application/badge.svg
+.. |GitHub Actions| image:: https://github.com/christoph2/pyxcp/workflows/Python%20application/badge.svg
    :target: https://github.com/christoph2/pyxcp/actions
 .. |PyPI| image:: https://img.shields.io/pypi/v/pyxcp.svg
    :target: https://pypi.org/project/pyxcp/
@@ -297,5 +297,5 @@ Further resources
    :target: https://pypi.org/project/pyxcp/
 .. |License: LGPL v3+| image:: https://img.shields.io/badge/License-LGPL%20v3%2B-blue.svg
    :target: https://www.gnu.org/licenses/lgpl-3.0
-.. |Code style: black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+.. |Code style: ruff| |pre-commit| image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/psf/black
