@@ -312,12 +312,18 @@ class PythonCanWrapper:
     def connect(self) -> None:
         if self.connected:
             return
+
+        # Build filter list BEFORE bus initialization
         can_filters = []
         can_filters.append(self.parent.can_id_slave.create_filter_from_id())  # Primary CAN filter.
         if self.parent.daq_identifier:
             # Add filters for DAQ identifiers.
             for daq_id in self.parent.daq_identifier:
                 can_filters.append(daq_id.create_filter_from_id())
+
+        # Log filter configuration BEFORE bus starts
+        self.parent.logger.debug(f"XCPonCAN - Configuring filters: {can_filters}")
+
         if self.parent.has_user_supplied_interface:
             self.saved_filters = self.parent.transport_layer_interface.filters
             merged_filters = can_filters[::]
@@ -330,6 +336,8 @@ class PythonCanWrapper:
             self.software_filter.set_filters(can_filters)  # Filter unwanted traffic.
         else:
             try:
+                # Filters are applied during bus initialization
+                # python-can should activate filters before going on bus
                 self.can_interface = self.can_interface_class(
                     interface=self.interface_name, can_filters=can_filters, **self.parameters
                 )
@@ -339,10 +347,51 @@ class PythonCanWrapper:
                     f"OS error while creating CAN interface {self.interface_name!r}: {ex.__class__.__name__}: {ex}"
                 ) from ex
             self.software_filter.accept_all()
+
+        # Log status AFTER bus is initialized and filters are active
         self.parent.logger.info(f"XCPonCAN - Using Interface: '{self.can_interface!s}'")
         self.parent.logger.info(f"XCPonCAN - Filters used: {self.can_interface.filters}")
         self.parent.logger.info(f"XCPonCAN - State: {self.can_interface.state!s}")
         self.connected = True
+
+    def update_daq_filters(self, daq_identifiers: List) -> None:
+        """Update CAN filters to include DAQ identifiers.
+
+        This method should be called after DAQ configuration when DAQ IDs become known.
+
+        Parameters
+        ----------
+        daq_identifiers : List
+            List of Identifier objects for DAQ messages
+        """
+        if not self.connected:
+            self.parent.logger.warning("Cannot update DAQ filters: not connected")
+            return
+
+        if not daq_identifiers:
+            self.parent.logger.debug("No DAQ identifiers to add to filters")
+            return
+
+        # Build updated filter list
+        can_filters = [self.parent.can_id_slave.create_filter_from_id()]
+        for daq_id in daq_identifiers:
+            can_filters.append(daq_id.create_filter_from_id())
+
+        # Apply filters based on interface type
+        if self.parent.has_user_supplied_interface:
+            merged_filters = can_filters[::]
+            if self.saved_filters:
+                for fltr in self.saved_filters:
+                    if fltr not in merged_filters:
+                        merged_filters.append(fltr)
+            self.can_interface.set_filters(merged_filters)
+            self.software_filter.set_filters(can_filters)
+            self.parent.logger.info(f"XCPonCAN - Updated DAQ filters: {len(daq_identifiers)} DAQ IDs added")
+        else:
+            # Hardware filter update not always supported - use software filter
+            self.software_filter.set_filters(can_filters)
+            self.parent.logger.info(f"XCPonCAN - Updated software DAQ filters: {len(daq_identifiers)} DAQ IDs added")
+            self.parent.logger.debug(f"XCPonCAN - DAQ filters: {can_filters}")
 
     def close(self) -> None:
         if self.connected and not self.parent.has_user_supplied_interface:

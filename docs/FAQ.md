@@ -317,19 +317,65 @@ daq_parser.setup()  # Works automatically!
 
 ## CAN Transport
 
-### Q: CAN DAQ gets interrupted after connection
+### Q: CAN DAQ gets interrupted after connection / unexpected messages
 
-**A:** The CAN filter is being set too late. This is a known bug being fixed. Workaround:
+**A:** **FIXED in v0.26.3+**. The CAN filter timing has been improved to prevent Basic Traffic from entering the buffer between bus start and filter activation.
 
-Configure the filter manually before starting DAQ:
+Additionally, DAQ ID filters can now be updated dynamically after connection:
+
 ```python
-# In your config:
-c.Transport.Can.receive_filters = [
-    {"can_id": 0x123, "can_mask": 0x7FF, "extended": False}
-]
+# Filters are set at connect() time
+x.connect()
+
+# If DAQ IDs become known later, update filters:
+if hasattr(x.transport, 'can_interface'):
+    x.transport.can_interface.update_daq_filters(daq_ids)
+```
+
+**Tip:** If you still encounter unexpected CAN messages, enable debug logging to see which IDs are being received:
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
 ```
 
 **Related issues:** #231, #136
+
+---
+
+### Q: Vector CANape / XCPsim connection timeout with "XCPsim" app_name
+
+**A:** Configure the Vector app_name in your config:
+
+```python
+from pyxcp.config import PyXCP
+
+app = PyXCP()
+app.transport.can.interface = "vector"
+app.transport.can.channel = "0"
+app.transport.can.vector.app_name = "XCPsim"  # Set Vector application name
+
+# Use config with Master
+from pyxcp import Master
+with Master("can", config=app) as xm:
+    xm.connect()
+```
+
+**Note:** `app_name` parameter support depends on your python-can version:
+- python-can < 4.0: May need to manually modify VectorBus source
+- python-can >= 4.0: Should work via configuration
+
+**Verify parameter is passed:**
+```python
+# Check log output when connecting:
+# "XCPonCAN - Interface-Type: 'vector' Parameters: [('app_name', 'XCPsim'), ...]"
+```
+
+**Alternative:** Use Vector's CANcase to configure the application name in Vector Hardware Config, then use serial number instead:
+```python
+app.transport.can.vector.serial = 12345  # Your CANcase serial
+```
+
+**Related issues:** #224
 
 ---
 

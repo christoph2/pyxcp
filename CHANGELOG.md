@@ -5,6 +5,25 @@ All notable changes to pyxcp will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **CAN**: Dynamic DAQ filter update method `update_daq_filters()` (#136)
+- **CAN**: Multi-channel example `examples/multi_channel_can.py` (#227)
+
+### Changed
+- **CAN**: Improved filter timing - filters configured before bus activation (#231)
+- **CAN**: Filter logging moved after bus initialization for better diagnostics
+
+### Fixed
+- **CAN**: Filter timing race condition causing DAQ interruption (#231)
+- **CAN**: DAQ identifiers not included in initial filter (#136)
+
+### Documented
+- **CAN**: Vector CANape / XCPsim setup with app_name configuration (#224)
+- **CAN**: Multi-channel usage patterns and examples (#227)
+- **CAN**: Filter timing and DAQ ID filtering behavior
+
 ## [0.26.3] - 2026-02-14
 
 ### Added
