@@ -26,7 +26,7 @@ from pyxcp.transport.base import (
     XcpFramingConfig,
     XcpTransportLayerType,
 )
-from ..utils import seconds_to_nanoseconds, short_sleep
+from ..utils import seconds_to_nanoseconds
 
 console = Console()
 
@@ -551,47 +551,34 @@ class Can(BaseTransport):
         """Process CAN frames received from the interface.
 
         This method runs in a separate thread and continuously polls the CAN interface
-        for new frames. When a frame is received, it extracts the data and timestamp
-        and passes them to the data_received method for further processing.
+        for new frames using blocking recv() with timeout. When a frame is received,
+        it extracts the data and timestamp and passes them to the data_received method
+        for further processing.
 
-        The method includes periodic sleep to prevent CPU hogging and error handling
-        to ensure the listener thread doesn't crash on exceptions.
+        The recv() call blocks for up to 100ms, which prevents CPU hogging while
+        maintaining responsiveness for shutdown.
         """
         # Cache frequently used methods and attributes for better performance
         close_event_set = self.closeEvent.is_set
         can_interface_read = self.can_interface.read
         data_received = self.data_received
 
-        # State variables for processing
-        last_sleep = self.timestamp.value
-        FIVE_MS = 5_000_000  # Five milliseconds in nanoseconds
-
         while True:
             # Check if we should exit the loop
             if close_event_set():
                 return
 
-            # Periodically sleep to prevent CPU hogging
-            if self.timestamp.value - last_sleep >= FIVE_MS:
-                short_sleep()
-                last_sleep = self.timestamp.value
-
             try:
                 # Try to read a frame from the CAN interface
+                # read() internally uses recv(0.1) which blocks for 100ms max
                 frame = can_interface_read()
                 if frame:
                     # Process the frame if one was received
                     data_received(frame.data, frame.timestamp)
-                else:
-                    # No frame available, sleep briefly to avoid busy waiting
-                    short_sleep()
-                    last_sleep = self.timestamp.value
+                # If no frame (None), recv() already waited 100ms, so loop immediately
             except Exception as e:
                 # Log any exceptions but continue processing
                 self.logger.error(f"Error in CAN listen thread: {e}")
-                # Sleep briefly to avoid tight error loops
-                short_sleep()
-                last_sleep = self.timestamp.value
 
     def connect(self):
         # Start listener lazily after a successful interface connection to avoid a dangling

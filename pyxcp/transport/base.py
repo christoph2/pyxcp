@@ -22,7 +22,6 @@ from pyxcp.utils import (
     CurrentDatetime,
     hexDump,
     seconds_to_nanoseconds,
-    short_sleep,
 )
 
 
@@ -102,6 +101,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.timer_restart_event: threading.Event = threading.Event()
         self.timing: Timing = Timing()
         self.resQueue: deque = deque()
+        self.resQueue_condition: threading.Condition = threading.Condition()
         self.listener: threading.Thread = threading.Thread(
             target=self.listen,
             args=(),
@@ -155,17 +155,35 @@ class BaseTransport(metaclass=abc.ABCMeta):
         pass
 
     def get(self):
-        """Get an item from a deque considering a timeout condition."""
+        """Get an item from resQueue with blocking wait and timeout."""
         start: int = self.timestamp.value
-        while not self.resQueue:
-            if self.timer_restart_event.is_set():
-                start: int = self.timestamp.value
-                self.timer_restart_event.clear()
-            if self.timestamp.value - start > self.timeout:
-                raise EmptyFrameError
-            short_sleep()
-        item = self.resQueue.popleft()
-        return item
+        timeout_ns: int = self.timeout
+
+        with self.resQueue_condition:
+            while not self.resQueue:
+                # Check for timeout
+                if self.timer_restart_event.is_set():
+                    start = self.timestamp.value
+                    self.timer_restart_event.clear()
+
+                elapsed = self.timestamp.value - start
+                if elapsed > timeout_ns:
+                    raise EmptyFrameError
+
+                # Calculate remaining timeout in seconds for wait()
+                remaining_ns = timeout_ns - elapsed
+                remaining_sec = remaining_ns / 1_000_000_000.0
+
+                # Wait for notification or timeout
+                # Use a small max timeout to check timer_restart_event periodically
+                wait_time = min(remaining_sec, 0.1)
+                if not self.resQueue_condition.wait(timeout=wait_time):
+                    # Timeout occurred, loop will check timeout condition
+                    continue
+
+            # Item is available
+            item = self.resQueue.popleft()
+            return item
 
     @property
     def start_datetime(self) -> int:
@@ -298,26 +316,33 @@ class BaseTransport(metaclass=abc.ABCMeta):
         """
         block_response = b""
         start = self.timestamp.value
+        timeout_ns = self.timeout
+
         while len(block_response) < length_required:
-            if len(self.resQueue):
-                partial_response = self.resQueue.popleft()
-                block_response += partial_response[1:]
-            else:
-                if self.timestamp.value - start > self.timeout:
-                    waited = (self.timestamp.value - start) / 1e9 if hasattr(self.timestamp, "value") else None
+            with self.resQueue_condition:
+                # Check if data is available
+                if len(self.resQueue):
+                    partial_response = self.resQueue.popleft()
+                    block_response += partial_response[1:]
+                    continue
+
+                # No data available, check timeout
+                elapsed = self.timestamp.value - start
+                if elapsed > timeout_ns:
+                    waited = elapsed / 1e9
                     msg = f"Response timed out [block_receive]: received {len(block_response)} of {length_required} bytes"
-                    if waited is not None:
-                        msg += f" after {waited:.3f}s"
-
-                    # Add frame counts
+                    msg += f" after {waited:.3f}s"
                     msg += f"\nFrames sent: {self.frames_sent}, received: {self.frames_received}"
-
-                    # Add troubleshooting hint
-                    msg += f"\nTry: c.Transport.timeout = {(self.timeout / 1_000_000_000) * 2:.1f}  # Increase timeout"
-
+                    msg += f"\nTry: c.Transport.timeout = {(timeout_ns / 1_000_000_000) * 2:.1f}  # Increase timeout"
                     self.logger.debug("XCP block_receive timeout", extra={"event": "timeout"})
                     raise types.XcpTimeoutError(msg) from None
-                short_sleep()
+
+                # Wait for data with remaining timeout
+                remaining_ns = timeout_ns - elapsed
+                remaining_sec = remaining_ns / 1_000_000_000.0
+                wait_time = min(remaining_sec, 0.1)
+                self.resQueue_condition.wait(timeout=wait_time)
+
         return block_response
 
     @abc.abstractmethod
@@ -363,7 +388,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 length,
             )
             if pid >= 0xFE:
-                self.resQueue.append(response)
+                with self.resQueue_condition:
+                    self.resQueue.append(response)
+                    self.resQueue_condition.notify()
                 with self.policy_lock:
                     self.policy.feed(FrameCategory.RESPONSE, self.counter_received, self.timestamp.value, response)
                 self.recv_timestamp = recv_timestamp

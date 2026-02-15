@@ -15,7 +15,6 @@ from pyxcp.transport.base import (
     XcpFramingConfig,
     XcpTransportLayerType,
 )
-from pyxcp.utils import short_sleep
 
 DEFAULT_XCP_PORT = 5555
 RECV_SIZE = 8196
@@ -121,6 +120,7 @@ class Eth(BaseTransport):
             daemon=True,
         )
         self._packets = deque()
+        self._packets_condition = threading.Condition()
         self._eth_receiver = EthReceiver(self.process_response)
 
     def connect(self) -> None:
@@ -143,12 +143,16 @@ class Eth(BaseTransport):
         try:
             if self.listener.is_alive():
                 self.listener.join(timeout=2.0)
-        except Exception:
+        except (RuntimeError, AttributeError):
+            # RuntimeError: thread not started yet or already stopped
+            # AttributeError: listener object not initialized
             pass
         try:
             if self._packet_listener.is_alive():
                 self._packet_listener.join(timeout=2.0)
-        except Exception:
+        except (RuntimeError, AttributeError):
+            # RuntimeError: thread not started yet or already stopped
+            # AttributeError: _packet_listener object not initialized
             pass
         self.close_connection()
 
@@ -159,6 +163,7 @@ class Eth(BaseTransport):
         socket_fileno = self.sock.fileno
         select = self.selector.select
         _packets = self._packets
+        _packets_condition = self._packets_condition
         ptp_enabled = self.ptp_enabled
 
         if use_tcp:
@@ -189,7 +194,9 @@ class Eth(BaseTransport):
                                 self.status = 0
                                 break
                             else:
-                                _packets.append((bytes(response), recv_timestamp))
+                                with _packets_condition:
+                                    _packets.append((bytes(response), recv_timestamp))
+                                    _packets_condition.notify()
                         else:
                             if ptp_enabled:
                                 if hasattr(socket, "SO_TIMESTAMPING"):  # Linux
@@ -210,7 +217,9 @@ class Eth(BaseTransport):
                                     self.status = 0
                                     break
                                 else:
-                                    _packets.append((bytes(response), recv_timestamp))
+                                    with _packets_condition:
+                                        _packets.append((bytes(response), recv_timestamp))
+                                        _packets_condition.notify()
                             else:
                                 recv_timestamp = self.timestamp.value
                                 response, _ = self.sock.recvfrom(Eth.MAX_DATAGRAM_SIZE)
@@ -219,7 +228,9 @@ class Eth(BaseTransport):
                                     self.status = 0
                                     break
                                 else:
-                                    _packets.append((bytes(response), recv_timestamp))
+                                    with _packets_condition:
+                                        _packets.append((bytes(response), recv_timestamp))
+                                        _packets_condition.notify()
             except BaseException:  # noqa: B036
                 self.status = 0  # disconnected
                 break
@@ -247,18 +258,26 @@ class Eth(BaseTransport):
         close_event_set = self.closeEvent.is_set
         socket_fileno = self.sock.fileno
         _packets = self._packets
+        _packets_condition = self._packets_condition
         feed_frame = self._eth_receiver.feed_frame
 
         while True:
             if close_event_set() or socket_fileno() == -1:
                 return
-            count: int = len(_packets)
-            if not count:
-                short_sleep()
-                continue
-            for _ in range(count):
-                bts, timestamp = popleft()
-                feed_frame(bts, timestamp)
+
+            with _packets_condition:
+                # Wait for packets to be available
+                while not _packets:
+                    if close_event_set() or socket_fileno() == -1:
+                        return
+                    # Wait with timeout to periodically check close event
+                    _packets_condition.wait(timeout=0.1)
+
+                # Process all available packets
+                count = len(_packets)
+                for _ in range(count):
+                    bts, timestamp = popleft()
+                    feed_frame(bts, timestamp)
 
     def send(self, frame) -> None:
         self.pre_send_timestamp = self.timestamp.value
