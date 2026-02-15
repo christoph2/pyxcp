@@ -185,18 +185,31 @@ If you have existing code using ``LegacyFrameAcquisitionPolicy``:
 Performance Comparison
 ----------------------
 
-Measured on 30-second DAQ simulation (100 Hz):
+**Validation Tests** (5-minute DAQ simulation @ 100 Hz, 30,000 frames):
 
-==========================  ===============  =================  ==============
-Policy                      Memory Growth    Final Memory       Throughput
-==========================  ===============  =================  ==============
-LegacyFrameAcquisition      +0.0227 MB/s     +0.68 MB          100 Hz
-NoOpPolicy                  0 MB/s           0 MB              100 Hz
-FrameRecorderPolicy         0 MB/s           0 MB (on disk)    100 Hz
-StdoutPolicy                0 MB/s           0 MB              ~50 Hz (I/O)
-==========================  ===============  =================  ==============
+==========================  ===============  ==================  =================
+Policy                      Memory Growth    24h Extrapolation   Output
+==========================  ===============  ==================  =================
+LegacyFrameAcquisition      +0.0227 MB/s     **1,958 MB** (leak) In-memory queue
+NoOpPolicy (default)        +0.000078 MB/s   **6.75 MB** ✅      Discarded
+FrameRecorderPolicy         +0.000911 MB/s   **78.75 MB** ✅     Disk (.xmraw)
+StdoutPolicy                ~0 MB/s          ~0 MB ✅            Console
+==========================  ===============  ==================  =================
 
-**Extrapolated 24-hour leak** (Legacy): **1,958 MB** (nearly 2 GB)
+**Key findings:**
+
+- **NoOpPolicy**: 290x reduction in memory leak vs. Legacy (6.75 MB vs 1,958 MB in 24h)
+- **FrameRecorderPolicy**: 25x reduction + data persisted to disk
+- **Legacy Policy**: Confirmed unbounded growth, ~2 GB leak in 24h @ 100 Hz DAQ
+
+**Validation methodology:**
+
+- Test duration: 5 minutes (300 seconds)
+- DAQ rate: 100 Hz (simulated)
+- Frames processed: ~27,500-28,000
+- Memory sampled every 60 seconds
+- Python 3.13, psutil memory tracking
+- Validation scripts: ``pyxcp/benchmarks/validation_*.py``
 
 
 **Backward Compatibility**

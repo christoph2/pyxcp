@@ -1,11 +1,12 @@
 #!/usr/bin/env python
-# from .transport_ext import (
-#    FrameAcquisitionPolicy,  # noqa: F401
-#    FrameRecorderPolicy,  # noqa: F401
-#    LegacyFrameAcquisitionPolicy,  # noqa: F401
-#    NoOpPolicy,  # noqa: F401
-#    StdoutPolicy,  # noqa: F401
-# )
+from .transport_ext import (
+    FrameAcquisitionPolicy,  # noqa: F401
+    FrameCategory,  # noqa: F401
+    FrameRecorderPolicy,  # noqa: F401
+    LegacyFrameAcquisitionPolicy,  # noqa: F401
+    NoOpPolicy,  # noqa: F401
+    StdoutPolicy,  # noqa: F401
+)
 
 from .can import Can  # noqa: F401
 from .eth import Eth  # noqa: F401
