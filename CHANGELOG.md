@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **WP-7**: Comprehensive A2L Integration Guide (`docs/a2l_integration.rst`, 14 KB)
+  * End-to-end tutorial: XCP + A2L workflow with symbolic access
+  * Complete code examples: calibration, DAQ setup, unit conversion
+  * Tool comparison: pyxcp vs asamint usage scenarios
+  * Prominent reference to `asamint` project (production MCS)
+  * Data type conversion guide (RAT_FUNC, TAB_VERB)
+  * Troubleshooting section for common A2L issues
+  * FAQ: When to use pyxcp vs asamint
+- **README**: Added "Related Projects" section highlighting asamint
+- **README**: Quick reference to A2L Integration Guide
+
 ## [0.27.0] - 2026-02-15
 
 ### Changed

@@ -56,6 +56,8 @@ Quick start
 
 The comprehensive `tutorial <tutorial.rst>`_ walks you through typical tasks end-to-end.
 
+**Using A2L files?** See the `A2L Integration Guide <a2l_integration.rst>`_ for symbolic access to ECU parameters.
+
 Minimal example using the built-in argument parser and context manager:
 
 .. code:: python
@@ -103,14 +105,35 @@ Features
 - Data Acquisition (DAQ) and Stimulation (STIM)
 - Calibration (read/write parameters)
 - Flashing/programming workflows
-- A2L (ASAM MCD‑2 MC) support
+- **A2L (ASAM MCD‑2 MC) support** — symbolic access via `pya2ldb <https://github.com/christoph2/pya2l>`_
 - Recorder utilities and converters (see `recorder <recorder.rst>`__)
 - Extensible architecture for custom transports
+
+Related Projects
+~~~~~~~~~~~~~~~~
+
+**asamint** — High-level MCS (Measurement & Calibration System)
+
+For production-grade workflows with command-line batch operations, see the `asamint project <https://github.com/christoph2/asamint>`_.
+
+``asamint`` integrates ``pyxcp``, ``pya2ldb``, ``asammdf``, and ``objutils`` to provide:
+
+- Command-line MCS functionality
+- ASAM CDF (calibration data file) creation
+- MDF (ASAM MCD-3 MC) export
+- Orchestrated multi-tool workflows
+- Production measurement campaigns
+
+**When to use:**
+
+- ``pyxcp``: Custom applications, test automation, learning XCP
+- ``asamint``: Production calibration, batch operations, command-line MCS
 
 Documentation
 -------------
 
 - Getting started tutorial: `tutorial <tutorial.rst>`__
+- **A2L Integration Guide**: `a2l_integration <a2l_integration.rst>`__
 - Configuration: `configuration <configuration.rst>`__
 - CAN driver setup and troubleshooting: `howto_can_driver <howto_can_driver.rst>`__
 - Recorder: `recorder <recorder.rst>`__

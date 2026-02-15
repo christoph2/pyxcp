@@ -13,6 +13,7 @@ Welcome to pyXCP’s documentation
    installation
    platform_setup
    tutorial
+   a2l_integration
    configuration
    migration_policies
    custom_can_driver
