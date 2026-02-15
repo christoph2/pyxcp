@@ -102,6 +102,12 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.pre_send_timestamp: int = self.timestamp.value
         self.post_send_timestamp: int = self.timestamp.value
         self.recv_timestamp: int = self.timestamp.value
+
+        # Frame counters for diagnostics
+        self.frames_sent = 0
+        self.frames_received = 0
+        self.last_command_sent = None
+
         # Ring buffer for last PDUs to aid diagnostics on failures
         try:
             from collections import deque as _dq
@@ -181,12 +187,19 @@ class BaseTransport(metaclass=abc.ABCMeta):
             self.timing.start()
             with self.policy_lock:
                 self.policy.feed(FrameCategory.CMD, self.framing.counter_send, self.timestamp.value, frame)
+
+            # Track command for diagnostics
+            self.last_command_sent = cmd
+            self.frames_sent += 1
+
             self.send(frame)
             try:
                 xcpPDU = self.get()
+                self.frames_received += 1
             except EmptyFrameError:
                 if not ignore_timeout:
-                    MSG = f"Response timed out (timeout={self.timeout / 1_000_000_000}s)"
+                    # Build enhanced timeout message with diagnostics
+                    MSG = self._build_timeout_message(cmd)
                     with self.policy_lock:
                         self.policy.feed(
                             FrameCategory.METADATA, self.framing.counter_send, self.timestamp.value, bytes(MSG, "ascii")
@@ -282,8 +295,13 @@ class BaseTransport(metaclass=abc.ABCMeta):
                     msg = f"Response timed out [block_receive]: received {len(block_response)} of {length_required} bytes"
                     if waited is not None:
                         msg += f" after {waited:.3f}s"
-                    # Attach diagnostics
-                    # diag = self._build_diagnostics_dump() if self._diagnostics_enabled() else ""
+
+                    # Add frame counts
+                    msg += f"\nFrames sent: {self.frames_sent}, received: {self.frames_received}"
+
+                    # Add troubleshooting hint
+                    msg += f"\nTry: c.Transport.timeout = {(self.timeout / 1_000_000_000) * 2:.1f}  # Increase timeout"
+
                     self.logger.debug("XCP block_receive timeout", extra={"event": "timeout"})
                     raise types.XcpTimeoutError(msg) from None
                 short_sleep()
@@ -394,8 +412,17 @@ class BaseTransport(metaclass=abc.ABCMeta):
     def _build_diagnostics_dump(self) -> str:
         import json as _json
 
-        # transport params
-        tp = {"transport": self.__class__.__name__}
+        # transport params - use getattr with defaults for robustness
+        frames_sent = getattr(self, "frames_sent", 0)
+        frames_received = getattr(self, "frames_received", 0)
+        last_cmd = getattr(self, "last_command_sent", None)
+
+        tp = {
+            "transport": self.__class__.__name__,
+            "frames_sent": frames_sent,
+            "frames_received": frames_received,
+            "last_command": last_cmd.name if last_cmd else None,
+        }
         cfg = getattr(self, "config", None)
         # Extract common Eth/Can fields when available
         for key in (
@@ -436,6 +463,48 @@ class BaseTransport(metaclass=abc.ABCMeta):
         # Add a small header to explain what follows
         header = "--- Diagnostics (for troubleshooting) ---"
         return f"{header}\n{body}"
+
+    def _build_timeout_message(self, cmd) -> str:
+        """Build enhanced timeout error message with diagnostics and troubleshooting hints."""
+        timeout_sec = self.timeout / 1_000_000_000
+
+        # Count received frames since connection
+        received_count = self.frames_received
+
+        # Build base message
+        parts = [
+            f"Response timed out after {timeout_sec:.1f}s for command {cmd.name}.",
+            f"Frames sent: {self.frames_sent}, received: {received_count}.",
+        ]
+
+        # Add specific troubleshooting hints based on transport type
+        transport_name = self.__class__.__name__.lower()
+
+        if received_count == 0:
+            parts.append("No responses received - check:")
+            if "can" in transport_name:
+                parts.append("  1. ECU powered and connected?")
+                parts.append("  2. CAN termination (120Ω) present?")
+                parts.append("  3. CAN IDs correct (check A2L file)?")
+                parts.append("  4. CAN bitrate matches ECU?")
+            elif "eth" in transport_name:
+                parts.append("  1. ECU powered and network cable connected?")
+                parts.append("  2. IP address and port correct?")
+                parts.append("  3. Firewall blocking connection?")
+                parts.append("  4. ECU in correct mode (measurement vs bootloader)?")
+            else:
+                parts.append("  1. ECU powered and connected?")
+                parts.append("  2. Transport parameters correct?")
+                parts.append("  3. ECU in correct mode?")
+        else:
+            parts.append("Some responses received - possible:")
+            parts.append("  1. Timeout too short for this command")
+            parts.append("  2. ECU overloaded (reduce DAQ rate)")
+            parts.append("  3. Intermittent connection issue")
+
+        parts.append(f"\nTry: c.Transport.timeout = {timeout_sec * 2:.1f}  # Increase timeout")
+
+        return "\n".join(parts)
 
     def _diagnostics_enabled(self) -> bool:
         try:
