@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **WP-11**: Fixed CAN padding corrupting response values (#205)
+  * **Root cause**: CAN-FD with `max_dlc_required=True` pads frames to 64 bytes
+  * Padding bytes (e.g., 0xAA) were interpreted as data by parsers
+  * **Symptoms**: `maxCto=170` (should be 8), `maxDto=43690` (should be 8), `protocolLayerVersion=170`
+  * **Fix**: `process_response()` now trims responses to actual length before queueing
+  * Applied to all response types: CMD responses (PID 0xFE/0xFF), EVENT (0xFD), SERV (0xFC), DAQ frames
+  * Changes in `pyxcp/transport/base.py` lines 392, 395, 398, 400, 403, 431
+  * Added 4 regression tests in `test_issue_205_padding.py`
+  * All 312 tests passing (4 skipped)
+
 ## [0.27.0] - 2026-02-15
 
 ### Performance
