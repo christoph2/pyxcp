@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.8] - 2026-02-15
+
 ### Added
 - **WP-8 Phase 1**: Configurable retry strategy via `c.General.max_retries` (#216, #107, #155)
   * `-1` (default): Infinite retries per XCP standard
