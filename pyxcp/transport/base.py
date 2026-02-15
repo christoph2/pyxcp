@@ -388,19 +388,22 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 length,
             )
             if pid >= 0xFE:
+                # Trim response to actual length to remove padding (e.g., CAN 0xAA padding)
+                # Issue #205: CAN-FD with max_dlc_required pads frames, causing parsers
+                # to interpret padding bytes as data (e.g., 0xAA read as maxCto=170)
                 with self.resQueue_condition:
-                    self.resQueue.append(response)
+                    self.resQueue.append(response[:length])
                     self.resQueue_condition.notify()
                 with self.policy_lock:
-                    self.policy.feed(FrameCategory.RESPONSE, self.counter_received, self.timestamp.value, response)
+                    self.policy.feed(FrameCategory.RESPONSE, self.counter_received, self.timestamp.value, response[:length])
                 self.recv_timestamp = recv_timestamp
             elif pid == 0xFD:
-                self.process_event_packet(response)
+                self.process_event_packet(response[:length])
                 with self.policy_lock:
-                    self.policy.feed(FrameCategory.EVENT, self.counter_received, self.timestamp.value, response)
+                    self.policy.feed(FrameCategory.EVENT, self.counter_received, self.timestamp.value, response[:length])
             elif pid == 0xFC:
                 with self.policy_lock:
-                    self.policy.feed(FrameCategory.SERV, self.counter_received, self.timestamp.value, response)
+                    self.policy.feed(FrameCategory.SERV, self.counter_received, self.timestamp.value, response[:length])
         else:
             # DAQ traffic: Some transports reuse or do not advance the counter for DAQ frames.
             # Do not drop DAQ frames on duplicate counters to avoid losing measurements.
@@ -425,7 +428,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             # outstanding request, similar to EV_CMD_PENDING behavior on stacks that don't emit it.
             self.timer_restart_event.set()
             with self.policy_lock:
-                self.policy.feed(FrameCategory.DAQ, self.counter_received, timestamp, response)
+                self.policy.feed(FrameCategory.DAQ, self.counter_received, timestamp, response[:length])
 
     def _record_pdu(
         self,
