@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING**: Default frame acquisition policy changed from `LegacyFrameAcquisitionPolicy` to `NoOpPolicy` (#171)
+  * Prevents unbounded memory growth in DAQ mode (~23 MB/hour @ 100 Hz, ~2 GB in 24h)
+  * `LegacyFrameAcquisitionPolicy` now emits `DeprecationWarning` when explicitly used
+  * See `docs/migration_policies.rst` for migration guide
+
+### Added
+- **WP-6 Phase 2**: Comprehensive frame acquisition policy documentation (`docs/migration_policies.rst`)
+  * Migration guide from deprecated Legacy policy
+  * Policy comparison: NoOp, FrameRecorder, Stdout, Python callback
+  * Performance analysis and memory benchmarks
+  * Backward compatibility section for existing code
+
 ## [0.26.8] - 2026-02-15
 
 ### Added

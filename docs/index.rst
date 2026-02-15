@@ -14,6 +14,7 @@ Welcome to pyXCP’s documentation
    platform_setup
    tutorial
    configuration
+   migration_policies
    custom_can_driver
    howto
    howto_can_driver

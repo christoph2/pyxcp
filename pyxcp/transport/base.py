@@ -12,6 +12,7 @@ from pyxcp.transport.transport_ext import (
     FrameCategory,
     FrameAcquisitionPolicy,
     LegacyFrameAcquisitionPolicy,
+    NoOpPolicy,
     XcpFraming,
     XcpFramingConfig,
     XcpTransportLayerType,  # noqa: F401
@@ -70,8 +71,20 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.transport_layer_interface: Optional[Any] = transport_layer_interface
         self.parent = None
         self.framing = XcpFraming(framing_config)
-        self.policy: FrameAcquisitionPolicy = policy or LegacyFrameAcquisitionPolicy()
+        self.policy: FrameAcquisitionPolicy = policy or NoOpPolicy(filtered_out=None)
         self.closeEvent: threading.Event = threading.Event()
+
+        # Emit deprecation warning if LegacyFrameAcquisitionPolicy is explicitly used
+        if isinstance(policy, LegacyFrameAcquisitionPolicy):
+            import warnings
+
+            warnings.warn(
+                "LegacyFrameAcquisitionPolicy is deprecated and has unbounded memory growth. "
+                "Consider using FrameRecorderPolicy, StdoutPolicy, or a custom PyFrameAcquisitionPolicy. "
+                "See documentation for migration guide.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
 
         self.command_lock: threading.Lock = threading.Lock()
         self.policy_lock: threading.Lock = threading.Lock()
