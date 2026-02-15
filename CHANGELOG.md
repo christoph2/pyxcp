@@ -7,18 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-02-15
+
 ### Changed
 - **BREAKING**: Default frame acquisition policy changed from `LegacyFrameAcquisitionPolicy` to `NoOpPolicy` (#171)
-  * Prevents unbounded memory growth in DAQ mode (~23 MB/hour @ 100 Hz, ~2 GB in 24h)
+  * Prevents unbounded memory growth in DAQ mode (~2 GB leak in 24h @ 100 Hz)
+  * **Validation results**: NoOpPolicy has 290x less memory growth than Legacy (6.75 MB vs 1,958 MB in 24h)
   * `LegacyFrameAcquisitionPolicy` now emits `DeprecationWarning` when explicitly used
-  * See `docs/migration_policies.rst` for migration guide
+  * **Migration required**: Code accessing `.daqQueue` or `.evQueue` must switch to modern policies
+  * See `docs/migration_policies.rst` for complete migration guide
 
 ### Added
-- **WP-6 Phase 2**: Comprehensive frame acquisition policy documentation (`docs/migration_policies.rst`)
-  * Migration guide from deprecated Legacy policy
-  * Policy comparison: NoOp, FrameRecorder, Stdout, Python callback
-  * Performance analysis and memory benchmarks
-  * Backward compatibility section for existing code
+- **WP-6 Phase 2-4**: Memory leak fix and validation
+  * `NoOpPolicy` as new default: O(1) memory (discards frames immediately)
+  * `FrameRecorderPolicy`: Streams to disk with 25x less memory growth than Legacy
+  * `StdoutPolicy`: Console output with constant memory
+  * All policies exported from `pyxcp.transport` for easy access
+  * Comprehensive documentation (`docs/migration_policies.rst`, 7.5 KB):
+    - Policy comparison with code examples
+    - Performance benchmarks from 5-minute validation tests
+    - Migration checklist for existing code
+    - Backward compatibility guide
+  * Validation test scripts (`pyxcp/benchmarks/validation_*.py`)
+
+### Fixed
+- **Issue #171**: Memory leak in DAQ mode completely resolved
+  * Root cause: `LegacyFrameAcquisitionPolicy` had 8 unbounded C++ TsQueues
+  * Event queue grew indefinitely during DAQ operation
+  * Solution: Changed default to `NoOpPolicy` with O(1) memory footprint
 
 ## [0.26.8] - 2026-02-15
 
