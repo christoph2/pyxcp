@@ -7,17 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- **WP-7**: Comprehensive A2L Integration Guide (`docs/a2l_integration.rst`, 14 KB)
-  * End-to-end tutorial: XCP + A2L workflow with symbolic access
-  * Complete code examples: calibration, DAQ setup, unit conversion
-  * Tool comparison: pyxcp vs asamint usage scenarios
-  * Prominent reference to `asamint` project (production MCS)
-  * Data type conversion guide (RAT_FUNC, TAB_VERB)
-  * Troubleshooting section for common A2L issues
-  * FAQ: When to use pyxcp vs asamint
-- **README**: Added "Related Projects" section highlighting asamint
-- **README**: Quick reference to A2L Integration Guide
+### Fixed
+- **WP-8**: Logging configuration conflicts (Issue #176)
+  * Removed problematic `logging.basicConfig()` call in recorder/converter
+  * Removed unused RichHandler import
+  * Standardized logger hierarchy: `pyxcp.*` (master, transport, daq_stim, recorder.converter)
+  * Follows Python logging best practices: NullHandler by default
+  * Libraries now never interfere with user's logging configuration
+  * Added comprehensive logging documentation (`docs/logging.rst`, 12 KB):
+    - Quick setup with `setup_logging()` helper
+    - Advanced configuration examples (file logging, rotation, selective modules)
+    - Integration patterns with existing loggers
+    - Troubleshooting guide for common logging issues (Issue #176 resolution)
+    - FAQ and examples for production use
 
 ## [0.27.0] - 2026-02-15
 

@@ -89,7 +89,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.command_lock: threading.Lock = threading.Lock()
         self.policy_lock: threading.Lock = threading.Lock()
 
-        self.logger = logging.getLogger("PyXCP")
+        self.logger = logging.getLogger("pyxcp.transport")
         self._debug: bool = self.logger.level == 10
         if transport_layer_interface:
             self.logger.info(f"Transport - User Supplied Transport-Layer Interface: '{transport_layer_interface!s}'")

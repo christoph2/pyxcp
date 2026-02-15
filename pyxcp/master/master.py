@@ -159,7 +159,7 @@ class Master:
         self.ctr: int = 0
         self.succeeded: bool = True
         self.config: Any = config.general
-        self.logger: logging.Logger = logging.getLogger("PyXCP")
+        self.logger: logging.Logger = logging.getLogger("pyxcp.master")
 
         # Configure error handling
         disable_error_handling(self.config.disable_error_handling)

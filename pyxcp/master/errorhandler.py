@@ -231,7 +231,7 @@ class Handler:
         if error_code is not None:
             self._error_code = error_code
         self._repeater = None
-        self.logger = logging.getLogger("PyXCP")
+        self.logger = logging.getLogger("pyxcp.master.errorhandler")
 
     def _diagnostics_enabled(self) -> bool:
         try:
@@ -559,7 +559,7 @@ class Executor(SingletonBase):
     def __init__(self):
         self.handlerStack = HandlerStack()
         self.repeater = None
-        self.logger = logging.getLogger("PyXCP")
+        self.logger = logging.getLogger("pyxcp.master.errorhandler")
         self.previous_error_code = None
         self.error_code = None
         self.func = None

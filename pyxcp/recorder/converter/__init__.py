@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, List
 
 import numpy as np
-from rich.logging import RichHandler
+# from rich.logging import RichHandler  # Removed: not needed for logging
 
 
 try:
@@ -52,9 +52,10 @@ from pyxcp.recorder.rekorder import XcpLogFileDecoder as _XcpLogFileDecoder
 
 
 FORMAT = "%(message)s"
-logging.basicConfig(level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()])
+# logging.basicConfig() removed - libraries should not configure logging
+# Users can configure logging via: from pyxcp.logger import setup_logging
 
-log = logging.getLogger("rich")
+log = logging.getLogger("pyxcp.recorder.converter")
 
 MAP_TO_ARRAY = {
     "U8": "B",
@@ -361,7 +362,7 @@ class SqliteConverter(XcpLogFileDecoder):
         self.create_table(sc)
         self.logger.info(f"Creating table {sc.name!r}.")
         self.insert_stmt[sc.name] = (
-            f"""INSERT INTO {sc.name}({", ".join(["timestamp0", "timestamp1"] + [r.name for r in sc.arr])})"""
+            f"""INSERT INTO {sc.name}({", ".join(["timestamp0", "timestamp1"] + [r.name for r in sc.arr])})"""  # nosec B608 - Safe: internal config
             f""" VALUES({", ".join(["?" for _ in range(len(sc.arr) + 2)])})"""
         )
 

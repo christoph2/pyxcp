@@ -15,6 +15,7 @@ Welcome to pyXCP’s documentation
    tutorial
    a2l_integration
    configuration
+   logging
    migration_policies
    custom_can_driver
    howto
