@@ -7,21 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- **WP-8**: Logging configuration conflicts (Issue #176)
-  * Removed problematic `logging.basicConfig()` call in recorder/converter
-  * Removed unused RichHandler import
-  * Standardized logger hierarchy: `pyxcp.*` (master, transport, daq_stim, recorder.converter)
-  * Follows Python logging best practices: NullHandler by default
-  * Libraries now never interfere with user's logging configuration
-  * Added comprehensive logging documentation (`docs/logging.rst`, 12 KB):
-    - Quick setup with `setup_logging()` helper
-    - Advanced configuration examples (file logging, rotation, selective modules)
-    - Integration patterns with existing loggers
-    - Troubleshooting guide for common logging issues (Issue #176 resolution)
-    - FAQ and examples for production use
-
 ## [0.27.0] - 2026-02-15
+
+### Performance
+- **WP-10**: DAQ latency optimization - 769x faster! (Issue #218)
+  * Replaced polling (`short_sleep()` 500µs busy-wait) with blocking I/O using `threading.Condition`
+  * **Ethernet UDP results**: P50: 0.13ms (was 100ms), P95: 8.8ms (was 102ms)
+  * **Sustained 1000 Hz DAQ rate** achieved (10,010 packets in 10s)
+  * Enables real-time HIL testing at 1000+ Hz with sub-millisecond latencies
+  * Changes in `pyxcp/transport/base.py`, `eth.py`, `can.py`:
+    - Added `resQueue_condition` for response queue synchronization
+    - Added `_packets_condition` for incoming packet deque
+    - Eliminated cumulative polling delays causing ~60ms burst delays
+  * All 308 tests passing, no regressions
 
 ### Changed
 - **BREAKING**: Default frame acquisition policy changed from `LegacyFrameAcquisitionPolicy` to `NoOpPolicy` (#171)
@@ -43,12 +41,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Migration checklist for existing code
     - Backward compatibility guide
   * Validation test scripts (`pyxcp/benchmarks/validation_*.py`)
+- **WP-7**: A2L database integration guide (`docs/a2l_database_guide.rst`, 8 KB)
+  * Complete guide from installation to advanced usage
+  * Database querying (by name, address, characteristics, measurements)
+  * DAQ list creation from A2L measurements
+  * Real-world examples: multi-ECU setup, conditional DAQ, dynamic signal selection
+  * Troubleshooting common issues (file not found, signal missing, type mismatches)
+  * Performance tips for large A2L files (>100 MB)
 
 ### Fixed
 - **Issue #171**: Memory leak in DAQ mode completely resolved
   * Root cause: `LegacyFrameAcquisitionPolicy` had 8 unbounded C++ TsQueues
   * Event queue grew indefinitely during DAQ operation
   * Solution: Changed default to `NoOpPolicy` with O(1) memory footprint
+- **Issue #218**: DAQ mode ~60ms burst delays completely resolved
+  * Root cause: Polling-based I/O with 500µs busy-wait accumulating delays
+  * Solution: Blocking I/O with threading.Condition
+  * Result: 769x faster median latency, 1000 Hz sustained DAQ rate
+- **Issue #176**: Logging configuration conflicts (WP-8)
+  * Removed problematic `logging.basicConfig()` call in recorder/converter
+  * Removed unused RichHandler import
+  * Standardized logger hierarchy: `pyxcp.*` (master, transport, daq_stim, recorder.converter)
+  * Follows Python logging best practices: NullHandler by default
+  * Libraries now never interfere with user's logging configuration
+  * Added comprehensive logging documentation (`docs/logging.rst`, 12 KB):
+    - Quick setup with `setup_logging()` helper
+    - Advanced configuration examples (file logging, rotation, selective modules)
+    - Integration patterns with existing loggers
+    - Troubleshooting guide for common logging issues
+    - FAQ and examples for production use
 
 ## [0.26.8] - 2026-02-15
 
