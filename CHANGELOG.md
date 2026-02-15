@@ -8,17 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **WP-8**: Configurable retry strategy via `c.General.max_retries` (#216, #107, #155)
+- **WP-8 Phase 1**: Configurable retry strategy via `c.General.max_retries` (#216, #107, #155)
   * `-1` (default): Infinite retries per XCP standard
   * `0`: No retries, fail immediately
   * `≥1`: Max retry attempts before exception
   * Prevents infinite loops in production while maintaining XCP spec compliance
   * 12 new tests for retry behavior
+- **WP-8 Phase 2**: Enhanced timeout diagnostics with frame counters
+  * Frame tracking: `frames_sent`, `frames_received`, `last_command_sent`
+  * Transport-specific troubleshooting hints (CAN: termination, IDs, bitrate; ETH: network, firewall, IP/port)
+  * Suggested timeout increase in error messages
+  * Enhanced diagnostics dump with frame statistics
+  * 7 new tests for timeout diagnostics
 - **FAQ**: Comprehensive retry configuration guide with production vs development recommendations
+- **Example**: `robust_error_handling.py` demonstrating retry strategies for different environments
 
 ### Changed
 - **Error Handler**: Repeater class now respects `max_retries` configuration option
 - **Error Handler**: User can override XCP standard infinite retry behavior
+- **Transport**: Timeout error messages now include frame counts and specific troubleshooting steps
+- **Transport**: Diagnostics dump includes frame counters for better failure analysis
 
 ## [0.26.7] - 2026-02-14
 
