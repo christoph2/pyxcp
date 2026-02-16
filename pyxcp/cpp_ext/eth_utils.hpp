@@ -35,7 +35,6 @@
 struct InterfaceInfo {
 #ifdef _WIN32
     std::string name;
-    std::string description;
     NET_LUID luid;
 #else
     std::string name;
@@ -120,8 +119,6 @@ static std::optional<InterfaceInfo> get_best_route(const std::string &ip_str) {
       InterfaceInfo info;
       std::wstring wstr(pCurrAddresses->FriendlyName);
       info.name = std::string(wstr.begin(), wstr.end());
-      wstr = std::wstring(pCurrAddresses->Description);
-      // info.description = std::string(wstr.begin(), wstr.end());
       info.luid = pCurrAddresses->Luid;
       free(pAddresses);
       return info;
@@ -167,7 +164,6 @@ bool hw_timestamping_on_ipv6(PINTERFACE_TIMESTAMP_CAPABILITIES caps) {
 TimestampingInfo check_timestamping_support(const std::string &host_name) {
     TimestampingInfo result {"", false, false, false};
     INTERFACE_TIMESTAMP_CAPABILITIES caps;
-    NET_LUID luid;
 
     auto host_route = get_best_route(host_name);
     if (!host_route.has_value()) {

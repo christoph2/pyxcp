@@ -8,7 +8,7 @@ Reliable Python tooling for the ASAM MCD-1 XCP protocol (measurement,
 calibration, flashing) with multiple transports (CAN, Ethernet, USB,
 Serial) and handy CLI utilities.
 
-|PyPI| |Python Versions| |License: LGPL v3+| |Code style: ruff| |pre-commit|
+|PyPI| |Python Versions| |License: LGPL v3+| |Code style: ruff|
 
 ``pyXCP`` is a production-ready Python library for communicating with
 XCP-enabled devices, most commonly automotive ECUs. Use it to take
@@ -322,5 +322,6 @@ Further resources
    :target: https://pypi.org/project/pyxcp/
 .. |License: LGPL v3+| image:: https://img.shields.io/badge/License-LGPL%20v3%2B-blue.svg
    :target: https://www.gnu.org/licenses/lgpl-3.0
-.. |Code style: ruff| |pre-commit| image:: https://img.shields.io/badge/code%20style-black-000000.svg
-   :target: https://github.com/psf/black
+.. |Code style: ruff| image:: https://img.shields.io/badge/code%20style-ruff-000000.svg
+   :target: https://docs.astral.sh/ruff/
+   :alt: Ruff
