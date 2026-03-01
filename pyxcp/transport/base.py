@@ -233,7 +233,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
                     MSG = self._build_timeout_message(cmd)
                     with self.policy_lock:
                         self.policy.feed(
-                            FrameCategory.METADATA, self.framing.counter_send, self.timestamp.value, bytes(MSG, "ascii")
+                            FrameCategory.METADATA, self.framing.counter_send, self.timestamp.value, bytes(MSG, "utf8")
                         ) if self._diagnostics_enabled() else ""
                     self.logger.debug("XCP request timeout", extra={"event": "timeout", "command": cmd.name})
                     raise types.XcpTimeoutError(MSG) from None

@@ -373,6 +373,8 @@ class DaqToCsv(DaqOnlinePolicy):
 
     def initialize(self):
         self.log.debug("DaqCsv::Initialize()")
+        if hasattr(self, "files"):
+            self.finalize()
         self.files: Dict[int, TextIO] = {}
         for num, daq_list in enumerate(self.daq_lists):
             if daq_list.stim:
@@ -418,3 +420,4 @@ class DaqToCsv(DaqOnlinePolicy):
         if hasattr(self, "files"):
             for f in self.files.values():
                 f.close()
+            del self.files

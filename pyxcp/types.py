@@ -323,12 +323,13 @@ XcpError = Enum(
 
 
 class Event(enum.IntEnum):
-    """XCP Event Codes"""
+    """XCP Event Codes (XCP 1.5 Specification)"""
 
     EV_RESUME_MODE = 0x00
     EV_CLEAR_DAQ = 0x01
     EV_STORE_DAQ = 0x02
     EV_STORE_CAL = 0x03
+    # 0x04 reserved
     EV_CMD_PENDING = 0x05
     EV_DAQ_OVERLOAD = 0x06
     EV_SESSION_TERMINATED = 0x07
@@ -336,6 +337,7 @@ class Event(enum.IntEnum):
     EV_STIM_TIMEOUT = 0x09
     EV_SLEEP = 0x0A
     EV_WAKE_UP = 0x0B
+    EV_ECU_STATE_CHANGE = 0x0C
     EV_USER = 0xFE
     EV_TRANSPORT = 0xFF
 
@@ -417,17 +419,18 @@ GetVersionResponse = Struct(
 SessionStatus = BitStruct(
     "resume" / Flag,
     "daqRunning" / Flag,
-    Padding(2),
+    Padding(1),
+    "DaqCfgLost" / Flag,
     "clearDaqRequest" / Flag,
     "storeDaqRequest" / Flag,
-    Padding(1),
+    "calPagCfgLost" / Flag,
     "storeCalRequest" / Flag,
 )
 
 GetStatusResponse = Struct(
     "sessionStatus" / SessionStatus,
     "resourceProtectionStatus" / ResourceType,
-    Padding(1),
+    "stateNumber" / Int8ul,
     "sessionConfiguration" / Int16u,
 )
 

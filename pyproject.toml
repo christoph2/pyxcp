@@ -194,8 +194,6 @@ exclude = '''
 
 [tool.cibuildwheel]
 build-verbosity = 3
-#test-command = "pya2l {package}/tests"
-
 build = "cp3{10,11,12,13,14}-*"
 skip = ["*_i686", "*-musllinux*"]
 build-frontend = "build"
