@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **WP-12**: Fixed DaqRecorder spurious unmap error (#269)
+  * **Root cause**: Stale errno from previous syscalls causing false "Resource temporarily unavailable" errors
+  * errno is a global thread state that persists across syscall boundaries
+  * `mio::detail::last_error()` was reading stale errno (EAGAIN=11) after successful `unmap()` calls
+  * **Fix**: Clear errno before `unmap()` in both `finalize()` and `resize()` methods
+  * Changes in `pyxcp/recorder/writer.hpp` lines 84, 122
+  * Prevents spurious RuntimeError when stopping DAQ recording
+  * File content was always correct; error was cosmetic but confusing
+
 ## [0.27.1] - 2026-02-15
 
 ### Fixed

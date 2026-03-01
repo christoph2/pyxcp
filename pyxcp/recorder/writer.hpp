@@ -78,6 +78,10 @@ class XcpLogFileWriter {
             write_header(
                 detail::VERSION, options, m_num_containers, m_record_count, m_total_size_compressed, m_total_size_uncompressed
             );
+            // Clear stale errno before checking unmap() success (Issue #269)
+            // errno is a global thread state that can be set by any syscall.
+            // We must clear it before unmap() to avoid false errors from previous operations.
+            errno = 0;
             m_mmap->unmap();
             ec = mio::detail::last_error();
             if (ec.value() != 0) {
@@ -112,6 +116,10 @@ class XcpLogFileWriter {
         std::error_code ec;
 
         if (remap) {
+            // Clear stale errno before checking unmap() success (Issue #269)
+            // errno is a global thread state that can be set by any syscall.
+            // We must clear it before unmap() to avoid false errors from previous operations.
+            errno = 0;
             m_mmap->unmap();
             ec = mio::detail::last_error();
             if (ec.value() != 0) {
