@@ -129,6 +129,11 @@ class BaseTransport(metaclass=abc.ABCMeta):
         except Exception:
             self._last_pdus = []
 
+        # XCP 1.5 Event Handler Chain (Chain-of-Responsibility)
+        from pyxcp.events import create_default_event_chain
+
+        self.event_handler = create_default_event_chain(self)
+
     def __del__(self) -> None:
         self.finish_listener()
         self.close_connection()
@@ -361,11 +366,25 @@ class BaseTransport(metaclass=abc.ABCMeta):
         pass
 
     def process_event_packet(self, packet):
-        packet = packet[1:]
-        ev_type = packet[0]
-        self.logger.debug(f"EVENT-PACKET: {hexDump(packet)}")
-        if ev_type == types.Event.EV_CMD_PENDING:
-            self.timer_restart_event.set()
+        """
+        Process XCP event packet using Chain-of-Responsibility pattern.
+
+        XCP 1.5: Events are dispatched through a handler chain that can be
+        customized per transport or application needs.
+        """
+        # Extract event code (packet[0] = 0xFD, packet[1] = event code)
+        if len(packet) < 2:
+            self.logger.warning(f"Event packet too short: {hexDump(packet)}")
+            return
+
+        event_code = packet[1]
+        self.logger.debug(f"EVENT-PACKET: Code={event_code:#x} {hexDump(packet)}")
+
+        # Dispatch through handler chain
+        handled = self.event_handler.process(event_code, packet)
+
+        if not handled:
+            self.logger.warning(f"Unhandled event code {event_code:#x}: {hexDump(packet)}")
 
     def process_response(self, response: bytes, length: int, counter: int, recv_timestamp: int) -> None:
         # Important: determine PID first so duplicate counter handling can be applied selectively.
