@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **WP-18**: Fixed DAQ max_payload_size calculation not considering interleavedMode (#210)
+  * **Root cause**: DAQ frames with interleavedMode have extra sequence counter byte
+  * max_payload_size = min(max_odt_entry_size, max_dto - overhead) was ignoring sequence byte
+  * **Symptoms**: ERR_OUT_OF_RANGE (0x22) when writing DAQ entries with interleavedMode=True
+  * Frame structure: `[PID:1] [Sequence:1] [DAQ_ID_Field:header_len] [Payload:N]`
+  * **Fix**: Added overhead calculation: `overhead = header_len + (1 if interleavedMode else 0)`
+  * Changes in `pyxcp/daq_stim/__init__.py` lines 167-183
+  * Dynamic DAQ allocation now correctly accounts for sequence counter byte
+  * Tested with localhost:5555 XCP server (interleavedMode=True, maxDto=1468)
 - **WP-13**: Fixed MDF timestamp conversion violating ASAM MDF specification (Discussion #270)
   * **Root cause**: xmraw timestamps (nanoseconds) written directly to MDF without unit conversion
   * ASAM MDF spec requires time channels to be in seconds as physical values

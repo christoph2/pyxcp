@@ -169,7 +169,20 @@ class DaqProcessor:
             max_dto = self.xcp_master.slaveProperties.maxDto
             self.min_daq = processor.get("minDaq")
             max_odt_entry_size = resolution.get("maxOdtEntrySizeDaq")
-            max_payload_size = min(max_odt_entry_size, max_dto - header_len)
+
+            # Calculate overhead: header + sequence counter (if interleavedMode)
+            # Issue #210: interleavedMode adds 1 byte sequence counter to DAQ frames
+            # Frame structure:
+            #   interleavedMode=False: [PID:1] [DAQ_ID:header_len] [Payload:N]
+            #   interleavedMode=True:  [PID:1] [Seq:1] [DAQ_ID:header_len] [Payload:N]
+            overhead = header_len
+            if self.xcp_master.slaveProperties.get("interleavedMode", False):
+                overhead += 1  # Add 1 byte for sequence counter
+                self.log.debug(f"InterleavedMode enabled: overhead = {overhead} (header={header_len} + seq=1)")
+            else:
+                self.log.debug(f"InterleavedMode disabled: overhead = {overhead} (header={header_len})")
+
+            max_payload_size = min(max_odt_entry_size, max_dto - overhead)
             # First ODT may contain timestamp.
             self.selectable_timestamps = False
             max_payload_size_first = max_payload_size
