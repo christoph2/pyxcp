@@ -1705,6 +1705,136 @@ class Master:
         self.logger.debug(f"GET_DAQ_CLOCK_MULTICAST sent: cluster={cluster_id:#06x}, counter={counter}")
 
     @wrapped
+    def timeCorrelationProperties(
+        self,
+        response_fmt: int = 0,
+        time_sync_bridge: int = 0,
+        set_cluster_id: bool = False,
+        cluster_id: int = 0x0000,
+        get_clk_info: bool = False,
+    ):
+        """Configure and query time correlation properties (XCP 1.5).
+
+        This command enables advanced time correlation features and retrieves
+        clock information from the XCP slave. Must be called after CONNECT
+        to enable extended EV_TIME_SYNC and GET_DAQ_CLOCK formats.
+
+        **Feature Enablement Flow:**
+        1. After CONNECT: Slave is in legacy mode
+        2. Master sends TIME_CORRELATION_PROPERTIES with response_fmt > 0
+        3. Slave enables extended mode
+        4. Now GET_DAQ_CLOCK_MULTICAST works with extended EV_TIME_SYNC
+
+        **Clock Information:**
+        If get_clk_info=True, the response sets MTA to clock info data block.
+        Use upload() to retrieve:
+        - XCP slave clock info (24 bytes)
+        - Grandmaster clock info (24 bytes, if available)
+        - Clock relation (16 bytes, if syntonized)
+        - ECU clock info (24 bytes, if available)
+        - ECU grandmaster info (8 bytes, if available)
+
+        Parameters
+        ----------
+        response_fmt : int
+            Response format mode:
+            0 = Do not change (default)
+            1 = Enable extended mode, EV_TIME_SYNC for TRIGGER_INITIATOR 0,2,3 only
+            2 = Enable extended mode, EV_TIME_SYNC for all triggers
+            3 = Reserved
+        time_sync_bridge : int
+            Time Sync Bridge control:
+            0 = Do not change (default)
+            1 = Enable bridging (multi-transport correlation)
+            2 = Disable bridging
+            3 = Reserved
+        set_cluster_id : bool
+            If True, assign slave to logical cluster specified by cluster_id
+        cluster_id : int
+            16-bit cluster identifier (Intel byte order)
+            Default: 0x0000
+            Used for GET_DAQ_CLOCK_MULTICAST routing
+        get_clk_info : bool
+            If True, set MTA to clock information data block for UPLOAD
+
+        Returns
+        -------
+        TimeCorrelationPropertiesResponse
+            Parsed response with:
+            - slave_config: Current configuration (response_fmt, daq_ts_relation, bridge)
+            - observable_clocks: Available clocks (XCP_SLV, GRANDM, ECU)
+            - sync_state: Synchronization status of clocks
+            - clock_info: Which clock info is available for upload
+            - cluster_id: Current cluster affiliation
+
+        Raises
+        ------
+        XcpResponseError
+            If slave returns error (e.g., ERR_TIMECORR_STATE_CHANGE)
+
+        Example
+        -------
+        >>> # Enable advanced time correlation
+        >>> resp = master.timeCorrelationProperties(
+        ...     response_fmt=2,           # All triggers
+        ...     set_cluster_id=True,
+        ...     cluster_id=0x0001,        # → Multicast 239.255.0.1
+        ...     get_clk_info=True         # Request clock info
+        ... )
+        >>> print(resp.slave_config.response_fmt)  # Should be ALL_TRIGGERS
+        >>> print(resp.observable_clocks.xcp_slv_clk)  # e.g., XCP_FREE_RUNNING
+        >>>
+        >>> # Upload clock information if available
+        >>> if resp.clock_info.slv_clk_info:
+        ...     clk_data = master.upload(24)  # 24 bytes for clock info
+        ...     clk_info = ClockInformation.parse(clk_data)
+        ...     print(clk_info.uuid_string())
+
+        See Also
+        --------
+        getDaqClockMulticast : Send multicast command (requires response_fmt > 0)
+        TimeSyncEventHandler : Handles EV_TIME_SYNC responses
+        ClockInformation : Parse uploaded clock info
+
+        Notes
+        -----
+        **Important:** This must be called before GET_DAQ_CLOCK_MULTICAST works!
+
+        **Clock Scenarios:**
+        - Scenario 1: Single XCP clock (free running)
+        - Scenario 2/3: XCP clock with sync capability
+        - Scenario 4a/b: XCP + Grandmaster (PTP synchronized)
+        - Scenario 5a/b: XCP + ECU (both free running)
+
+        **Time Sync Bridge:**
+        Enables correlation across different transport layers (e.g., CAN ↔ ETH).
+        Requires device with multiple XCP slaves on different physical layers.
+
+        References
+        ----------
+        XCP 1.5 Spec, Section 7.5.6.1: TIME_CORRELATION_PROPERTIES
+        """
+        from pyxcp.time_correlation import GetPropertiesRequest, SetProperties, TimeCorrelationPropertiesResponse
+
+        # Build command parameters
+        set_props = SetProperties.encode(
+            response_fmt=response_fmt,
+            time_sync_bridge=time_sync_bridge,
+            set_cluster_id=set_cluster_id,
+        )
+        get_props = GetPropertiesRequest.encode(get_clk_info=get_clk_info)
+
+        # Send command: TIME_CORRELATION_PROPERTIES + parameters
+        # [CMD][SET_PROPERTIES][GET_PROPERTIES_REQUEST][RESERVED][CLUSTER_ID:WORD]
+        response = self.transport.request(
+            types.Command.TIME_CORRELATION_PROPERTIES, set_props, get_props, 0, *self.WORD_pack(cluster_id)
+        )
+        result = TimeCorrelationPropertiesResponse.parse(response)
+
+        self.logger.debug(f"TIME_CORRELATION_PROPERTIES: {result}")
+        return result
+
+    @wrapped
     def readDaq(self):
         """Read element from ODT entry.
 
@@ -2237,13 +2367,6 @@ class Master:
             d.extend(self.BYTE_pack(b))
         response = self.transport.request(types.Command.DBG_LLBT, *d)
         return types.DbgLlbtResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
-
-    @wrapped
-    def timeCorrelationProperties(self, set_properties: int, get_properties_request: int, cluster_id: int):
-        response = self.transport.request(
-            types.Command.TIME_CORRELATION_PROPERTIES, set_properties, get_properties_request, 0, *self.WORD_pack(cluster_id)
-        )
-        return types.TimeCorrelationPropertiesResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     # Transport layer commands / CAN.
 
