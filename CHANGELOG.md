@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-03-01
+
 ### Fixed
+- **xcp-profile**: Fixed broken CLI script with positional arguments
+  * **Root cause**: config_file trait had default_value=None but allow_none=False
+  * No support for positional arguments (only -c flag worked)
+  * Missing self.exit(0) caused exit code 2 instead of 0
+  * **Fix**: Changed default to empty string, added parse_command_line() for positional args
+  * Both syntaxes now work: `xcp-profile convert file.toml -o out.py` and `-c file.toml`
 - **WP-18**: Fixed DAQ max_payload_size calculation not considering interleavedMode (#210)
   * **Root cause**: DAQ frames with interleavedMode have extra sequence counter byte
   * max_payload_size = min(max_odt_entry_size, max_dto - overhead) was ignoring sequence byte
@@ -34,6 +42,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * Changes in `pyxcp/recorder/writer.hpp` lines 84, 122
   * Prevents spurious RuntimeError when stopping DAQ recording
   * File content was always correct; error was cosmetic but confusing
+
+### Closed Issues
+- Closed #156: DAQ data retrieval (resolved - DaqToCsv/DaqRecorder available since v0.22)
+- Closed #210: ERR_OUT_OF_RANGE with interleavedMode (fixed in WP-18)
 
 ## [0.27.1] - 2026-02-15
 
