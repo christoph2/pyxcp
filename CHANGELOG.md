@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **WP-13**: Fixed MDF timestamp conversion violating ASAM MDF specification (Discussion #270)
+  * **Root cause**: xmraw timestamps (nanoseconds) written directly to MDF without unit conversion
+  * ASAM MDF spec requires time channels to be in seconds as physical values
+  * **Symptoms**: INCA error "File contains reverse time stamps", incorrect time display in asamdf
+  * **Fix**: Convert timestamps from nanoseconds to seconds (divide by 1e9) before writing to MDF
+  * Changes in `pyxcp/recorder/converter/__init__.py` line 320
+  * Changes in `pyxcp/examples/ex_mdf.py` line 103
+  * MDF files now comply with ASAM MDF v4 specification
+  * Fixes compatibility with INCA, asamdf, and other MDF tools
 - **WP-12**: Fixed DaqRecorder spurious unmap error (#269)
   * **Root cause**: Stale errno from previous syscalls causing false "Resource temporarily unavailable" errors
   * errno is a global thread state that persists across syscall boundaries

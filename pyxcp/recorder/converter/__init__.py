@@ -315,7 +315,9 @@ class MdfConverter(CollectRows, XcpLogFileDecoder):
         mdf4 = MDF(version="4.10", header=hdr)
         for idx, arr in enumerate(self.tables):
             signals = []
-            timestamps = arr.timestamp0
+            # Convert timestamps from nanoseconds to seconds (ASAM MDF spec requirement)
+            # MDF time channels must be in seconds as physical values (Discussion #270)
+            timestamps = np.array(arr.timestamp0, dtype=np.float64) / 1e9
             for sd in arr.arr:
                 signal = Signal(samples=sd.arr, name=sd.name, timestamps=timestamps)
                 signals.append(signal)
