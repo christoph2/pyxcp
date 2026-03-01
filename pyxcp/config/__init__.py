@@ -961,9 +961,7 @@ class ProfileCreate(Application):
 class ProfileConvert(Application):
     description = "\nConvert legacy configuration file (.json/.toml) to new Python based format."
 
-    config_file = Unicode(help="Name of legacy config file (.json/.toml).", default_value=None, allow_none=False).tag(
-        config=True
-    )  # default_value="pyxcp_conf.py",
+    config_file = Unicode(help="Name of legacy config file (.json/.toml).", default_value="", allow_none=False).tag(config=True)
 
     dest_file = Unicode(default_value=None, allow_none=True, help="destination file name").tag(config=True)
 
@@ -975,7 +973,17 @@ class ProfileConvert(Application):
         )
     )
 
+    def parse_command_line(self, argv=None):
+        """Parse command line with support for positional arguments."""
+        super().parse_command_line(argv)
+        # If config_file not set via -c flag, check extra_args
+        if not self.config_file and self.extra_args:
+            self.config_file = self.extra_args[0]
+
     def start(self):
+        if not self.config_file:
+            self.log.error("No config file specified. Use: xcp-profile convert <file> -o <output>")
+            self.exit(1)
         pyxcp = self.parent.parent
         pyxcp._read_configuration(self.config_file, emit_warning=False)
         if self.dest_file:
@@ -988,6 +996,7 @@ class ProfileConvert(Application):
                 pyxcp.generate_config_file(out_file)
         else:
             pyxcp.generate_config_file(sys.stdout)
+        self.exit(0)
 
 
 class ProfileApp(Application):
