@@ -2317,7 +2317,17 @@ class Master:
         daq_events = []
         if include_event_lists and max_event_channel > 0:
             for ecn in range(max_event_channel):
-                eci = self.getDaqEventInfo(ecn)
+                try:
+                    eci = self.getDaqEventInfo(ecn)
+                except SystemExit as e:
+                    # GET_DAQ_EVENT_INFO not supported (ERR_CMD_UNKNOWN)
+                    # Skip event info collection
+                    self.logger.warning(
+                        "GET_DAQ_EVENT_INFO not supported by ECU (error: %s). Skipping event channel information.",
+                        e.error_code if hasattr(e, "error_code") else str(e),
+                    )
+                    break  # No point trying other channels if command unsupported
+
                 cycle = eci["eventChannelTimeCycle"]
                 maxDaqList = eci["maxDaqList"]
                 priority = eci["eventChannelPriority"]

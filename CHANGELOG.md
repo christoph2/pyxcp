@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Issue #253 (Part 1)**: Fixed xcp-info crash when GET_DAQ_EVENT_INFO unsupported
+  * **Root cause**: getDaqInfo() called getDaqEventInfo() without error handling
+  * **Symptoms**: SystemExit exception when slave returns ERR_CMD_UNKNOWN (0x20)
+  * xcp-info script terminated before completing diagnostics
+  * **Fix**: Added try/except around getDaqEventInfo() loop, matching getDaqProcessorInfo() pattern
+  * Changes in `pyxcp/master/master.py` lines 2318-2330
+  * Now gracefully logs warning and skips event info if command unsupported
+  * xcp-info can now complete diagnostics on slaves without GET_DAQ_EVENT_INFO
+
 ## [0.28.0] - 2026-03-01
 
 ### Fixed
