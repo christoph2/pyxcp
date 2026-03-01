@@ -1652,6 +1652,56 @@ class Master:
         result = types.GetDaqClockResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
         return result.timestamp
 
+    def getDaqClockMulticast(self, cluster_id: int = 0x0001, counter: int = 0):
+        """Send GET_DAQ_CLOCK_MULTICAST command (XCP 1.5, ETH transport only).
+
+        This is a transport-layer specific command that triggers an asynchronous
+        EV_TIME_SYNC event response. The command is sent via UDP multicast to
+        address 239.255.HIGH_BYTE.LOW_BYTE:5557 (derived from cluster_id).
+
+        **Important:**
+        - Response comes as EV_TIME_SYNC event (asynchronous)
+        - Must be sent every 2 seconds maximum when active
+        - Only supported on Ethernet transport (UDP)
+        - Counter value is echoed back in EV_TIME_SYNC for consistency checks
+
+        Parameters
+        ----------
+        cluster_id : int
+            CLUSTER_AFFILIATION parameter (16-bit, Intel byte order)
+            Default: 0x0001 → multicast address 239.255.0.1
+        counter : int
+            Counter value (8-bit) for consistency checking
+            Will be returned in EV_TIME_SYNC response
+
+        Raises
+        ------
+        RuntimeError
+            If transport is not Ethernet or multicast not supported
+
+        Example
+        -------
+        >>> master.getDaqClockMulticast(cluster_id=0x0001, counter=0)
+        >>> # Wait for EV_TIME_SYNC event asynchronously
+        >>> # Event will contain timestamps from slave clocks
+
+        See Also
+        --------
+        TimeSyncEventHandler : Handles the EV_TIME_SYNC response
+
+        References
+        ----------
+        XCP 1.5 Specification, Section 5.4: DAQ CLOCK MULTICAST ON ETHERNET
+        """
+        # Check if transport supports multicast
+        transport_name = self.transport.__class__.__name__.lower()
+        if transport_name != "eth":
+            raise RuntimeError(f"GET_DAQ_CLOCK_MULTICAST only supported on Ethernet transport (current: {transport_name})")
+
+        # Delegate to transport layer
+        self.transport.send_multicast(cluster_id, counter)
+        self.logger.debug(f"GET_DAQ_CLOCK_MULTICAST sent: cluster={cluster_id:#06x}, counter={counter}")
+
     @wrapped
     def readDaq(self):
         """Read element from ODT entry.
