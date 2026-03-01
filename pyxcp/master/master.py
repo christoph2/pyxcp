@@ -568,12 +568,10 @@ class Master:
             The raw response from the slave
         """
         # Send SET_REQUEST command to the slave
-        # Split the session_configuration_id into high and low bytes
         return self.transport.request(
             types.Command.SET_REQUEST,
             mode,
-            session_configuration_id >> 8,  # High byte
-            session_configuration_id & 0xFF,  # Low byte
+            *self.WORD_pack(session_configuration_id),
         )
 
     @wrapped
