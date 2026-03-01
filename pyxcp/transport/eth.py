@@ -17,6 +17,7 @@ from pyxcp.transport.base import (
 )
 
 DEFAULT_XCP_PORT = 5555
+DEFAULT_XCP_MULTICAST_PORT = 5557  # XCP 1.5: GET_DAQ_CLOCK_MULTICAST
 RECV_SIZE = 8196
 
 
@@ -122,6 +123,10 @@ class Eth(BaseTransport):
         self._packets = deque()
         self._packets_condition = threading.Condition()
         self._eth_receiver = EthReceiver(self.process_response)
+
+        # XCP 1.5: Multicast socket for GET_DAQ_CLOCK_MULTICAST
+        self._multicast_sock: Optional[socket.socket] = None
+        self._multicast_enabled = False
 
     def connect(self) -> None:
         if self.status == 0:
@@ -290,6 +295,9 @@ class Eth(BaseTransport):
             # if self.status == 1:
             #     self.sock.shutdown(socket.SHUT_RDWR)
             self.sock.close()
+        # XCP 1.5: Close multicast socket if enabled
+        if self._multicast_enabled:
+            self.disable_multicast()
 
     @property
     def invalidSocket(self) -> bool:
@@ -306,3 +314,123 @@ class Eth(BaseTransport):
                 self.logger.error("Failed to enable PTP hardware timestamping")
         else:
             self.logger.info(f"Hardware timestamping NOT supported on interface {ts_info.interface_name!r}")
+
+    # =========================================================================
+    # XCP 1.5: GET_DAQ_CLOCK_MULTICAST Support
+    # =========================================================================
+
+    @staticmethod
+    def cluster_id_to_multicast_address(cluster_id: int) -> str:
+        """
+        Convert CLUSTER_AFFILIATION to IPv4 multicast address.
+
+        XCP 1.5 Spec: IPv4-Multicast-Addr = 239.255.HIGH_BYTE.LOW_BYTE
+
+        Args:
+            cluster_id: 16-bit cluster identifier (Intel byte order)
+
+        Returns:
+            IPv4 multicast address (e.g., "239.255.0.1" for cluster_id=0x0001)
+        """
+        high_byte = (cluster_id >> 8) & 0xFF
+        low_byte = cluster_id & 0xFF
+        return f"239.255.{high_byte}.{low_byte}"
+
+    def enable_multicast(self, cluster_id: int = 0x0001) -> None:
+        """
+        Enable UDP multicast for GET_DAQ_CLOCK_MULTICAST.
+
+        Creates a separate UDP socket for sending multicast commands.
+        Responses (EV_TIME_SYNC events) come back on the regular connection.
+
+        Args:
+            cluster_id: CLUSTER_AFFILIATION parameter (default: 0x0001 → 239.255.0.1)
+        """
+        if self._multicast_enabled:
+            self.logger.warning("Multicast already enabled")
+            return
+
+        if self.protocol != "UDP":
+            self.logger.warning("GET_DAQ_CLOCK_MULTICAST requires UDP protocol (current: TCP)")
+            # Still create the socket - it might work for mixed mode slaves
+
+        try:
+            # Create UDP socket for multicast transmission
+            address_family = socket.AF_INET6 if self.ipv6 else socket.AF_INET
+            self._multicast_sock = socket.socket(address_family, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+
+            # Set TTL for multicast (site-local scope)
+            if self.ipv6:
+                # IPv6: Set multicast hop limit
+                self._multicast_sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_HOPS, 2)
+            else:
+                # IPv4: Set TTL
+                self._multicast_sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+
+            # Allow address reuse (multiple XCP masters on same host)
+            self._multicast_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            if hasattr(socket, "SO_REUSEPORT"):
+                self._multicast_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+
+            # Store multicast address
+            self._multicast_address = self.cluster_id_to_multicast_address(cluster_id)
+            self._multicast_port = DEFAULT_XCP_MULTICAST_PORT
+            self._cluster_id = cluster_id
+
+            self._multicast_enabled = True
+            self.logger.info(f"Multicast enabled: cluster_id={cluster_id:#06x} → {self._multicast_address}:{self._multicast_port}")
+
+        except Exception as e:
+            self.logger.error(f"Failed to enable multicast: {e}", exc_info=True)
+            if self._multicast_sock:
+                self._multicast_sock.close()
+                self._multicast_sock = None
+
+    def disable_multicast(self) -> None:
+        """Disable multicast and close the multicast socket."""
+        if self._multicast_sock:
+            try:
+                self._multicast_sock.close()
+            except Exception as e:  # nosec B110
+                # Ignore errors during cleanup - socket may already be closed
+                self.logger.debug(f"Error closing multicast socket (ignored): {e}")
+            self._multicast_sock = None
+        self._multicast_enabled = False
+        self.logger.info("Multicast disabled")
+
+    def send_multicast(self, cluster_id: int, counter: int) -> None:
+        """
+        Send GET_DAQ_CLOCK_MULTICAST command via UDP multicast.
+
+        XCP 1.5 Spec:
+        - Command: [0xF2][0xFA][ClusterID:WORD][Counter:BYTE]
+        - Port: 5557
+        - Address: 239.255.HIGH_BYTE.LOW_BYTE (derived from cluster_id)
+        - Response: Asynchronous EV_TIME_SYNC event on regular connection
+
+        Args:
+            cluster_id: 16-bit cluster identifier (Intel byte order)
+            counter: 8-bit counter for consistency checks
+        """
+        if not self._multicast_enabled:
+            # Auto-enable if not already enabled
+            self.enable_multicast(cluster_id)
+
+        if not self._multicast_sock:
+            raise RuntimeError("Multicast socket not available")
+
+        # Build GET_DAQ_CLOCK_MULTICAST packet
+        # [0xF2][0xFA][ClusterID:WORD Intel][Counter:BYTE]
+        packet = struct.pack("<BBHB", 0xF2, 0xFA, cluster_id, counter)
+
+        # Send to multicast address
+        multicast_addr = self.cluster_id_to_multicast_address(cluster_id)
+        try:
+            self._multicast_sock.sendto(packet, (multicast_addr, DEFAULT_XCP_MULTICAST_PORT))
+            self.logger.debug(
+                f"GET_DAQ_CLOCK_MULTICAST sent: cluster={cluster_id:#06x}, counter={counter} → "
+                f"{multicast_addr}:{DEFAULT_XCP_MULTICAST_PORT}"
+            )
+        except Exception as e:
+            self.logger.error(f"Failed to send multicast: {e}", exc_info=True)
+            raise
