@@ -6,6 +6,7 @@ import threading
 from collections import deque
 from typing import Optional
 
+import pyxcp.types as types
 from pyxcp.cpp_ext.cpp_ext import enable_ptp_timestamping, init_networking, receive_with_timestamp, check_timestamping_support
 from pyxcp.transport.transport_ext import EthReceiver
 
@@ -403,7 +404,7 @@ class Eth(BaseTransport):
         Send GET_DAQ_CLOCK_MULTICAST command via UDP multicast.
 
         XCP 1.5 Spec:
-        - Command: [0xF2][0xFA][ClusterID:WORD][Counter:BYTE]
+        - Frame (ETH framing): [LEN:WORD][CTR:WORD][0xF2][0xFA][CLUSTER_ID:WORD][COUNTER:BYTE]
         - Port: 5557
         - Address: 239.255.HIGH_BYTE.LOW_BYTE (derived from cluster_id)
         - Response: Asynchronous EV_TIME_SYNC event on regular connection
@@ -419,9 +420,16 @@ class Eth(BaseTransport):
         if not self._multicast_sock:
             raise RuntimeError("Multicast socket not available")
 
-        # Build GET_DAQ_CLOCK_MULTICAST packet
-        # [0xF2][0xFA][ClusterID:WORD Intel][Counter:BYTE]
-        packet = struct.pack("<BBHB", 0xF2, 0xFA, cluster_id, counter)
+        # Build GET_DAQ_CLOCK_MULTICAST packet with proper XCP framing
+        # Transport Layer Command (0xF2) + Subcommand 0xFA + CLUSTER_ID (LE) + Counter (BYTE)
+        cluster_id_le = cluster_id & 0xFFFF
+        packet = self.framing.prepare_request(
+            types.Command.TRANSPORT_LAYER_CMD,
+            0xFA,
+            cluster_id_le & 0xFF,
+            (cluster_id_le >> 8) & 0xFF,
+            counter & 0xFF,
+        )
 
         # Send to multicast address
         multicast_addr = self.cluster_id_to_multicast_address(cluster_id)
