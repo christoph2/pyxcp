@@ -1821,14 +1821,12 @@ class Master:
             set_cluster_id=set_cluster_id,
         )
         get_props = GetPropertiesRequest.encode(get_clk_info=get_clk_info)
-
         # Send command: TIME_CORRELATION_PROPERTIES + parameters
         # [CMD][SET_PROPERTIES][GET_PROPERTIES_REQUEST][RESERVED][CLUSTER_ID:WORD]
         response = self.transport.request(
             types.Command.TIME_CORRELATION_PROPERTIES, set_props, get_props, 0, *self.WORD_pack(cluster_id)
         )
         result = TimeCorrelationPropertiesResponse.parse(response)
-
         self.logger.debug(f"TIME_CORRELATION_PROPERTIES: {result}")
         return result
 

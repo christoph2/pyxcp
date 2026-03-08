@@ -292,18 +292,14 @@ class TimeCorrelationPropertiesResponse:
         Raises:
             ValueError: If response is invalid
         """
-        if len(response) < 8:
-            raise ValueError(f"Response too short: {len(response)} bytes (expected 8)")
-
-        if response[0] != 0xFF:
-            raise ValueError(f"Invalid packet ID: {response[0]:#04x} (expected 0xFF)")
-
-        slave_config = SlaveConfig.parse(response[1])
-        observable_clocks = ObservableClocks.parse(response[2])
-        sync_state = SyncState.parse(response[3])
-        clock_info = ClockInfo.parse(response[4])
+        if len(response) < 7:
+            raise ValueError(f"Response too short: {len(response)} bytes (expected 7)")
+        slave_config = SlaveConfig.parse(response[0])
+        observable_clocks = ObservableClocks.parse(response[1])
+        sync_state = SyncState.parse(response[2])
+        clock_info = ClockInfo.parse(response[3])
         # byte[5] = RESERVED
-        cluster_id = struct.unpack("<H", response[6:8])[0]  # Intel byte order
+        cluster_id = struct.unpack("<H", response[5:7])[0]  # Intel byte order
 
         return TimeCorrelationPropertiesResponse(
             slave_config=slave_config,

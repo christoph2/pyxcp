@@ -352,6 +352,9 @@ class TimeSyncEventHandler(EventHandler):
 
         return event_code == Event.EV_TIME_SYNC
 
+    def get_last_sync_event(self) -> Optional[TimeSyncEvent]:
+        return self.last_sync_event
+
     def handle(self, event_code: int, packet: bytes) -> bool:
         try:
             # Determine MAX_CTO and byte order from transport
@@ -385,10 +388,7 @@ class TimeSyncEventHandler(EventHandler):
                     clocks.append(f"GM={sync_event.grandmaster_timestamp:#x}")
                 if sync_event.ecu_timestamp:
                     clocks.append(f"ECU={sync_event.ecu_timestamp:#x}")
-                self.logger.info(
-                    f"TIME_SYNC (Extended): {', '.join(clocks)}, "
-                    f"Trigger={sync_event.trigger_info.initiator.name}"
-                )
+                self.logger.info(f"TIME_SYNC (Extended): {', '.join(clocks)}, Trigger={sync_event.trigger_info.initiator.name}")
 
             return True  # Fully handled
 
@@ -460,9 +460,7 @@ class DaqStimEventHandler(EventHandler):
             info_type = packet[2]
             failure_type = packet[3]
             identifier = struct.unpack("<H", packet[4:6])[0]
-            self.logger.error(
-                f"EV_STIM_TIMEOUT: Info={info_type}, Failure={failure_type}, " f"ID={identifier}"
-            )
+            self.logger.error(f"EV_STIM_TIMEOUT: Info={info_type}, Failure={failure_type}, ID={identifier}")
             return True
 
         elif event_code == Event.EV_CLEAR_DAQ:
@@ -531,9 +529,6 @@ def create_default_event_chain(transport: "BaseTransport") -> EventHandler:
     user_handler = UserEventHandler(transport)
 
     # Build the chain
-    transport_handler.set_next(time_sync_handler).set_next(session_handler).set_next(daq_stim_handler).set_next(
-        user_handler
-    )
+    transport_handler.set_next(time_sync_handler).set_next(session_handler).set_next(daq_stim_handler).set_next(user_handler)
 
     return transport_handler
-
