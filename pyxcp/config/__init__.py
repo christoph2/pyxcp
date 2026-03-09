@@ -1122,6 +1122,14 @@ class PyXCP(Application):
             )
             self.log.addHandler(rich_handler)
 
+        # Ensure the pyxcp logger hierarchy inherits the configured level and has a handler
+        # so transport-layer debug output is emitted when requested via CLI (-l/--log-level).
+        pyxcp_logger = logging.getLogger("pyxcp")
+        pyxcp_logger.setLevel(self.log_level)
+        if not pyxcp_logger.handlers or all(isinstance(h, logging.NullHandler) for h in pyxcp_logger.handlers):
+            for handler in self.log.handlers:
+                pyxcp_logger.addHandler(handler)
+
     def initialize(self, argv=None):
         from pyxcp import __version__ as pyxcp_version
 

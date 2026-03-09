@@ -40,7 +40,7 @@ Before you start
   case covers it. Prefer a lab setup for first steps.
 - Transport choice: pyXCP supports Ethernet, CAN, USB, and Serial (SxI).
   Ethernet usually offers the highest throughput; CAN is ubiquitous and
-  robust but has limited payload. See also docs/howto_can_driver.md for
+  robust but has limited payload. See also :doc:`howto_can_driver` for
   CAN setup.
 
 Choose your transport (quick guide)
@@ -50,7 +50,7 @@ Choose your transport (quick guide)
   specify host/port.
 - CAN: Requires a python‑can compatible driver and correct CAN
   IDs/filters. Use pyxcp‑probe‑can‑drivers to list available interfaces.
-  See docs/howto_can_driver.md.
+  See :doc:`howto_can_driver`.
 - USB/Serial: Device‑specific; consult your device documentation.
 
 You can configure transports either by command line via the built‑in
@@ -239,7 +239,7 @@ size and bandwidth depend on the negotiated transport parameters.
 
 Note: For a higher-level DAQ workflow using Policies (online CSV and
 offline .xmraw recording) and post-processing, see the Recorder page:
-`Recorder <recorder.md>`__. The snippet below demonstrates a low-level
+:doc:`Recorder <recorder>`. The snippet below demonstrates a low-level
 DAQ setup directly with the master API:
 
 .. code:: python
@@ -311,6 +311,62 @@ XCP allows you to read and write parameters in the slave device:
 
 Advanced Features
 -----------------
+
+Handling optional DAQ information (Issue #253)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some ECUs do not implement all optional DAQ services. Starting with v0.26.x, ``getDaqInfo()`` returns a ``valid`` map (``processor``, ``resolution``, ``events``) to signal whether values came from the slave or safe defaults. If ``processor`` or ``resolution`` are ``False``, provide trusted data when initializing DAQ:
+
+.. code:: python
+
+   daq_info = x.getDaqInfo(include_event_lists=False)
+   if not daq_info["valid"]["processor"] or not daq_info["valid"]["resolution"]:
+       raise RuntimeError("Slave DAQ info incomplete (see Issue #253); provide overrides.")
+
+   # Optional override when the slave is incomplete
+   daq_override = {...}  # processor/resolution dict from A2L or manual config
+   daq_processor.setup(daq_info_override=daq_override)
+
+If ``events`` is ``False``, the event list is empty (e.g., ``GET_DAQ_EVENT_INFO`` not implemented); provide event IDs from configuration or skip event-dependent features.
+
+Example override
+^^^^^^^^^^^^^^^^
+
+Use trusted data from A2L or ECU documentation when the slave omits processor/resolution info:
+
+.. code:: python
+
+   daq_override = {
+       "processor": {
+           "minDaq": 0,
+           "maxDaq": 4,
+           "properties": {
+               "configType": "DYNAMIC",
+               "overloadEvent": False,
+               "overloadMsb": True,
+               "prescalerSupported": False,
+               "pidOffSupported": False,
+               "timestampSupported": True,
+               "bitStimSupported": False,
+               "resumeSupported": False,
+           },
+           "keyByte": {
+               "identificationField": "IDF_ABS_ODT_NUMBER",
+               "addressExtension": "AE_SAME_FOR_ALL",
+               "optimisationType": "OM_DEFAULT",
+           },
+       },
+       "resolution": {
+           "timestampTicks": 1,
+           "maxOdtEntrySizeDaq": 248,
+           "maxOdtEntrySizeStim": 248,
+           "granularityOdtEntrySizeDaq": 1,
+           "granularityOdtEntrySizeStim": 1,
+           "timestampMode": {"unit": "DAQ_TIMESTAMP_UNIT_1NS", "fixed": True, "size": "S4"},
+       },
+       "channels": [],  # supply if you have event info; leave empty if events are unknown
+       "valid": {"processor": True, "resolution": True, "events": False},
+   }
 
 Using Custom Transport Layers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -409,7 +465,7 @@ Re‑using an existing CAN interface
 
 If you already manage a CAN bus object externally, you can pass it into
 pyXCP. See HOW‑TO: How to build your own CAN drivers
-(howto_can_driver.md) for a full example and caveats.
+(howto_can_driver.rst) for a full example and caveats.
 
 Timestamping note
 ~~~~~~~~~~~~~~~~~
@@ -444,7 +500,7 @@ Troubleshooting
   ``xcp-id-scanner`` to validate connectivity.
 - Seed & Key fails: Confirm you provided the correct DLL or Python
   function. On Windows with 32‑bit only DLLs, use the provided 32↔64
-  bridge (asamkeydll.exe). See README and docs/configuration.md.
+bridge (asamkeydll.exe). See README and :doc:`configuration`.
 - Wrong or swapped CAN IDs: Ensure ``can_id_master`` and
   ``can_id_slave`` are set correctly (see Configuration). The logger
   prints resolved IDs.
