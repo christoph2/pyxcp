@@ -135,10 +135,15 @@ class DaqProcessor:
         # Flag indicating a fatal OS-level error occurred during DAQ (e.g., disk full, out-of-memory)
         self._fatal_os_error: bool = False
 
-    def setup(self, start_datetime: Optional[CurrentDatetime] = None, write_multiple: bool = True):
-daq_info_override: Optional[Dict[str, Any]] = None,
+    def setup(
+        self,
+        start_datetime: Optional[CurrentDatetime] = None,
+        write_multiple: bool = True,
+        daq_info_override: Optional[Dict[str, Any]] = None,
+    ):
         if not self.xcp_master.slaveProperties.supportsDaq:
             raise RuntimeError("DAQ functionality is not supported.")
+
         self.daq_info = self.xcp_master.getDaqInfo(include_event_lists=False)
         validity = self.daq_info.get("valid", {})
         processor_valid = validity.get("processor", True)
@@ -158,9 +163,12 @@ daq_info_override: Optional[Dict[str, Any]] = None,
             valid_override.setdefault("events", True)
             override["valid"] = valid_override
             self.log.warning("Using provided DAQ info override because slave returned incomplete data.")
-            self.daq_info = override        if start_datetime is None:
+            self.daq_info = override
+
+        if start_datetime is None:
             start_datetime = CurrentDatetime(time_ns())
         self.start_datetime = start_datetime
+
         try:
             processor = self.daq_info.get("processor")
             properties = processor.get("properties")
@@ -195,7 +203,14 @@ daq_info_override: Optional[Dict[str, Any]] = None,
             #   interleavedMode=False: [PID:1] [DAQ_ID:header_len] [Payload:N]
             #   interleavedMode=True:  [PID:1] [Seq:1] [DAQ_ID:header_len] [Payload:N]
             overhead = header_len
-            if self.xcp_master.slaveProperties.get("interleavedMode", False):
+            interleaved_mode = False
+            slave_props = self.xcp_master.slaveProperties
+            # slaveProperties may be a SimpleNamespace in tests; support both dict-like and attribute access.
+            if hasattr(slave_props, "get"):
+                interleaved_mode = slave_props.get("interleavedMode", False)
+            else:
+                interleaved_mode = getattr(slave_props, "interleavedMode", False)
+            if interleaved_mode:
                 overhead += 1  # Add 1 byte for sequence counter
                 self.log.debug(f"InterleavedMode enabled: overhead = {overhead} (header={header_len} + seq=1)")
             else:

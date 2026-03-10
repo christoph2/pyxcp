@@ -2525,34 +2525,35 @@ class Master:
                     stim_supported = eci["daqEventProperties"]["stim"]
                     packed_supported = eci["daqEventProperties"]["packed"]
                     name = self.fetch(eci.eventChannelNameLength)
-                if name:
-                    name = decode_bytes(name)
-                channel = {
-                    "name": name,
-                    "priority": eci["eventChannelPriority"],
-                    "unit": eci["eventChannelTimeUnit"],
-                    "cycle": eci["eventChannelTimeCycle"],
-                    "maxDaqList": eci["maxDaqList"],
-                    "properties": {
-                        "consistency": consistency,
-                        "daq": daq_supported,
-                        "stim": stim_supported,
-                        "packed": packed_supported,
-                    },
-                }
-                daq_event_info = DaqEventInfo(
-                    name,
-                    types.EVENT_CHANNEL_TIME_UNIT_TO_EXP[time_unit],
-                    cycle,
-                    maxDaqList,
-                    priority,
-                    consistency,
-                    daq_supported,
-                    stim_supported,
-                    packed_supported,
-                )
-                daq_events.append(daq_event_info)
-                channels.append(channel)
+                    if name:
+                        name = decode_bytes(name)
+                    channel = {
+                        "name": name,
+                        "priority": eci["eventChannelPriority"],
+                        "unit": eci["eventChannelTimeUnit"],
+                        "cycle": eci["eventChannelTimeCycle"],
+                        "maxDaqList": eci["maxDaqList"],
+                        "properties": {
+                            "consistency": consistency,
+                            "daq": daq_supported,
+                            "stim": stim_supported,
+                            "packed": packed_supported,
+                        },
+                    }
+                    daq_event_info = DaqEventInfo(
+                        name,
+                        types.EVENT_CHANNEL_TIME_UNIT_TO_EXP[time_unit],
+                        cycle,
+                        maxDaqList,
+                        priority,
+                        consistency,
+                        daq_supported,
+                        stim_supported,
+                        packed_supported,
+                    )
+                    daq_events.append(daq_event_info)
+                    channels.append(channel)
+                    continue
                 if status == types.TryCommandResult.NOT_IMPLEMENTED:
                     events_valid = False
                     self.logger.warning("GET_DAQ_EVENT_INFO not supported by ECU. Event channel list will remain empty.")
