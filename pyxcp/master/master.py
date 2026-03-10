@@ -2516,16 +2516,15 @@ class Master:
             for ecn in range(max_event_channel):
                 status, eci = self.try_command(self.getDaqEventInfo, ecn, silent=True)
                 if status == types.TryCommandResult.OK and eci:
-
-                cycle = eci["eventChannelTimeCycle"]
-                maxDaqList = eci["maxDaqList"]
-                priority = eci["eventChannelPriority"]
-                time_unit = eci["eventChannelTimeUnit"]
-                consistency = eci["daqEventProperties"]["consistency"]
-                daq_supported = eci["daqEventProperties"]["daq"]
-                stim_supported = eci["daqEventProperties"]["stim"]
-                packed_supported = eci["daqEventProperties"]["packed"]
-                name = self.fetch(eci.eventChannelNameLength)
+                    cycle = eci["eventChannelTimeCycle"]
+                    maxDaqList = eci["maxDaqList"]
+                    priority = eci["eventChannelPriority"]
+                    time_unit = eci["eventChannelTimeUnit"]
+                    consistency = eci["daqEventProperties"]["consistency"]
+                    daq_supported = eci["daqEventProperties"]["daq"]
+                    stim_supported = eci["daqEventProperties"]["stim"]
+                    packed_supported = eci["daqEventProperties"]["packed"]
+                    name = self.fetch(eci.eventChannelNameLength)
                 if name:
                     name = decode_bytes(name)
                 channel = {
@@ -2554,7 +2553,6 @@ class Master:
                 )
                 daq_events.append(daq_event_info)
                 channels.append(channel)
-                    continue
                 if status == types.TryCommandResult.NOT_IMPLEMENTED:
                     events_valid = False
                     self.logger.warning("GET_DAQ_EVENT_INFO not supported by ECU. Event channel list will remain empty.")
