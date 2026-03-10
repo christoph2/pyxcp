@@ -52,7 +52,7 @@ Requirements
 Quick start
 -----------
 
-**New to pyXCP?** Start with the 15-minute `Quickstart Guide <quickstart.md>`_ for a hands-on introduction.
+**New to pyXCP?** Start with the 15-minute :doc:`Quickstart Guide <quickstart>` for a hands-on introduction.
 
 The comprehensive `tutorial <tutorial.rst>`_ walks you through typical tasks end-to-end.
 

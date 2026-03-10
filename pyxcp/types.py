@@ -619,11 +619,6 @@ DaqElement = Struct(
     Padding(1),
 )
 
-GetDaqClockResponse = Struct(
-    Padding(3),
-    "timestamp" / Int32u,
-)
-
 DaqPackedMode = Enum(Int8ul, NONE=0, ELEMENT_GROUPED=1, EVENT_GROUPED=2)
 
 GetDaqPackedModeResponse = Struct(

@@ -167,7 +167,7 @@ Run with::
 
    python tool.py --transport CAN --device socketcan --channel can0 --bitrate 500000
 
-Method 2: Config file (``pyxcp_conf.py``):: 
+Method 2: Config file (``pyxcp_conf.py``)::
 
    c = get_config()
    c.Transport.CAN.device = "socketcan"

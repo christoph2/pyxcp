@@ -13,7 +13,7 @@ import struct
 import traceback
 import warnings
 from contextlib import suppress
-from typing import Any, Callable, Collection, TypeVar
+from typing import Any, Callable, Collection, Optional, TypeVar
 
 from pyxcp.daq_stim.stim import DaqEventInfo, Stim
 
@@ -35,6 +35,7 @@ from pyxcp.master.errorhandler import (
     set_suppress_xcp_error_log,
     wrapped,
 )
+from pyxcp.time_correlation import TimeCorrelationPropertiesResponse
 from pyxcp.transport.base import create_transport, BaseTransport
 from pyxcp.utils import decode_bytes, delay, short_sleep
 
@@ -181,6 +182,8 @@ class Master:
 
         # Policies may issue XCP commands on their own.
         self.transport.policy.xcp_master = self
+
+        self.time_correlation_properties: Optional[TimeCorrelationPropertiesResponse] = None
 
         # (D)Word (un-)packers are byte-order dependent
         # -- byte-order is returned by CONNECT_Resp (COMM_MODE_BASIC)
@@ -1648,12 +1651,16 @@ class Master:
         int
             Current timestamp, format specified by `getDaqResolutionInfo`
         """
+        from pyxcp.time_correlation import GetDaqClockResponse
+
         response = self.transport.request(types.Command.GET_DAQ_CLOCK)
-        result = types.GetDaqClockResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
-        return result.timestamp
+        result = GetDaqClockResponse.parse(
+            response, byteOrder=self.slaveProperties.byteOrder, properties=self.time_correlation_properties
+        )
+        return result
 
     def getDaqClockMulticast(self, cluster_id: int = 0x0001, counter: int = 0):
-        """Send GET_DAQ_CLOCK_MULTICAST command (XCP 1.5, ETH transport only).
+        """Send GET_DAQ_CLOCK_MULTICAST command (XCP 1.3, ETH transport only).
 
         This is a transport-layer specific command that triggers an asynchronous
         EV_TIME_SYNC event response. The command is sent via UDP multicast to
@@ -1661,8 +1668,6 @@ class Master:
 
         **Important:**
         - Response comes as EV_TIME_SYNC event (asynchronous)
-        - Must be sent every 2 seconds maximum when active
-        - Only supported on Ethernet transport (UDP)
         - Counter value is echoed back in EV_TIME_SYNC for consistency checks
 
         Parameters
@@ -1691,7 +1696,7 @@ class Master:
 
         References
         ----------
-        XCP 1.5 Specification, Section 5.4: DAQ CLOCK MULTICAST ON ETHERNET
+        XCP 1. Specification, Section 5.4: DAQ CLOCK MULTICAST ON ETHERNET
         """
         # Check if transport supports multicast
         transport_name = self.transport.__class__.__name__.lower()
@@ -1711,7 +1716,7 @@ class Master:
         cluster_id: int = 0x0000,
         get_clk_info: bool = False,
     ):
-        """Configure and query time correlation properties (XCP 1.5).
+        """Configure and query time correlation properties (XCP 1.3).
 
         This command enables advanced time correlation features and retrieves
         clock information from the XCP slave. Must be called after CONNECT
@@ -1821,12 +1826,12 @@ class Master:
             set_cluster_id=set_cluster_id,
         )
         get_props = GetPropertiesRequest.encode(get_clk_info=get_clk_info)
-        # Send command: TIME_CORRELATION_PROPERTIES + parameters
-        # [CMD][SET_PROPERTIES][GET_PROPERTIES_REQUEST][RESERVED][CLUSTER_ID:WORD]
         response = self.transport.request(
             types.Command.TIME_CORRELATION_PROPERTIES, set_props, get_props, 0, *self.WORD_pack(cluster_id)
         )
-        result = TimeCorrelationPropertiesResponse.parse(response)
+        result = TimeCorrelationPropertiesResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+        self.time_correlation_properties = result
+
         self.logger.debug(f"TIME_CORRELATION_PROPERTIES: {result}")
         return result
 
@@ -2414,10 +2419,46 @@ class Master:
             support it, fallback defaults will be used. See FAQ for details.
         """
         result = {}
+        processor_valid = False
+        resolution_valid = False
+        events_valid = not include_event_lists
+        processorInfo = {
+            "minDaq": 0,
+            "maxDaq": 0,  # Dynamic allocation required
+            "properties": {
+                "configType": "DYNAMIC",
+                "overloadEvent": False,
+                "overloadMsb": True,
+                "prescalerSupported": False,
+                "pidOffSupported": False,
+                "timestampSupported": False,
+                "bitStimSupported": False,
+                "resumeSupported": False,
+            },
+            "keyByte": {
+                "identificationField": "IDF_ABS_ODT_NUMBER",
+                "addressExtension": "AE_SAME_FOR_ALL",
+                "optimisationType": "OM_DEFAULT",
+            },
+        }
+        resolutionInfo = {
+            "timestampTicks": 0,
+            "maxOdtEntrySizeDaq": 0,
+            "maxOdtEntrySizeStim": 0,
+            "granularityOdtEntrySizeDaq": 1,
+            "granularityOdtEntrySizeStim": 1,
+            "timestampMode": {
+                "unit": "DAQ_TIMESTAMP_UNIT_1NS",
+                "fixed": False,
+                "size": "NO_TIME_STAMP",
+            },
+        }
 
         # Try GET_DAQ_PROCESSOR_INFO, but provide fallback if not supported
-        try:
-            dpi = self.getDaqProcessorInfo()
+        max_event_channel = 0
+        status, dpi = self.try_command(self.getDaqProcessorInfo, extra_msg="DAQ processor info")
+        if status == types.TryCommandResult.OK and dpi:
+            processor_valid = True
             processorInfo = {
                 "minDaq": dpi["minDaq"],
                 "maxDaq": dpi["maxDaq"],
@@ -2437,65 +2478,44 @@ class Master:
                     "optimisationType": dpi["daqKeyByte"]["Optimisation_Type"],
                 },
             }
-            max_event_channel = dpi.maxEventChannel
-        except SystemExit as e:
-            # GET_DAQ_PROCESSOR_INFO not supported (ERR_CMD_UNKNOWN)
-            # Use conservative fallback defaults per XCP spec
+            max_event_channel = getattr(dpi, "maxEventChannel", 0)
+        elif status in (types.TryCommandResult.XCP_ERROR, types.TryCommandResult.OTHER_ERROR):
             self.logger.warning(
-                "GET_DAQ_PROCESSOR_INFO not supported by ECU (error: %s). "
-                "Using fallback defaults. DAQ functionality may be limited.",
-                e.error_code if hasattr(e, "error_code") else str(e),
+                "Failed to read GET_DAQ_PROCESSOR_INFO (%s). Using fallback defaults. DAQ functionality may be limited.",
+                status.name,
             )
-            processorInfo = {
-                "minDaq": 0,
-                "maxDaq": 0,  # Dynamic allocation required
-                "properties": {
-                    "configType": "DYNAMIC",
-                    "overloadEvent": False,
-                    "overloadMsb": True,
-                    "prescalerSupported": False,
-                    "pidOffSupported": False,
-                    "timestampSupported": False,
-                    "bitStimSupported": False,
-                    "resumeSupported": False,
-                },
-                "keyByte": {
-                    "identificationField": "IDF_ABS_ODT_NUMBER",
-                    "addressExtension": "AE_SAME_FOR_ALL",
-                    "optimisationType": "OM_DEFAULT",
-                },
-            }
-            max_event_channel = 0  # Will skip event info collection
         result["processor"] = processorInfo
 
-        dri = self.getDaqResolutionInfo()
-        resolutionInfo = {
-            "timestampTicks": dri["timestampTicks"],
-            "maxOdtEntrySizeDaq": dri["maxOdtEntrySizeDaq"],
-            "maxOdtEntrySizeStim": dri["maxOdtEntrySizeStim"],
-            "granularityOdtEntrySizeDaq": dri["granularityOdtEntrySizeDaq"],
-            "granularityOdtEntrySizeStim": dri["granularityOdtEntrySizeStim"],
-            "timestampMode": {
-                "unit": dri["timestampMode"]["unit"],
-                "fixed": dri["timestampMode"]["fixed"],
-                "size": dri["timestampMode"]["size"],
-            },
-        }
+        status, dri = self.try_command(self.getDaqResolutionInfo, extra_msg="DAQ resolution info")
+        if status == types.TryCommandResult.OK and dri:
+            resolution_valid = True
+            resolutionInfo = {
+                "timestampTicks": dri["timestampTicks"],
+                "maxOdtEntrySizeDaq": dri["maxOdtEntrySizeDaq"],
+                "maxOdtEntrySizeStim": dri["maxOdtEntrySizeStim"],
+                "granularityOdtEntrySizeDaq": dri["granularityOdtEntrySizeDaq"],
+                "granularityOdtEntrySizeStim": dri["granularityOdtEntrySizeStim"],
+                "timestampMode": {
+                    "unit": dri["timestampMode"]["unit"],
+                    "fixed": dri["timestampMode"]["fixed"],
+                    "size": dri["timestampMode"]["size"],
+                },
+            }
+        elif status in (types.TryCommandResult.XCP_ERROR, types.TryCommandResult.OTHER_ERROR):
+            self.logger.warning(
+                "Failed to read GET_DAQ_RESOLUTION_INFO (%s). Using fallback defaults; timestamp support may be limited.",
+                status.name,
+            )
         result["resolution"] = resolutionInfo
         channels = []
         daq_events = []
+        if include_event_lists and max_event_channel == 0:
+            events_valid = processor_valid
         if include_event_lists and max_event_channel > 0:
+            events_valid = True
             for ecn in range(max_event_channel):
-                try:
-                    eci = self.getDaqEventInfo(ecn)
-                except SystemExit as e:
-                    # GET_DAQ_EVENT_INFO not supported (ERR_CMD_UNKNOWN)
-                    # Skip event info collection
-                    self.logger.warning(
-                        "GET_DAQ_EVENT_INFO not supported by ECU (error: %s). Skipping event channel information.",
-                        e.error_code if hasattr(e, "error_code") else str(e),
-                    )
-                    break  # No point trying other channels if command unsupported
+                status, eci = self.try_command(self.getDaqEventInfo, ecn, silent=True)
+                if status == types.TryCommandResult.OK and eci:
 
                 cycle = eci["eventChannelTimeCycle"]
                 maxDaqList = eci["maxDaqList"]
@@ -2534,7 +2554,25 @@ class Master:
                 )
                 daq_events.append(daq_event_info)
                 channels.append(channel)
+                    continue
+                if status == types.TryCommandResult.NOT_IMPLEMENTED:
+                    events_valid = False
+                    self.logger.warning("GET_DAQ_EVENT_INFO not supported by ECU. Event channel list will remain empty.")
+                    channels = []
+                    daq_events = []
+                    break
+                if status == types.TryCommandResult.XCP_ERROR:
+                    events_valid = False
+                    self.logger.debug("Skipping DAQ event info %s due to XCP error: %r", ecn, eci)
+                    continue
+                events_valid = False
+                self.logger.warning("Skipping DAQ event info %s due to unexpected error: %r", ecn, eci)
         result["channels"] = channels
+        result["valid"] = {
+            "processor": processor_valid,
+            "resolution": resolution_valid,
+            "events": events_valid,
+        }
         self.stim.setDaqEventInfo(daq_events)
         return result
 
@@ -2812,6 +2850,13 @@ class Master:
             # Ensure suppression flag is restored even on success/other exceptions
             with suppress(Exception):
                 set_suppress_xcp_error_log(_prev_suppress)
+
+    @property
+    def extended_daq_clock_format(self) -> bool:
+        """Check if GET_DAQ_CLOCK and EV_TIME_SYNC are in legacy or extend mode."""
+        if self.time_correlation_properties is None:
+            return False
+        return self.time_correlation_properties.slave_config.response_fmt >= 1
 
 
 def ticks_to_seconds(ticks, resolution):

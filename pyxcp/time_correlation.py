@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """
-XCP 1.5 Time Correlation Support
+XCP 1.3 Time Correlation Support
 
 This module implements TIME_CORRELATION_PROPERTIES command and clock information
 structures for advanced time correlation features.
 
-XCP 1.5 introduces three time correlation techniques:
+XCP 1.3 introduces three time correlation techniques:
 1. XCP Native: GET_DAQ_CLOCK_MULTICAST
 2. XCP-unrelated Sync: IEEE 1588 PTP
 3. Timestamp Tuples: For resource-limited slaves
@@ -24,10 +24,26 @@ References:
 import enum
 import logging
 import struct
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
+from pyxcp.events import ClockFormat, PayloadFormat, TriggerInfo
+
 logger = logging.getLogger(__name__)
+
+
+# ==============================================================================
+# HELPER FUNCTIONS
+# ==============================================================================
+
+
+def byte_order_prefix(byte_order: str) -> str:
+    if byte_order == "INTEL":
+        return "<"
+    elif byte_order == "MOTOROLA":
+        return ">"
+    else:
+        return "="
 
 
 # ==============================================================================
@@ -60,21 +76,23 @@ class DaqTimestampRelation(enum.IntEnum):
     ECU_CLOCK = 1
 
 
-class ClockAvailability(enum.IntEnum):
-    """Availability and characteristics of a clock."""
-
+class ClockAvailabilitySLV(enum.IntEnum):
     # XCP_SLV_CLK
     XCP_FREE_RUNNING = 0  # Free running, can be read randomly
     XCP_SYNC_CAPABLE = 1  # Might be syntonized/synchronized, can be read
     XCP_NOT_AVAILABLE = 2  # No XCP slave clock (DAQ TS might still exist)
     XCP_RESERVED = 3
 
+
+class ClockAvailabilityGM(enum.IntEnum):
     # GRANDM_CLK
     GRANDM_NOT_AVAILABLE = 0
     GRANDM_CAN_READ = 1  # Synchronized, can be read randomly
     GRANDM_AUTONOMOUS_EVENTS = 2  # Cannot read, but autonomously sends EV_TIME_SYNC
     GRANDM_RESERVED = 3
 
+
+class ClockAvailabilityECU(enum.IntEnum):
     # ECU_CLK
     ECU_NOT_AVAILABLE = 0
     ECU_CAN_READ = 1  # Can read randomly
@@ -203,17 +221,17 @@ class SlaveConfig:
 class ObservableClocks:
     """Parsed OBSERVABLE_CLOCKS from response (byte 2)."""
 
-    xcp_slv_clk: ClockAvailability
-    grandm_clk: ClockAvailability
-    ecu_clk: ClockAvailability
+    xcp_slv_clk: ClockAvailabilitySLV
+    grandm_clk: ClockAvailabilityGM
+    ecu_clk: ClockAvailabilityECU
 
     @staticmethod
     def parse(value: int) -> "ObservableClocks":
         """Parse OBSERVABLE_CLOCKS byte."""
         return ObservableClocks(
-            xcp_slv_clk=ClockAvailability(value & 0x03),
-            grandm_clk=ClockAvailability((value >> 2) & 0x03),
-            ecu_clk=ClockAvailability((value >> 4) & 0x03),
+            xcp_slv_clk=ClockAvailabilitySLV(value & 0x03),
+            grandm_clk=ClockAvailabilityGM((value >> 2) & 0x03),
+            ecu_clk=ClockAvailabilityECU((value >> 4) & 0x03),
         )
 
 
@@ -279,7 +297,7 @@ class TimeCorrelationPropertiesResponse:
     cluster_id: int
 
     @staticmethod
-    def parse(response: bytes) -> "TimeCorrelationPropertiesResponse":
+    def parse(response: bytes, byteOrder: str) -> "TimeCorrelationPropertiesResponse":
         """
         Parse TIME_CORRELATION_PROPERTIES response packet.
 
@@ -299,7 +317,7 @@ class TimeCorrelationPropertiesResponse:
         sync_state = SyncState.parse(response[2])
         clock_info = ClockInfo.parse(response[3])
         # byte[5] = RESERVED
-        cluster_id = struct.unpack("<H", response[5:7])[0]  # Intel byte order
+        cluster_id = struct.unpack(f"{byte_order_prefix(byteOrder)}H", response[5:7])[0]  # Intel byte order
 
         return TimeCorrelationPropertiesResponse(
             slave_config=slave_config,
@@ -358,7 +376,7 @@ class ClockInformation:
     max_timestamp_before_wrap: int  # DLONG
 
     @staticmethod
-    def parse(data: bytes, has_epoch: bool = False) -> "ClockInformation":
+    def parse(data: bytes, byteOrder: str, has_epoch: bool = False) -> "ClockInformation":
         """
         Parse clock information structure.
 
@@ -373,13 +391,13 @@ class ClockInformation:
             raise ValueError(f"Clock info too short: {len(data)} bytes (expected 24)")
 
         uuid = data[0:8]
-        timestamp_ticks = struct.unpack("<H", data[8:10])[0]
+        timestamp_ticks = struct.unpack(f"{byte_order_prefix(byteOrder)}H", data[8:10])[0]
         timestamp_unit = TimestampUnit(data[10])
         stratum_level = data[11]
         native_timestamp_size = NativeTimestampSize(data[12])
         epoch = Epoch(data[13]) if has_epoch else None
         # data[14:16] = RESERVED
-        max_timestamp_before_wrap = struct.unpack("<Q", data[16:24])[0]
+        max_timestamp_before_wrap = struct.unpack(f"{byte_order_prefix(byteOrder)}Q", data[16:24])[0]
 
         return ClockInformation(
             uuid=uuid,
@@ -420,13 +438,13 @@ class ClockRelation:
     xcp_slave_timestamp: int  # DLONG - Corresponding XCP slave timestamp
 
     @staticmethod
-    def parse(data: bytes) -> "ClockRelation":
+    def parse(data: bytes, byteOrder: str) -> "ClockRelation":
         """Parse clock relation structure (16 bytes)."""
         if len(data) < 16:
             raise ValueError(f"Clock relation too short: {len(data)} bytes (expected 16)")
 
-        origin_in_grandmaster_domain = struct.unpack("<Q", data[0:8])[0]
-        xcp_slave_timestamp = struct.unpack("<Q", data[8:16])[0]
+        origin_in_grandmaster_domain = struct.unpack(f"{byte_order_prefix(byteOrder)}Q", data[0:8])[0]
+        xcp_slave_timestamp = struct.unpack(f"{byte_order_prefix(byteOrder)}Q", data[8:16])[0]
 
         return ClockRelation(
             origin_in_grandmaster_domain=origin_in_grandmaster_domain,
@@ -466,3 +484,66 @@ class EcuGrandmasterClockInfo:
     def __str__(self) -> str:
         """Human-readable representation."""
         return f"ECU Grandmaster Clock: {self.uuid_string()}"
+
+
+@dataclass
+class GetDaqClockResponse:
+    """
+    Parsed GET_DAQ_CLOCK positive responses (legacy and extended).
+    """
+
+    format: str
+    trigger_info: int
+    payload_fmt: int
+    timestamp: int
+    timestamp_grandm: Optional[int] = field(default=None)
+    timestamp_ecu: Optional[int] = field(default=None)
+    sync_state: Optional[SyncState] = field(default=None)
+
+    @staticmethod
+    def parse(response: bytes, byteOrder: str, properties: Optional[TimeCorrelationPropertiesResponse]) -> "GetDaqClockResponse":
+        frame_length = len(response)
+        if properties is not None and properties.slave_config.response_fmt >= 1:
+            extended = True
+            format_str = "EXTENDED"
+            clk_gm = properties.observable_clocks.grandm_clk != ClockAvailabilityGM.GRANDM_NOT_AVAILABLE
+            clk_ecu = properties.observable_clocks.ecu_clk != ClockAvailabilityECU.ECU_NOT_AVAILABLE
+        else:
+            extended = False
+            format_str = "LEGACY"
+        trigger_info = TriggerInfo.parse(response[1])
+        payload_fmt = PayloadFormat.parse(response[2])
+        if not extended:
+            timestamp = struct.unpack(f"{byte_order_prefix(byteOrder)}I", response[3:7])[0]
+            return GetDaqClockResponse(format=format_str, trigger_info=trigger_info, payload_fmt=payload_fmt, timestamp=timestamp)
+        else:
+            sync_state = None
+            timestamp_grandm = None
+            timestamp_ecu = None
+            sc_len = 8 if payload_fmt.xcp_slave_fmt == ClockFormat.DLONG else 4
+            type_code = "Q" if sc_len == 8 else "I"
+            offset = 3 + sc_len
+            timestamp = struct.unpack(f"{byte_order_prefix(byteOrder)}{type_code}", response[3:offset])[0]
+            if clk_gm and payload_fmt.grandmaster_fmt not in (ClockFormat.NOT_PRESENT, ClockFormat.RESERVED):
+                sc_len = 8 if payload_fmt.grandmaster_fmt == ClockFormat.DLONG else 4
+                type_code = "Q" if sc_len == 8 else "I"
+                timestamp_grandm = struct.unpack(f"{byte_order_prefix(byteOrder)}{type_code}", response[offset : offset + sc_len])[
+                    0
+                ]
+                offset += sc_len
+            if clk_ecu and payload_fmt.ecu_fmt not in (ClockFormat.NOT_PRESENT, ClockFormat.RESERVED):
+                sc_len = 8 if payload_fmt.ecu_fmt == ClockFormat.DLONG else 4
+                type_code = "Q" if sc_len == 8 else "I"
+                timestamp_ecu = struct.unpack(f"{byte_order_prefix(byteOrder)}{type_code}", response[offset : offset + sc_len])[0]
+                offset += sc_len
+            if (frame_length - offset) == 1:
+                sync_state = SyncState.parse(response[offset])
+            return GetDaqClockResponse(
+                format=format_str,
+                trigger_info=trigger_info,
+                payload_fmt=payload_fmt,
+                timestamp=timestamp,
+                timestamp_grandm=timestamp_grandm,
+                timestamp_ecu=timestamp_ecu,
+                sync_state=sync_state,
+            )
