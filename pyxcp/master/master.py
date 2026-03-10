@@ -570,12 +570,9 @@ class Master:
         bytes
             The raw response from the slave
         """
-        # Send SET_REQUEST command to the slave
-        return self.transport.request(
-            types.Command.SET_REQUEST,
-            mode,
-            *self.WORD_pack(session_configuration_id),
-        )
+        # SET_REQUEST uses big-endian session configuration ID (XCP specification)
+        session_cfg_be = struct.pack(">H", session_configuration_id)
+        return self.transport.request(types.Command.SET_REQUEST, mode, *session_cfg_be)
 
     @wrapped
     def getSeed(self, first: int, resource: int) -> types.GetSeedResponse:
@@ -1648,8 +1645,8 @@ class Master:
 
         Returns
         -------
-        int
-            Current timestamp, format specified by `getDaqResolutionInfo`
+        GetDaqClockResponse
+            Parsed DAQ clock information including timestamp(s) and format
         """
         from pyxcp.time_correlation import GetDaqClockResponse
 
@@ -1711,12 +1708,10 @@ class Master:
     def timeCorrelationProperties(
         self,
         response_fmt: int = 0,
-        time_sync_bridge: int = 0,
-        set_cluster_id: bool = False,
+        get_clk_info: int = 0,
         cluster_id: int = 0x0000,
-        get_clk_info: bool = False,
     ):
-        """Configure and query time correlation properties (XCP 1.3).
+        """Configure and query time correlation properties (XCP 1.3/1.5).
 
         This command enables advanced time correlation features and retrieves
         clock information from the XCP slave. Must be called after CONNECT
@@ -1817,17 +1812,14 @@ class Master:
         ----------
         XCP 1.5 Spec, Section 7.5.6.1: TIME_CORRELATION_PROPERTIES
         """
-        from pyxcp.time_correlation import GetPropertiesRequest, SetProperties, TimeCorrelationPropertiesResponse
+        from pyxcp.time_correlation import TimeCorrelationPropertiesResponse
 
-        # Build command parameters
-        set_props = SetProperties.encode(
-            response_fmt=response_fmt,
-            time_sync_bridge=time_sync_bridge,
-            set_cluster_id=set_cluster_id,
-        )
-        get_props = GetPropertiesRequest.encode(get_clk_info=get_clk_info)
         response = self.transport.request(
-            types.Command.TIME_CORRELATION_PROPERTIES, set_props, get_props, 0, *self.WORD_pack(cluster_id)
+            types.Command.TIME_CORRELATION_PROPERTIES,
+            response_fmt & 0xFF,
+            get_clk_info & 0xFF,
+            0x00,
+            *self.WORD_pack(cluster_id),
         )
         result = TimeCorrelationPropertiesResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
         self.time_correlation_properties = result

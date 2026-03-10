@@ -1339,8 +1339,8 @@ class TestMaster:
 
             # todo: assert res.triggerInfo ==
             # todo: assert res.payloadFmt ==
-            # todo: assert res.timestamp == 0x12345678
-            assert res == 0x12345678
+            assert res.format == "LEGACY"
+            assert res.timestamp == 0x12345678
 
             ms.push_frame("08 00 09 00 FF 55 00 01 34 12 22 03")
 
@@ -2147,8 +2147,10 @@ class TestMaster:
 
             ms._mock_send.assert_called_with(bytes([0x06, 0x00, 0x01, 0x00, 0xC6, 0x15, 0x01, 0x00, 0x34, 0x12]))
 
-            assert res.slaveConfig == 0x15
-            assert res.observableClocks == 0x25
-            assert res.syncState == 0x01
-            assert res.clockInfo == 0x1F
-            assert res.clusterId == 0x5678
+            assert res.slave_config.response_fmt == 0x15 & 0x03
+            assert res.slave_config.daq_ts_relation == 0x25 & 0x01
+            assert res.slave_config.time_sync_bridge == (0x15 >> 3) & 0x03
+            assert res.observable_clocks.xcp_slv_clk == 0x25 & 0x03
+            assert res.sync_state.slv_clk_sync_state == 0x01
+            assert res.clock_info.clk_relation is True
+            assert res.cluster_id == 0x5678
