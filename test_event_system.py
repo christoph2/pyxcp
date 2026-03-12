@@ -23,7 +23,7 @@ def test_legacy_time_sync():
     assert event.grandmaster_timestamp is None
     assert event.ecu_timestamp is None
 
-    print(f"✓ Legacy mode parsed successfully:")
+    print("✓ Legacy mode parsed successfully:")
     print(f"  Timestamp: {event.xcp_slave_timestamp:#x}")
     print(f"  Counter: {event.counter}")
 
@@ -56,7 +56,7 @@ def test_extended_time_sync_single_clock():
     assert event.xcp_slave_timestamp == 0xDDCCBBAA
     assert event.grandmaster_timestamp is None
 
-    print(f"✓ Extended single clock parsed:")
+    print("✓ Extended single clock parsed:")
     print(f"  XCP Slave: {event.xcp_slave_timestamp:#x}")
 
 
@@ -95,7 +95,7 @@ def test_extended_time_sync_triple_clock():
     assert event.grandmaster_timestamp == 0xDDCCBBAA
     assert event.ecu_timestamp == 0xCCDDEEFF
 
-    print(f"✓ Extended triple clock parsed:")
+    print("✓ Extended triple clock parsed:")
     print(f"  XCP Slave: {event.xcp_slave_timestamp:#x}")
     print(f"  Grandmaster: {event.grandmaster_timestamp:#x}")
     print(f"  ECU: {event.ecu_timestamp:#x}")
@@ -128,7 +128,7 @@ def test_extended_with_cluster_id():
     assert event.cluster_id == 0xCDAB
     assert event.counter == 0x99
 
-    print(f"✓ Cluster ID packet parsed:")
+    print("✓ Cluster ID packet parsed:")
     print(f"  Cluster ID: {event.cluster_id:#x}")
     print(f"  Counter: {event.counter}")
 
@@ -161,7 +161,7 @@ def test_extended_with_sync_state():
     assert event.trigger_info.initiator == TriggerInitiator.SYNC_STATE_CHANGE
     assert event.sync_state == 0x42
 
-    print(f"✓ SYNC_STATE packet parsed:")
+    print("✓ SYNC_STATE packet parsed:")
     print(f"  Trigger: {event.trigger_info.initiator.name}")
     print(f"  Sync State: {event.sync_state:#x}")
 
@@ -187,7 +187,7 @@ def test_motorola_byte_order():
 
     assert event.xcp_slave_timestamp == 0x12345678  # Direct, not swapped
 
-    print(f"✓ Motorola byte order parsed:")
+    print("✓ Motorola byte order parsed:")
     print(f"  Timestamp: {event.xcp_slave_timestamp:#x}")
 
 
