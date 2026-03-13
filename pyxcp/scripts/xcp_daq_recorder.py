@@ -30,7 +30,7 @@ def _get_config(config_path: Path) -> Dict[str, Any]:
         A dictionary with the configuration or an empty dict on error.
     """
     try:
-        with config_path.open("r", encoding="utf-8") as fh:
+        with config_path.open("rb") as fh:
             data = json.load(fh)
             return data
     except Exception as e:
@@ -70,7 +70,7 @@ def _create_daq_parser(configuration: Dict[str, Any], daq_lists: list) -> Any:
     """
     output_type = "xmraw"
     # default filename gets current date/time: DDMMYYYY_HHMMSS
-    default_output = f"run_daq_{datetime.now().strftime('%d%m%Y_%H%M%S')}"
+    default_output = f"xcp_daq_{datetime.now().strftime('%d%m%Y_%H%M%S')}"
     output_file = default_output
     if isinstance(configuration, dict):
         output_type = (configuration.get("output_type") or "xmraw").lower()
