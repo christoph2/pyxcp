@@ -105,9 +105,19 @@ def main() -> None:
 
     configuration = _get_config(config_path)
 
-    # Unterstütze sowohl neues Format {"daq_lists": [...]} als auch direktes List-Root.
+    daq_override = None
     if isinstance(configuration, dict):
         daq_source = configuration.get("daq_lists", [])
+        override_candidate = configuration.get("daq_override") or configuration.get("daq_info_override")
+        if override_candidate is not None and not isinstance(override_candidate, dict):
+            logging.warning(
+                "Ignoring DAQ override from configuration: expected object/dict, got %s",
+                type(override_candidate).__name__,
+            )
+        else:
+            daq_override = override_candidate
+            if daq_override is not None:
+                logging.info("Using DAQ override from configuration.")
     else:
         daq_source = configuration if configuration else []
 
@@ -128,7 +138,7 @@ def main() -> None:
         x.cond_unlock("DAQ")  # DAQ resource is locked in many cases.
 
         logging.info("setup DAQ lists.")
-        daq_parser.setup()  # Execute setup procedures.
+        daq_parser.setup(daq_info_override=daq_override)  # Execute setup procedures with optional override.
         logging.info("start DAQ lists.")
         daq_parser.start()  # Start DAQ lists.
 

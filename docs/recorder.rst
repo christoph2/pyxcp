@@ -84,7 +84,8 @@ Expected JSON format (example):
       "daq_lists": [ ... ],            # list of DAQ lists (or alternatively: JSON root is the list)
       "output_type": "xmraw",          # "xmraw" or "csv"
       "output_file": "xcp_rec_0892026",# filename for xmraw output
-      "runtime_seconds": 900           # runtime in seconds (optional)
+      "runtime_seconds": 900,          # runtime in seconds (optional)
+      "daq_override": { ... }          # optional DAQ processor/resolution override (alias: daq_info_override)
     }
 
 Behavior:
@@ -93,6 +94,9 @@ Behavior:
 - output_type == "csv": a DaqToCsv instance is created; output_file is not used, instead CSV files are created per DAQ list with names derived from the DAQ list name.
 - runtime_seconds determines the sleep time (time.sleep) during recording.
   If not provided, a default of 60 seconds is used.
+- daq_override / daq_info_override (dict) is passed to ``daq_parser.setup(daq_info_override=...)``. Use this when the slave
+  omits optional DAQ services (e.g., GET_DAQ_PROCESSOR_INFO/GET_DAQ_RESOLUTION_INFO). Provide trusted ``processor`` and
+  ``resolution`` blocks with ``valid`` flags if needed; ``valid.processor`` and ``valid.resolution`` are forced to ``True``.
 
 
 Online vs offline and Policies
