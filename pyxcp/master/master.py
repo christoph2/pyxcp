@@ -1704,6 +1704,91 @@ class Master:
         self.transport.send_multicast(cluster_id, counter)
         self.logger.debug(f"GET_DAQ_CLOCK_MULTICAST sent: cluster={cluster_id:#06x}, counter={counter}")
 
+    # Ethernet discovery / IP assignment (Transport Layer Commands)
+    def _require_eth_transport(self) -> None:
+        transport_name = self.transport.__class__.__name__.lower()
+        if transport_name != "eth":
+            raise RuntimeError(f"Ethernet transport required for this command (current: {transport_name})")
+
+    @wrapped
+    def getSlaveIdEthernet(
+        self,
+        response_port: int = 5556,
+        response_address: str = "239.255.0.0",
+        timeout: float = 0.3,
+        ip_version: int = 0,
+        dest_address: str = "239.255.0.0",
+        dest_port: int = 5556,
+    ):
+        """
+        Discover slaves via GET_SLAVE_ID (Ethernet multicast).
+
+        Returns list of parsed types.GetSlaveIdEthResponse containers (one per slave/port).
+        """
+        self._require_eth_transport()
+        return self.transport.get_slave_id_multicast(
+            response_port=response_port,
+            response_address=response_address,
+            timeout=timeout,
+            ip_version=ip_version,
+            dest_address=dest_address,
+            dest_port=dest_port,
+        )
+
+    @wrapped
+    def getSlaveIdExtendedEthernet(
+        self,
+        response_port: int = 5556,
+        response_address: str = "239.255.0.0",
+        timeout: float = 0.3,
+        mode: int = 0,
+        dest_address: str = "239.255.0.0",
+        dest_port: int = 5556,
+    ):
+        """
+        Discover slaves via GET_SLAVE_ID_EXTENDED (Ethernet multicast).
+
+        Returns list of parsed types.GetSlaveIdExtendedResponse containers.
+        """
+        self._require_eth_transport()
+        return self.transport.get_slave_id_extended_multicast(
+            response_port=response_port,
+            response_address=response_address,
+            timeout=timeout,
+            mode=mode,
+            dest_address=dest_address,
+            dest_port=dest_port,
+        )
+
+    @wrapped
+    def setSlaveIpAddressEthernet(
+        self,
+        mac: bytes,
+        new_ip: str,
+        response_port: int = 5556,
+        response_address: str = "239.255.0.0",
+        timeout: float = 0.3,
+        mode: int = 0,
+        dest_address: str = "239.255.0.0",
+        dest_port: int = 5556,
+    ):
+        """
+        Assign a new IPv4 address to a slave selected by MAC address.
+
+        Returns (positives, negatives) lists containing parsed responses.
+        """
+        self._require_eth_transport()
+        return self.transport.set_slave_ip_address(
+            mac=mac,
+            new_ip=new_ip,
+            response_port=response_port,
+            response_address=response_address,
+            timeout=timeout,
+            mode=mode,
+            dest_address=dest_address,
+            dest_port=dest_port,
+        )
+
     @wrapped
     def timeCorrelationProperties(
         self,

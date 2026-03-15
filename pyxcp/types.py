@@ -280,6 +280,11 @@ class TransportLayerCommands(enum.IntEnum):
     GET_DAQ_ID = 0xFE
     SET_DAQ_ID = 0xFD
 
+    # Ethernet
+    GET_SLAVE_ID_EXTENDED = 0xFD
+    SET_SLAVE_IP_ADDRESS = 0xFC
+    GET_DAQ_CLOCK_MULTICAST = 0xFA
+
     # Flexray
     FLX_ASSIGN = 0xFF
     FLX_ACTIVATE = 0xFE
@@ -741,9 +746,58 @@ GetEventChannelInfoResponse = Struct(
     "eventChannelPriority" / Int8ul,
 )
 
+GetSlaveIdStatus = BitStruct(
+    Padding(3),
+    "slv_id_ext_supported" / Flag,
+    "slv_availability" / Flag,
+    "ip_version" / Flag,
+    "ip_transport_protocol_ii" / Flag,
+    "ip_transport_protocol_i" / Flag,
+)
+
+GetSlaveIdExtendedStatus = BitStruct(
+    Padding(4),
+    "slv_availability" / Flag,
+    "ip_version" / Flag,
+    "ip_transport_protocol_ii" / Flag,
+    "ip_transport_protocol_i" / Flag,
+)
+
 GetSlaveIdResponse = Struct(
     "magic" / Bytes(3),
     "identifier" / Int32u,
+)
+
+GetSlaveIdEthResponse = Struct(
+    "ip_address" / Bytes(4),
+    Padding(12),
+    "port" / Int16ul,
+    "status" / GetSlaveIdStatus,
+    "resource" / ResourceType,
+    "length" / Int32u,
+    "identification" / Bytes(this.length),
+)
+
+GetSlaveIdExtendedResponse = Struct(
+    "ip_address" / Bytes(4),
+    Padding(12),
+    "port" / Int16ul,
+    "status" / GetSlaveIdExtendedStatus,
+    "resource" / ResourceType,
+    "length" / Int32u,
+    "identification" / Bytes(this.length),
+    "mac" / Bytes(6),
+    "remaining" / GreedyBytes,
+)
+
+SetSlaveIpAddressResponse = Struct(
+    "status" / Int8ul,
+    "mac" / Bytes(6),
+)
+
+SetSlaveIpAddressNegativeResponse = Struct(
+    "errorCode" / Int8ul,
+    "mac" / Bytes(6),
 )
 
 GetDaqIdResponse = Struct(

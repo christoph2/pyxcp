@@ -3,9 +3,11 @@ import selectors
 import socket
 import struct
 import threading
+import time
 from collections import deque
 from typing import Optional
 
+from construct import Container
 import pyxcp.types as types
 from pyxcp.cpp_ext.cpp_ext import enable_ptp_timestamping, init_networking, receive_with_timestamp, check_timestamping_support
 from pyxcp.transport.transport_ext import EthReceiver
@@ -19,6 +21,8 @@ from pyxcp.transport.base import (
 
 DEFAULT_XCP_PORT = 5555
 DEFAULT_XCP_MULTICAST_PORT = 5557  # XCP 1.5: GET_DAQ_CLOCK_MULTICAST
+DEFAULT_XCP_DISCOVERY_PORT = 5556  # XCP Ethernet discovery (GET_SLAVE_ID*)
+DEFAULT_XCP_DISCOVERY_ADDRESS = "239.255.0.0"
 RECV_SIZE = 8196
 
 
@@ -442,3 +446,238 @@ class Eth(BaseTransport):
         except Exception as e:
             self.logger.error(f"Failed to send multicast: {e}", exc_info=True)
             raise
+
+    # =========================================================================
+    # Ethernet discovery / IP assignment helpers
+    # =========================================================================
+
+    @staticmethod
+    def _pack_ipv4_address(address: str) -> bytes:
+        try:
+            return socket.inet_aton(address)
+        except OSError as exc:
+            raise ValueError(f"Invalid IPv4 address: {address}") from exc
+
+    @staticmethod
+    def _unpack_header_and_payload(frame: bytes) -> tuple[int, bytes] | None:
+        if len(frame) < 4:
+            return None
+        length = frame[0] | (frame[1] << 8)
+        if len(frame) < 4 + length:
+            return None
+        counter = frame[2] | (frame[3] << 8)
+        payload = frame[4 : 4 + length]
+        return counter, payload
+
+    def _multicast_send_receive(
+        self,
+        packet: bytes,
+        dest_address: str,
+        dest_port: int,
+        response_address: str,
+        response_port: int,
+        timeout: float,
+    ) -> list[tuple[tuple[str, int], int, bytes]]:
+        """
+        Send a multicast packet and collect responses until timeout.
+
+        Returns a list of tuples: (source_addr, counter, payload_with_pid)
+        """
+        if self.ipv6:
+            raise RuntimeError("Ethernet discovery commands only support IPv4 multicast")
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        if hasattr(socket, "SO_REUSEPORT"):
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        # Bind to response port to receive responses
+        sock.bind(("", response_port))
+        # Join multicast group for responses
+        mreq = struct.pack("=4s4s", socket.inet_aton(response_address), socket.inet_aton("0.0.0.0"))
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+        # Limit multicast scope
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+        sock.settimeout(timeout)
+
+        try:
+            sock.sendto(packet, (dest_address, dest_port))
+            results: list[tuple[tuple[str, int], int, bytes]] = []
+            end_time = time.monotonic() + timeout
+            while True:
+                remaining = end_time - time.monotonic()
+                if remaining <= 0:
+                    break
+                sock.settimeout(remaining)
+                try:
+                    data, addr = sock.recvfrom(Eth.MAX_DATAGRAM_SIZE)
+                except socket.timeout:
+                    break
+                parsed = self._unpack_header_and_payload(data)
+                if not parsed:
+                    continue
+                counter, payload = parsed
+                results.append((addr, counter, payload))
+            return results
+        finally:
+            try:
+                sock.close()
+            except Exception:
+                pass
+
+    def _parse_positive_payload(
+        self,
+        payload: bytes,
+        parser,
+        expected_subcommand: Optional[int] = None,
+    ) -> Optional[Container]:
+        """Strip PID and optional subcommand before parsing."""
+        if not payload:
+            return None
+        pid = payload[0]
+        if pid != 0xFF:  # positive response only
+            return None
+        body = payload[1:]
+        if expected_subcommand is not None and body and body[0] == expected_subcommand:
+            body = body[1:]
+        try:
+            return parser.parse(body, byteOrder=types.ByteOrder.INTEL)
+        except Exception:
+            # Fallback to parser without byteOrder argument if not expected
+            try:
+                return parser.parse(body)
+            except Exception:
+                self.logger.debug("Failed to parse transport layer response", exc_info=True)
+                return None
+
+    def _parse_negative_payload(self, payload: bytes, expected_subcommand: int) -> Optional[Container]:
+        if not payload or payload[0] != 0xFE:
+            return None
+        body = payload[1:]
+        if body and body[0] == expected_subcommand:
+            body = body[1:]
+        try:
+            return types.SetSlaveIpAddressNegativeResponse.parse(body, byteOrder=types.ByteOrder.INTEL)
+        except Exception:
+            try:
+                return types.SetSlaveIpAddressNegativeResponse.parse(body)
+            except Exception:
+                self.logger.debug("Failed to parse negative transport layer response", exc_info=True)
+                return None
+
+    def get_slave_id_multicast(
+        self,
+        response_port: int = DEFAULT_XCP_DISCOVERY_PORT,
+        response_address: str = DEFAULT_XCP_DISCOVERY_ADDRESS,
+        timeout: float = 0.3,
+        ip_version: int = 0,
+        dest_address: str = DEFAULT_XCP_DISCOVERY_ADDRESS,
+        dest_port: int = DEFAULT_XCP_DISCOVERY_PORT,
+    ):
+        """
+        Send GET_SLAVE_ID (Ethernet multicast discovery).
+
+        Returns a list of construct Containers parsed via types.GetSlaveIdEthResponse.
+        """
+        payload = bytearray()
+        payload.append(types.TransportLayerCommands.GET_SLAVE_ID)
+        payload.extend(struct.pack("<H", response_port))
+        payload.extend(self._pack_ipv4_address(response_address))
+        payload.extend(b"\x00" * 12)
+        payload.append(ip_version & 0xFF)
+
+        packet = self.framing.prepare_request(types.Command.TRANSPORT_LAYER_CMD, *payload)
+        frames = self._multicast_send_receive(packet, dest_address, dest_port, response_address, response_port, timeout)
+        results = []
+        for addr, counter, raw_payload in frames:
+            parsed = self._parse_positive_payload(raw_payload, types.GetSlaveIdEthResponse)
+            if parsed:
+                parsed.source = addr
+                parsed.counter = counter
+                results.append(parsed)
+        return results
+
+    def get_slave_id_extended_multicast(
+        self,
+        response_port: int = DEFAULT_XCP_DISCOVERY_PORT,
+        response_address: str = DEFAULT_XCP_DISCOVERY_ADDRESS,
+        timeout: float = 0.3,
+        mode: int = 0,
+        dest_address: str = DEFAULT_XCP_DISCOVERY_ADDRESS,
+        dest_port: int = DEFAULT_XCP_DISCOVERY_PORT,
+    ):
+        """
+        Send GET_SLAVE_ID_EXTENDED (Ethernet multicast discovery).
+
+        Returns a list of construct Containers parsed via types.GetSlaveIdExtendedResponse.
+        """
+        payload = bytearray()
+        payload.append(types.TransportLayerCommands.GET_SLAVE_ID_EXTENDED)
+        payload.extend(struct.pack("<H", response_port))
+        payload.extend(self._pack_ipv4_address(response_address))
+        payload.extend(b"\x00" * 12)
+        payload.append(mode & 0xFF)
+
+        packet = self.framing.prepare_request(types.Command.TRANSPORT_LAYER_CMD, *payload)
+        frames = self._multicast_send_receive(packet, dest_address, dest_port, response_address, response_port, timeout)
+        results = []
+        for addr, counter, raw_payload in frames:
+            parsed = self._parse_positive_payload(
+                raw_payload,
+                types.GetSlaveIdExtendedResponse,
+                expected_subcommand=types.TransportLayerCommands.GET_SLAVE_ID_EXTENDED,
+            )
+            if parsed:
+                parsed.source = addr
+                parsed.counter = counter
+                results.append(parsed)
+        return results
+
+    def set_slave_ip_address(
+        self,
+        mac: bytes,
+        new_ip: str,
+        response_port: int = DEFAULT_XCP_DISCOVERY_PORT,
+        response_address: str = DEFAULT_XCP_DISCOVERY_ADDRESS,
+        timeout: float = 0.3,
+        mode: int = 0,
+        dest_address: str = DEFAULT_XCP_DISCOVERY_ADDRESS,
+        dest_port: int = DEFAULT_XCP_DISCOVERY_PORT,
+    ):
+        """
+        Send SET_SLAVE_IP_ADDRESS to assign a new IP to a slave selected by MAC address.
+
+        Returns a tuple (positives, negatives) where each list contains parsed responses.
+        """
+        if len(mac) != 6:
+            raise ValueError("MAC address must be exactly 6 bytes")
+
+        payload = bytearray()
+        payload.append(types.TransportLayerCommands.SET_SLAVE_IP_ADDRESS)
+        payload.extend(struct.pack("<H", response_port))
+        payload.extend(self._pack_ipv4_address(response_address))
+        payload.extend(b"\x00" * 12)
+        payload.append(mode & 0xFF)
+        payload.extend(mac)
+        payload.extend(self._pack_ipv4_address(new_ip))
+
+        packet = self.framing.prepare_request(types.Command.TRANSPORT_LAYER_CMD, *payload)
+        frames = self._multicast_send_receive(packet, dest_address, dest_port, response_address, response_port, timeout)
+        positives = []
+        negatives = []
+        for addr, counter, raw_payload in frames:
+            parsed_pos = self._parse_positive_payload(
+                raw_payload, types.SetSlaveIpAddressResponse, expected_subcommand=types.TransportLayerCommands.SET_SLAVE_IP_ADDRESS
+            )
+            if parsed_pos:
+                parsed_pos.source = addr
+                parsed_pos.counter = counter
+                positives.append(parsed_pos)
+                continue
+            parsed_neg = self._parse_negative_payload(
+                raw_payload, expected_subcommand=types.TransportLayerCommands.SET_SLAVE_IP_ADDRESS
+            )
+            if parsed_neg:
+                parsed_neg.source = addr
+                parsed_neg.counter = counter
+                negatives.append(parsed_neg)
+        return positives, negatives
