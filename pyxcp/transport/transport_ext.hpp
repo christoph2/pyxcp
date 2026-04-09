@@ -39,7 +39,7 @@ public:
 
 	using payload_t = std::string;
 	using filter_t = std::set<FrameCategory>;
-	using frame_t = std::tuple<std::uint32_t, std::uint64_t, const payload_t>;
+	using frame_t = std::tuple<std::uint32_t, std::uint64_t, payload_t>;
 
 
 	FrameAcquisitionPolicy(const std::optional<filter_t>& filter_out) {
