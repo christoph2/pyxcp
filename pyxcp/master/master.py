@@ -1054,6 +1054,7 @@ class Master:
             dl_func=self.program,
             dl_next_func=self.programNext,
             callback=callback,
+            address_ext=0x00,
         )
 
     def _generalized_downloader(
