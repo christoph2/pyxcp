@@ -1,0 +1,49 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: [3.11]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Upgrade pip and install pipx
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --user pipx
+          python -m pipx ensurepath
+
+      - name: Install poetry via pipx
+        run: |
+          pipx install poetry
+
+      - name: Configure poetry to create project venv
+        run: |
+          poetry config virtualenvs.in-project true
+
+      - name: Install dependencies into .venv
+        run: |
+          poetry install --no-interaction --no-ansi --no-root --with dev
+
+      - name: Run tests
+        shell: bash
+        run: |
+          source .venv/bin/activate
+          poetry run pytest -q --junitxml=result.xml
+
+      - name: Cache poetry/pip caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.cache/pip
+          key: ${{ runner.os }}-poetry-${{ matrix.python }}-${{ hashFiles('**/poetry.lock','**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-${{ matrix.python }}-
