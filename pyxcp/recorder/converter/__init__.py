@@ -163,53 +163,55 @@ class CollectRows:
             storage.arr.append(elem)
 
 
-class ArrowConverter(CollectRows, XcpLogFileDecoder):
-    """"""
+if has_arrow:
 
-    MAP_TO_ARROW = {
-        "U8": pa.uint8(),
-        "I8": pa.int8(),
-        "U16": pa.uint16(),
-        "I16": pa.int16(),
-        "U32": pa.uint32(),
-        "I32": pa.int32(),
-        "U64": pa.uint64(),
-        "I64": pa.int64(),
-        "F32": pa.float32(),
-        "F64": pa.float64(),
-        "F16": pa.float16(),
-        "BF16": pa.float16(),
-    }
+    class ArrowConverter(CollectRows, XcpLogFileDecoder):
+        """"""
 
-    def __init__(self, recording_file_name: str, target_file_name: str = ""):
-        super().__init__(
-            recording_file_name=recording_file_name,
-            out_file_suffix=".parquet",
-            remove_file=False,
-            target_type_map=self.MAP_TO_ARROW,
-            target_file_name=target_file_name,
-        )
+        MAP_TO_ARROW = {
+            "U8": pa.uint8(),
+            "I8": pa.int8(),
+            "U16": pa.uint16(),
+            "I16": pa.int16(),
+            "U32": pa.uint32(),
+            "I32": pa.int32(),
+            "U64": pa.uint64(),
+            "I64": pa.int64(),
+            "F32": pa.float32(),
+            "F64": pa.float64(),
+            "F16": pa.float16(),
+            "BF16": pa.float16(),
+        }
 
-    def on_initialize(self) -> None:
-        super().on_initialize()
+        def __init__(self, recording_file_name: str, target_file_name: str = ""):
+            super().__init__(
+                recording_file_name=recording_file_name,
+                out_file_suffix=".parquet",
+                remove_file=False,
+                target_type_map=self.MAP_TO_ARROW,
+                target_file_name=target_file_name,
+            )
 
-    def on_finalize(self) -> None:
-        result = []
-        for arr in self.tables:
-            timestamp0 = arr.timestamp0
-            timestamp1 = arr.timestamp1
-            names = ["timestamp0", "timestamp1"]
-            data = [timestamp0, timestamp1]
-            for sd in arr.arr:
-                adt = pa.array(sd.arr, type=sd.target_type)
-                names.append(sd.name)
-                data.append(adt)
-            table = pa.Table.from_arrays(data, names=names)
-            fname = f"{arr.name}{self.out_file_suffix}"
-            self.logger.info(f"Writing file {fname!r}")
-            pq.write_table(table, fname)
-            result.append(table)
-        return result
+        def on_initialize(self) -> None:
+            super().on_initialize()
+
+        def on_finalize(self) -> None:
+            result = []
+            for arr in self.tables:
+                timestamp0 = arr.timestamp0
+                timestamp1 = arr.timestamp1
+                names = ["timestamp0", "timestamp1"]
+                data = [timestamp0, timestamp1]
+                for sd in arr.arr:
+                    adt = pa.array(sd.arr, type=sd.target_type)
+                    names.append(sd.name)
+                    data.append(adt)
+                table = pa.Table.from_arrays(data, names=names)
+                fname = f"{arr.name}{self.out_file_suffix}"
+                self.logger.info(f"Writing file {fname!r}")
+                pq.write_table(table, fname)
+                result.append(table)
+            return result
 
 
 class CsvConverter(XcpLogFileDecoder):
@@ -239,93 +241,99 @@ class CsvConverter(XcpLogFileDecoder):
         writer.writerow(data)
 
 
-class ExcelConverter(XcpLogFileDecoder):
-    def __init__(self, recording_file_name: str, target_file_name: str = ""):
-        super().__init__(recording_file_name=recording_file_name, out_file_suffix=".xlsx", target_file_name=target_file_name)
+if has_xlsxwriter:
 
-    def on_initialize(self) -> None:
-        self.logger.info(f"Creating file {str(self.out_file_name)!r}.")
-        self.xls_workbook = xlsxwriter.Workbook(self.out_file_name)
-        self.xls_sheets = []
-        self.rows = []
-        super().on_initialize()
+    class ExcelConverter(XcpLogFileDecoder):
+        def __init__(self, recording_file_name: str, target_file_name: str = ""):
+            super().__init__(recording_file_name=recording_file_name, out_file_suffix=".xlsx", target_file_name=target_file_name)
 
-    def on_container(self, sc: StorageContainer) -> None:
-        sheet = self.xls_workbook.add_worksheet(sc.name)
-        self.xls_sheets.append(sheet)
-        headers = ["timestamp0", "timestamp1"] + [e.name for e in sc.arr]
-        sheet.write_row(0, 0, headers)
-        self.rows.append(1)
+        def on_initialize(self) -> None:
+            self.logger.info(f"Creating file {str(self.out_file_name)!r}.")
+            self.xls_workbook = xlsxwriter.Workbook(self.out_file_name)
+            self.xls_sheets = []
+            self.rows = []
+            super().on_initialize()
 
-    def on_finalize(self) -> None:
-        self.xls_workbook.close()
-        self.logger.info("Done.")
+        def on_container(self, sc: StorageContainer) -> None:
+            sheet = self.xls_workbook.add_worksheet(sc.name)
+            self.xls_sheets.append(sheet)
+            headers = ["timestamp0", "timestamp1"] + [e.name for e in sc.arr]
+            sheet.write_row(0, 0, headers)
+            self.rows.append(1)
 
-    def on_daq_list(self, daq_list_num: int, timestamp0: int, timestamp1: int, measurements: list) -> None:
-        sheet = self.xls_sheets[daq_list_num]
-        row = self.rows[daq_list_num]
-        data = [timestamp0, timestamp1] + measurements
-        sheet.write_row(row, 0, data)
-        self.rows[daq_list_num] += 1
-
-
-class HdfConverter(CollectRows, XcpLogFileDecoder):
-    def __init__(self, recording_file_name: str, target_file_name: str = ""):
-        super().__init__(recording_file_name=recording_file_name, out_file_suffix=".h5", target_file_name=target_file_name)
-
-    def on_initialize(self) -> None:
-        self.logger.info(f"Creating file {str(self.out_file_name)!r}")
-        self.out_file = h5py.File(self.out_file_name, "w")
-        super().on_initialize()
-
-    def on_finalize(self) -> None:
-        for arr in self.tables:
-            timestamp0 = arr.timestamp0
-            timestamp1 = arr.timestamp1
-            self.out_file[f"/{arr.name}/timestamp0"] = timestamp0
-            self.out_file[f"/{arr.name}/timestamp1"] = timestamp1
-            for sd in arr.arr:
-                self.out_file[f"/{arr.name}/{sd.name}"] = sd.arr
-            self.logger.info(f"Writing table {arr.name!r}")
+        def on_finalize(self) -> None:
+            self.xls_workbook.close()
             self.logger.info("Done.")
-        self.out_file.close()
+
+        def on_daq_list(self, daq_list_num: int, timestamp0: int, timestamp1: int, measurements: list) -> None:
+            sheet = self.xls_sheets[daq_list_num]
+            row = self.rows[daq_list_num]
+            data = [timestamp0, timestamp1] + measurements
+            sheet.write_row(row, 0, data)
+            self.rows[daq_list_num] += 1
 
 
-class MdfConverter(CollectRows, XcpLogFileDecoder):
-    def __init__(self, recording_file_name: str, target_file_name: str = ""):
-        super().__init__(
-            recording_file_name=recording_file_name,
-            out_file_suffix=".mf4",
-            target_type_map=MAP_TO_NP,
-            target_file_name=target_file_name,
-        )
+if has_h5py:
 
-    def on_initialize(self) -> None:
-        super().on_initialize()
+    class HdfConverter(CollectRows, XcpLogFileDecoder):
+        def __init__(self, recording_file_name: str, target_file_name: str = ""):
+            super().__init__(recording_file_name=recording_file_name, out_file_suffix=".h5", target_file_name=target_file_name)
 
-    def on_finalize(self) -> None:
-        timestamp_info = self.parameters.timestamp_info
-        hdr = HeaderBlock(
-            abs_time=timestamp_info.timestamp_ns,
-            tz_offset=timestamp_info.utc_offset,
-            daylight_save_time=timestamp_info.dst_offset,
-            time_flags=FLAG_HD_TIME_OFFSET_VALID,
-        )
-        hdr.comment = f"""<HDcomment><TX>Timezone: {timestamp_info.timezone}</TX></HDcomment>"""  # Test-Comment.
-        mdf4 = MDF(version="4.10", header=hdr)
-        for idx, arr in enumerate(self.tables):
-            signals = []
-            # Convert timestamps from nanoseconds to seconds (ASAM MDF spec requirement)
-            # MDF time channels must be in seconds as physical values (Discussion #270)
-            timestamps = np.array(arr.timestamp0, dtype=np.float64) / 1e9
-            for sd in arr.arr:
-                signal = Signal(samples=sd.arr, name=sd.name, timestamps=timestamps)
-                signals.append(signal)
-            self.logger.info(f"Appending data-group {arr.name!r}")
-            mdf4.append(signals, acq_name=arr.name, comment="Created by pyXCP recorder")
-        self.logger.info(f"Writing {str(self.out_file_name)!r}")
-        mdf4.save(self.out_file_name, compression=2, overwrite=True)
-        self.logger.info("Done.")
+        def on_initialize(self) -> None:
+            self.logger.info(f"Creating file {str(self.out_file_name)!r}")
+            self.out_file = h5py.File(self.out_file_name, "w")
+            super().on_initialize()
+
+        def on_finalize(self) -> None:
+            for arr in self.tables:
+                timestamp0 = arr.timestamp0
+                timestamp1 = arr.timestamp1
+                self.out_file[f"/{arr.name}/timestamp0"] = timestamp0
+                self.out_file[f"/{arr.name}/timestamp1"] = timestamp1
+                for sd in arr.arr:
+                    self.out_file[f"/{arr.name}/{sd.name}"] = sd.arr
+                self.logger.info(f"Writing table {arr.name!r}")
+                self.logger.info("Done.")
+            self.out_file.close()
+
+
+if has_asammdf:
+
+    class MdfConverter(CollectRows, XcpLogFileDecoder):
+        def __init__(self, recording_file_name: str, target_file_name: str = ""):
+            super().__init__(
+                recording_file_name=recording_file_name,
+                out_file_suffix=".mf4",
+                target_type_map=MAP_TO_NP,
+                target_file_name=target_file_name,
+            )
+
+        def on_initialize(self) -> None:
+            super().on_initialize()
+
+        def on_finalize(self) -> None:
+            timestamp_info = self.parameters.timestamp_info
+            hdr = HeaderBlock(
+                abs_time=timestamp_info.timestamp_ns,
+                tz_offset=timestamp_info.utc_offset,
+                daylight_save_time=timestamp_info.dst_offset,
+                time_flags=FLAG_HD_TIME_OFFSET_VALID,
+            )
+            hdr.comment = f"""<HDcomment><TX>Timezone: {timestamp_info.timezone}</TX></HDcomment>"""  # Test-Comment.
+            mdf4 = MDF(version="4.10", header=hdr)
+            for idx, arr in enumerate(self.tables):
+                signals = []
+                # Convert timestamps from nanoseconds to seconds (ASAM MDF spec requirement)
+                # MDF time channels must be in seconds as physical values (Discussion #270)
+                timestamps = np.array(arr.timestamp0, dtype=np.float64) / 1e9
+                for sd in arr.arr:
+                    signal = Signal(samples=sd.arr, name=sd.name, timestamps=timestamps)
+                    signals.append(signal)
+                self.logger.info(f"Appending data-group {arr.name!r}")
+                mdf4.append(signals, acq_name=arr.name, comment="Created by pyXCP recorder")
+            self.logger.info(f"Writing {str(self.out_file_name)!r}")
+            mdf4.save(self.out_file_name, compression=2, overwrite=True)
+            self.logger.info("Done.")
 
 
 class SqliteConverter(XcpLogFileDecoder):
