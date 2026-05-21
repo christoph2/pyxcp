@@ -2650,6 +2650,117 @@ class Master:
         self.stim.setDaqEventInfo(daq_events)
         return result
 
+    def getPagInfo(self) -> dict[str, Any]:
+        """Get PAG information: segments and pages."""
+        result: dict[str, Any] = {}
+        if self.slaveProperties.supportsCalpag:
+            status, pag = self.try_command(self.getPagProcessorInfo)
+            if status == types.TryCommandResult.OK:
+                result["maxSegments"] = pag.maxSegments
+                result["pagProperties"] = {"freezeSupported": pag.pagProperties.freezeSupported}
+                result["segments"] = []
+                for i in range(pag.maxSegments):
+                    segment: dict[str, Any] = {"index": i}
+
+                    # Mode 1: Standard info
+                    status, std_info = self.try_command(self.getSegmentInfo, 1, i, 0, 0)
+                    if status == types.TryCommandResult.OK:
+                        segment["maxPages"] = std_info.maxPages
+                        segment["addressExtension"] = std_info.addressExtension
+                        segment["maxMapping"] = std_info.maxMapping
+                        segment["compressionMethod"] = std_info.compressionMethod
+                        segment["encryptionMethod"] = std_info.encryptionMethod
+
+                        # Mode 0: Basic address info
+                        # Mode 0, Info 0: Address
+                        status, addr_info = self.try_command(self.getSegmentInfo, 0, i, 0, 0)
+                        if status == types.TryCommandResult.OK:
+                            segment["address"] = addr_info.basicInfo
+                        # Mode 0, Info 1: Length
+                        status, len_info = self.try_command(self.getSegmentInfo, 0, i, 1, 0)
+                        if status == types.TryCommandResult.OK:
+                            segment["length"] = len_info.basicInfo
+
+                        # Mode 2: Address mapping info
+                        if std_info.maxMapping > 0:
+                            segment["mappings"] = []
+                            for m in range(std_info.maxMapping):
+                                mapping: dict[str, Any] = {"index": m}
+                                # Mode 2, Info 0: source address
+                                status, src_addr = self.try_command(self.getSegmentInfo, 2, i, 0, m)
+                                if status == types.TryCommandResult.OK:
+                                    mapping["sourceAddress"] = src_addr.mappingInfo
+                                # Mode 2, Info 1: destination address
+                                status, dst_addr = self.try_command(self.getSegmentInfo, 2, i, 1, m)
+                                if status == types.TryCommandResult.OK:
+                                    mapping["destinationAddress"] = dst_addr.mappingInfo
+                                # Mode 2, Info 2: length
+                                status, map_len = self.try_command(self.getSegmentInfo, 2, i, 2, m)
+                                if status == types.TryCommandResult.OK:
+                                    mapping["length"] = map_len.mappingInfo
+                                segment["mappings"].append(mapping)
+
+                        # Get info for each page
+                        segment["pages"] = []
+                        for p in range(std_info.maxPages):
+                            status, pgi = self.try_command(self.getPageInfo, i, p)
+                            if status == types.TryCommandResult.OK:
+                                segment["pages"].append(
+                                    {
+                                        "index": p,
+                                        "properties": {
+                                            "xcpWriteAccessWithEcu": pgi.properties.xcpWriteAccessWithEcu,
+                                            "xcpWriteAccessWithoutEcu": pgi.properties.xcpWriteAccessWithoutEcu,
+                                            "xcpReadAccessWithEcu": pgi.properties.xcpReadAccessWithEcu,
+                                            "xcpReadAccessWithoutEcu": pgi.properties.xcpReadAccessWithoutEcu,
+                                            "ecuAccessWithXcp": pgi.properties.ecuAccessWithXcp,
+                                            "ecuAccessWithoutXcp": pgi.properties.ecuAccessWithoutXcp,
+                                        },
+                                        "initSegment": pgi.initSegment,
+                                    }
+                                )
+
+                        result["segments"].append(segment)
+                    else:
+                        # If Mode 1 fails, we might still want to continue with next segment?
+                        # The original code used 'break', which stops processing segments.
+                        break
+        return result
+
+    def getPgmInfo(self) -> dict[str, Any]:
+        """Get PGM information: sectors."""
+        result: dict[str, Any] = {}
+        if self.slaveProperties.supportsPgm:
+            status, pgm = self.try_command(self.getPgmProcessorInfo)
+            if status == types.TryCommandResult.OK:
+                result["pgmProperties"] = pgm.pgmProperties
+                result["maxSector"] = pgm.maxSector
+                result["sectors"] = []
+                for i in range(pgm.maxSector):
+                    sector: dict[str, Any] = {"index": i}
+                    # Mode 0: get start address for this SECTOR
+                    status, info0 = self.try_command(self.getSectorInfo, 0, i)
+                    if status == types.TryCommandResult.OK:
+                        sector["clearSequenceNumber"] = info0.clearSequenceNumber
+                        sector["programSequenceNumber"] = info0.programSequenceNumber
+                        sector["programmingMethod"] = info0.programmingMethod
+                        sector["address"] = info0.sectorInfo
+                    else:
+                        break
+
+                    # Mode 1: get length of this SECTOR [BYTE]
+                    status, info1 = self.try_command(self.getSectorInfo, 1, i)
+                    if status == types.TryCommandResult.OK:
+                        sector["length"] = info1.sectorInfo
+
+                    # Mode 2: get name length of this SECTOR
+                    status, info2 = self.try_command(self.getSectorInfo, 2, i)
+                    if status == types.TryCommandResult.OK:
+                        sector["nameLength"] = info2.nameLength
+
+                    result["sectors"].append(sector)
+        return result
+
     def getCurrentProtectionStatus(self):
         """"""
         if self.currentProtectionStatus is None:

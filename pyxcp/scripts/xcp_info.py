@@ -9,117 +9,6 @@ from pyxcp.cmdline import ArgumentParser
 from pyxcp.types import TryCommandResult
 
 
-def getPagInfo(x):
-    result = {}
-    if x.slaveProperties.supportsCalpag:
-        status, pag = x.try_command(x.getPagProcessorInfo)
-        if status == TryCommandResult.OK:
-            result["maxSegments"] = pag.maxSegments
-            result["pagProperties"] = {"freezeSupported": pag.pagProperties.freezeSupported}
-            result["segments"] = []
-            for i in range(pag.maxSegments):
-                segment = {"index": i}
-
-                # Mode 1: Standard info
-                status, std_info = x.try_command(x.getSegmentInfo, 1, i, 0, 0)
-                if status == TryCommandResult.OK:
-                    segment["maxPages"] = std_info.maxPages
-                    segment["addressExtension"] = std_info.addressExtension
-                    segment["maxMapping"] = std_info.maxMapping
-                    segment["compressionMethod"] = std_info.compressionMethod
-                    segment["encryptionMethod"] = std_info.encryptionMethod
-
-                    # Mode 0: Basic address info
-                    # Mode 0, Info 0: Address
-                    status, addr_info = x.try_command(x.getSegmentInfo, 0, i, 0, 0)
-                    if status == TryCommandResult.OK:
-                        segment["address"] = addr_info.basicInfo
-                    # Mode 0, Info 1: Length
-                    status, len_info = x.try_command(x.getSegmentInfo, 0, i, 1, 0)
-                    if status == TryCommandResult.OK:
-                        segment["length"] = len_info.basicInfo
-
-                    # Mode 2: Address mapping info
-                    if std_info.maxMapping > 0:
-                        segment["mappings"] = []
-                        for m in range(std_info.maxMapping):
-                            mapping = {"index": m}
-                            # Mode 2, Info 0: source address
-                            status, src_addr = x.try_command(x.getSegmentInfo, 2, i, 0, m)
-                            if status == TryCommandResult.OK:
-                                mapping["sourceAddress"] = src_addr.mappingInfo
-                            # Mode 2, Info 1: destination address
-                            status, dst_addr = x.try_command(x.getSegmentInfo, 2, i, 1, m)
-                            if status == TryCommandResult.OK:
-                                mapping["destinationAddress"] = dst_addr.mappingInfo
-                            # Mode 2, Info 2: length
-                            status, map_len = x.try_command(x.getSegmentInfo, 2, i, 2, m)
-                            if status == TryCommandResult.OK:
-                                mapping["length"] = map_len.mappingInfo
-                            segment["mappings"].append(mapping)
-
-                    # Get info for each page
-                    segment["pages"] = []
-                    for p in range(std_info.maxPages):
-                        status, pgi = x.try_command(x.getPageInfo, i, p)
-                        if status == TryCommandResult.OK:
-                            segment["pages"].append(
-                                {
-                                    "index": p,
-                                    "properties": {
-                                        "xcpWriteAccessWithEcu": pgi.properties.xcpWriteAccessWithEcu,
-                                        "xcpWriteAccessWithoutEcu": pgi.properties.xcpWriteAccessWithoutEcu,
-                                        "xcpReadAccessWithEcu": pgi.properties.xcpReadAccessWithEcu,
-                                        "xcpReadAccessWithoutEcu": pgi.properties.xcpReadAccessWithoutEcu,
-                                        "ecuAccessWithXcp": pgi.properties.ecuAccessWithXcp,
-                                        "ecuAccessWithoutXcp": pgi.properties.ecuAccessWithoutXcp,
-                                    },
-                                    "initSegment": pgi.initSegment,
-                                }
-                            )
-
-                    result["segments"].append(segment)
-                else:
-                    # If Mode 1 fails, we might still want to continue with next segment?
-                    # The original code used 'break', which stops processing segments.
-                    break
-    return result
-
-
-def getPgmInfo(x):
-    result = {}
-    if x.slaveProperties.supportsPgm:
-        status, pgm = x.try_command(x.getPgmProcessorInfo)
-        if status == TryCommandResult.OK:
-            result["pgmProperties"] = pgm.pgmProperties
-            result["maxSector"] = pgm.maxSector
-            result["sectors"] = []
-            for i in range(pgm.maxSector):
-                sector = {"index": i}
-                # Mode 0: get start address for this SECTOR
-                status, info0 = x.try_command(x.getSectorInfo, 0, i)
-                if status == TryCommandResult.OK:
-                    sector["clearSequenceNumber"] = info0.clearSequenceNumber
-                    sector["programSequenceNumber"] = info0.programSequenceNumber
-                    sector["programmingMethod"] = info0.programmingMethod
-                    sector["address"] = info0.sectorInfo
-                else:
-                    break
-
-                # Mode 1: get length of this SECTOR [BYTE]
-                status, info1 = x.try_command(x.getSectorInfo, 1, i)
-                if status == TryCommandResult.OK:
-                    sector["length"] = info1.sectorInfo
-
-                # Mode 2: get name length of this SECTOR
-                status, info2 = x.try_command(x.getSectorInfo, 2, i)
-                if status == TryCommandResult.OK:
-                    sector["nameLength"] = info2.nameLength
-
-                result["sectors"].append(sector)
-    return result
-
-
 def main():
     parser = argparse.ArgumentParser(description="XCP info/exploration tool.")
     parser.add_argument("--no-daq", action="store_true", help="Do not query DAQ information.")
@@ -193,7 +82,7 @@ def main():
             print("\nPAG Info:")
             print("=========")
             if x.slaveProperties.supportsCalpag:
-                pgi = getPagInfo(x)
+                pgi = x.getPagInfo()
                 pprint(pgi)
             else:
                 print("*** PAGING IS NOT SUPPORTED.")
@@ -202,7 +91,7 @@ def main():
             print("\nPGM Info:")
             print("=========")
             if x.slaveProperties.supportsPgm:
-                pgi = getPgmInfo(x)
+                pgi = x.getPgmInfo()
                 pprint(pgi)
             else:
                 print("*** FLASH PROGRAMMING IS NOT SUPPORTED.")
