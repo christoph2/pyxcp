@@ -422,11 +422,11 @@ class SqliteConverter(XcpLogFileDecoder):
 
 
 CONVERTERS = {
-    "arrow": ArrowConverter,
+    "arrow": ArrowConverter if has_arrow else None,
     "csv": CsvConverter,
-    "excel": ExcelConverter,
-    "hdf5": HdfConverter,
-    "mdf": MdfConverter,
+    "excel": ExcelConverter if has_xlsxwriter else None,
+    "hdf5": HdfConverter if has_h5py else None,
+    "mdf": MdfConverter if has_asammdf else None,
     "sqlite3": SqliteConverter,
 }
 
