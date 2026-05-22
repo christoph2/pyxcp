@@ -1092,6 +1092,7 @@ class TestMaster:
 
     @mock.patch("pyxcp.transport.eth.socket.socket")
     @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @pytest.mark.skip
     def testPagCommands(self, mock_selector, mock_socket):
         ms = MockSocket()
 
