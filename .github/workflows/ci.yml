@@ -28,9 +28,9 @@ jobs:
         run: |
           poetry config virtualenvs.in-project true
 
-      - name: Install dependencies into .venv
+      - name: Install project and dependencies into .venv
         run: |
-          poetry install --no-interaction --no-ansi --no-root --with dev
+          poetry install --no-interaction --no-ansi --with dev
 
       - name: Run tests
         shell: bash

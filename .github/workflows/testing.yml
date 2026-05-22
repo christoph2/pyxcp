@@ -48,7 +48,6 @@ jobs:
 
       - name: Install project + dev dependencies with Poetry
         run: |
-          poetry config virtualenvs.create false --local
           poetry install --no-interaction --no-ansi --with dev
 
       - name: Run tests
