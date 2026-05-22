@@ -1,31 +1,13 @@
 #!/usr/bin/env python
 
-import argparse
 import sys
 import time
 
 from pyxcp.cmdline import ArgumentParser
-from pyxcp.daq_stim import DaqList, DaqRecorder, DaqToCsv, load_daq_lists_from_json  # noqa: F401
+from pyxcp.daq_stim import DaqList, DaqRecorder, DaqToCsv  # noqa: F401
 from pyxcp.types import XcpTimeoutError
 
-parser = argparse.ArgumentParser(description="XCP DAQ list recorder")
-parser.add_argument(
-    "DAQ_configuration_file",
-    type=str,
-    default=None,
-)
-
-<<<<<<< Updated upstream
-ap = ArgumentParser(description="XCP DAQ list recorder", user_parser=parser)
-
-args = ap.args
-DAQ_LISTS = load_daq_lists_from_json(args.DAQ_configuration_file)
-
-daq_parser = DaqToCsv(DAQ_LISTS)  # Record to CSV file(s).
-# daq_parser = DaqRecorder(DAQ_LISTS, "run_daq_21092025_01", 8)  # Record to ".xmraw" file.
-||||||| Stash base
-ap = ArgumentParser(description="DAQ test")
-
+ap = ArgumentParser(description="XCP DAQ list recorder")
 XCP_LITE = False
 
 #
@@ -145,18 +127,10 @@ else:
         ),
     ]
 
-
-# daq_parser = DaqToCsv(DAQ_LISTS)  # Record to CSV file(s).
-daq_parser = DaqRecorder(DAQ_LISTS, "run_daq_21092025_01", 8)  # Record to ".xmraw" file.
-=======
-ap = ArgumentParser(description="XCP DAQ list recorder", user_parser=parser)
-
 args = ap.args
-DAQ_LISTS = load_daq_lists_from_json(args.DAQ_configuration_file)
 
-# daq_parser = DaqToCsv(DAQ_LISTS)  # Record to CSV file(s).
-daq_parser = DaqRecorder(DAQ_LISTS, "run_daq_21092025_01", 8)  # Record to ".xmraw" file.
->>>>>>> Stashed changes
+daq_parser = DaqToCsv(DAQ_LISTS)  # Record to CSV file(s).
+# daq_parser = DaqRecorder(DAQ_LISTS, "run_daq_21092025_01", 8)  # Record to ".xmraw" file.
 
 with ap.run(policy=daq_parser) as x:
     try:
