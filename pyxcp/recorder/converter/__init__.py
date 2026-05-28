@@ -1,19 +1,17 @@
 """Convert pyXCPs .xmraw files to common data formats."""
 
-from contextlib import suppress
 import csv
 import logging
 import os
 import sqlite3
 from array import array
+from contextlib import suppress
 from dataclasses import dataclass, field
 from mmap import PAGESIZE
 from pathlib import Path
 from typing import Any, List
 
 import numpy as np
-# from rich.logging import RichHandler  # Removed: not needed for logging
-
 
 try:
     import pyarrow as pa
@@ -50,12 +48,10 @@ except ImportError:
 from pyxcp import console
 from pyxcp.recorder.rekorder import XcpLogFileDecoder as _XcpLogFileDecoder
 
-
 FORMAT = "%(message)s"
-# logging.basicConfig() removed - libraries should not configure logging
-# Users can configure logging via: from pyxcp.logger import setup_logging
 
 log = logging.getLogger("pyxcp.recorder.converter")
+log.setLevel(logging.DEBUG)
 
 MAP_TO_ARRAY = {
     "U8": "B",
@@ -115,8 +111,8 @@ class XcpLogFileDecoder(_XcpLogFileDecoder):
         target_file_name: str = "",
     ):
         super().__init__(recording_file_name)
-        self.logger = logging.getLogger("PyXCP")
-        self.logger.setLevel(logging.DEBUG)
+        self.logger = logging.getLogger("pyxcp")
+        self.logger.setLevel(logging.INFO)
         self.out_file_name = Path(recording_file_name).with_suffix(out_file_suffix)
         self.out_file_suffix = out_file_suffix
         self.target_type_map = target_type_map or {}

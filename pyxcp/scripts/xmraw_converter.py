@@ -1,4 +1,5 @@
 import argparse
+import logging
 
 from pyxcp.recorder.converter import convert_xmraw
 
@@ -20,11 +21,18 @@ parser.add_argument(
 
 
 def main():
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     parser.add_argument("xmraw_file", help=".xmraw file")
     parser.add_argument("-t", "--taget-file-name", dest="target_file_name", help="target file name")
     args = parser.parse_args()
 
-    convert_xmraw(args.target_type, args.xmraw_file, args.target_file_name)
+    try:
+        convert_xmraw(args.target_type, args.xmraw_file, args.target_file_name)
+    except Exception:
+        import traceback
+
+        traceback.print_exc()
+        exit(1)
 
 
 if __name__ == "__main__":

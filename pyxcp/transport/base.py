@@ -79,7 +79,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
             warnings.warn(
                 "LegacyFrameAcquisitionPolicy is deprecated and has unbounded memory growth. "
-                "Consider using FrameRecorderPolicy, StdoutPolicy, or a custom PyFrameAcquisitionPolicy. "
+                "Consider using FrameRecorderPolicy, StdoutPolicy, or a custom FrameAcquisitionPolicy. "
                 "See documentation for migration guide.",
                 DeprecationWarning,
                 stacklevel=3,
