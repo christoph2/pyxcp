@@ -59,7 +59,7 @@ class Bin {
         ss << to_binary(m_size);
         ss << to_binary(m_residual_capacity);
 
-        std::size_t entries_size = m_entries.size();
+        std::uint64_t entries_size = static_cast<std::uint64_t>(m_entries.size());
         ss << to_binary(entries_size);
         for (const auto& entry : m_entries) {
             ss << entry.dumps();

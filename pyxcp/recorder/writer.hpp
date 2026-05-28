@@ -1,4 +1,3 @@
-
 #ifndef RECORDER_WRITER_HPP
 #define RECORDER_WRITER_HPP
 
@@ -44,7 +43,15 @@ class XcpLogFileWriter {
         m_metadata             = metadata;
 
         if (!metadata.empty()) {
-            m_offset += std::size(metadata);
+        #if 0
+            std::size_t required_size = m_offset + std::size(metadata) + sizeof(std::size_t);
+            if (required_size > m_hard_limit) {
+                m_hard_limit = required_size + megabytes(1);
+                resize(m_hard_limit);
+            }
+            m_offset = required_size;
+            #endif
+             m_offset += std::size(metadata);
             write_metadata();
         }
         start_thread();
@@ -78,10 +85,16 @@ class XcpLogFileWriter {
             write_header(
                 detail::VERSION, options, m_num_containers, m_record_count, m_total_size_compressed, m_total_size_uncompressed
             );
-            // Clear stale errno before checking unmap() success (Issue #269)
+            // Clear stale last-error state before checking unmap() success (Issue #269).
             // errno is a global thread state that can be set by any syscall.
-            // We must clear it before unmap() to avoid false errors from previous operations.
+            // On Windows, GetLastError() must also be cleared because mio uses it (not errno).
+            // Successful Windows API calls do not reset GetLastError(), so a stale non-zero
+            // value from a previous operation would otherwise cause a spurious error.
+#if defined(_WIN32)
+            SetLastError(0);
+#else
             errno = 0;
+#endif
             m_mmap->unmap();
             ec = mio::detail::last_error();
             if (ec.value() != 0) {
@@ -116,10 +129,16 @@ class XcpLogFileWriter {
         std::error_code ec;
 
         if (remap) {
-            // Clear stale errno before checking unmap() success (Issue #269)
+            // Clear stale last-error state before checking unmap() success (Issue #269).
             // errno is a global thread state that can be set by any syscall.
-            // We must clear it before unmap() to avoid false errors from previous operations.
+            // On Windows, GetLastError() must also be cleared because mio uses it (not errno).
+            // Successful Windows API calls do not reset GetLastError(), so a stale non-zero
+            // value from a previous operation would otherwise cause a spurious error.
+#if defined(_WIN32)
+            SetLastError(0);
+#else
             errno = 0;
+#endif
             m_mmap->unmap();
             ec = mio::detail::last_error();
             if (ec.value() != 0) {
@@ -230,6 +249,9 @@ class XcpLogFileWriter {
 
     void write_metadata() {
         if (!m_metadata.empty()) {
+//            std::size_t metadata_length = m_metadata.size();
+//            write_bytes(detail::MAGIC_SIZE + detail::FILE_HEADER_SIZE, sizeof(std::size_t), reinterpret_cast<char const *>(&metadata_length));
+//            write_bytes(detail::MAGIC_SIZE + detail::FILE_HEADER_SIZE + sizeof(std::size_t), m_metadata.size(), m_metadata.c_str());
             write_bytes(detail::MAGIC_SIZE + detail::FILE_HEADER_SIZE, m_metadata.size(), m_metadata.c_str());
         }
     }

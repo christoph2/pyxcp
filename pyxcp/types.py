@@ -57,6 +57,12 @@ class XcpTimeoutError(Exception):
     """
 
 
+class DaqPackedModeType(enum.IntEnum):
+    NOT_PACKED = 0
+    ELEMENT_GROUPED = 1
+    EVENT_GROUPED = 2
+
+
 class XcpGetIdType(enum.IntEnum):
     ASCII_TEXT = 0
     FILENAME = 1
@@ -700,6 +706,20 @@ DaqListProperties = BitStruct(
     "eventFixed" / Flag,
     "predefined" / Flag,
 )
+
+# Bitfeld für timestamp_mode (Packed DAQ)
+DaqPackedTimestampMode = BitStruct(
+    Padding(5),
+    "ts_size" / BitsInteger(2),  # 00=1B, 01=2B, 1x=4B
+    "ts_present" / Flag,  # Bit 0
+)
+
+GetDaqPackedModeResponse = Struct(
+    "daq_packed_mode" / Enum(Int8ul, NOT_PACKED=0, ELEMENT_GROUPED=1, EVENT_GROUPED=2),
+    "timestamp_mode" / DaqPackedTimestampMode,
+    "sample_count" / Int16ul,
+)
+
 
 GetDaqListInfoResponse = Struct(
     "daqListProperties" / DaqListProperties,

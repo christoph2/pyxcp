@@ -192,14 +192,14 @@ class McObject {
     std::string dumps() const noexcept {
         std::stringstream ss;
 
-        ss << to_binary(m_name);
+        ss << to_binary_str(m_name);
         ss << to_binary(m_address);
         ss << to_binary(m_ext);
         ss << to_binary(m_length);
-        ss << to_binary(m_data_type);
+        ss << to_binary_str(m_data_type);
         ss << to_binary(m_type_index);
 
-        std::size_t ccount = m_components.size();
+        std::uint64_t ccount = static_cast<std::uint64_t>(m_components.size());
         ss << to_binary(ccount);
         for (const auto& obj : m_components) {
             ss << obj.dumps();

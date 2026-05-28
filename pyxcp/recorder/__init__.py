@@ -17,7 +17,8 @@ else:
 from pyxcp.recorder.rekorder import DaqOnlinePolicy  # noqa: F401
 from pyxcp.recorder.rekorder import DaqRecorderPolicy  # noqa: F401
 from pyxcp.recorder.rekorder import Deserializer  # noqa: F401
-from pyxcp.recorder.rekorder import MeasurementParameters  # noqa: F401
+from pyxcp.utils import TimestampInfo  # noqa: F401
+from pyxcp.recorder.rekorder import MeasurementParameters, EventInfo, XcpLogFileDecoder  # noqa: F401
 from pyxcp.recorder.rekorder import _PyXcpLogFileReader, _PyXcpLogFileWriter, data_types
 
 

@@ -184,15 +184,27 @@ inline blob_t* get_payload_ptr(const payload_t& payload) noexcept {
 
     #ifdef _WIN32
 inline std::string error_string(std::string_view func, std::error_code error_code) {
-    LPSTR              messageBuffer = nullptr;
+    LPWSTR             messageBuffer = nullptr;
     std::ostringstream ss;
 
-    size_t size = FormatMessageA(
+    // Use FormatMessageW to get the error message as UTF-16, then convert to UTF-8.
+    // FormatMessageA returns bytes in the system ANSI codepage (e.g. Windows-1252 on German
+    // systems), which is not valid UTF-8. Python 3 requires UTF-8 for exception messages,
+    // so using FormatMessageA would cause a UnicodeDecodeError when pybind11 tries to
+    // convert the std::runtime_error to a Python RuntimeError.
+    size_t size = FormatMessageW(
         FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
-        static_cast<DWORD>(error_code.value()), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL
+        static_cast<DWORD>(error_code.value()), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&messageBuffer, 0, NULL
     );
 
-    std::string message(messageBuffer, size);
+    std::string message;
+    if (size > 0 && messageBuffer != nullptr) {
+        int utf8_size = WideCharToMultiByte(CP_UTF8, 0, messageBuffer, static_cast<int>(size), nullptr, 0, nullptr, nullptr);
+        if (utf8_size > 0) {
+            message.resize(utf8_size);
+            WideCharToMultiByte(CP_UTF8, 0, messageBuffer, static_cast<int>(size), &message[0], utf8_size, nullptr, nullptr);
+        }
+    }
     LocalFree(messageBuffer);
 
     ss << "[ERROR] ";

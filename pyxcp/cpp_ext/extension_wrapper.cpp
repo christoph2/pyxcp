@@ -117,6 +117,9 @@ PYBIND11_MODULE(cpp_ext, m) {
         .def_property("odt_count", &DaqListBase::get_odt_count, nullptr)
         .def_property("total_entries", &DaqListBase::get_total_entries, nullptr)
         .def_property("total_length", &DaqListBase::get_total_length, nullptr)
+        .def_property("packed_mode", &DaqListBase::get_packed_mode, &DaqListBase::set_packed_mode)
+        .def_property("packed_ts_mode", &DaqListBase::get_packed_ts_mode, &DaqListBase::set_packed_ts_mode)
+        .def_property("packed_sample_count", &DaqListBase::get_packed_sample_count, &DaqListBase::set_packed_sample_count)
         .def("asdict", [](const DaqListBase& self) {
             py::dict d;
             d["name"] = self.get_name();
@@ -130,6 +133,9 @@ PYBIND11_MODULE(cpp_ext, m) {
             d["odt_count"] = self.get_odt_count();
             d["total_entries"] = self.get_total_entries();
             d["total_length"] = self.get_total_length();
+            d["packed_mode"] = self.get_packed_mode();
+            d["packed_ts_mode"] = self.get_packed_ts_mode();
+            d["packed_sample_count"] = self.get_packed_sample_count();
             return d;
         });
 
@@ -154,6 +160,9 @@ PYBIND11_MODULE(cpp_ext, m) {
             d["odt_count"] = self.get_odt_count();
             d["total_entries"] = self.get_total_entries();
             d["total_length"] = self.get_total_length();
+            d["packed_mode"] = self.get_packed_mode();
+            d["packed_ts_mode"] = self.get_packed_ts_mode();
+            d["packed_sample_count"] = self.get_packed_sample_count();
             py::list measurements_list;
             for (const auto& measurement : self.get_measurements()) {
                 measurements_list.append(mcobject_asdict(measurement));
@@ -190,6 +199,9 @@ PYBIND11_MODULE(cpp_ext, m) {
             d["odt_count"] = self.get_odt_count();
             d["total_entries"] = self.get_total_entries();
             d["total_length"] = self.get_total_length();
+            d["packed_mode"] = self.get_packed_mode();
+            d["packed_ts_mode"] = self.get_packed_ts_mode();
+            d["packed_sample_count"] = self.get_packed_sample_count();
             return d;
         })
 		;

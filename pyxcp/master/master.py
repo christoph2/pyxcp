@@ -1994,23 +1994,44 @@ class Master:
         response = self.transport.request(types.Command.DTO_CTR_PROPERTIES, *data)
         return types.DtoCtrPropertiesResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
+    def daqListSupportsPacked(self, daq_list_number: int) -> bool:
+        """Check if a DAQ list supports packed mode.
+
+        Parameters
+        ----------
+        daqListNumber : int
+
+        Returns
+        -------
+        bool
+        """
+        info = self.getDaqListInfo(daq_list_number)
+        return info.daqListProperties.packed
+
     @wrapped
     def setDaqPackedMode(
-        self, daq_list_number: int, daq_packed_mode: int, dpm_timestamp_mode: int = None, dpm_sample_count: int = None
+        self,
+        daq_list_number: int,
+        daq_packed_mode: types.DaqPackedModeType,
+        dpm_timestamp_mode: int = 0x01,
+        dpm_sample_count: int = 1,
     ):
         """Set DAQ List Packed Mode.
 
         Parameters
         ----------
-        daqListNumber : int
-        daqPackedMode : int
+        daq_list_number : int
+        daq_packed_mode : types.DaqPackedModeType
+        dpm_timestamp_mode : int
+            Bitfield: Bit 0 = TS_PRESENT, Bits 1-2 = TS_SIZE (00=1B, 01=2B, 1x=4B)
+        dpm_sample_count : int
+            Number of samples per packet.
         """
-        params = []
-        dln = self.WORD_pack(daq_list_number)
-        params.extend(dln)
-        params.append(daq_packed_mode)
+        params = bytearray()
+        params.extend(self.WORD_pack(daq_list_number))
+        params.append(int(daq_packed_mode))
 
-        if daq_packed_mode == 1 or daq_packed_mode == 2:
+        if daq_packed_mode != types.DaqPackedModeType.NOT_PACKED:
             params.append(dpm_timestamp_mode)
             dsc = self.WORD_pack(dpm_sample_count)
             params.extend(dsc)

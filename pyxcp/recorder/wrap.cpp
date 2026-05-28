@@ -7,6 +7,7 @@
 
 #include <cstdint>
 
+#include "helper.hpp"
 #include "rekorder.hpp"
 
 namespace py = pybind11;
@@ -92,6 +93,15 @@ PYBIND11_MODULE(rekorder, m) {
             return ss.str();
         });
 
+    py::module_ utils = py::module_::import("pyxcp.utils");
+    py::object timestamp_info_class = utils.attr("TimestampInfo");
+    m.attr("TimestampInfo") = timestamp_info_class;
+
+    py::class_<EventInfo>(m, "EventInfo")
+        .def(py::init<std::uint64_t>())
+        .def("__repr__", &EventInfo::to_string)
+        .def_property_readonly("event_cycle_ns", &EventInfo::get_event_cycle_ns);
+
     py::class_<Deserializer>(m, "Deserializer").def(py::init<const std::string&>()).def("run", &Deserializer::run);
 
     py::class_<XcpLogFileReader>(m, "_PyXcpLogFileReader")
@@ -100,6 +110,11 @@ PYBIND11_MODULE(rekorder, m) {
         .def("reset", &XcpLogFileReader::reset)
         .def("get_header_as_tuple", &XcpLogFileReader::get_header_as_tuple)
         .def("get_metadata", [](const XcpLogFileReader& self) { return py::bytes(self.get_metadata()); });
+
+    py::class_<DaqTimeTracker>(m, "DaqTimeTracker")
+        .def(py::init<std::uint64_t>())
+        .def("normalize", &DaqTimeTracker::normalize)
+        .def_property_readonly("overflow_value", &DaqTimeTracker::overflow_value);
 
     py::class_<XcpLogFileWriter>(m, "_PyXcpLogFileWriter")
         .def(
@@ -112,7 +127,7 @@ PYBIND11_MODULE(rekorder, m) {
     py::class_<MeasurementParameters>(m, "MeasurementParameters")
         .def(py::init<
              std::uint8_t, std::uint8_t, bool, bool, bool, bool, double, std::uint8_t, std::uint16_t, const TimestampInfo&,
-             const std::vector<std::shared_ptr<DaqListBase>>&, const std::vector<std::uint16_t>&>())
+             const EventInfo&, const std::vector<std::shared_ptr<DaqListBase>>&, const std::vector<std::uint16_t>&>())
         .def("dumps", [](const MeasurementParameters& self) { return py::bytes(self.dumps()); })
         .def(
             "__repr__",
@@ -129,6 +144,7 @@ PYBIND11_MODULE(rekorder, m) {
                 ss << "ts_size=" << static_cast<std::uint16_t>(self.m_ts_size) << ", ";
                 ss << "min_daq=" << static_cast<std::uint16_t>(self.m_min_daq) << ", ";
                 ss << "timestamp_info=" << self.get_timestamp_info().to_string() << ", ";
+                ss << "event_info=" << self.get_event_info().to_string() << ", ";
                 ss << "daq_lists=[\n";
                 for (const auto& dl : self.m_daq_lists) {
                     ss << dl->to_string() << ",\n";
@@ -152,6 +168,7 @@ PYBIND11_MODULE(rekorder, m) {
         .def_property_readonly("ts_size", &MeasurementParameters::get_ts_size)
         .def_property_readonly("min_daq", &MeasurementParameters::get_min_daq)
         .def_property_readonly("timestamp_info", &MeasurementParameters::get_timestamp_info)
+        .def_property_readonly("event_info", &MeasurementParameters::get_event_info)
         .def_property_readonly("daq_lists", &MeasurementParameters::get_daq_lists)
         .def_property_readonly("first_pids", &MeasurementParameters::get_first_pids)
         .def_property_readonly("timestamp_info", &MeasurementParameters::get_timestamp_info);

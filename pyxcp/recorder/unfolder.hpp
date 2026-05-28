@@ -239,6 +239,7 @@ struct Getter {
     Getter() = default;
 
     explicit Getter(bool requires_swap, std::uint8_t id_size, std::uint8_t ts_size) : m_id_size(id_size), m_ts_size(ts_size) {
+        m_requires_swap = requires_swap;
         int8  = get_value<std::int8_t>;
         uint8 = get_value<std::uint8_t>;
 
@@ -275,19 +276,23 @@ struct Getter {
         }
     }
 
-    std::uint32_t get_timestamp(blob_t const * buf) {
-        switch (m_ts_size) {
+    std::uint32_t get_timestamp(blob_t const * buf, std::uint8_t ts_size, std::uint16_t offset) const {
+        switch (ts_size) {
             case 0:
                 return 0;
             case 1:
-                return uint8(buf, m_id_size);
+                return uint8(buf, offset);
             case 2:
-                return uint16(buf, m_id_size);
+                return uint16(buf, offset);
             case 4:
-                return uint32(buf, m_id_size);
+                return uint32(buf, offset);
             default:
-                throw std::runtime_error("Unsupported timestamp size: " + std::to_string(m_ts_size));
+                throw std::runtime_error("Unsupported timestamp size: " + std::to_string(ts_size));
         }
+    }
+
+    std::uint32_t get_timestamp(blob_t const * buf) const {
+        return get_timestamp(buf, m_ts_size, m_id_size);
     }
 
     measurement_value_t reader(std::uint16_t tp, blob_t const * buf, std::uint16_t offset) const {
@@ -380,6 +385,7 @@ struct Getter {
 #endif
     std::vector<std::uint16_t>                                        m_first_pids;
     std::map<std::uint16_t, std::tuple<std::uint16_t, std::uint16_t>> m_odt_to_daq_map;
+    bool                                                              m_requires_swap;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -541,7 +547,7 @@ struct MeasurementParameters {
     explicit MeasurementParameters(
         std::uint8_t byte_order, std::uint8_t id_field_size, bool timestamps_supported, bool ts_fixed, bool prescaler_supported,
         bool selectable_timestamps, double ts_scale_factor, std::uint8_t ts_size, std::uint16_t min_daq,
-        const TimestampInfo& timestamp_info, const std::vector<std::shared_ptr<DaqListBase>>& daq_lists, const std::vector<std::uint16_t>& first_pids
+        const TimestampInfo& timestamp_info, const EventInfo& event_info, const std::vector<std::shared_ptr<DaqListBase>>& daq_lists, const std::vector<std::uint16_t>& first_pids
     ) :
         m_byte_order(byte_order),
         m_id_field_size(id_field_size),
@@ -553,6 +559,7 @@ struct MeasurementParameters {
         m_ts_size(ts_size),
         m_min_daq(min_daq),
         m_timestamp_info(timestamp_info),
+        m_event_info(event_info),
         m_daq_lists(daq_lists),
         m_first_pids(first_pids) {
     }
@@ -560,22 +567,24 @@ struct MeasurementParameters {
     std::string dumps() const {
         std::stringstream ss;
 
-        ss << to_binary(m_byte_order);
-        ss << to_binary(m_id_field_size);
-        ss << to_binary(m_timestamps_supported);
-        ss << to_binary(m_ts_fixed);
-        ss << to_binary(m_prescaler_supported);
-        ss << to_binary(m_selectable_timestamps);
-        ss << to_binary(m_ts_scale_factor);
-        ss << to_binary(m_ts_size);
-        ss << to_binary(m_min_daq);
+        ss << to_binary<std::uint8_t>(m_byte_order);
+        ss << to_binary<std::uint8_t>(m_id_field_size);
+        ss << to_binary<bool>(m_timestamps_supported);
+        ss << to_binary<bool>(m_ts_fixed);
+        ss << to_binary<bool>(m_prescaler_supported);
+        ss << to_binary<bool>(m_selectable_timestamps);
+        ss << to_binary<double>(m_ts_scale_factor);
+        ss << to_binary<std::uint8_t>(m_ts_size);
+        ss << to_binary<std::uint16_t>(m_min_daq);
         std::size_t dl_count = m_daq_lists.size();
-        ss << to_binary(dl_count);
+        ss << to_binary<std::uint64_t>(dl_count);
         ////
         ss << to_binary<std::uint64_t>(m_timestamp_info.get_timestamp_ns());
-        ss << to_binary(m_timestamp_info.get_timezone());
+        ss << to_binary_str(m_timestamp_info.get_timezone());
         ss << to_binary<std::int16_t>(m_timestamp_info.get_utc_offset());
         ss << to_binary<std::int16_t>(m_timestamp_info.get_dst_offset());
+        ////
+        ss << to_binary<std::uint64_t>(m_event_info.get_event_cycle_ns());
         ////
 
         for (const auto& daq_list : m_daq_lists) {
@@ -583,12 +592,12 @@ struct MeasurementParameters {
         }
 
         std::size_t fp_count = m_first_pids.size();
-        ss << to_binary(fp_count);
+        ss << to_binary<std::uint64_t>(fp_count);
         for (const auto& fp : m_first_pids) {
-            ss << to_binary(fp);
+            ss << to_binary<std::uint16_t>(fp);
         }
 
-        return to_binary(std::size(ss.str())) + ss.str();
+        return to_binary<std::uint64_t>(std::size(ss.str())) + ss.str();
     }
 
     auto get_byte_order() const noexcept {
@@ -629,6 +638,10 @@ struct MeasurementParameters {
 
     auto get_timestamp_info() const noexcept {
         return m_timestamp_info;
+    }
+
+    auto get_event_info() const noexcept {
+        return m_event_info;
     }
 
     auto get_daq_lists() const noexcept {
@@ -676,6 +689,7 @@ struct MeasurementParameters {
     std::uint8_t               m_ts_size;
     std::uint16_t              m_min_daq;
     TimestampInfo              m_timestamp_info;
+    EventInfo                  m_event_info;
     std::vector<std::shared_ptr<DaqListBase>> m_daq_lists;
     std::vector<std::uint16_t> m_first_pids;
 };
@@ -696,13 +710,14 @@ class Deserializer {
         double                     ts_scale_factor;
         std::uint8_t               ts_size;
         std::uint16_t              min_daq;
-        std::size_t                dl_count;
+        std::uint64_t              dl_count;
         std::vector<std::shared_ptr<DaqListBase>> daq_lists;
-        std::size_t                fp_count;
+        std::uint64_t              fp_count;
         std::uint64_t              timestamp_ns;
         std::int16_t               utc_offset;
         std::int16_t               dst_offset;
         std::string                timezone;
+        std::uint64_t              event_cycle_ns;
         std::vector<std::uint16_t> first_pids;
         // TimestampInfo              timestamp_info{ 0 };
 
@@ -715,14 +730,16 @@ class Deserializer {
         ts_scale_factor       = from_binary<double>();
         ts_size               = from_binary<std::uint8_t>();
         min_daq               = from_binary<std::uint16_t>();
-        dl_count              = from_binary<std::size_t>();
-
+        dl_count              = from_binary<std::uint64_t>();
         timestamp_ns = from_binary<std::uint64_t>();
         timezone = from_binary_str();
         utc_offset = from_binary<std::int16_t>();
         dst_offset = from_binary<std::int16_t>();
 
         TimestampInfo timestamp_info{ timestamp_ns, timezone, utc_offset, dst_offset };
+
+        event_cycle_ns = from_binary<std::uint64_t>();
+        EventInfo event_info{ event_cycle_ns };
 
         for (std::size_t i = 0; i < dl_count; i++) {
 			auto discr = from_binary<std::uint8_t>();
@@ -734,14 +751,14 @@ class Deserializer {
 			}
         }
 
-        fp_count = from_binary<std::size_t>();
+        fp_count = from_binary<std::uint64_t>();
         for (std::size_t i = 0; i < fp_count; i++) {
             first_pids.push_back(from_binary<std::uint16_t>());
         }
 
         return MeasurementParameters(
             byte_order, id_field_size, timestamps_supported, ts_fixed, prescaler_supported, selectable_timestamps, ts_scale_factor,
-            ts_size, min_daq, timestamp_info, daq_lists, first_pids
+            ts_size, min_daq, timestamp_info, event_info, daq_lists, first_pids
         );
     }
 
@@ -772,23 +789,28 @@ class Deserializer {
         std::uint8_t priority = from_binary<std::uint8_t>();
         prescaler         = from_binary<std::uint8_t>();
 
+        /* packed_mode / packed_ts_mode / packed_sample_count are written by DaqList::dumps() */
+        from_binary<std::uint8_t>();   // packed_mode  (not used by decoder)
+        from_binary<std::uint8_t>();   // packed_ts_mode (not used by decoder)
+        from_binary<std::uint16_t>();  // packed_sample_count (not used by decoder)
+
         odt_count     = from_binary<std::uint16_t>();  // not used
         total_entries = from_binary<std::uint16_t>();  // not used
         total_length  = from_binary<std::uint16_t>();  // not used
 
-        std::size_t meas_size = from_binary<std::size_t>();
+        std::size_t meas_size = from_binary<std::uint64_t>();
         for (std::size_t i = 0; i < meas_size; ++i) {
             auto meas = create_mc_object();
             measurements.push_back(meas);
             initializer_list.push_back({ meas.get_name(), meas.get_address(), meas.get_ext(), meas.get_data_type() });
         }
 
-        std::size_t meas_opt_size = from_binary<std::size_t>();
+        std::size_t meas_opt_size = from_binary<std::uint64_t>();
         for (std::size_t i = 0; i < meas_opt_size; ++i) {
             measurements_opt.emplace_back(create_bin());
         }
 
-        std::size_t hname_size = from_binary<std::size_t>();
+        std::size_t hname_size = from_binary<std::uint64_t>();
         for (std::size_t i = 0; i < hname_size; ++i) {
             auto header = from_binary_str();
             header_names.push_back(header);
@@ -820,16 +842,21 @@ class Deserializer {
         priority          = from_binary<std::uint8_t>();
         prescaler         = from_binary<std::uint8_t>();
 
+        /* packed_mode / packed_ts_mode / packed_sample_count are written by PredefinedDaqList::dumps() */
+        from_binary<std::uint8_t>();   // packed_mode  (not used by decoder)
+        from_binary<std::uint8_t>();   // packed_ts_mode (not used by decoder)
+        from_binary<std::uint16_t>();  // packed_sample_count (not used by decoder)
+
         odt_count     = from_binary<std::uint16_t>();  // not used
         total_entries = from_binary<std::uint16_t>();  // not used
         total_length  = from_binary<std::uint16_t>();  // not used
 
-        std::size_t meas_opt_size = from_binary<std::size_t>();
+        std::size_t meas_opt_size = from_binary<std::uint64_t>();
         for (std::size_t i = 0; i < meas_opt_size; ++i) {
             measurements_opt.emplace_back(create_bin());
         }
 
-        std::size_t hname_size = from_binary<std::size_t>();
+        std::size_t hname_size = from_binary<std::uint64_t>();
         for (std::size_t i = 0; i < hname_size; ++i) {
             auto header = from_binary_str();
             header_names.push_back(header);
@@ -873,7 +900,7 @@ class Deserializer {
         length                = from_binary<std::uint16_t>();
         data_type             = from_binary_str();
         type_index            = from_binary<std::int16_t>();  // not used
-        std::size_t comp_size = from_binary<std::size_t>();
+        std::size_t comp_size = from_binary<std::uint64_t>();
         for (auto i = 0U; i < comp_size; i++) {
             components.push_back(create_mc_object());
         }
@@ -888,7 +915,7 @@ class Deserializer {
 
         size                   = from_binary<std::uint16_t>();
         residual_capacity      = from_binary<std::uint16_t>();
-        std::size_t entry_size = from_binary<std::size_t>();
+        std::size_t entry_size = from_binary<std::uint64_t>();
         for (auto i = 0U; i < entry_size; i++) {
             entries.push_back(create_mc_object());
         }
@@ -904,7 +931,7 @@ class Deserializer {
     }
 
     inline std::string from_binary_str() {
-        auto        length = from_binary<std::size_t>();
+        auto        length = from_binary<std::uint64_t>();
         std::string result;
         auto        start = m_buf.cbegin() + m_offset;
 
@@ -932,7 +959,8 @@ class DaqListState {
 
     DaqListState(
         std::uint16_t daq_list_num, std::uint16_t num_odts, std::uint16_t total_entries, bool enable_timestamps,
-        std::uint16_t initial_offset, const flatten_odts_t& flatten_odts, const Getter& getter, MeasurementParameters params
+        std::uint16_t initial_offset, const flatten_odts_t& flatten_odts, const Getter& getter, MeasurementParameters params,
+        std::uint8_t packed_mode = 0, std::uint8_t packed_ts_mode = 0, std::uint16_t packed_sample_count = 1
     ) :
         m_daq_list_num(daq_list_num),
         m_num_odts(num_odts),
@@ -947,12 +975,15 @@ class DaqListState {
         m_buffer{},
         m_flatten_odts(flatten_odts),
         m_getter(getter),
-        m_params(params) {
-        m_buffer.resize(m_total_entries);
+        m_params(params),
+        m_packed_mode(packed_mode),
+        m_packed_ts_mode(packed_ts_mode),
+        m_packed_sample_count(packed_sample_count) {
+        m_buffer.resize(static_cast<std::size_t>(m_total_entries) * m_packed_sample_count);
     }
 
     state_t check_state(uint16_t odt_num) {
-        if ((m_state == state_t::IDLE) && (odt_num == 0x00)) {
+        if (odt_num == 0x00) {
             // "synch pulse".
             if (m_num_odts == 0x01) {
                 resetSM();
@@ -960,6 +991,7 @@ class DaqListState {
             } else {
                 m_state    = state_t::COLLECTING;
                 m_next_odt = 1;
+                return state_t::COLLECTING;
             }
         } else if (m_state == state_t::COLLECTING) {
             if (odt_num == m_next_odt) {
@@ -976,9 +1008,14 @@ class DaqListState {
         return m_state;
     }
 
-    bool feed(uint16_t odt_num, std::uint64_t timestamp, const std::string& payload) {
+    bool feed(uint16_t odt_num, std::uint64_t timestamp, const std::string& payload, std::vector<measurement_tuple_t>& results) {
         auto state    = check_state(odt_num);
         auto finished = false;
+
+        // Reset buffer index on first ODT
+        if (odt_num == 0) {
+            m_current_idx = 0;
+        }
 
         if (state == state_t::COLLECTING) {
             m_timestamp0 = timestamp;
@@ -986,13 +1023,38 @@ class DaqListState {
         } else if (state == state_t::FINISHED) {
             m_timestamp0 = timestamp;
             parse_Odt(odt_num, payload);
+            add_results(results);
             finished = true;
         }
         return finished;
     }
 
+    void add_results(std::vector<measurement_tuple_t>& result_buffer) {
+        if (m_packed_mode == 0) {
+            result_buffer.emplace_back(m_daq_list_num, m_timestamp0, m_timestamp1, m_buffer);
+        } else {
+            // Packed mode: multiple samples.
+            // In ELEMENT_GROUPED and EVENT_GROUPED, samples follow each other.
+            // m_buffer contains all samples concatenated.
+            // We split them back.
+            std::size_t single_sample_size = m_total_entries;
+            std::uint64_t event_period_ns = m_params.m_event_info.get_event_cycle_ns();
+            
+            for (std::uint16_t i = 0; i < m_packed_sample_count; ++i) {
+                std::vector<measurement_value_t> sample_buffer;
+                sample_buffer.reserve(single_sample_size);
+                for (std::size_t j = 0; j < single_sample_size; ++j) {
+                    sample_buffer.push_back(m_buffer[static_cast<std::size_t>(i) * single_sample_size + j]);
+                }
+
+                std::uint64_t reconstructed_ts1 = m_timestamp1 + (static_cast<std::uint64_t>(i) * event_period_ns);
+                result_buffer.emplace_back(m_daq_list_num, m_timestamp0, reconstructed_ts1, std::move(sample_buffer));
+            }
+        }
+    }
+
     void add_result(std::vector<measurement_tuple_t>& result_buffer) {
-        result_buffer.emplace_back(m_daq_list_num, m_timestamp0, m_timestamp1, m_buffer);
+        add_results(result_buffer);
     }
 
     void add_result(measurement_tuple_t& result_buffer) {
@@ -1013,8 +1075,24 @@ class DaqListState {
         auto payload_size = std::size(payload);
 
         if (odt_num == 0) {
-            m_current_idx = 0;
-            if (m_params.m_timestamps_supported &&
+            if (m_packed_mode != 0) {
+                // Packed mode: check if timestamp is present.
+                bool ts_present = (m_packed_ts_mode & 0x01) != 0;
+                std::uint8_t ts_size = 0;
+                switch ((m_packed_ts_mode >> 1) & 0x03) {
+                    case 0: ts_size = 1; break;
+                    case 1: ts_size = 2; break;
+                    case 2:
+                    case 3: ts_size = 4; break;
+                }
+
+                if (ts_present) {
+                    m_timestamp1 = static_cast<std::uint64_t>(m_getter.get_timestamp(payload_data, ts_size, offset) * m_params.m_ts_scale_factor);
+                    offset += ts_size;
+                } else {
+                    m_timestamp1 = 0ULL;
+                }
+            } else if (m_params.m_timestamps_supported &&
                 (m_params.m_ts_fixed || (m_params.m_selectable_timestamps && m_enable_timestamps == true))) {
                 m_timestamp1 = static_cast<std::uint64_t>(m_getter.get_timestamp(payload_data) * m_params.m_ts_scale_factor);
                 offset += m_params.m_ts_size;
@@ -1023,17 +1101,52 @@ class DaqListState {
             }
         }
 
-        for (const auto& param : m_flatten_odts[odt_num]) {
-            const auto& [name, address, ext, size, type_index] = param;
-
-            if (offset >= payload_size) {
-                throw std::runtime_error(
-                    "Offset is out of range! " + std::to_string(offset) + " >= " + std::to_string(payload_size)
-                );
+        if (m_packed_mode != 0) {
+            // Packed mode parsing: multiple samples in one ODT payload.
+            // ELEMENT_GROUPED: [ID] [TS] [Sample0_Sig0][Sample1_Sig0]...[SampleN_Sig0][Sample0_Sig1]...
+            // EVENT_GROUPED:   [ID] [TS] [Sample0_Sig0][Sample0_Sig1]...[Sample1_Sig0][Sample1_Sig1]...
+            
+            std::size_t sample_size = m_total_entries;
+            if (m_packed_mode == 1) { // ELEMENT_GROUPED
+                 for (const auto& param : m_flatten_odts[odt_num]) {
+                    const auto& [name, address, ext, size, type_index] = param;
+                    for (std::uint16_t sample_idx = 0; sample_idx < m_packed_sample_count; ++sample_idx) {
+                        if (offset + size > payload_size) {
+                            throw std::runtime_error("Packed ELEMENT_GROUPED offset out of range!");
+                        }
+                        m_buffer[static_cast<std::size_t>(sample_idx) * sample_size + m_current_idx] = m_getter.reader(type_index, payload_data, offset);
+                        offset += size;
+                    }
+                    m_current_idx++;
+                }
+            } else if (m_packed_mode == 2) { // EVENT_GROUPED
+                std::size_t start_idx_for_this_odt = m_current_idx;
+                for (std::uint16_t sample_idx = 0; sample_idx < m_packed_sample_count; ++sample_idx) {
+                    m_current_idx = start_idx_for_this_odt;
+                    for (const auto& param : m_flatten_odts[odt_num]) {
+                        const auto& [name, address, ext, size, type_index] = param;
+                        if (offset + size > payload_size) {
+                            throw std::runtime_error("Packed EVENT_GROUPED offset out of range!");
+                        }
+                        m_buffer[static_cast<std::size_t>(sample_idx) * sample_size + m_current_idx] = m_getter.reader(type_index, payload_data, offset);
+                        offset += size;
+                        m_current_idx++;
+                    }
+                }
             }
+        } else {
+            for (const auto& param : m_flatten_odts[odt_num]) {
+                const auto& [name, address, ext, size, type_index] = param;
 
-            m_buffer[m_current_idx++] = m_getter.reader(type_index, payload_data, offset);
-            offset += size;
+                if (offset + size > payload_size) {
+                    throw std::runtime_error(
+                        "Offset is out of range! " + std::to_string(offset) + " + " + std::to_string(size) + " > " + std::to_string(payload_size)
+                    );
+                }
+
+                m_buffer[m_current_idx++] = m_getter.reader(type_index, payload_data, offset);
+                offset += size;
+            }
         }
     }
 
@@ -1053,6 +1166,9 @@ class DaqListState {
     flatten_odts_t                   m_flatten_odts;
     Getter                           m_getter;
     MeasurementParameters            m_params;
+    std::uint8_t                     m_packed_mode{ 0 };
+    std::uint8_t                     m_packed_ts_mode{ 0 };
+    std::uint16_t                    m_packed_sample_count{ 1 };
 };
 
 auto requires_swap(std::uint8_t byte_order) -> bool {
@@ -1071,32 +1187,36 @@ class DAQProcessor {
     DAQProcessor()          = delete;
     virtual ~DAQProcessor() = default;
 
-    std::optional<measurement_tuple_t> feed(std::uint64_t timestamp, const std::string& payload) noexcept {
+    std::vector<measurement_tuple_t> feed(std::uint64_t timestamp, const std::string& payload) noexcept {
         const auto data         = reinterpret_cast<blob_t const *>(payload.data());
         auto [daq_num, odt_num] = m_getter.get_id(data);
+        std::vector<measurement_tuple_t> results;
 
-        if (m_state[daq_num].feed(odt_num, timestamp, payload)) {
-            // DAQ list completed.
-            measurement_tuple_t result;
-
-            m_state[daq_num].add_result(result);  // get_result()???
-            return result;
+        if (daq_num < m_state.size()) {
+            m_state[daq_num].feed(odt_num, timestamp, payload, results);
         }
-        return std::nullopt;
+        
+        return results;
     }
 
    private:
 
     void create_state_vars(const MeasurementParameters& params) noexcept {
         m_getter = Getter(requires_swap(params.m_byte_order), params.m_id_field_size, params.m_ts_size);
+        m_getter.set_first_pids(params.m_daq_lists, params.m_first_pids);
+        
+        m_state.clear();
+        m_state.reserve(params.m_daq_lists.size());
+
         for (std::uint16_t idx = 0; idx < params.m_daq_lists.size(); ++idx) {
+            const auto& daq_list = params.m_daq_lists[idx];
             m_state.emplace_back(DaqListState(
-                idx, params.m_daq_lists[idx]->get_odt_count(), params.m_daq_lists[idx]->get_total_entries(),
-                params.m_daq_lists[idx]->get_enable_timestamps(), params.m_id_field_size, params.m_daq_lists[idx]->get_flatten_odts(),
-                m_getter, params
+                idx, daq_list->get_odt_count(), daq_list->get_total_entries(),
+                daq_list->get_enable_timestamps(), params.m_id_field_size, daq_list->get_flatten_odts(),
+                m_getter, params,
+                daq_list->get_packed_mode(), daq_list->get_packed_ts_mode(), daq_list->get_packed_sample_count()
             ));
         }
-        m_getter.set_first_pids(m_params.m_daq_lists, m_params.m_first_pids);
     }
 
     MeasurementParameters                  m_params;
@@ -1199,6 +1319,10 @@ public:
 		// std::cout << "\t\tts0: " << ts0 << " Base: " << m_ts0_base << "  ts1: " << ts1 << " Base: " << m_ts1_base << "\n";
         return {ts0 - m_ts0_base, (ts1 - m_ts1_base) + (m_overflow_value * m_overflow_counter) };
     }
+    std::uint64_t overflow_value() const noexcept {
+        return m_overflow_value;
+    }
+
 private:
 
     std::uint64_t m_overflow_value{};
@@ -1231,18 +1355,24 @@ class DaqOnlinePolicy : public DAQPolicyBase {
         const std::vector<measurement_value_t>& measurement
     ) = 0;
 
-    void feed(std::uint8_t frame_cat, std::uint16_t counter, std::uint64_t timestamp, const std::string& payload) {
+    void feed(std::uint8_t frame_cat, std::uint16_t counter, std::uint64_t timestamp, const std::string& payload) override {
         if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
             return;
         }
-        auto result = m_decoder->feed(timestamp, payload);
-        if (result) {
-            const auto& [daq_list, ts0, ts1, meas] = *result;
-			auto& overflow = m_overflows[daq_list];
+        std::vector<measurement_tuple_t> results = m_decoder->feed(timestamp, payload);
+        for (const auto& result : results) {
+            const auto daq_list = std::get<0>(result);
+            const auto ts0      = std::get<1>(result);
+            const auto ts1      = std::get<2>(result);
+            const auto& meas    = std::get<3>(result);
 
-            auto [norm_ts0, norm_ts1] = overflow.normalize(ts0, ts1);
+            auto& overflow = m_overflows[daq_list];
 
-			on_daq_list(daq_list, norm_ts0, norm_ts1, meas);
+            auto norm = overflow.normalize(ts0, ts1);
+            auto norm_ts0 = norm.first;
+            auto norm_ts1 = norm.second;
+
+            on_daq_list(daq_list, norm_ts0, norm_ts1, meas);
         }
     }
 
@@ -1312,12 +1442,18 @@ class XcpLogFileDecoder {
                 if (frame_cat != static_cast<std::uint8_t>(FrameCategory::DAQ)) {
                     continue;
                 }
-                auto result = m_decoder->feed(timestamp, str_data);
-                if (result) {
-                    const auto& [daq_list, ts0, ts1, meas] = *result;
+                std::vector<measurement_tuple_t> results = m_decoder->feed(timestamp, str_data);
+                for (const auto& result : results) {
+                    const auto daq_list = std::get<0>(result);
+                    const auto ts0      = std::get<1>(result);
+                    const auto ts1      = std::get<2>(result);
+                    const auto& meas    = std::get<3>(result);
+
                     auto& overflow = m_overflows[daq_list];
 
-                    auto [norm_ts0, norm_ts1] = overflow.normalize(ts0, ts1);
+                    auto norm = overflow.normalize(ts0, ts1);
+                    auto norm_ts0 = norm.first;
+                    auto norm_ts1 = norm.second;
 
                     on_daq_list(daq_list, norm_ts0, norm_ts1, meas);
                 }

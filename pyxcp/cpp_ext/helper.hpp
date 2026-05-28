@@ -69,30 +69,24 @@ constexpr auto _bswap(std::uint16_t v) noexcept {
 template<typename T>
 inline std::string to_binary(const T &value) {
     std::string result;
+    result.resize(sizeof(T));
+    std::memcpy(result.data(), &value, sizeof(T));
+    return result;
+}
 
-    auto ptr = reinterpret_cast<const std::string::value_type *>(&value);
-    for (std::size_t idx = 0; idx < sizeof(T); ++idx) {
-        auto ch = ptr[idx];
-        result.push_back(ch);
-    }
+inline std::string to_binary_str(const std::string &value) {
+    std::string result;
+    std::uint64_t length = static_cast<std::uint64_t>(value.size());
+    auto len_bin = to_binary<std::uint64_t>(length);
+    result.reserve(sizeof(std::uint64_t) + value.size());
+    result.append(len_bin);
+    result.append(value);
     return result;
 }
 
 template<>
 inline std::string to_binary<std::string>(const std::string &value) {
-    std::string result;
-
-    auto              ptr    = reinterpret_cast<const std::string::value_type *>(value.c_str());
-    const std::size_t length = std::size(value);
-
-    // We are using Pascal strings as serialization format.
-    auto len_bin = to_binary(length);
-    std::copy(len_bin.begin(), len_bin.end(), std::back_inserter(result));
-    for (std::size_t idx = 0; idx < length; ++idx) {
-        auto ch = ptr[idx];
-        result.push_back(ch);
-    }
-    return result;
+    return to_binary_str(value);
 }
 
 inline auto bool_to_string(bool value) {
@@ -123,6 +117,39 @@ static std::map<V, K> reverse_map(const std::map<K, V> &m) {
 enum class TimestampType : std::uint8_t {
     ABSOLUTE_TS,
     RELATIVE_TS
+};
+
+class EventInfo {
+   public:
+
+    EventInfo(const EventInfo &)            = default;
+    EventInfo(EventInfo &&)                 = default;
+    EventInfo &operator=(const EventInfo &) = default;
+    EventInfo &operator=(EventInfo &&)      = default;
+    virtual ~EventInfo() {}
+
+    EventInfo() : m_event_cycle_ns(0) {
+    }
+
+    explicit EventInfo(std::uint64_t event_cycle_ns) : m_event_cycle_ns(event_cycle_ns) {
+    }
+
+    std::uint64_t get_event_cycle_ns() const noexcept {
+        return m_event_cycle_ns;
+    }
+
+    void set_event_cycle_ns(std::uint64_t value) noexcept {
+        m_event_cycle_ns = value;
+    }
+
+    std::string to_string() const noexcept {
+        std::stringstream ss;
+        ss << "EventInfo(event_cycle_ns=" << m_event_cycle_ns << ")";
+        return ss.str();
+    }
+
+   private:
+    std::uint64_t m_event_cycle_ns;
 };
 
 class TimestampInfo {

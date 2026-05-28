@@ -25,7 +25,7 @@ class Odt {
 
     std::string dumps() const {
         std::stringstream ss;
-        ss << to_binary(m_entries.size());
+        ss << to_binary<std::uint64_t>(m_entries.size());
         for (const auto& entry : m_entries) {
             ss << entry.dumps();
         }
@@ -64,7 +64,10 @@ class DaqListBase {
         m_enable_timestamps(enable_timestamps),
         m_odt_count(0),
         m_total_entries(0),
-        m_total_length(0) {
+        m_total_length(0),
+        m_packed_mode(0),
+        m_packed_ts_mode(0),
+        m_packed_sample_count(1) {
     }
 
     virtual ~DaqListBase() = default;
@@ -122,6 +125,30 @@ class DaqListBase {
 
     std::uint16_t get_total_length() const {
         return m_total_length;
+    }
+
+    std::uint8_t get_packed_mode() const {
+        return m_packed_mode;
+    }
+
+    void set_packed_mode(std::uint8_t packed_mode) {
+        m_packed_mode = packed_mode;
+    }
+
+    std::uint8_t get_packed_ts_mode() const {
+        return m_packed_ts_mode;
+    }
+
+    void set_packed_ts_mode(std::uint8_t packed_ts_mode) {
+        m_packed_ts_mode = packed_ts_mode;
+    }
+
+    std::uint16_t get_packed_sample_count() const {
+        return m_packed_sample_count;
+    }
+
+    void set_packed_sample_count(std::uint16_t packed_sample_count) {
+        m_packed_sample_count = packed_sample_count;
     }
 
     const flatten_odts_t& get_flatten_odts() const {
@@ -185,6 +212,9 @@ class DaqListBase {
     std::uint16_t                                     m_odt_count;
     std::uint16_t                                     m_total_entries;
     std::uint16_t                                     m_total_length;
+    std::uint8_t                                      m_packed_mode;
+    std::uint8_t                                      m_packed_ts_mode;
+    std::uint16_t                                     m_packed_sample_count;
     flatten_odts_t                                    m_flatten_odts;
 };
 
@@ -214,31 +244,35 @@ class DaqList : public DaqListBase {
 		std::uint8_t discr=1;
 
         ss << to_binary(discr);
-        ss << to_binary(m_name);
+        ss << to_binary_str(m_name);
         ss << to_binary(m_event_num);
         ss << to_binary(m_stim);
         ss << to_binary(m_enable_timestamps);
         ss << to_binary(m_priority);
         ss << to_binary(m_prescaler);
 
+        ss << to_binary(m_packed_mode);
+        ss << to_binary(m_packed_ts_mode);
+        ss << to_binary(m_packed_sample_count);
+
         ss << to_binary(m_odt_count);
         ss << to_binary(m_total_entries);
         ss << to_binary(m_total_length);
 
-        std::size_t meas_size = m_measurements.size();
+        std::uint64_t meas_size = static_cast<std::uint64_t>(m_measurements.size());
         ss << to_binary(meas_size);
         for (const auto& mc_obj : m_measurements) {
             ss << mc_obj.dumps();
         }
-        std::size_t meas_opt_size = m_measurements_opt.size();
+        std::uint64_t meas_opt_size = static_cast<std::uint64_t>(m_measurements_opt.size());
         ss << to_binary(meas_opt_size);
         for (const auto& mc_obj : m_measurements_opt) {
             ss << mc_obj.dumps();
         }
-        std::size_t hname_size = m_header_names.size();
+        std::uint64_t hname_size = static_cast<std::uint64_t>(m_header_names.size());
         ss << to_binary(hname_size);
         for (const auto& hdr_obj : m_header_names) {
-            ss << to_binary(hdr_obj);
+            ss << to_binary_str(hdr_obj);
         }
         return ss.str();
     }
@@ -252,6 +286,9 @@ class DaqList : public DaqListBase {
         ss << "enable_timestamps=" << bool_to_string(m_enable_timestamps) << ", ";
         ss << "priority=" << static_cast<std::uint16_t>(m_priority) << ", ";
         ss << "prescaler=" << static_cast<std::uint16_t>(m_prescaler) << ", ";
+        ss << "packed_mode=" << static_cast<std::uint16_t>(m_packed_mode) << ", ";
+        ss << "packed_ts_mode=" << static_cast<std::uint16_t>(m_packed_ts_mode) << ", ";
+        ss << "packed_sample_count=" << static_cast<std::uint16_t>(m_packed_sample_count) << ", ";
         ss << "odt_count=" << static_cast<std::uint16_t>(m_odt_count) << ", ";
         ss << "total_entries=" << static_cast<std::uint16_t>(m_total_entries) << ", ";
         ss << "total_length=" << static_cast<std::uint16_t>(m_total_length) << ", ";
@@ -319,26 +356,30 @@ class PredefinedDaqList : public DaqListBase {
 
         ss <<  to_binary(discr);
 
-        ss << to_binary(m_name);
+        ss << to_binary_str(m_name);
         ss << to_binary(m_event_num);
         ss << to_binary(m_stim);
         ss << to_binary(m_enable_timestamps);
         ss << to_binary(m_priority);
         ss << to_binary(m_prescaler);
 
+        ss << to_binary(m_packed_mode);
+        ss << to_binary(m_packed_ts_mode);
+        ss << to_binary(m_packed_sample_count);
+
         ss << to_binary(m_odt_count);
         ss << to_binary(m_total_entries);
         ss << to_binary(m_total_length);
 
-        std::size_t meas_opt_size = m_measurements_opt.size();
+        std::uint64_t meas_opt_size = static_cast<std::uint64_t>(m_measurements_opt.size());
         ss << to_binary(meas_opt_size);
         for (const auto& mc_obj : m_measurements_opt) {
             ss << mc_obj.dumps();
         }
-        std::size_t hname_size = m_header_names.size();
+        std::uint64_t hname_size = static_cast<std::uint64_t>(m_header_names.size());
         ss << to_binary(hname_size);
         for (const auto& hdr_obj : m_header_names) {
-            ss << to_binary(hdr_obj);
+            ss << to_binary_str(hdr_obj);
         }
         return ss.str();
     }
@@ -352,6 +393,9 @@ class PredefinedDaqList : public DaqListBase {
         ss << "enable_timestamps=" << bool_to_string(m_enable_timestamps) << ", ";
         ss << "priority=" << static_cast<std::uint16_t>(m_priority) << ", ";
         ss << "prescaler=" << static_cast<std::uint16_t>(m_prescaler) << ", ";
+        ss << "packed_mode=" << static_cast<std::uint16_t>(m_packed_mode) << ", ";
+        ss << "packed_ts_mode=" << static_cast<std::uint16_t>(m_packed_ts_mode) << ", ";
+        ss << "packed_sample_count=" << static_cast<std::uint16_t>(m_packed_sample_count) << ", ";
         ss << "odt_count=" << static_cast<std::uint16_t>(m_odt_count) << ", ";
         ss << "total_entries=" << static_cast<std::uint16_t>(m_total_entries) << ", ";
         ss << "total_length=" << static_cast<std::uint16_t>(m_total_length) << ", ";

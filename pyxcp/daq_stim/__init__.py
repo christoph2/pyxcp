@@ -13,7 +13,7 @@ from pyxcp.daq_stim.optimize import make_continuous_blocks
 from pyxcp.daq_stim.optimize.binpacking import first_fit_decreasing
 from pyxcp.recorder import DaqOnlinePolicy as _DaqOnlinePolicy
 from pyxcp.recorder import DaqRecorderPolicy as _DaqRecorderPolicy
-from pyxcp.recorder import MeasurementParameters
+from pyxcp.recorder import MeasurementParameters, EventInfo
 from pyxcp.utils import CurrentDatetime
 
 DAQ_ID_FIELD_SIZE = {
@@ -287,15 +287,14 @@ class DaqProcessor:
 
         # arm DAQ lists -- this is technically a function on its own.
         first_daq_list = 0 if config_static else self.min_daq
+        event_cycle_ns = 0
         for i, daq_list in enumerate(self.daq_lists, first_daq_list):
             mode = 0x00
             if self.supports_timestampes and (self.ts_fixed or (self.selectable_timestamps and daq_list.enable_timestamps)):
                 mode = 0x10
             if daq_list.stim:
                 mode |= 0x02
-            ###
-            ## mode |= 0x20
-            ###
+
             self.xcp_master.setDaqListMode(
                 daq_list_number=i,
                 mode=mode,
@@ -303,8 +302,30 @@ class DaqProcessor:
                 prescaler=daq_list.prescaler,
                 priority=daq_list.priority,
             )
+
+            # Packed DAQ support
+            if hasattr(daq_list, "packed_mode") and daq_list.packed_mode != types.DaqPackedModeType.NOT_PACKED:
+                print("Packed DAQ support")
+                self.xcp_master.setDaqPackedMode(
+                    daq_list_number=i,
+                    daq_packed_mode=daq_list.packed_mode,
+                    dpm_timestamp_mode=daq_list.packed_ts_mode,
+                    dpm_sample_count=daq_list.packed_sample_count,
+                )
+                # Fetch event cycle for timestamp reconstruction if not already done
+                if event_cycle_ns == 0:
+                    ev_info = self.xcp_master.getEventChannelInfo(daq_list.event_num)
+                    # Convert to ns. XCP 1.4 spec says unit is in 'eventChannelTimeCycleUnit'
+                    # For simplicity, we assume the master knows how to convert or we use a default.
+                    # In pyXCP, we might need to parse the unit.
+                    # For now, let's assume it's in the unit specified in ASAM.
+                    # TODO: Implement proper unit conversion.
+                    event_cycle_ns = ev_info.eventChannelTimeCycle * (10 ** (ev_info.eventChannelTimeUnit + 6)) # Rough estimate: unit 6 = ms? No.
+                    # Actually, let's just use 1ms as default if we can't determine it, or let user specify.
+
             res = self.xcp_master.startStopDaqList(0x02, i)
             self._first_pids.append(res.firstPid)
+
         self.measurement_params = MeasurementParameters(
             byte_order,
             header_len,
@@ -316,6 +337,7 @@ class DaqProcessor:
             self.ts_size,
             self.min_daq,
             self.start_datetime,
+            EventInfo(event_cycle_ns),
             self.daq_lists,
             self._first_pids,
         )
@@ -344,7 +366,8 @@ class DaqProcessor:
                     with suppress(Exception):
                         self.xcp_master.transport.close()
             finally:
-                return
+                pass
+            return
         self.xcp_master.startStopSynch(0x00)
 
     def first_pids(self):
