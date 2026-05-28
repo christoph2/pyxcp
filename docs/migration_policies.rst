@@ -94,9 +94,9 @@ PyFrameAcquisitionPolicy (Custom)
 
 .. code-block:: python
 
-   from pyxcp.transport.base import PyFrameAcquisitionPolicy, FrameCategory
+   from pyxcp.transport.transport_ext import FrameAcquisitionPolicy, FrameCategory
 
-   class MyPolicy(PyFrameAcquisitionPolicy):
+   class MyPolicy(FrameAcquisitionPolicy):
        def __init__(self):
            super().__init__(filtered_out=None)
            self.daq_count = 0
@@ -148,7 +148,7 @@ If you have existing code using ``LegacyFrameAcquisitionPolicy``:
 1. **Identify your use case**:
 
    - Recording DAQ data → ``FrameRecorderPolicy``
-   - Real-time processing → ``PyFrameAcquisitionPolicy``
+   - Real-time processing → ``FrameAcquisitionPolicy``
    - Standard operation → ``NoOpPolicy`` (default)
    - Debugging → ``StdoutPolicy``
 
@@ -168,7 +168,7 @@ If you have existing code using ``LegacyFrameAcquisitionPolicy``:
 
    Legacy policy exposed queues (``resQueue``, ``daqQueue``, etc.). Modern policies use:
 
-   - **Callbacks**: ``PyFrameAcquisitionPolicy.feed()``
+   - **Callbacks**: ``FrameAcquisitionPolicy.feed()``
    - **Files**: ``FrameRecorderPolicy`` → read with ``XcpLogFileReader``
    - **Real-time**: Process in DAQ callback, not via queues
 
