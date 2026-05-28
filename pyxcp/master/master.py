@@ -2697,11 +2697,14 @@ class Master:
                         status, addr_info = self.try_command(self.getSegmentInfo, 0, i, 0, 0)
                         if status == types.TryCommandResult.OK:
                             segment["address"] = addr_info.basicInfo
+                        else:
+                            segment["address"] = None
                         # Mode 0, Info 1: Length
                         status, len_info = self.try_command(self.getSegmentInfo, 0, i, 1, 0)
                         if status == types.TryCommandResult.OK:
                             segment["length"] = len_info.basicInfo
-
+                        else:
+                            segment["length"] = None
                         # Mode 2: Address mapping info
                         if std_info.maxMapping > 0:
                             segment["mappings"] = []
