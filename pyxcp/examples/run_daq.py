@@ -129,8 +129,8 @@ else:
 
 args = ap.args
 
-daq_parser = DaqToCsv(DAQ_LISTS)  # Record to CSV file(s).
-# daq_parser = DaqRecorder(DAQ_LISTS, "run_daq_21092025_01", 8)  # Record to ".xmraw" file.
+# daq_parser = DaqToCsv(DAQ_LISTS)  # Record to CSV file(s).
+daq_parser = DaqRecorder(DAQ_LISTS, "run_daq_23052026_02", 8)  # Record to ".xmraw" file.
 
 with ap.run(policy=daq_parser) as x:
     try:
@@ -149,7 +149,7 @@ with ap.run(policy=daq_parser) as x:
     daq_parser.start()  # Start DAQ lists.
 
     # time.sleep(2.0 * 60.0)
-    time.sleep(0.25 * 60.0 * 60.0)  # Run for 15 minutes.
+    time.sleep(5.0 * 60.0)  # Run for 15 minutes.
 
     print("Stop DAQ....")
     daq_parser.stop()  # Stop DAQ lists.
