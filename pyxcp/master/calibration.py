@@ -1,6 +1,8 @@
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Dict, Optional
 
+if TYPE_CHECKING:
+    from pyxcp.types import PagePropertiesInfo
 
 # Constants for Page Management
 CAL_PAGE_MODE_ECU = 0x01
@@ -12,12 +14,28 @@ CAL_PAGE_MODE_ALL = 0x80
 class Page:
     segment_number: int
     page_number: int
-    properties: Optional[Any] = None
+    properties: Optional["PagePropertiesInfo"] = None
     init_segment: int = 0
 
     def __repr__(self):
         props = f", props={self.properties}" if self.properties else ""
         return f"Page(seg={self.segment_number}, pg={self.page_number}{props})"
+
+    # ------------------------------------------------------------------
+    # Access-control helpers (delegate to PagePropertiesInfo)
+    # ------------------------------------------------------------------
+
+    def can_xcp_write(self) -> bool:
+        """True if the XCP master may write to this page at all."""
+        return self.properties is not None and self.properties.xcp_write_access
+
+    def can_xcp_read(self) -> bool:
+        """True if the XCP master may read from this page at all."""
+        return self.properties is not None and self.properties.xcp_read_access
+
+    def can_ecu_access(self) -> bool:
+        """True if the ECU may access this page at all."""
+        return self.properties is not None and self.properties.ecu_access
 
 
 @dataclass
@@ -62,17 +80,13 @@ class Calibration:
             self.max_segments = pag_info.maxSegments
             self.freeze_supported = pag_info.pagProperties.freezeSupported
         except Exception as e:
-            # If we can't even get PAG info, we probably can't do anything paging-related.
             raise RuntimeError(f"Failed to get PAG processor info: {e}") from e
 
         self.segments.clear()
         for i in range(self.max_segments):
             try:
-                # Mode 1: get standard info for this segment
                 seg_info = self.master.getSegmentInfo(mode=1, segment_number=i, segment_info=0, mapping_index=0)
 
-                # Mode 0: get basic address info (address/length)
-                # Some slaves might not support this or it might be optional
                 address = None
                 length = None
                 try:
@@ -97,10 +111,15 @@ class Calibration:
 
                 for p in range(segment.max_pages):
                     try:
-                        page_info, init_seg = self.master.getPageInfo(i, p)
-                        segment.pages[p] = Page(segment_number=i, page_number=p, properties=page_info, init_segment=init_seg)
+                        # getPageInfo() returns a PageInfo dataclass (not a tuple)
+                        page_info = self.master.getPageInfo(i, p)
+                        segment.pages[p] = Page(
+                            segment_number=i,
+                            page_number=p,
+                            properties=page_info.properties,
+                            init_segment=page_info.init_segment,
+                        )
                     except Exception:
-                        # Skip page if info cannot be retrieved
                         pass
 
                 try:
@@ -132,12 +151,34 @@ class Calibration:
         mode : int, optional
             Bitmask: 0x01 (ECU access), 0x02 (XCP access).
             Defaults to both ECU and XCP access.
+
+        Raises
+        ------
+        ValueError
+            If the segment or page number is invalid.
+        PermissionError
+            If the page properties forbid the requested access mode.
         """
         self._check_initialized()
         if segment not in self.segments:
             raise ValueError(f"Invalid segment number: {segment}")
         if page not in self.segments[segment].pages:
             raise ValueError(f"Invalid page number {page} for segment {segment}")
+
+        pg = self.segments[segment].pages[page]
+        if pg.properties is not None:
+            if (mode & CAL_PAGE_MODE_XCP) and not pg.can_xcp_write():
+                raise PermissionError(
+                    f"Page {page} of segment {segment} does not allow XCP write access "
+                    f"(xcp_write_access_with_ecu={pg.properties.xcp_write_access_with_ecu}, "
+                    f"xcp_write_access_without_ecu={pg.properties.xcp_write_access_without_ecu})."
+                )
+            if (mode & CAL_PAGE_MODE_ECU) and not pg.can_ecu_access():
+                raise PermissionError(
+                    f"Page {page} of segment {segment} does not allow ECU access "
+                    f"(ecu_access_with_xcp={pg.properties.ecu_access_with_xcp}, "
+                    f"ecu_access_without_xcp={pg.properties.ecu_access_without_xcp})."
+                )
 
         self.master.setCalPage(mode, segment, page)
 
@@ -243,3 +284,19 @@ class Calibration:
         """
         # SET_REQUEST: bit 0 is STORE_CAL_REQ
         self.master.setRequest(mode=0x01, session_configuration_id=0)
+
+    def page_properties(self, segment: int, page: int) -> Optional["PagePropertiesInfo"]:
+        """Return the cached :class:`~pyxcp.types.PagePropertiesInfo` for a page, or *None*.
+
+        Parameters
+        ----------
+        segment : int
+            Segment number.
+        page : int
+            Page number.
+        """
+        self._check_initialized()
+        try:
+            return self.segments[segment].pages[page].properties
+        except KeyError:
+            return None

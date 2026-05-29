@@ -1481,7 +1481,11 @@ class Master:
         pageNumber : int
         """
         response = self.transport.request(types.Command.GET_PAGE_INFO, 0, segment_number, page_number)
-        return types.GetPageInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+        raw = types.GetPageInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+        return types.PageInfo(
+            properties=types.PagePropertiesInfo.from_raw(raw.properties),
+            init_segment=raw.initSegment,
+        )
 
     @wrapped
     def setSegmentMode(self, mode: int, segment_number: int):
@@ -2729,18 +2733,19 @@ class Master:
                         for p in range(std_info.maxPages):
                             status, pgi = self.try_command(self.getPageInfo, i, p)
                             if status == types.TryCommandResult.OK:
+                                props = pgi.properties
                                 segment["pages"].append(
                                     {
                                         "index": p,
                                         "properties": {
-                                            "xcpWriteAccessWithEcu": pgi.properties.xcpWriteAccessWithEcu,
-                                            "xcpWriteAccessWithoutEcu": pgi.properties.xcpWriteAccessWithoutEcu,
-                                            "xcpReadAccessWithEcu": pgi.properties.xcpReadAccessWithEcu,
-                                            "xcpReadAccessWithoutEcu": pgi.properties.xcpReadAccessWithoutEcu,
-                                            "ecuAccessWithXcp": pgi.properties.ecuAccessWithXcp,
-                                            "ecuAccessWithoutXcp": pgi.properties.ecuAccessWithoutXcp,
+                                            "ecuAccessWithXcp": props.ecu_access_with_xcp,
+                                            "ecuAccessWithoutXcp": props.ecu_access_without_xcp,
+                                            "xcpReadAccessWithEcu": props.xcp_read_access_with_ecu,
+                                            "xcpReadAccessWithoutEcu": props.xcp_read_access_without_ecu,
+                                            "xcpWriteAccessWithEcu": props.xcp_write_access_with_ecu,
+                                            "xcpWriteAccessWithoutEcu": props.xcp_write_access_without_ecu,
                                         },
-                                        "initSegment": pgi.initSegment,
+                                        "initSegment": pgi.init_segment,
                                     }
                                 )
 

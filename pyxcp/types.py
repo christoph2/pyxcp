@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import enum
 from collections import namedtuple
+from dataclasses import dataclass
 
 import construct
 from construct import (
@@ -543,6 +544,88 @@ PageProperties = BitStruct(
     "ecuAccessWithXcp" / Flag,
     "ecuAccessWithoutXcp" / Flag,
 )
+
+
+@dataclass
+class PagePropertiesInfo:
+    """Decoded page-property flags returned by GET_PAGE_INFO.
+
+    ECU_ACCESS flags
+    ----------------
+    ecu_access_with_xcp : bool
+        ECU can access this page even while the XCP master is also accessing it.
+    ecu_access_without_xcp : bool
+        ECU can access this page only when the XCP master is NOT accessing it.
+
+    XCP_READ_ACCESS flags
+    ---------------------
+    xcp_read_access_with_ecu : bool
+        XCP master can *read* from this page even while the ECU is also accessing it.
+    xcp_read_access_without_ecu : bool
+        XCP master can *read* from this page only when the ECU is NOT accessing it.
+
+    XCP_WRITE_ACCESS flags
+    ----------------------
+    xcp_write_access_with_ecu : bool
+        XCP master can *write* to this page even while the ECU is also accessing it.
+    xcp_write_access_without_ecu : bool
+        XCP master can *write* to this page only when the ECU is NOT accessing it.
+    """
+
+    ecu_access_with_xcp: bool
+    ecu_access_without_xcp: bool
+    xcp_read_access_with_ecu: bool
+    xcp_read_access_without_ecu: bool
+    xcp_write_access_with_ecu: bool
+    xcp_write_access_without_ecu: bool
+
+    @classmethod
+    def from_raw(cls, raw) -> "PagePropertiesInfo":
+        """Build a :class:`PagePropertiesInfo` from a construct-parsed *PageProperties* container."""
+        return cls(
+            ecu_access_with_xcp=bool(raw.ecuAccessWithXcp),
+            ecu_access_without_xcp=bool(raw.ecuAccessWithoutXcp),
+            xcp_read_access_with_ecu=bool(raw.xcpReadAccessWithEcu),
+            xcp_read_access_without_ecu=bool(raw.xcpReadAccessWithoutEcu),
+            xcp_write_access_with_ecu=bool(raw.xcpWriteAccessWithEcu),
+            xcp_write_access_without_ecu=bool(raw.xcpWriteAccessWithoutEcu),
+        )
+
+    # ------------------------------------------------------------------
+    # Convenience helpers
+    # ------------------------------------------------------------------
+
+    @property
+    def ecu_access(self) -> bool:
+        """True if the ECU can access the page at all (with or without XCP)."""
+        return self.ecu_access_with_xcp or self.ecu_access_without_xcp
+
+    @property
+    def xcp_read_access(self) -> bool:
+        """True if the XCP master can read from the page at all."""
+        return self.xcp_read_access_with_ecu or self.xcp_read_access_without_ecu
+
+    @property
+    def xcp_write_access(self) -> bool:
+        """True if the XCP master can write to the page at all."""
+        return self.xcp_write_access_with_ecu or self.xcp_write_access_without_ecu
+
+
+@dataclass
+class PageInfo:
+    """Return value of :meth:`~pyxcp.master.Master.getPageInfo`.
+
+    Attributes
+    ----------
+    properties : PagePropertiesInfo
+        Decoded boolean access flags for this page.
+    init_segment : int
+        Number of the initialisation segment for this page.
+    """
+
+    properties: PagePropertiesInfo
+    init_segment: int
+
 
 GetPageInfoResponse = Struct(
     "properties" / PageProperties,
