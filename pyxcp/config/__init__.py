@@ -493,9 +493,22 @@ If set, the `app_name` does not have to be previously defined in
 class CanCustom(Configurable, CanBase):
     """Generic custom CAN interface.
 
-    Enable basic CanBase options so user-provided python-can backends can
-    consume common parameters like bitrate, fd, data_bitrate, poll_interval,
-    receive_own_messages, and optional timing.
+    Enables the common base params (bitrate, fd, data_bitrate, poll_interval,
+    receive_own_messages, timing) so any python-can backend registered via the
+    entry-point plugin system can be used without a dedicated pyxcp config class.
+
+    Additional, driver-specific keyword arguments that are not part of the base
+    set can be passed via ``extra_params``:
+
+    .. code:: python
+
+       # pyxcp_conf.py
+       c.Transport.Can.interface = "myinterface"
+       c.Transport.Can.channel   = "can0"
+       c.Transport.Can.bitrate   = 500_000
+       c.CanCustom.extra_params  = {"some_driver_option": True, "rx_queue_size": 128}
+
+    All entries in ``extra_params`` are forwarded verbatim to ``can.Bus()``.
     """
 
     interface_name = "custom"
@@ -506,6 +519,15 @@ class CanCustom(Configurable, CanBase):
     has_poll_interval = True
     has_receive_own_messages = True
     has_timing = True
+
+    extra_params = Dict(
+        key_trait=Unicode(),
+        default_value={},
+        help=(
+            "Extra keyword arguments forwarded verbatim to can.Bus() for third-party interfaces. "
+            "Example: c.CanCustom.extra_params = {'rx_queue_size': 128, 'some_flag': True}"
+        ),
+    ).tag(config=True)
 
 
 class Virtual(Configurable, CanBase):
@@ -568,8 +590,10 @@ class Can(Configurable):
     VALID_INTERFACES = set(can.interfaces.VALID_INTERFACES)
     VALID_INTERFACES.add("custom")
 
-    interface = Enum(
-        values=VALID_INTERFACES, default_value=None, allow_none=True, help="CAN interface supported by python-can"
+    interface = Unicode(
+        default_value=None,
+        allow_none=True,
+        help="CAN interface supported by python-can (or any third-party interface registered via python-can's entry-point plugin system)",
     ).tag(config=True)
     channel = Any(
         default_value=None, allow_none=True, help="Channel identification. Expected type and value is backend dependent."
@@ -655,11 +679,21 @@ timing-related parameters.
         super().__init__(**kws)
 
         if self.parent.layer == "CAN":
-            if self.interface is None or self.interface not in self.VALID_INTERFACES:
-                raise TraitError(
-                    f"CAN interface must be one of {sorted(list(self.VALID_INTERFACES))} not the"
-                    " {type(self.interface).__name__} {self.interface}."
-                )
+            if self.interface is None:
+                raise TraitError("CAN interface must be specified (e.g. c.Transport.Can.interface = 'kvaser').")
+            # Accept known pyxcp interfaces, known python-can interfaces, and any third-party
+            # interface registered via python-can's entry-point plugin system.
+            if self.interface not in self.VALID_INTERFACES:
+                try:
+                    from can.interface import _get_class_for_interface
+
+                    _get_class_for_interface(self.interface)
+                except Exception:
+                    raise TraitError(
+                        f"CAN interface {self.interface!r} is not known to pyxcp or python-can. "
+                        f"Built-in choices: {sorted(self.VALID_INTERFACES)}. "
+                        f"Third-party interfaces must be installed as python-can entry-point plugins."
+                    )
         self.canalystii = CanAlystii(config=self.config, parent=self)
         self.cancustom = CanCustom(config=self.config, parent=self)
         self.cantact = CanTact(config=self.config, parent=self)

@@ -19,7 +19,7 @@ from can.bus import BusABC
 from can.interface import _get_class_for_interface
 from rich.console import Console
 
-from pyxcp.config import CAN_INTERFACE_MAP
+from pyxcp.config import CAN_INTERFACE_MAP, CanCustom
 from pyxcp.transport.base import (
     BaseTransport,
     ChecksumType,
@@ -514,7 +514,11 @@ class Can(BaseTransport):
     def get_interface_parameters(self) -> Dict[str, Any]:
         result = dict(channel=self.config.channel)
 
-        can_interface_config_class = CAN_INTERFACE_MAP[self.interface_name]
+        # Fall back to CanCustom for any third-party interface not in CAN_INTERFACE_MAP.
+        # CanCustom enables the common base params (bitrate, fd, data_bitrate, …) so they
+        # are forwarded to python-can, which resolves the actual driver via its entry-point
+        # plugin registry.
+        can_interface_config_class = CAN_INTERFACE_MAP.get(self.interface_name, CanCustom)
 
         # Optional base class parameters.
         optional_parameters = [(p, p.removeprefix("has_")) for p in can_interface_config_class.OPTIONAL_BASE_PARAMS]
@@ -531,12 +535,19 @@ class Can(BaseTransport):
             value = getattr(self.config, base_name)
             if name is not None and value is not None:
                 result[name] = value
-        # Interface specific parameters.
-        cxx = getattr(self.config, self.interface_name)
-        for name in can_interface_config_class.class_own_traits().keys():
-            value = getattr(cxx, name)
-            if value is not None:
-                result[name] = value
+        # Interface-specific parameters — only available for known interfaces in CAN_INTERFACE_MAP.
+        if self.interface_name in CAN_INTERFACE_MAP:
+            cxx = getattr(self.config, self.interface_name)
+            for name in can_interface_config_class.class_own_traits().keys():
+                value = getattr(cxx, name)
+                if value is not None:
+                    result[name] = value
+        else:
+            # Third-party interface: forward any extra_params from CanCustom config.
+            extra = self.config.cancustom.extra_params
+            if extra:
+                self.logger.info(f"XCPonCAN - Forwarding extra_params to {self.interface_name!r}: {extra}")
+                result.update(extra)
         return result
 
     def data_received(self, payload: bytes, recv_timestamp: int):
