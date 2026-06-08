@@ -320,7 +320,9 @@ class DaqProcessor:
                     # In pyXCP, we might need to parse the unit.
                     # For now, let's assume it's in the unit specified in ASAM.
                     # TODO: Implement proper unit conversion.
-                    event_cycle_ns = ev_info.eventChannelTimeCycle * (10 ** (ev_info.eventChannelTimeUnit + 6)) # Rough estimate: unit 6 = ms? No.
+                    event_cycle_ns = ev_info.eventChannelTimeCycle * (
+                        10 ** (ev_info.eventChannelTimeUnit + 6)
+                    )  # Rough estimate: unit 6 = ms? No.
                     # Actually, let's just use 1ms as default if we can't determine it, or let user specify.
 
             res = self.xcp_master.startStopDaqList(0x02, i)

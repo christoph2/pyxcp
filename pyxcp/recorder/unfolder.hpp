@@ -1039,7 +1039,7 @@ class DaqListState {
             // We split them back.
             std::size_t single_sample_size = m_total_entries;
             std::uint64_t event_period_ns = m_params.m_event_info.get_event_cycle_ns();
-            
+
             for (std::uint16_t i = 0; i < m_packed_sample_count; ++i) {
                 std::vector<measurement_value_t> sample_buffer;
                 sample_buffer.reserve(single_sample_size);
@@ -1105,7 +1105,7 @@ class DaqListState {
             // Packed mode parsing: multiple samples in one ODT payload.
             // ELEMENT_GROUPED: [ID] [TS] [Sample0_Sig0][Sample1_Sig0]...[SampleN_Sig0][Sample0_Sig1]...
             // EVENT_GROUPED:   [ID] [TS] [Sample0_Sig0][Sample0_Sig1]...[Sample1_Sig0][Sample1_Sig1]...
-            
+
             std::size_t sample_size = m_total_entries;
             if (m_packed_mode == 1) { // ELEMENT_GROUPED
                  for (const auto& param : m_flatten_odts[odt_num]) {
@@ -1195,7 +1195,7 @@ class DAQProcessor {
         if (daq_num < m_state.size()) {
             m_state[daq_num].feed(odt_num, timestamp, payload, results);
         }
-        
+
         return results;
     }
 
@@ -1204,7 +1204,7 @@ class DAQProcessor {
     void create_state_vars(const MeasurementParameters& params) noexcept {
         m_getter = Getter(requires_swap(params.m_byte_order), params.m_id_field_size, params.m_ts_size);
         m_getter.set_first_pids(params.m_daq_lists, params.m_first_pids);
-        
+
         m_state.clear();
         m_state.reserve(params.m_daq_lists.size());
 

@@ -26,11 +26,11 @@ class XcpLogFileReader {
         m_offset = detail::MAGIC_SIZE;
 
         read_bytes(m_offset, detail::FILE_HEADER_SIZE, reinterpret_cast<blob_t *>(&m_header));
-        
+
 		//printf("Sizes: %u %u %.3f\n", m_header.size_uncompressed,
         //       m_header.size_compressed,
         //        float(m_header.size_uncompressed) / float(m_header.size_compressed));
-				
+
         if (m_header.hdr_size != detail::FILE_HEADER_SIZE + detail::MAGIC_SIZE) {
             throw std::runtime_error("File header size does not match.");
         }
@@ -62,7 +62,7 @@ class XcpLogFileReader {
 
     [[nodiscard]] auto get_header_as_tuple() const noexcept -> HeaderTuple {
         auto hdr = get_header();
-		
+
         return std::make_tuple(
             hdr.version, hdr.options, hdr.num_containers, hdr.record_count, hdr.size_uncompressed, hdr.size_compressed,
             (double)((std::uint64_t)(((double)hdr.size_uncompressed / (double)hdr.size_compressed * 100.0) + 0.5)) / 100.0
