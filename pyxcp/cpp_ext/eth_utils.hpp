@@ -15,6 +15,7 @@
 #include <memory.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <ifaddrs.h>
 #include <net/if.h>
 #include <linux/ethtool.h>
 #include <linux/net_tstamp.h>
@@ -57,6 +58,65 @@ void init_networking() {
   if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
     printf("WSAStartup failed\n");
   }
+}
+
+static std::string wstring_to_utf8(const std::wstring& wstr) {
+    if (wstr.empty()) return {};
+    int size_needed = WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()), nullptr, 0, nullptr, nullptr);
+    std::string str(size_needed, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()), str.data(), size_needed, nullptr, nullptr);
+    return str;
+}
+
+std::vector<std::pair<std::string, std::string>> get_ipv4_interfaces(void)
+{
+    DWORD result = 0;
+    ULONG flags = 0;
+    ULONG outBufLen = 0;
+    PIP_ADAPTER_ADDRESSES pAddresses = NULL;
+    PIP_ADAPTER_ADDRESSES currentAddresses = NULL;
+    char ipStr[INET6_ADDRSTRLEN] = { 0 };
+
+    std::vector<std::pair<std::string, std::string>> interfaces;
+
+    result = GetAdaptersAddresses(0, flags, NULL, pAddresses, &outBufLen);
+    if (result == ERROR_BUFFER_OVERFLOW) {
+        pAddresses = (PIP_ADAPTER_ADDRESSES)malloc(outBufLen);
+        result = GetAdaptersAddresses(0, flags, NULL, pAddresses, &outBufLen);
+        if (result != NO_ERROR) {
+            goto Done;
+        }
+    } else if (result != NO_ERROR) {
+        goto Done;
+    }
+
+    currentAddresses = pAddresses;
+    while (currentAddresses != NULL) {
+        bool has_ipv4 = false;
+        // || (currentAddresses->IfType == IF_TYPE_SOFTWARE_LOOPBACK)
+        if ((currentAddresses->IfType == IF_TYPE_ETHERNET_CSMACD) || (currentAddresses->IfType == IF_TYPE_IEEE80211)) {
+            PIP_ADAPTER_UNICAST_ADDRESS pUnicast = currentAddresses->FirstUnicastAddress;
+            while (pUnicast != NULL) {
+                SOCKADDR* sa = pUnicast->Address.lpSockaddr;
+                if (sa->sa_family == AF_INET) {
+                    inet_ntop(AF_INET, &((sockaddr_in*)sa)->sin_addr, ipStr, sizeof(ipStr));
+                    has_ipv4 = true;
+                    break;
+                }
+                pUnicast = pUnicast->Next;
+            }
+            if ((has_ipv4) && (currentAddresses->OperStatus == 1)) {
+                interfaces.emplace_back(wstring_to_utf8(currentAddresses->FriendlyName), ipStr);
+            }
+        }
+        currentAddresses = currentAddresses->Next;
+    }
+    result = ERROR_NOT_FOUND;
+Done:
+    if (pAddresses != NULL) {
+        free(pAddresses);
+    }
+    return interfaces;
 }
 
 static std::optional<InterfaceInfo> get_best_route(const std::string &ip_str) {
@@ -467,6 +527,23 @@ static std::optional<InterfaceInfo> get_best_route(const std::string &ip_str) {
 }
 
 
+std::vector<std::pair<std::string, std::string>> get_ipv4_interfaces() {
+    std::vector<std::pair<std::string, std::string>> result;
+    struct ifaddrs *ifap = nullptr;
+    if (getifaddrs(&ifap) != 0) {
+        return result;
+    }
+    for (struct ifaddrs *ifa = ifap; ifa != nullptr; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET) {
+            char ip[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &reinterpret_cast<struct sockaddr_in*>(ifa->ifa_addr)->sin_addr, ip, sizeof(ip));
+            result.emplace_back(ifa->ifa_name, ip);
+        }
+    }
+    freeifaddrs(ifap);
+    return result;
+}
+
 TimestampingInfo check_timestamping_support(const std::string& host_name) {
     std::string ifname{};
     auto host_route = get_best_route(host_name);
@@ -514,6 +591,9 @@ void init_networking() {
 
 }
 
+std::vector<std::pair<std::string, std::string>> get_ipv4_interfaces() {
+    return {};
+}
 
 TimestampingInfo check_timestamping_support(const std::string& host_name) {
     return TimestampingInfo{"", false, false, false};
