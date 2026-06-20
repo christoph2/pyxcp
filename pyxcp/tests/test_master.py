@@ -2144,9 +2144,15 @@ class TestMaster:
 
             ms.push_packet("FF 15 25 01 1F 00 78 56")
 
-            res = xm.timeCorrelationProperties(0x15, 0x01, 0x1234)
+            res = xm.timeCorrelationProperties(
+                response_fmt=2,
+                get_clk_info=True,
+                cluster_id=0x1234,
+                time_sync_bridge=1,
+                set_cluster_id=True,
+            )
 
-            ms._mock_send.assert_called_with(bytes([0x06, 0x00, 0x01, 0x00, 0xC6, 0x15, 0x01, 0x00, 0x34, 0x12]))
+            ms._mock_send.assert_called_with(bytes([0x06, 0x00, 0x01, 0x00, 0xC6, 0x16, 0x01, 0x00, 0x34, 0x12]))
 
             assert res.slave_config.response_fmt == 0x15 & 0x03
             assert res.slave_config.daq_ts_relation == 0x25 & 0x01

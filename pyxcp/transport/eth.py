@@ -243,8 +243,16 @@ class Eth(BaseTransport):
                                     with _packets_condition:
                                         _packets.append((bytes(response), recv_timestamp))
                                         _packets_condition.notify()
-            except BaseException:  # noqa: B036
+            except (OSError, ValueError) as ex:
                 self.status = 0  # disconnected
+                if close_event_set() or socket_fileno() == -1:
+                    self.logger.debug("Ethernet packet listener stopped during socket shutdown: %s", ex)
+                else:
+                    self.logger.exception("Ethernet packet listener socket failure")
+                break
+            except Exception:
+                self.status = 0  # disconnected
+                self.logger.exception("Unexpected Ethernet packet listener failure")
                 break
 
     def _extract_linux_timestamp(self, ancdata) -> Optional[int]:

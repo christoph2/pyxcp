@@ -2,6 +2,7 @@
 
 import logging
 from contextlib import suppress
+from fractions import Fraction
 from time import time_ns
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
 
@@ -28,6 +29,31 @@ DAQ_TIMESTAMP_SIZE = {
     "S2": 2,
     "S4": 4,
 }
+
+EVENT_CHANNEL_TIME_UNIT_TO_NS = {
+    0: Fraction(1, 1),  # 1 ns
+    1: Fraction(10, 1),  # 10 ns
+    2: Fraction(100, 1),  # 100 ns
+    3: Fraction(1_000, 1),  # 1 us
+    4: Fraction(10_000, 1),  # 10 us
+    5: Fraction(100_000, 1),  # 100 us
+    6: Fraction(1_000_000, 1),  # 1 ms
+    7: Fraction(10_000_000, 1),  # 10 ms
+    8: Fraction(100_000_000, 1),  # 100 ms
+    9: Fraction(1_000_000_000, 1),  # 1 s
+    10: Fraction(1, 1_000),  # 1 ps
+    11: Fraction(1, 100),  # 10 ps
+    12: Fraction(1, 10),  # 100 ps
+}
+
+
+def event_channel_cycle_to_ns(cycle: int, unit: int) -> int:
+    """Convert XCP event channel time cycle/unit to nanoseconds."""
+    unit_value = int(unit)
+    if unit_value not in EVENT_CHANNEL_TIME_UNIT_TO_NS:
+        raise ValueError(f"Unsupported event channel time unit: {unit}")
+    value = Fraction(int(cycle), 1) * EVENT_CHANNEL_TIME_UNIT_TO_NS[unit_value]
+    return max(1, (value.numerator + value.denominator - 1) // value.denominator) if value else 0
 
 
 def load_daq_lists_from_json(config: List[Dict]) -> List[DaqList]:
@@ -305,7 +331,7 @@ class DaqProcessor:
 
             # Packed DAQ support
             if hasattr(daq_list, "packed_mode") and daq_list.packed_mode != types.DaqPackedModeType.NOT_PACKED:
-                print("Packed DAQ support")
+                self.log.debug("Packed DAQ support enabled for DAQ list %s", i)
                 self.xcp_master.setDaqPackedMode(
                     daq_list_number=i,
                     daq_packed_mode=daq_list.packed_mode,
@@ -315,15 +341,7 @@ class DaqProcessor:
                 # Fetch event cycle for timestamp reconstruction if not already done
                 if event_cycle_ns == 0:
                     ev_info = self.xcp_master.getEventChannelInfo(daq_list.event_num)
-                    # Convert to ns. XCP 1.4 spec says unit is in 'eventChannelTimeCycleUnit'
-                    # For simplicity, we assume the master knows how to convert or we use a default.
-                    # In pyXCP, we might need to parse the unit.
-                    # For now, let's assume it's in the unit specified in ASAM.
-                    # TODO: Implement proper unit conversion.
-                    event_cycle_ns = ev_info.eventChannelTimeCycle * (
-                        10 ** (ev_info.eventChannelTimeUnit + 6)
-                    )  # Rough estimate: unit 6 = ms? No.
-                    # Actually, let's just use 1ms as default if we can't determine it, or let user specify.
+                    event_cycle_ns = event_channel_cycle_to_ns(ev_info.eventChannelTimeCycle, ev_info.eventChannelTimeUnit)
 
             res = self.xcp_master.startStopDaqList(0x02, i)
             self._first_pids.append(res.firstPid)

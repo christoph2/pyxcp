@@ -355,11 +355,29 @@ class TimeSyncEventHandler(EventHandler):
     def get_last_sync_event(self) -> Optional[TimeSyncEvent]:
         return self.last_sync_event
 
+    def _parse_options(self) -> tuple[int, str]:
+        """Return MAX_CTO and byte order from connected slave properties."""
+        slave_properties = getattr(getattr(self.transport, "parent", None), "slaveProperties", None)
+        max_cto = getattr(slave_properties, "maxCto", None)
+        if max_cto is None:
+            max_cto = getattr(self.transport, "max_cto", 255)
+
+        slave_byte_order = getattr(slave_properties, "byteOrder", None)
+        if slave_byte_order is None:
+            byte_order = getattr(self.transport, "byte_order", "little")
+        else:
+            from pyxcp.types import ByteOrder
+
+            if slave_byte_order == ByteOrder.MOTOROLA or str(slave_byte_order).upper().endswith("MOTOROLA"):
+                byte_order = "big"
+            else:
+                byte_order = "little"
+
+        return int(max_cto), byte_order
+
     def handle(self, event_code: int, packet: bytes) -> bool:
         try:
-            # Determine MAX_CTO and byte order from transport
-            max_cto = getattr(self.transport, "max_cto", 255)
-            byte_order = getattr(self.transport, "byte_order", "little")
+            max_cto, byte_order = self._parse_options()
 
             # Parse the event
             sync_event = TimeSyncEvent.parse(packet, max_cto=max_cto, byte_order=byte_order)
@@ -382,11 +400,11 @@ class TimeSyncEventHandler(EventHandler):
                 )
             else:
                 clocks = []
-                if sync_event.xcp_slave_timestamp:
+                if sync_event.xcp_slave_timestamp is not None:
                     clocks.append(f"XCP={sync_event.xcp_slave_timestamp:#x}")
-                if sync_event.grandmaster_timestamp:
+                if sync_event.grandmaster_timestamp is not None:
                     clocks.append(f"GM={sync_event.grandmaster_timestamp:#x}")
-                if sync_event.ecu_timestamp:
+                if sync_event.ecu_timestamp is not None:
                     clocks.append(f"ECU={sync_event.ecu_timestamp:#x}")
                 self.logger.info(f"TIME_SYNC (Extended): {', '.join(clocks)}, Trigger={sync_event.trigger_info.initiator.name}")
 
@@ -426,6 +444,9 @@ class SessionStateEventHandler(EventHandler):
             return True
 
         elif event_code == Event.EV_RESUME_MODE:
+            if len(packet) < 4:
+                self.logger.warning(f"Malformed EV_RESUME_MODE packet too short: {len(packet)} bytes")
+                return True
             session_config_id = struct.unpack("<H", packet[2:4])[0]
             self.logger.info(f"EV_RESUME_MODE: Slave resumed with config ID={session_config_id:#x}")
             # TODO: Verify session configuration matches
@@ -457,6 +478,9 @@ class DaqStimEventHandler(EventHandler):
             return True
 
         elif event_code == Event.EV_STIM_TIMEOUT:
+            if len(packet) < 6:
+                self.logger.warning(f"Malformed EV_STIM_TIMEOUT packet too short: {len(packet)} bytes")
+                return True
             info_type = packet[2]
             failure_type = packet[3]
             identifier = struct.unpack("<H", packet[4:6])[0]
@@ -493,6 +517,9 @@ class UserEventHandler(EventHandler):
             return True
 
         elif event_code == Event.EV_ECU_STATE_CHANGE:
+            if len(packet) < 3:
+                self.logger.warning(f"Malformed EV_ECU_STATE_CHANGE packet too short: {len(packet)} bytes")
+                return True
             state_number = packet[2]
             self.logger.info(f"EV_ECU_STATE_CHANGE: State={state_number}")
             return True
