@@ -1,8 +1,6 @@
 import argparse
 import logging
 
-from pyxcp.recorder.converter import convert_xmraw
-
 
 parser = argparse.ArgumentParser(description="Convert .xmraw files.")
 
@@ -27,6 +25,8 @@ def main():
     args = parser.parse_args()
 
     try:
+        from pyxcp.recorder.converter import convert_xmraw
+
         convert_xmraw(args.target_type, args.xmraw_file, args.target_file_name)
     except Exception:
         import traceback

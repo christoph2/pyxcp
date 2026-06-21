@@ -1797,6 +1797,8 @@ class Master:
         response_fmt: int = 0,
         get_clk_info: int = 0,
         cluster_id: int = 0x0000,
+        time_sync_bridge: int = 0,
+        set_cluster_id: bool = False,
     ):
         """Configure and query time correlation properties (XCP 1.3/1.5).
 
@@ -1827,6 +1829,12 @@ class Master:
             1 = Enable extended mode, EV_TIME_SYNC for TRIGGER_INITIATOR 0,2,3 only
             2 = Enable extended mode, EV_TIME_SYNC for all triggers
             3 = Reserved
+        get_clk_info : bool
+            If True, set MTA to clock information data block for UPLOAD
+        cluster_id : int
+            16-bit cluster identifier (Intel byte order)
+            Default: 0x0000
+            Used for GET_DAQ_CLOCK_MULTICAST routing
         time_sync_bridge : int
             Time Sync Bridge control:
             0 = Do not change (default)
@@ -1835,12 +1843,6 @@ class Master:
             3 = Reserved
         set_cluster_id : bool
             If True, assign slave to logical cluster specified by cluster_id
-        cluster_id : int
-            16-bit cluster identifier (Intel byte order)
-            Default: 0x0000
-            Used for GET_DAQ_CLOCK_MULTICAST routing
-        get_clk_info : bool
-            If True, set MTA to clock information data block for UPLOAD
 
         Returns
         -------
@@ -1899,12 +1901,19 @@ class Master:
         ----------
         XCP 1.5 Spec, Section 7.5.6.1: TIME_CORRELATION_PROPERTIES
         """
-        from pyxcp.time_correlation import TimeCorrelationPropertiesResponse
+        from pyxcp.time_correlation import GetPropertiesRequest, SetProperties, TimeCorrelationPropertiesResponse
+
+        set_properties = SetProperties.encode(
+            response_fmt=response_fmt & 0x03,
+            time_sync_bridge=time_sync_bridge & 0x03,
+            set_cluster_id=set_cluster_id,
+        )
+        get_properties = GetPropertiesRequest.encode(bool(get_clk_info))
 
         response = self.transport.request(
             types.Command.TIME_CORRELATION_PROPERTIES,
-            response_fmt & 0xFF,
-            get_clk_info & 0xFF,
+            set_properties,
+            get_properties,
             0x00,
             *self.WORD_pack(cluster_id),
         )
