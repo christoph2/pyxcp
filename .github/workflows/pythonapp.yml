@@ -22,12 +22,12 @@ jobs:
           - os: windows-latest
             cibw_archs_windows: AMD64
     steps:
-      - uses: actions/checkout@v6
-      - uses: pypa/cibuildwheel@v3.3
+      - uses: actions/checkout@v7
+      - uses: pypa/cibuildwheel@v4.1.0
         env:
           CIBW_ARCHS_WINDOWS: ${{ matrix.cibw_archs_windows || '' }}
           CIBW_ARCHS_MACOS: arm64
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: cibw-wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
@@ -36,12 +36,12 @@ jobs:
     name: Build source distribution
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Build sdist
         run: |
           pip install -U build
           python -m build --sdist
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           path: dist/*.tar.gz
           include-hidden-files: true
@@ -53,11 +53,11 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
       - name: Publish package to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.13.0
+        uses: pypa/gh-action-pypi-publish@v1.14.0
         with:
           attestations: true
