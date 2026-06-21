@@ -6,15 +6,14 @@ from fractions import Fraction
 from time import time_ns
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
 
-from pyxcp.cpp_ext.cpp_ext import DaqList, PredefinedDaqList
-
 from pyxcp import types
 from pyxcp.config import get_application
+from pyxcp.cpp_ext.cpp_ext import DaqList, PredefinedDaqList
 from pyxcp.daq_stim.optimize import make_continuous_blocks
 from pyxcp.daq_stim.optimize.binpacking import first_fit_decreasing
 from pyxcp.recorder import DaqOnlinePolicy as _DaqOnlinePolicy
 from pyxcp.recorder import DaqRecorderPolicy as _DaqRecorderPolicy
-from pyxcp.recorder import MeasurementParameters, EventInfo
+from pyxcp.recorder import EventInfo, MeasurementParameters
 from pyxcp.utils import CurrentDatetime
 
 DAQ_ID_FIELD_SIZE = {
@@ -149,7 +148,14 @@ class DaqProcessor:
             self.log = logger
         else:
             try:
-                self.log = get_application().log
+                application = get_application()
+                self.config = application.config
+                self.log = application.log
+                # daq_identifier = self.config.Transport.Can.daq_identifier
+                self.transport_layer = self.config.Transport.layer
+                self.pid_off = (
+                    self.config.Transport.Can.pid_off == True
+                ) and self.transport_layer == "CAN"  # PID_OFF is only available on CAN.
             except (FileNotFoundError, Exception) as e:
                 # Fallback: Create logger when running without config file
                 # This is common in test frameworks like Robot Framework or pytest
@@ -157,6 +163,7 @@ class DaqProcessor:
                 if not self.log.handlers:
                     self.log.addHandler(logging.NullHandler())
                 self.log.debug(f"Using fallback logger (application config not available: {e})")
+                self.pid_off = False
 
         # Flag indicating a fatal OS-level error occurred during DAQ (e.g., disk full, out-of-memory)
         self._fatal_os_error: bool = False
@@ -243,6 +250,21 @@ class DaqProcessor:
                 self.log.debug(f"InterleavedMode disabled: overhead = {overhead} (header={header_len})")
 
             max_payload_size = min(max_odt_entry_size, max_dto - overhead)
+            switch_pid_off: bool = False
+            if self.pid_off:
+                if self.supports_pid_off:
+                    id_field = key_byte["identificationField"]
+                    if id_field != "IDF_ABS_ODT_NUMBER":
+                        self.log.error(
+                            f"Slave supports PID_OFF and identificationField is {id_field!r}. This is a configuration error."
+                        )
+                    else:
+                        self.log.info("PID_OFF requested and supported.")
+                        max_payload_size += 1
+                        switch_pid_off = True
+                else:
+                    self.log.info("PID_OFF requested but NOT supported.")
+
             # First ODT may contain timestamp.
             self.selectable_timestamps = False
             max_payload_size_first = max_payload_size
@@ -320,7 +342,8 @@ class DaqProcessor:
                 mode = 0x10
             if daq_list.stim:
                 mode |= 0x02
-
+            if switch_pid_off:
+                mode |= 0x20
             self.xcp_master.setDaqListMode(
                 daq_list_number=i,
                 mode=mode,
@@ -341,7 +364,27 @@ class DaqProcessor:
                 # Fetch event cycle for timestamp reconstruction if not already done
                 if event_cycle_ns == 0:
                     ev_info = self.xcp_master.getEventChannelInfo(daq_list.event_num)
+<<<<<<< HEAD
                     event_cycle_ns = event_channel_cycle_to_ns(ev_info.eventChannelTimeCycle, ev_info.eventChannelTimeUnit)
+||||||| parent of b1faacd (DAQ: Add support for PID_OFF)
+                    # Convert to ns. XCP 1.4 spec says unit is in 'eventChannelTimeCycleUnit'
+                    # For simplicity, we assume the master knows how to convert or we use a default.
+                    # In pyXCP, we might need to parse the unit.
+                    # For now, let's assume it's in the unit specified in ASAM.
+                    # TODO: Implement proper unit conversion.
+                    event_cycle_ns = ev_info.eventChannelTimeCycle * (10 ** (ev_info.eventChannelTimeUnit + 6)) # Rough estimate: unit 6 = ms? No.
+                    # Actually, let's just use 1ms as default if we can't determine it, or let user specify.
+=======
+                    # Convert to ns. XCP 1.4 spec says unit is in 'eventChannelTimeCycleUnit'
+                    # For simplicity, we assume the master knows how to convert or we use a default.
+                    # In pyXCP, we might need to parse the unit.
+                    # For now, let's assume it's in the unit specified in ASAM.
+                    # TODO: Implement proper unit conversion.
+                    event_cycle_ns = ev_info.eventChannelTimeCycle * (
+                        10 ** (ev_info.eventChannelTimeUnit + 6)
+                    )  # Rough estimate: unit 6 = ms? No.
+                    # Actually, let's just use 1ms as default if we can't determine it, or let user specify.
+>>>>>>> b1faacd (DAQ: Add support for PID_OFF)
 
             res = self.xcp_master.startStopDaqList(0x02, i)
             self._first_pids.append(res.firstPid)

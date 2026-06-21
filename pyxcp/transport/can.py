@@ -470,10 +470,13 @@ class Can(BaseTransport):
         #   "... If a PDU does not exactly match these configurable sizes the unused bytes shall be padded."
         #
         self.fd = self.config.fd
+        self.pid_off = self.config.pid_off
         self.daq_identifier = []
+        self.can_id_pid_map = {}
         if self.config.daq_identifier:
-            for daq_id in self.config.daq_identifier:
+            for idx, daq_id in enumerate(self.config.daq_identifier):
                 self.daq_identifier.append(Identifier(daq_id))
+                self.can_id_pid_map[daq_id] = bytes([idx])
         self.max_dlc_required = self.config.max_dlc_required
         self.padding_value = self.config.padding_value
         if transport_layer_interface is None:
@@ -585,6 +588,10 @@ class Can(BaseTransport):
                 frame = can_interface_read()
                 if frame:
                     # Process the frame if one was received
+                    pid = self.can_id_pid_map.get(frame.id.raw_id)
+                    if pid is not None:
+                        # Translate CAN-ID to ODT number in PID_OFF mode.
+                        frame.data = pid + frame.data
                     data_received(frame.data, frame.timestamp)
                 # If no frame (None), recv() already waited 100ms, so loop immediately
             except Exception as e:

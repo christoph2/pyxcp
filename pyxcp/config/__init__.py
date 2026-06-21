@@ -614,6 +614,7 @@ class Can(Configurable):
     daq_identifier = List(trait=Integer(), default_value=[], allow_none=True, help="One CAN identifier per DAQ-list.").tag(
         config=True
     )
+    pid_off = Bool(False, help="Transmit DTOs without identification field").tag(config=True)
     bitrate = Integer(250000, help="CAN bitrate in bits/s (arbitration phase, if CAN FD).").tag(config=True)
     receive_own_messages = Bool(False, help="Enable self-reception of sent messages.").tag(config=True)
     poll_interval = Float(default_value=None, allow_none=True, help="Poll interval in seconds when reading messages.").tag(
