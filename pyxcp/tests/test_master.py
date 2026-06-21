@@ -84,10 +84,8 @@ class MockSocket(mock.MagicMock):
 
     # push packet, automatically add header (len + ctr)
     def push_packet(self, data):
-        try:
+        if isinstance(data, str):
             data = bytes.fromhex(data)
-        except TypeError:
-            pass
 
         # import inspect
 
@@ -161,10 +159,8 @@ class MockCanInterface:  # CanInterfaceBase
 
     # push packet
     def push_packet(self, data):
-        try:
+        if isinstance(data, str):
             data = bytes.fromhex(data)
-        except TypeError:
-            pass
         # no header on CAN
         self.push_frame(data)
 
@@ -1471,14 +1467,14 @@ class TestMaster:
 
             assert res == b""
 
-            ms.push_frame([0x03, 0x00, 0x15, 0x00, 0xFF, 0x00, 0x00])
+            ms.push_packet("FF 00 00 00 00")
 
             res = xm.getDaqPackedMode(258)
 
             ms._mock_send.assert_called_with(bytes([0x04, 0x00, 0x15, 0x00, 0xC0, 0x02, 0x02, 0x01]))
 
-            assert res.daqPackedMode == types.DaqPackedMode.NONE
-            assert res.dpmTimestampMode is None
+            assert res.daq_packed_mode == "NOT_PACKED"
+            assert res.timestamp_mode.ts_present is False
 
             ms.push_frame([0x01, 0x00, 0x16, 0x00, 0xFF])
 
@@ -1505,15 +1501,15 @@ class TestMaster:
 
             assert res == b""
 
-            ms.push_frame("06 00 17 00 FF 00 02 01 34 12")
+            ms.push_packet("FF 02 01 34 12")
 
             res = xm.getDaqPackedMode(258)
 
             ms._mock_send.assert_called_with(bytes([0x04, 0x00, 0x17, 0x00, 0xC0, 0x02, 0x02, 0x01]))
 
-            assert res.daqPackedMode == "EVENT_GROUPED"
-            assert res.dpmTimestampMode == 0x01
-            assert res.dpmSampleCount == 0x1234
+            assert res.daq_packed_mode == "EVENT_GROUPED"
+            assert res.timestamp_mode.ts_present is True
+            assert res.sample_count == 0x1234
 
     @mock.patch("pyxcp.transport.eth.socket.socket")
     @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
