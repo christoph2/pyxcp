@@ -1,5 +1,5 @@
 [build-system]
-requires = ["poetry-core>=1.6.0", "pybind11>=2.12.0", "pybind11[global]>=2.12.0"]
+requires = ["poetry-core>=1.6.0", "pybind11==2.13.6", "pybind11[global]==2.13.6"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.group.dev.dependencies]
@@ -23,7 +23,7 @@ bumpver = ">=2023.1124"
 cmake = "^4.3.4"
 
 [tool.bumpver]
-current_version = "0.29.11"
+current_version = "0.29.12"
 version_pattern = "MAJOR.MINOR.PATCH"
 commit_message = "bump version {old_version} -> {new_version}"
 commit = true
@@ -41,7 +41,7 @@ push = false
 [tool.poetry]
 authors = ["Christoph Schueler <cpu.gems@googlemail.com>"]
 name = "pyxcp"
-version = "0.29.11"
+version = "0.29.12"
 readme = "docs/README.rst"
 description = "Universal Calibration Protocol for Python"
 keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
