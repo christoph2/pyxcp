@@ -164,6 +164,7 @@ def create_config():
             self.padding_value = 0
             self.timeout = 1.0
             self.daq_identifier = []  # Empty list for DAQ identifiers
+            self.pid_off = False
 
             # Add the MockCanInterface attribute
             self.MockCanInterface = MockCanInterfaceConfig()
