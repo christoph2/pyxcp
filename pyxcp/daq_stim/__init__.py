@@ -364,17 +364,6 @@ class DaqProcessor:
                 # Fetch event cycle for timestamp reconstruction if not already done
                 if event_cycle_ns == 0:
                     ev_info = self.xcp_master.getEventChannelInfo(daq_list.event_num)
-<<<<<<< HEAD
-                    event_cycle_ns = event_channel_cycle_to_ns(ev_info.eventChannelTimeCycle, ev_info.eventChannelTimeUnit)
-||||||| parent of b1faacd (DAQ: Add support for PID_OFF)
-                    # Convert to ns. XCP 1.4 spec says unit is in 'eventChannelTimeCycleUnit'
-                    # For simplicity, we assume the master knows how to convert or we use a default.
-                    # In pyXCP, we might need to parse the unit.
-                    # For now, let's assume it's in the unit specified in ASAM.
-                    # TODO: Implement proper unit conversion.
-                    event_cycle_ns = ev_info.eventChannelTimeCycle * (10 ** (ev_info.eventChannelTimeUnit + 6)) # Rough estimate: unit 6 = ms? No.
-                    # Actually, let's just use 1ms as default if we can't determine it, or let user specify.
-=======
                     # Convert to ns. XCP 1.4 spec says unit is in 'eventChannelTimeCycleUnit'
                     # For simplicity, we assume the master knows how to convert or we use a default.
                     # In pyXCP, we might need to parse the unit.
@@ -384,8 +373,6 @@ class DaqProcessor:
                         10 ** (ev_info.eventChannelTimeUnit + 6)
                     )  # Rough estimate: unit 6 = ms? No.
                     # Actually, let's just use 1ms as default if we can't determine it, or let user specify.
->>>>>>> b1faacd (DAQ: Add support for PID_OFF)
-
             res = self.xcp_master.startStopDaqList(0x02, i)
             self._first_pids.append(res.firstPid)
 
