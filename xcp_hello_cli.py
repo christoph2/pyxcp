@@ -22,11 +22,9 @@ from pyxcp.cmdline import ArgumentParser
 def main():
     console = Console()
 
-    console.print(Panel.fit(
-        "[bold cyan]XCP 握手测试工具 (CLI 版本)[/bold cyan]\n"
-        "[dim]基于 pyXCP 的下位机连接测试[/dim]",
-        border_style="cyan"
-    ))
+    console.print(
+        Panel.fit("[bold cyan]XCP 握手测试工具 (CLI 版本)[/bold cyan]\n[dim]基于 pyXCP 的下位机连接测试[/dim]", border_style="cyan")
+    )
 
     ap = ArgumentParser(description="XCP 握手测试 - 命令行版本")
 
@@ -202,11 +200,7 @@ def main():
             emoji = "❌"
             color = "red"
 
-        console.print(Panel.fit(
-            f"{emoji} {result_text}",
-            title="测试完成",
-            border_style=color
-        ))
+        console.print(Panel.fit(f"{emoji} {result_text}", title="测试完成", border_style=color))
 
         # ===== 断开连接 =====
         console.print("\n[bold yellow]🔌 断开连接...[/bold yellow]")

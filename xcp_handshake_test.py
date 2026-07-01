@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 """XCP 握手测试工具 - 用于测试与下位机的连接和基本通信。"""
 
-import sys
 import time
 import threading
-from pathlib import Path
 
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox, simpledialog
@@ -42,11 +40,7 @@ class XcpHandshakeTest:
         ttk.Label(conn_frame, text="传输方式:").grid(row=0, column=0, sticky=tk.W, pady=5)
         self.transport_var = tk.StringVar(value="eth")
         transport_combo = ttk.Combobox(
-            conn_frame,
-            textvariable=self.transport_var,
-            values=["eth", "sxi", "can"],
-            state="readonly",
-            width=10
+            conn_frame, textvariable=self.transport_var, values=["eth", "sxi", "can"], state="readonly", width=10
         )
         transport_combo.grid(row=0, column=1, sticky=tk.W, padx=(5, 20), pady=5)
         transport_combo.bind("<<ComboboxSelected>>", self._on_transport_changed)
@@ -65,13 +59,9 @@ class XcpHandshakeTest:
 
         ttk.Label(self.eth_frame, text="协议:").pack(side=tk.LEFT)
         self.eth_proto_var = tk.StringVar(value="TCP")
-        ttk.Combobox(
-            self.eth_frame,
-            textvariable=self.eth_proto_var,
-            values=["TCP", "UDP"],
-            state="readonly",
-            width=6
-        ).pack(side=tk.LEFT, padx=(5, 0))
+        ttk.Combobox(self.eth_frame, textvariable=self.eth_proto_var, values=["TCP", "UDP"], state="readonly", width=6).pack(
+            side=tk.LEFT, padx=(5, 0)
+        )
 
         # 串口配置
         self.sxi_frame = ttk.Frame(conn_frame)
@@ -86,7 +76,7 @@ class XcpHandshakeTest:
             textvariable=self.baudrate_var,
             values=["9600", "19200", "38400", "57600", "115200", "230400", "460800", "921600"],
             state="readonly",
-            width=10
+            width=10,
         ).pack(side=tk.LEFT, padx=(5, 0))
 
         # CAN配置
@@ -132,12 +122,7 @@ class XcpHandshakeTest:
         log_frame = ttk.LabelFrame(main_frame, text="运行日志", padding="10")
         log_frame.pack(fill=tk.BOTH, expand=True)
 
-        self.log_text = scrolledtext.ScrolledText(
-            log_frame,
-            wrap=tk.WORD,
-            font=("Consolas", 9),
-            height=15
-        )
+        self.log_text = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, font=("Consolas", 9), height=15)
         self.log_text.pack(fill=tk.BOTH, expand=True)
 
         # 状态栏
@@ -164,13 +149,7 @@ class XcpHandshakeTest:
     def _log(self, message, level="INFO"):
         """添加日志。"""
         timestamp = time.strftime("%H:%M:%S", time.localtime())
-        color_map = {
-            "INFO": "black",
-            "SUCCESS": "green",
-            "ERROR": "red",
-            "WARN": "orange",
-            "DEBUG": "gray"
-        }
+        color_map = {"INFO": "black", "SUCCESS": "green", "ERROR": "red", "WARN": "orange", "DEBUG": "gray"}
         color = color_map.get(level, "black")
 
         self.log_text.insert(tk.END, f"[{timestamp}] [{level}] {message}\n")
@@ -440,9 +419,7 @@ class XcpHandshakeTest:
     def _on_read_test(self):
         """读内存测试。"""
         result = simpledialog.askstring(
-            "读内存测试",
-            "请输入读取地址和长度（格式: 地址,长度，如 0x00000000,16）:",
-            parent=self.root
+            "读内存测试", "请输入读取地址和长度（格式: 地址,长度，如 0x00000000,16）:", parent=self.root
         )
         if not result:
             return
@@ -472,14 +449,15 @@ class XcpHandshakeTest:
                 data = self.xcp.upload(length)
 
                 hex_str = data.hex().upper()
-                hex_display = " ".join([hex_str[i:i+2] for i in range(0, len(hex_str), 2)])
+                hex_display = " ".join([hex_str[i : i + 2] for i in range(0, len(hex_str), 2)])
 
-                self._log(f"读取成功:", "SUCCESS")
+                self._log("读取成功:", "SUCCESS")
                 self._log(f"  HEX: {hex_display}")
 
                 # 尝试解析为不同类型
                 if length >= 4:
                     import struct
+
                     u32 = struct.unpack("<I", data[:4])[0]
                     s32 = struct.unpack("<i", data[:4])[0]
                     f32 = struct.unpack("<f", data[:4])[0]
