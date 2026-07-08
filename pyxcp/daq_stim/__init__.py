@@ -154,7 +154,7 @@ class DaqProcessor:
                 # daq_identifier = self.config.Transport.Can.daq_identifier
                 self.transport_layer = self.config.Transport.layer
                 self.pid_off = (
-                    self.config.Transport.Can.pid_off == True
+                    self.config.Transport.Can.pid_off
                 ) and self.transport_layer == "CAN"  # PID_OFF is only available on CAN.
             except (FileNotFoundError, Exception) as e:
                 # Fallback: Create logger when running without config file
@@ -249,7 +249,14 @@ class DaqProcessor:
             else:
                 self.log.debug(f"InterleavedMode disabled: overhead = {overhead} (header={header_len})")
 
-            max_payload_size = min(max_odt_entry_size, max_dto - overhead)
+            # Two independent limits:
+            #   * max_odt_container_size: the total payload capacity of a single ODT (across all
+            #     its entries), bounded by MAX_DTO minus framing overhead.
+            #   * max_entry_size: the maximum size of a single (possibly merged) ODT *entry*
+            #     element, bounded by MAX_ODT_ENTRY_SIZE_DAQ (GET_DAQ_RESOLUTION_INFO). An entry
+            #     can never be larger than what fits in one ODT.
+            max_odt_container_size = max_dto - overhead
+            max_entry_size = min(max_odt_entry_size, max_odt_container_size)
             switch_pid_off: bool = False
             if self.pid_off:
                 if self.supports_pid_off:
@@ -260,20 +267,20 @@ class DaqProcessor:
                         )
                     else:
                         self.log.info("PID_OFF requested and supported.")
-                        max_payload_size += 1
+                        max_odt_container_size += 1
                         switch_pid_off = True
                 else:
                     self.log.info("PID_OFF requested but NOT supported.")
 
-            # First ODT may contain timestamp.
+            # First ODT may contain a timestamp, reducing only its container capacity.
             self.selectable_timestamps = False
-            max_payload_size_first = max_payload_size
+            max_odt_container_size_first = max_odt_container_size
             if not self.supports_timestampes:
                 self.log.info("No timestamp support")
             else:
                 if self.ts_fixed:
                     self.log.debug("Fixed timestamps")
-                    max_payload_size_first = max_payload_size - self.ts_size
+                    max_odt_container_size_first = max_odt_container_size - self.ts_size
                 else:
                     self.log.debug("Variable timestamps.")
                     self.selectable_timestamps = True
@@ -285,13 +292,16 @@ class DaqProcessor:
         for idx, daq_list in enumerate(self.daq_lists):
             if isinstance(daq_list, PredefinedDaqList):
                 continue
+            container_first = max_odt_container_size_first
             if self.selectable_timestamps:
                 if daq_list.enable_timestamps:
-                    max_payload_size_first = max_payload_size - self.ts_size
+                    container_first = max_odt_container_size - self.ts_size
                 else:
-                    max_payload_size_first = max_payload_size
-            ttt = make_continuous_blocks(daq_list.measurements, max_payload_size, max_payload_size_first)
-            daq_list.measurements_opt = first_fit_decreasing(ttt, max_payload_size, max_payload_size_first)
+                    container_first = max_odt_container_size
+            # Per-entry merge cap uses max_entry_size (unaffected by timestamp/PID_OFF); the ODT
+            # bin capacity uses the container size.
+            ttt = make_continuous_blocks(daq_list.measurements, max_entry_size, max_entry_size)
+            daq_list.measurements_opt = first_fit_decreasing(ttt, max_odt_container_size, container_first)
         byte_order = 0 if self.xcp_master.slaveProperties.byteOrder == "INTEL" else 1
         self._first_pids = []
         daq_count = len(self.daq_lists)
