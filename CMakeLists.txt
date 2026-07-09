@@ -87,12 +87,23 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(EXTENSION_INCS ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/cpp_ext)
 
 function(configure_python_extension target package_dir)
+    set(output_dir "${CMAKE_CURRENT_SOURCE_DIR}/${package_dir}")
     set_target_properties(
         ${target}
         PROPERTIES
-        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${package_dir}"
-        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${package_dir}"
+        LIBRARY_OUTPUT_DIRECTORY "${output_dir}"
+        RUNTIME_OUTPUT_DIRECTORY "${output_dir}"
     )
+
+    foreach(config ${CMAKE_CONFIGURATION_TYPES})
+        string(TOUPPER "${config}" config_upper)
+        set_target_properties(
+            ${target}
+            PROPERTIES
+            LIBRARY_OUTPUT_DIRECTORY_${config_upper} "${output_dir}"
+            RUNTIME_OUTPUT_DIRECTORY_${config_upper} "${output_dir}"
+        )
+    endforeach()
 endfunction()
 
 function(install_python_extension target package_dir)
