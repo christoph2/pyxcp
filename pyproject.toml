@@ -1,6 +1,60 @@
 [build-system]
-requires = ["poetry-core>=1.6.0", "pybind11==2.13.6", "pybind11[global]==2.13.6"]
-build-backend = "poetry.core.masonry.api"
+requires = ["scikit-build-core>=0.10", "pybind11==2.13.6"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "pyxcp"
+version = "0.29.12"
+description = "Universal Calibration Protocol for Python"
+readme = "docs/README.rst"
+license = {text = "LGPLv3"}
+authors = [
+    {name = "Christoph Schueler", email = "cpu.gems@googlemail.com"},
+]
+keywords = ["automotive", "ecu", "xcp", "asam", "autosar"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development",
+    "Topic :: Scientific/Engineering",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "construct>=2.10.68,<3",
+    "pyserial>=3.5,<4",
+    "pyusb>=1.2,<2",
+    "python-can>=4.2,<5",
+    "rich>=13.0,<15",
+    "chardet>=7.0.0",
+    "traitlets>=5.9,<6",
+    "toml>=0.10,<1",
+    "pytz>=2024.1",
+    "pydantic>=2.5,<3",
+]
+
+[project.urls]
+Homepage = "https://github.com/christoph2/pyxcp"
+
+[project.scripts]
+pyxcp-probe-can-drivers = "pyxcp.scripts.pyxcp_probe_can_drivers:main"
+xcp-id-scanner = "pyxcp.scripts.xcp_id_scanner:main"
+xcp-discovery = "pyxcp.scripts.xcp_discovery:main"
+xcp-fetch-a2l = "pyxcp.scripts.xcp_fetch_a2l:main"
+xcp-info = "pyxcp.scripts.xcp_info:main"
+xcp-profile = "pyxcp.scripts.xcp_profile:main"
+xcp-examples = "pyxcp.scripts.xcp_examples:main"
+xmraw-converter = "pyxcp.scripts.xmraw_converter:main"
+
+[tool.scikit-build]
+cmake.build-type = "Release"
+wheel.packages = ["pyxcp"]
+editable.mode = "inplace"
 
 [tool.poetry.group.dev.dependencies]
 Pygments = ">=2.10.0"
@@ -59,28 +113,6 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
 ]
-build = "build_ext.py"
-include = [
-    { path = "pyxcp/cpp_ext/*.so", format = "wheel" },
-    { path = "pyxcp/cpp_ext/*.pyd", format = "wheel" },
-    { path = "pyxcp/daq_stim/*.so", format = "wheel" },
-    { path = "pyxcp/daq_stim/*.pyd", format = "wheel" },
-    { path = "pyxcp/recorder/*.so", format = "wheel" },
-    { path = "pyxcp/recorder/*.pyd", format = "wheel" },
-    { path = "pyxcp/transport/*.so", format = "wheel" },
-    { path = "pyxcp/transport/*.pyd", format = "wheel" },
-    { path = "pyxcp/*.exe", format = "wheel" },
-    { path = "CMakeLists.txt", format = "sdist" },
-
-    { path = "pyxcp/cpp_ext/*hpp", format = "sdist" },
-    { path = "pyxcp/cpp_ext/*cpp", format = "sdist" },
-    { path = "pyxcp/daq_stim/*hpp", format = "sdist" },
-    { path = "pyxcp/daq_stim/*cpp", format = "sdist" },
-    { path = "pyxcp/recorder/*hpp", format = "sdist" },
-    { path = "pyxcp/recorder/*cpp", format = "sdist" },
-    { path = "pyxcp/transport/*hpp", format = "sdist" },
-    { path = "pyxcp/transport/*cpp", format = "sdist" },
-]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -137,7 +169,7 @@ skip = ["*_i686", "*-musllinux*"]
 build-frontend = "build"
 
 [tool.pyright]
-include = ["pyxcp", "build_ext.py"]
+include = ["pyxcp"]
 ignore = ["pyxcp/recorder/converter/**", "pyxcp/recorder/simdjson/**","pyxcp/recorder/mio/**", "pyxcp/recorder/lz4/**"]
 
 reportMissingImports = true

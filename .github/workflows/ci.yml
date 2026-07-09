@@ -32,6 +32,12 @@ jobs:
         run: |
           poetry install --no-interaction --no-ansi --with dev
 
+      - name: Build C++ extensions
+        run: |
+          source .venv/bin/activate
+          pip install scikit-build-core pybind11==2.13.6 --quiet
+          pip install --no-build-isolation -e .
+
       - name: Run tests
         shell: bash
         run: |

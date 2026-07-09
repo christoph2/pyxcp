@@ -20,7 +20,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 message( STATUS "Found pybind11 v${pybind11_VERSION} ${pybind11_VERSION_TYPE}: ${pybind11_INCLUDE_DIRS}")
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/dist")
 
 
 # Note: mtune=native optimizes for build machine, may not be portable
@@ -133,8 +132,8 @@ ENDIF()
 # target_link_libraries(preprocessor pybind11::headers)
 # set_target_properties(preprocessor PROPERTIES INTERPROCEDURAL_OPTIMIZATION ON CXX_VISIBILITY_PRESET ON VISIBILITY_INLINES_HIDDEN ON)
 
-install(TARGETS rekorder LIBRARY DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/recorder)
-install(TARGETS cpp_ext LIBRARY DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/cpp_ext)
-install(TARGETS stim LIBRARY DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/daq_stim)
-install(TARGETS transport_ext LIBRARY DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/transport)
-install(TARGETS asamkeydll RUNTIME DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp)
+install(TARGETS rekorder LIBRARY DESTINATION pyxcp/recorder)
+install(TARGETS cpp_ext LIBRARY DESTINATION pyxcp/cpp_ext)
+install(TARGETS stim LIBRARY DESTINATION pyxcp/daq_stim)
+install(TARGETS transport_ext LIBRARY DESTINATION pyxcp/transport)
+install(TARGETS asamkeydll RUNTIME DESTINATION pyxcp)
