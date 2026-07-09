@@ -334,6 +334,7 @@ class PythonCanWrapper:
             self.can_interface = self.parent.transport_layer_interface
             self.can_interface.set_filters(merged_filters)
             self.software_filter.set_filters(can_filters)  # Filter unwanted traffic.
+
         else:
             try:
                 # Filters are applied during bus initialization
@@ -347,7 +348,6 @@ class PythonCanWrapper:
                     f"OS error while creating CAN interface {self.interface_name!r}: {ex.__class__.__name__}: {ex}"
                 ) from ex
             self.software_filter.accept_all()
-
         # Log status AFTER bus is initialized and filters are active
         self.parent.logger.info(f"XCPonCAN - Using Interface: '{self.can_interface!s}'")
         self.parent.logger.info(f"XCPonCAN - Filters used: {self.can_interface.filters}")

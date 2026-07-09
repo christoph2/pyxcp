@@ -71,8 +71,6 @@ def get_py_config() -> dict:
                 full_path = [Path(dir_name) / library]
             elif uname.system == "Linux":
                 full_path = [Path(dir_name) / arch / library, Path(dir_name) / library]
-            else:
-                print("PF?", uname.system)
             for fp in full_path:
                 print(f"Trying '{fp}'")
                 if fp.exists():
@@ -151,6 +149,9 @@ def build_extension(debug: bool = False, use_temp_dir: bool = False) -> None:
     cmake_cache = build_temp / "CMakeCache.txt"
     if cmake_cache.exists():
         cmake_cache.unlink()
+
+    # PYBIND11_PYTHON_VERSION = f"{sys.version_info.major}.{sys.version_info.minor}"
+    # cmake_args += [f"-DPYBIND11_PYTHON_VERSION={PYBIND11_PYTHON_VERSION}"]
 
     banner("Step #1: Configure")
     # cmake_args += ["--debug-output"]

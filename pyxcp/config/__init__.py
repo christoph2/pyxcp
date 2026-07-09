@@ -201,7 +201,7 @@ Three samples should only be used for relatively slow baudrates""",
     ).tag(config=True)
     driver_mode = Bool(default_value=None, allow_none=True, help="Silent or normal.").tag(config=True)
     single_handle = Bool(
-        default_value=None,
+        default_value=True,
         allow_none=True,
         help="""Use one Kvaser CANLIB bus handle for both reading and writing.
 This can be set if reading and/or writing is done from one thread. """,
