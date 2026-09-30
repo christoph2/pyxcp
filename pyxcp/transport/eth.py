@@ -7,7 +7,7 @@ from collections import deque
 
 from pyxcp import types
 from pyxcp.cpp_ext.cpp_ext import enable_ptp_timestamping, init_networking, receive_with_timestamp, check_timestamping_support
-from pyxcp.transport.transport_ext import EthReceiver
+from pyxcp.transport.transport_ext import EthReceiver, EthProtocol, FramingError
 
 from pyxcp.transport.base import (
     BaseTransport,
@@ -47,7 +47,7 @@ def socket_to_str(sock: socket.socket) -> str:
 class Eth(BaseTransport):
     """"""
 
-    MAX_DATAGRAM_SIZE = 512
+    MAX_DATAGRAM_SIZE = 65535
     HEADER = struct.Struct("<HH")
 
     def __init__(self, config=None, policy=None, transport_layer_interface: socket.socket | None = None) -> None:
@@ -128,7 +128,13 @@ class Eth(BaseTransport):
         )
         self._packets = deque()
         self._packets_condition = threading.Condition()
-        self._eth_receiver = EthReceiver(self.process_response)
+        proto = EthProtocol.TCP if self.use_tcp else EthProtocol.UDP
+        self._eth_receiver = EthReceiver(
+            proto=proto,
+            dispatch_handler=self.process_response,
+            error_handler=self.on_framing_error,
+            max_payload_size=Eth.MAX_DATAGRAM_SIZE,
+        )
 
         # XCP 1.5: Multicast socket for GET_DAQ_CLOCK_MULTICAST
         self._multicast_sock: socket.socket | None = None
@@ -329,6 +335,9 @@ class Eth(BaseTransport):
                 self.logger.error("Failed to enable PTP hardware timestamping")
         else:
             self.logger.info(f"Hardware timestamping NOT supported on interface {ts_info.interface_name!r}")
+
+    def on_framing_error(self, error: FramingError, offset: int) -> None:
+        self.logger.error(f"Ethernet framing error: {error!s} at offset {offset}")
 
     # =========================================================================
     # XCP 1.5: GET_DAQ_CLOCK_MULTICAST Support
