@@ -59,6 +59,8 @@ class BaseTransport(metaclass=abc.ABCMeta):
 
     """
 
+    DAQ_TIMEOUT_EXTENSION_FACTOR: int = 3
+
     def __init__(
         self,
         config,
@@ -163,15 +165,29 @@ class BaseTransport(metaclass=abc.ABCMeta):
         """Get an item from resQueue with blocking wait and timeout."""
         start: int = self.timestamp.value
         timeout_ns: int = self.timeout
+        # DAQ traffic may extend the wait, but never beyond this absolute deadline.
+        hard_deadline: int = start + timeout_ns * self.DAQ_TIMEOUT_EXTENSION_FACTOR
+        extended = False
 
         with self.resQueue_condition:
             while not self.resQueue:
-                # Check for timeout
+                now = self.timestamp.value
                 if self.timer_restart_event.is_set():
-                    start = self.timestamp.value
                     self.timer_restart_event.clear()
+                    if now < hard_deadline:
+                        start = now
+                        if not extended:
+                            extended = True
+                            self.logger.warning("Response wait extended by DAQ traffic; hard limit applies")
 
-                elapsed = self.timestamp.value - start
+                if now >= hard_deadline:
+                    self.logger.warning(
+                        f"No response within {self.DAQ_TIMEOUT_EXTENSION_FACTOR}x timeout while DAQ traffic keeps flowing "
+                        "(response possibly delayed behind backlog or dropped)"
+                    )
+                    raise EmptyFrameError
+
+                elapsed = now - start
                 if elapsed > timeout_ns:
                     raise EmptyFrameError
 
@@ -418,9 +434,6 @@ class BaseTransport(metaclass=abc.ABCMeta):
             # Do not drop DAQ frames on duplicate counters to avoid losing measurements.
             if counter == self.counter_received:
                 self.logger.debug(f"Duplicate message counter {counter} received (DAQ) - not dropping")
-                # DAQ still flowing – reset request timeout window to avoid false timeouts while
-                # the slave is busy but has not yet responded to a command.
-                self.timer_restart_event.set()
                 # Fall through and process the frame as usual.
             self.counter_received = counter
             if self._debug:
