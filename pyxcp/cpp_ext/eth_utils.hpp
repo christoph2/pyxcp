@@ -228,10 +228,22 @@ static std::optional<InterfaceInfo> get_best_route(const std::string &ip_str) {
   while (pCurrAddresses) {
     if (pCurrAddresses->IfIndex == bestIfIndex) {
       InterfaceInfo info;
-      std::wstring wstr(pCurrAddresses->FriendlyName);
-      info.name = std::string(wstr.begin(), wstr.end());
+      const int name_size = WideCharToMultiByte(
+          CP_UTF8, WC_ERR_INVALID_CHARS, pCurrAddresses->FriendlyName, -1, nullptr, 0, nullptr, nullptr
+      );
+      if (name_size == 0) {
+        free(pAddresses);
+        return std::nullopt;
+      }
+      info.name.resize(static_cast<std::size_t>(name_size));
+      if (WideCharToMultiByte(
+              CP_UTF8, WC_ERR_INVALID_CHARS, pCurrAddresses->FriendlyName, -1, info.name.data(), name_size, nullptr, nullptr
+          ) != name_size) {
+        free(pAddresses);
+        return std::nullopt;
+      }
+      info.name.pop_back();
       info.luid = pCurrAddresses->Luid;
-      //CopyMemory(&info.luid, &pCurrAddresses->Luid, sizeof(NET_LUID));
       free(pAddresses);
       return info;
     }
