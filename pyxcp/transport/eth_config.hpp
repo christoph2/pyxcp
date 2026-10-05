@@ -22,6 +22,8 @@ struct EthConfig {
 	bool m_multicast_enabled{false};
 	bool m_ptp_timestamping{false};
 	std::optional<std::tuple<std::string, std::uint16_t>> m_bind_to{std::nullopt};
+	std::optional<std::uint16_t> m_iocp_buffer_size{std::nullopt};
+	std::optional<std::uint16_t> m_iocp_receive_queue_depth{std::nullopt};
 
 	bool use_tcp() const noexcept {
         return m_protocol == EthProtocol::TCP;
