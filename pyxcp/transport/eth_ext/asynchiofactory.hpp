@@ -37,10 +37,10 @@
 #endif
 
 
-inline std::unique_ptr<IAsyncIoService> createAsyncIoService(IoCallbacks callbacks = {}, std::size_t readQueueDepth = 8, std::optional<std::uint16_t> receiveLength = std::nullopt)
+inline std::unique_ptr<IAsyncIoService> createAsyncIoService(IoCallbacks callbacks = {}, std::uint16_t readQueueDepth = 64, std::optional<std::uint16_t> bufferSize = std::nullopt)
 {
 #if defined(_WIN32)
-    return std::make_unique<IOCP>(std::move(callbacks), 1, 1, readQueueDepth, receiveLength);
+    return std::make_unique<IOCP>(std::move(callbacks), 1, 1, readQueueDepth, bufferSize);
 #else
     return std::make_unique<Epoll>(std::move(callbacks));
 #endif
