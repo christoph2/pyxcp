@@ -396,15 +396,6 @@ class BaseTransport(metaclass=abc.ABCMeta):
             if self._debug:
                 self.logger.debug(f"<- L{length} C{counter} {hexDump(response)}")
             self.counter_received = counter
-            # Record incoming non-DAQ frames for diagnostics
-            self._record_pdu(
-                "in",
-                (FrameCategory.RESPONSE if pid >= 0xFE else FrameCategory.SERV if pid == 0xFC else FrameCategory.EVENT),
-                counter,
-                recv_timestamp,
-                response,
-                length,
-            )
             if pid >= 0xFE:
                 # Trim response to actual length to remove padding (e.g., CAN 0xAA padding)
                 # Issue #205: CAN-FD with max_dlc_required pads frames, causing parsers
@@ -440,35 +431,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
                 timestamp = recv_timestamp
             else:
                 timestamp = 0
-            # Record DAQ frame (only keep small prefix in payload string later)
-            self._record_pdu("in", FrameCategory.DAQ, counter, timestamp, response, length)
-            # DAQ activity indicates the slave is alive/busy; keep extending the wait window for any
-            # outstanding request, similar to EV_CMD_PENDING behavior on stacks that don't emit it.
             self.timer_restart_event.set()
             with self.policy_lock:
                 self.policy.feed(FrameCategory.DAQ, self.counter_received, timestamp, response[:length])
-
-    def _record_pdu(
-        self,
-        direction: str,
-        category: FrameCategory,
-        counter: int,
-        timestamp: int,
-        payload: bytes,
-        length: int | None = None,
-    ) -> None:
-        try:
-            entry = {
-                "dir": direction,
-                "cat": category.name,
-                "ctr": int(counter),
-                "ts": int(timestamp),
-                "len": int(length if length is not None else len(payload)),
-                "data": hexDump(payload if category != FrameCategory.DAQ else payload[:8])[:512],
-            }
-            self._last_pdus.append(entry)
-        except Exception:
-            pass  # nosec
 
     def _build_diagnostics_dump(self) -> str:
         import json as _json
