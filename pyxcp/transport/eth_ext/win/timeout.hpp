@@ -28,6 +28,10 @@
 
 #include <Windows.h>
 
+#include <cstdint>
+#include <limits>
+#include <stdexcept>
+
 #include "utils.hpp"
 
 
@@ -48,7 +52,7 @@ void CALLBACK Timeout_CB(void * lpParam, unsigned char TimerOrWaitFired);
 class TimeoutTimer {
 public:
 
-    explicit TimeoutTimer(uint64_t value) : m_millis(value) {
+    explicit TimeoutTimer(uint64_t value) : m_millis(validate_timeout(value)) {
         m_timer_queue = ::CreateTimerQueue();
         if (m_timer_queue == nullptr)
             OsErrorExit("TimeoutTimer::TimeoutTimer() -- CreateTimerQueue");
@@ -87,7 +91,7 @@ public:
     }
 
     void setValue(uint64_t new_millis) {
-        m_millis = new_millis;
+        m_millis = validate_timeout(new_millis);
     }
 
     void setIOCP(IOCP * iocp) {
@@ -96,7 +100,14 @@ public:
 
 private:
 
-    uint64_t m_millis;
+    static DWORD validate_timeout(uint64_t value) {
+        if (value > (std::numeric_limits<DWORD>::max)()) {
+            throw std::out_of_range("Timeout exceeds the maximum supported Windows timer interval");
+        }
+        return static_cast<DWORD>(value);
+    }
+
+    DWORD m_millis;
     HANDLE m_timer_queue {INVALID_HANDLE_VALUE};
     HANDLE m_timer {INVALID_HANDLE_VALUE};
     IOCP * m_iocp = nullptr;
