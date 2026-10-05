@@ -1,13 +1,11 @@
 #!/usr/bin/env python
-import selectors
 import socket
 import struct
-import threading
-from collections import deque
 
 from pyxcp import types
-from pyxcp.cpp_ext.cpp_ext import enable_ptp_timestamping, init_networking, receive_with_timestamp, check_timestamping_support
-from pyxcp.transport.transport_ext import EthReceiver, EthProtocol, FramingError
+from pyxcp.cpp_ext.cpp_ext import init_networking
+from pyxcp.transport.eth_backend import EthIoBackend, create_eth_backend
+from pyxcp.transport.transport_ext import EthProtocol, EthConfig, EthReceiver, FramingError
 
 from pyxcp.transport.base import (
     BaseTransport,
@@ -24,28 +22,19 @@ DEFAULT_XCP_DISCOVERY_ADDRESS = "239.255.0.0"
 DEFAULT_XCP_DISCOVERY_RESPONSE_ADDRESS = "239.255.2.1"
 DEFAULT_XCP_DISCOVERY_RESPONSE_PORT = 5556
 
-RECV_SIZE = 8196
-
-
-def socket_to_str(sock: socket.socket) -> str:
-    peer = sock.getpeername()
-    local = sock.getsockname()
-    AF = {
-        socket.AF_INET: "AF_INET",
-        socket.AF_INET6: "AF_INET6",
-    }
-    TYPE = {
-        socket.SOCK_DGRAM: "SOCK_DGRAM",
-        socket.SOCK_STREAM: "SOCK_STREAM",
-    }
-    family = AF.get(sock.family, "OTHER")
-    typ = TYPE.get(sock.type, "UNKNOWN")
-    res = f"XCPonEth - Connected to: {peer[0]}:{peer[1]}  local address: {local[0]}:{local[1]} [{family}][{typ}]"
-    return res
-
 
 class Eth(BaseTransport):
-    """"""
+    """XCP on Ethernet (TCP/UDP) transport.
+
+    Handles XCP-level concerns (framing config, address parameters, PTP
+    trigger, GET_DAQ_CLOCK_MULTICAST). The actual byte-level network I/O
+    (connect / send / receive-loop) is delegated to an
+    :class:`~pyxcp.transport.eth_backend.EthIoBackend` implementation,
+    selected via ``config.experimental_backend`` -- this is the seam that
+    allows switching between the proven, selectors-based implementation and
+    an experimental backend (e.g. a future IOCP-based implementation on
+    Windows) without touching this class.
+    """
 
     MAX_DATAGRAM_SIZE = 65535
     HEADER = struct.Struct("<HH")
@@ -61,280 +50,101 @@ class Eth(BaseTransport):
             tail_cs=ChecksumType.NO_CHECKSUM,
         )
         super().__init__(config, framing_config, policy, transport_layer_interface)
-        self.host: str = self.config.host
-        self.port: int = self.config.port
-        self.protocol: str = self.config.protocol.upper()
-        self.ipv6: bool = self.config.ipv6
-        self.use_tcp_no_delay: bool = self.config.tcp_nodelay
+        eth_config = EthConfig()
+        eth_config.host = self.config.host
+        eth_config.port = self.config.port
+        eth_config.protocol = EthProtocol.UDP if self.config.protocol.upper() == "UDP" else EthProtocol.TCP
+        eth_config.ipv6 = self.config.ipv6
+        eth_config.use_tcp_no_delay = self.config.tcp_nodelay
+        eth_config.ptp_timestamping = self.config.ptp_timestamping
         address_to_bind: str = self.config.bind_to_address
         bind_to_port: int = self.config.bind_to_port
-        self._local_address = (address_to_bind, bind_to_port) if address_to_bind else None
-        if self.ipv6 and not socket.has_ipv6:
-            msg = "XCPonEth - IPv6 not supported by your platform."
-            self.logger.critical(msg)
-            raise RuntimeError(msg)
-        else:
-            address_family = socket.AF_INET6 if self.ipv6 else socket.AF_INET
-        proto = socket.SOCK_STREAM if self.protocol == "TCP" else socket.SOCK_DGRAM
-        if self.host.lower() == "localhost":
-            self.host = "::1" if self.ipv6 else "localhost"
+        eth_config.bind_to = (address_to_bind, bind_to_port) if address_to_bind else None
 
-        try:
-            addrinfo = socket.getaddrinfo(self.host, self.port, address_family, proto)
-            (
-                self.address_family,
-                self.socktype,
-                self.proto,
-                self.canonname,
-                self.sockaddr,
-            ) = addrinfo[0]
-        except BaseException as ex:  # noqa: B036
-            msg = f"XCPonEth - Failed to resolve address {self.host}:{self.port} ({self.protocol}, ipv6={self.ipv6}): {ex.__class__.__name__}: {ex}"
-            self.logger.critical(msg, extra={"transport": "eth", "host": self.host, "port": self.port, "protocol": self.protocol})
-            raise Exception(msg) from ex
-        self.status: int = 0
-        self.sock = socket.socket(self.address_family, self.socktype, self.proto)
-        self.selector = selectors.DefaultSelector()
-        self.selector.register(self.sock, selectors.EVENT_READ)
-        self.use_tcp = self.protocol == "TCP"
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # Initialized early so close_connection()/__del__ are safe even if
+        # backend creation below fails (e.g. invalid/unavailable
+        # experimental_backend selection).
+        self._multicast_sock: socket.socket | None = None
+        self._multicast_enabled = False
+
         init_networking()
-        self.ptp_enabled = False
-        if self.config.ptp_timestamping:
-            if self.use_tcp:
-                self.logger.warning("PTP hardware timestamping is typically not supported for TCP. Only UDP will be attempted.")
-            else:
-                self._setup_ptp()
 
-        if self.use_tcp and self.use_tcp_no_delay:
-            self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        if hasattr(socket, "SO_REUSEPORT"):
-            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        self.sock.settimeout(0.5)
-        if self._local_address:
-            try:
-                self.sock.bind(self._local_address)
-            except BaseException as ex:  # noqa: B036
-                msg = f"XCPonEth - Failed to bind socket to given address {self._local_address}: {ex.__class__.__name__}: {ex}"
-                self.logger.critical(
-                    msg, extra={"transport": "eth", "host": self.host, "port": self.port, "protocol": self.protocol}
-                )
-                raise Exception(msg) from ex
-        self._packet_listener = threading.Thread(
-            target=self._packet_listen,
-            args=(),
-            kwargs={},
-            daemon=True,
-        )
-        self._packets = deque()
-        self._packets_condition = threading.Condition()
-        proto = EthProtocol.TCP if self.use_tcp else EthProtocol.UDP
+        backend_name = "iocp" if self.config.experimental_backend else "legacy"
+        self._backend: EthIoBackend = create_eth_backend(backend_name, self)
+        self._backend.setup(eth_config)
+
         self._eth_receiver = EthReceiver(
-            proto=proto,
+            proto=eth_config.protocol,
             dispatch_handler=self.process_response,
             error_handler=self.on_framing_error,
             max_payload_size=Eth.MAX_DATAGRAM_SIZE,
         )
 
-        # XCP 1.5: Multicast socket for GET_DAQ_CLOCK_MULTICAST
-        self._multicast_sock: socket.socket | None = None
-        self._multicast_enabled = False
-
     def connect(self) -> None:
         if self.status == 0:
-            self.sock.connect(self.sockaddr)
-            self.logger.info(socket_to_str(self.sock))
+            self._backend.connect()
             self.start_listener()
-            self.status = 1  # connected
 
     def start_listener(self) -> None:
         super().start_listener()
-        if self._packet_listener.is_alive():
-            self._packet_listener.join(timeout=2.0)
-        self._packet_listener = threading.Thread(target=self._packet_listen, daemon=True)
-        self._packet_listener.start()
+        self._backend.start_listening()
+
+    def listen(self) -> None:
+        self._backend.listen()
 
     def close(self) -> None:
         """Close the transport-layer connection and event-loop."""
         self.finish_listener()
+        # Optimized: reduced from 2.0s to 0.5s timeout since listener now uses
+        # 0.1s recv() timeout and should exit quickly when closeEvent is set
         try:
             if self.listener.is_alive():
-                self.listener.join(timeout=2.0)
-        except (RuntimeError, AttributeError):
-            # RuntimeError: thread not started yet or already stopped
-            # AttributeError: listener object not initialized
-            pass
-        try:
-            if self._packet_listener.is_alive():
-                self._packet_listener.join(timeout=2.0)
-        except (RuntimeError, AttributeError):
-            # RuntimeError: thread not started yet or already stopped
-            # AttributeError: _packet_listener object not initialized
-            pass
+                self.listener.join(timeout=0.5)
+        except Exception:  # nosec
+            pass  # Listener thread cleanup failure is non-critical
+        self._backend.stop_listening()
         self.close_connection()
-
-    def _packet_listen(self) -> None:
-        use_tcp: bool = self.use_tcp
-        EVENT_READ = selectors.EVENT_READ
-        close_event_set = self.closeEvent.is_set
-        socket_fileno = self.sock.fileno
-        select = self.selector.select
-        _packets = self._packets
-        _packets_condition = self._packets_condition
-        ptp_enabled = self.ptp_enabled
-
-        if use_tcp:
-            sock_recv = self.sock.recv
-        else:
-            if ptp_enabled:
-                if hasattr(socket, "SO_TIMESTAMPING"):  # Linux
-                    sock_recvmsg = self.sock.recvmsg
-                else:
-                    # Windows uses C++ helper
-                    def win_recv_with_ts(size):
-                        return receive_with_timestamp(socket_fileno(), size)
-            else:
-                sock_recv = self.sock.recvfrom
-
-        while True:
-            try:
-                if close_event_set() or socket_fileno() == -1:
-                    return
-                sel = select(0.02)
-                for _, events in sel:
-                    if events & EVENT_READ:
-                        if use_tcp:
-                            recv_timestamp = self.timestamp.value
-                            response = sock_recv(RECV_SIZE)
-                            if not response:
-                                self.sock.close()
-                                self.status = 0
-                                break
-                            else:
-                                with _packets_condition:
-                                    _packets.append((bytes(response), recv_timestamp))
-                                    _packets_condition.notify()
-                        else:
-                            if ptp_enabled:
-                                if hasattr(socket, "SO_TIMESTAMPING"):  # Linux
-                                    # 32 is a guess for ancdata size, might need adjustment
-                                    response, ancdata, flags, address = sock_recvmsg(Eth.MAX_DATAGRAM_SIZE, 1024)
-                                    recv_timestamp = self._extract_linux_timestamp(ancdata) or self.timestamp.value
-                                else:  # Windows
-                                    res = win_recv_with_ts(Eth.MAX_DATAGRAM_SIZE)
-                                    if res:
-                                        response, recv_timestamp = res
-                                    else:
-                                        # Fallback if helper fails
-                                        response, _ = self.sock.recvfrom(Eth.MAX_DATAGRAM_SIZE)
-                                        recv_timestamp = self.timestamp.value
-
-                                if not response:
-                                    self.sock.close()
-                                    self.status = 0
-                                    break
-                                else:
-                                    with _packets_condition:
-                                        _packets.append((bytes(response), recv_timestamp))
-                                        _packets_condition.notify()
-                            else:
-                                recv_timestamp = self.timestamp.value
-                                response, _ = self.sock.recvfrom(Eth.MAX_DATAGRAM_SIZE)
-                                if not response:
-                                    self.sock.close()
-                                    self.status = 0
-                                    break
-                                else:
-                                    with _packets_condition:
-                                        _packets.append((bytes(response), recv_timestamp))
-                                        _packets_condition.notify()
-            except (OSError, ValueError) as ex:
-                self.status = 0  # disconnected
-                if close_event_set() or socket_fileno() == -1:
-                    self.logger.debug("Ethernet packet listener stopped during socket shutdown: %s", ex)
-                    break
-                else:
-                    self.logger.exception("Ethernet packet listener socket failure")
-                    continue
-            except Exception:
-                self.status = 0  # disconnected
-                self.logger.exception("Unexpected Ethernet packet listener failure")
-                break
-
-    def _extract_linux_timestamp(self, ancdata) -> int | None:
-        # SO_TIMESTAMPING returns a struct scm_timestamping
-        # which contains 3 timespecs: software, transformed, hardware.
-        # We want the hardware one (index 2) if available, otherwise software (index 0).
-        for cmsg_level, cmsg_type, cmsg_data in ancdata:
-            if cmsg_level == socket.SOL_SOCKET and cmsg_type == socket.SO_TIMESTAMPING:
-                # struct timespec { long tv_sec; long tv_nsec; } x 3
-                # On 64-bit Linux, long is 8 bytes.
-                # Format: 3 * (qq)
-                if len(cmsg_data) >= 48:
-                    ts = struct.unpack("qqqqqq", cmsg_data)
-                    # Try hardware first (ts[4], ts[5])
-                    if ts[4] != 0:
-                        return ts[4] * 1_000_000_000 + ts[5]
-                    # Fallback to software (ts[0], ts[1])
-                    return ts[0] * 1_000_000_000 + ts[1]
-        return None
-
-    def listen(self) -> None:
-        popleft = self._packets.popleft
-        close_event_set = self.closeEvent.is_set
-        socket_fileno = self.sock.fileno
-        _packets = self._packets
-        _packets_condition = self._packets_condition
-        feed_frame = self._eth_receiver.feed_frame
-
-        while True:
-            if close_event_set() or socket_fileno() == -1:
-                return
-
-            with _packets_condition:
-                # Wait for packets to be available
-                while not _packets:
-                    if close_event_set() or socket_fileno() == -1:
-                        return
-                    # Wait with timeout to periodically check close event
-                    _packets_condition.wait(timeout=0.1)
-
-                # Process all available packets
-                count = len(_packets)
-                for _ in range(count):
-                    bts, timestamp = popleft()
-                    feed_frame(bts, timestamp)
 
     def send(self, frame) -> None:
         self.pre_send_timestamp = self.timestamp.value
-        self.sock.send(frame)
+        self._backend.send(frame)
         self.post_send_timestamp = self.timestamp.value
 
     def close_connection(self) -> None:
-        if not self.invalidSocket:
-            # Seems to be problematic /w IPv6
-            # if self.status == 1:
-            #     self.sock.shutdown(socket.SHUT_RDWR)
-            self.sock.close()
+        if not hasattr(self, "_backend"):
+            # __init__ failed before the backend was created (e.g. invalid/
+            # unavailable experimental_backend selection); nothing to close.
+            return
+        self._backend.close_connection()
         # XCP 1.5: Close multicast socket if enabled
         if self._multicast_enabled:
             self.disable_multicast()
 
     @property
-    def invalidSocket(self) -> bool:
-        return not hasattr(self, "sock") or self.sock.fileno() == -1
+    def status(self) -> int:
+        return self._backend.status
 
-    def _setup_ptp(self) -> None:
-        ts_info = check_timestamping_support(self.host)
-        if ts_info.timestamping_supported:
-            self.logger.info(f"Hardware timestamping is supported on interface {ts_info.interface_name!r}")
-            if enable_ptp_timestamping(self.sock.fileno()):
-                self.ptp_enabled = True
-                self.logger.info("PTP hardware timestamping enabled")
-            else:
-                self.logger.error("Failed to enable PTP hardware timestamping")
-        else:
-            self.logger.info(f"Hardware timestamping NOT supported on interface {ts_info.interface_name!r}")
+    @status.setter
+    def status(self, value: int) -> None:
+        self._backend.status = value
+
+    @property
+    def invalidSocket(self) -> bool:
+        return self._backend.invalid_socket
+
+    @property
+    def sock(self) -> socket.socket | None:
+        """Underlying Python socket of the active backend, if any.
+
+        ``None`` for backends that are not based on a plain Python socket.
+        Exposed for diagnostics/advanced use (e.g. ``examples/bryan_lieblick.py``,
+        which wraps it to observe ``recvfrom()``).
+        """
+        return self._backend.sock
+
+    @sock.setter
+    def sock(self, value: socket.socket | None) -> None:
+        self._backend.sock = value
 
     def on_framing_error(self, error: FramingError, offset: int) -> None:
         self.logger.error(f"Ethernet framing error: {error!s} at offset {offset}")
