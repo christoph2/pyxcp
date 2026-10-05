@@ -55,7 +55,7 @@ class NativeSocket {
 public:
     explicit NativeSocket(int family = PF_INET, int socktype = SOCK_STREAM, int protocol = IPPROTO_TCP) {
         static Eth eth;  // Ensures WSAStartup()/WSACleanup() exactly once per process.
-        m_handle = ::WSASocket(family, socktype, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
+        m_handle = ::WSASocketW(family, socktype, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
         if (m_handle == INVALID_NATIVE_HANDLE) {
             SocketErrorExit("NativeSocket::NativeSocket()");
         }
