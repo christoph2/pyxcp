@@ -17,6 +17,8 @@
 #include <variant>
 #include <vector>
 #include <cstring>
+#include <limits>
+#include <stdexcept>
 
 namespace py = pybind11;
 
@@ -128,7 +130,7 @@ public:
     XcpFraming(const XcpFramingConfig& framing_type) : m_counter_send(0),
         m_framing_type(framing_type) {
 
-        m_send_buffer = new std::uint8_t[0xff + 8];
+        m_send_buffer = new std::uint8_t[send_buffer_capacity];
 		reset_send_buffer_pointer();
     }
 
@@ -147,13 +149,19 @@ public:
 		command_bytes = serialize_cmd_value(cmd);
 
 		auto xcp_packet_size = data.size() + command_bytes.size();
+		if (xcp_packet_size > std::numeric_limits<std::uint16_t>::max()) {
+			throw std::length_error("XCP packet exceeds the 16-bit length field");
+		}
+		if (m_framing_type.header_len == 1 && xcp_packet_size > std::numeric_limits<std::uint8_t>::max()) {
+			throw std::length_error("XCP packet exceeds the 8-bit length field");
+		}
 
 		if (m_framing_type.header_len > 0) {
 			frame_header_size += m_framing_type.header_len;
 			if (m_framing_type.header_len == 1) {
 				set_send_buffer(static_cast<std::uint8_t>(xcp_packet_size & 0xff));
 			} else {
-				auto packet_size_bytes = serialize_word_le(xcp_packet_size);
+				auto packet_size_bytes = serialize_word_le(static_cast<std::uint16_t>(xcp_packet_size));
 				set_send_buffer(packet_size_bytes);
 			}
 		}
@@ -299,26 +307,38 @@ public:
 
 
 private:
-	void set_send_buffer(std::uint8_t value) noexcept {
+	static constexpr std::size_t send_buffer_capacity = 0xff + 8;
+
+	void ensure_send_buffer_capacity(std::size_t additional) const {
+		if (additional > send_buffer_capacity - m_send_buffer_offset) {
+			throw std::length_error("XCP frame exceeds the send buffer capacity");
+		}
+	}
+
+	void set_send_buffer(std::uint8_t value) {
+	    ensure_send_buffer_capacity(1);
 	    m_send_buffer[m_send_buffer_offset] = value;
    	   m_send_buffer_offset++;
 	}
 
-	void set_send_buffer(const std::vector<std::uint8_t>& values) noexcept {
+	void set_send_buffer(const std::vector<std::uint8_t>& values) {
 		if (!values.empty()) {
+			ensure_send_buffer_capacity(values.size());
 			std::memcpy(m_send_buffer + m_send_buffer_offset, values.data(), values.size());
 			m_send_buffer_offset += static_cast<std::uint16_t>(values.size());
 		}
 	}
 
-	void set_send_buffer(const py::args& values) noexcept {
+	void set_send_buffer(const py::args& values) {
+		ensure_send_buffer_capacity(static_cast<std::size_t>(values.size()));
 		for (auto idx=0; idx < values.size(); ++idx) {
 			m_send_buffer[m_send_buffer_offset] = values[idx].cast<std::uint8_t>();
 			m_send_buffer_offset++;
 		}
 	}
 
-	void fill_send_buffer(uint16_t n) noexcept {
+	void fill_send_buffer(uint16_t n) {
+		ensure_send_buffer_capacity(n);
 		for (auto idx=0; idx < n; ++idx) {
 			m_send_buffer[m_send_buffer_offset] = 0;
 			m_send_buffer_offset++;
