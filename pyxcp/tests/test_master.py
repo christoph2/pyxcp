@@ -29,6 +29,7 @@ def create_config():
             self.ipv6 = False
             self.tcp_nodelay = False
             self.ptp_timestamping = False
+            self.experimental_backend = False
             self.timeout = 1.0
 
     class GeneralConfig:
@@ -254,8 +255,8 @@ class TestMaster:
             # Clean up
             xm.close()
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testDisconnect(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -272,8 +273,8 @@ class TestMaster:
 
         assert res == b"\x00"
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testGetStatus(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -299,8 +300,8 @@ class TestMaster:
         assert res.resourceProtectionStatus.daq is True
         assert res.resourceProtectionStatus.calpag is True
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testSync(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -322,8 +323,8 @@ class TestMaster:
 
         assert len(res) == 1
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testGetCommModeInfo(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -350,8 +351,8 @@ class TestMaster:
         assert res.queueSize == 0
         assert res.xcpDriverVersionNumber == 25
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testGetId(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -378,8 +379,8 @@ class TestMaster:
         assert gid.length == 6
         assert res == b"XCPsim"
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testConnect2(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -418,8 +419,8 @@ class TestMaster:
             assert res.transportMajor == 1
             assert res.transportMinor == 4
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testDisconnect2(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -438,8 +439,8 @@ class TestMaster:
 
         assert res == b""
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testGetStatus2(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -467,8 +468,8 @@ class TestMaster:
         assert res.resourceProtectionStatus.calpag is True
         assert res.sessionConfiguration == 0x1234
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testSynch(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -487,8 +488,8 @@ class TestMaster:
 
         assert res == b"\x00"
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testGetCommModeInfo2(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -512,8 +513,8 @@ class TestMaster:
         assert res.queueSize == 0
         assert res.xcpDriverVersionNumber == 25
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testGetId2(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -570,8 +571,8 @@ class TestMaster:
             assert gid.length == 6
             assert gid.identification == list(b"XCPsim")
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testSetRequest(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -593,8 +594,8 @@ class TestMaster:
 
         assert res == b""
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testGetSeed(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -617,8 +618,8 @@ class TestMaster:
         assert res.length == 4
         assert res.seed == list(b"\x12\x34\x56\x78")
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testUnlock(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -643,8 +644,8 @@ class TestMaster:
         assert res.stim is False
         assert res.pgm is True
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testSetMta(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -683,8 +684,8 @@ class TestMaster:
 
         assert res == b""
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testUpload(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -722,8 +723,8 @@ class TestMaster:
 
         assert res == b"\x01\x02\x03\x04\x05\x06\x07\x08"
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testShortUpload(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -762,8 +763,8 @@ class TestMaster:
 
             assert res == b"\x01\x02\x03\x04\x05\x06\x07\x08"
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testBuildChecksum(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -804,8 +805,8 @@ class TestMaster:
             assert res.checksum == 0x07060504
 
     @pytest.mark.skip
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testTransportLayerCmd(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -828,8 +829,8 @@ class TestMaster:
 
         assert res == b"\xaa\xbb"
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testUserCmd(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -852,8 +853,8 @@ class TestMaster:
 
         assert res == b"\xaa\xbb"
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testGetVersion(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -878,8 +879,8 @@ class TestMaster:
             assert res.transportMajor == 1
             assert res.transportMinor == 4
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testDownload(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -902,8 +903,8 @@ class TestMaster:
 
         assert res == b""
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testDownloadBlock(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -929,8 +930,8 @@ class TestMaster:
             res = xm.download(data=data, block_mode_length=None)
             assert res == b""
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testDownloadNext(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -970,8 +971,8 @@ class TestMaster:
         # no response shall be expected if it is not the last DOWNLOAD_NEXT packet of a block
         assert res is None
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testDownloadNextBlock(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -997,8 +998,8 @@ class TestMaster:
             res = xm.downloadNext(data=data, remaining_block_length=2, last=True)
             assert res == b""
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testDownloadMax(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -1021,8 +1022,8 @@ class TestMaster:
 
         assert res == b""
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testShortDownload(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -1066,8 +1067,8 @@ class TestMaster:
 
             assert res == b""
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testModifyBits(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -1089,8 +1090,8 @@ class TestMaster:
 
             assert res == b""
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     @pytest.mark.skip
     def testPagCommands(self, mock_selector, mock_socket):
         ms = MockSocket()
@@ -1191,8 +1192,8 @@ class TestMaster:
 
             assert res == b""
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testDaqCommands(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -1514,8 +1515,8 @@ class TestMaster:
             assert res.timestamp_mode.ts_present is True
             assert res.sample_count == 0x1234
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testPgmCommands(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -1670,8 +1671,8 @@ class TestMaster:
 
             assert res == b""
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testDbgCommands(self, mock_selector, mock_socket):
         ms = MockSocket()
 
@@ -2126,8 +2127,8 @@ class TestMaster:
             assert res.length == 15
             assert res.data == list(b"\x81\x00\x0a\x34\x00\x00\x00\x00\x00\x00\x00\x00\x00\xc2\x03")
 
-    @mock.patch("pyxcp.transport.eth.socket.socket")
-    @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+    @mock.patch("pyxcp.transport.eth_backend.socket.socket")
+    @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testTimeCorrelationProperties(self, mock_selector, mock_socket):
         ms = MockSocket()
 
