@@ -29,9 +29,6 @@ namespace py = pybind11;
 
 namespace {
 
-constexpr std::uint16_t kReceiveLength = 65535;
-constexpr std::size_t kReadQueueDepth = 8;
-
 [[noreturn]] void raiseOsError(int code, const std::string & what) {
     PyErr_SetObject(PyExc_OSError, py::make_tuple(code, what).ptr());
     throw py::error_already_set();
@@ -219,12 +216,15 @@ class IocpBackend : public EthIoBackend {
         callbacks.on_error = [this](AsyncClientSocket *, IoType operation, unsigned long error) { onError(operation, error); };
         {
             py::gil_scoped_release release;
-            m_io = createAsyncIoService(std::move(callbacks), kReadQueueDepth, kReceiveLength);
+            m_io = createAsyncIoService(std::move(callbacks), m_eth_config.m_iocp_receive_queue_depth.value_or(64), m_eth_config.m_iocp_buffer_size);
             m_io->registerSocket(*m_socket);
         }
         m_status.store(1);
         std::string proto_str = m_stream ? "TCP" : "UDP";
         m_logger.attr("info")("XCPonEth - Connected to: " + describe(m_peer) + " [" + proto_str + " / experimental]");
+        m_logger.attr("info")("XCPonEth - IOCP receive queue depth: " +         std::to_string(m_eth_config.m_iocp_receive_queue_depth.value_or(64)) +
+                    ", buffer size: " +
+                    (m_eth_config.m_iocp_buffer_size ? std::to_string(*m_eth_config.m_iocp_buffer_size) : std::string("default")));
     }
 
     static std::string describe(const SocketAddress & address) {
@@ -236,7 +236,6 @@ class IocpBackend : public EthIoBackend {
         return std::string(host) + ":" + service;
     }
 
-    // Runs on the IOCP worker thread.
     void onReceive(const char * data, std::size_t length) {
         py::gil_scoped_acquire gil;
         if (m_closing.load()) {
