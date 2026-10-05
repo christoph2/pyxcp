@@ -39,8 +39,8 @@
 #endif
 
 
-IOCP::IOCP(IoCallbacks callbacks, size_t numProcessors, size_t multiplier, std::size_t readQueueDepth, std::optional<std::uint16_t> receiveLength) :
-    m_callbacks(std::move(callbacks)), m_readQueueDepth(readQueueDepth), m_receiveLength(receiveLength) {
+IOCP::IOCP(IoCallbacks callbacks, size_t numProcessors, size_t multiplier, std::uint16_t readQueueDepth, std::optional<std::uint16_t> bufferSize) :
+    m_callbacks(std::move(callbacks)), m_readQueueDepth(readQueueDepth), m_bufferSize(bufferSize) {
     m_numWorkerThreads = static_cast<DWORD>(numProcessors * multiplier);
     m_port.handle = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, static_cast<ULONG_PTR>(0), m_numWorkerThreads);
     if (m_port.handle == nullptr) {
@@ -72,12 +72,12 @@ void IOCP::registerHandle(const PerHandleData& object) {
 void IOCP::registerSocket(AsyncClientSocket& socket) {
     socket.setIOCP(this);
     registerHandle(socket.getHandleData());
-    if (!m_receiveLength.has_value()) {
+    if (!m_bufferSize.has_value()) {
         // Use save defaults.
         if (socket.getSocketFamily() == PF_INET6) {
-            m_receiveLength = MaxDontDefragIPv6;
+            m_bufferSize = MaxDontDefragIPv6;
         } else {
-            m_receiveLength = MaxDontDefragIPv4;
+            m_bufferSize = MaxDontDefragIPv4;
         }
     }
     fillReadQueue(&socket);
@@ -117,7 +117,7 @@ void IOCP::fillReadQueue(AsyncClientSocket * socket) const noexcept {
     auto & posted = m_statistics.numIoReadsPosted;
     while (posted.load(std::memory_order_relaxed) < m_readQueueDepth) {
         posted.fetch_add(1, std::memory_order_relaxed);
-        const int rc = socket->tryTriggerRead(m_receiveLength.value());
+        const int rc = socket->tryTriggerRead(m_bufferSize.value());
         if (rc == 0) {
             continue;
         }

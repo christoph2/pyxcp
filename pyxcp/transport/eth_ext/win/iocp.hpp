@@ -60,10 +60,9 @@ class IOCP : public IAsyncIoService {
     constexpr static std::uint16_t MaxDontDefragIPv6 = 1452;
 
 public:
-    // `readQueueDepth` receives of `receiveLength` bytes are kept posted on every registered socket.
     explicit IOCP(
-        IoCallbacks callbacks = {}, size_t numProcessors = 1, size_t multiplier = 1, std::size_t readQueueDepth = 8,
-        std::optional<std::uint16_t> receiveLength = std::nullopt
+        IoCallbacks callbacks = {}, size_t numProcessors = 1, size_t multiplier = 1, std::uint16_t readQueueDepth = 64,
+        std::optional<std::uint16_t> bufferSize = std::nullopt
     );
     ~IOCP();
     void registerSocket(AsyncClientSocket& socket);
@@ -78,12 +77,20 @@ protected:
      void reportError(AsyncClientSocket * socket, IoType operation, DWORD error) const noexcept;
      void fillReadQueue(AsyncClientSocket * socket) const noexcept;
 
+    uint16_t getBufferSize() const noexcept {
+        return m_bufferSize.value_or(MaxDontDefragIPv4);
+    }
+
+    uint16_t getQueueDepth() const noexcept {
+        return m_readQueueDepth;
+    }
+
 private:
     IoCallbacks m_callbacks;
     PerPortData m_port;
     DWORD m_numWorkerThreads;
-    std::size_t m_readQueueDepth;
-    std::optional<std::uint16_t> m_receiveLength;
+    std::uint16_t m_readQueueDepth;
+    std::optional<std::uint16_t> m_bufferSize;
     std::vector<std::jthread> m_threads;
     mutable Statistics m_statistics;
 };
