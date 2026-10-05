@@ -767,7 +767,7 @@ class Deserializer {
     std::shared_ptr<DaqListBase> create_daq_list() {
         std::string              name;
         std::uint16_t            event_num;
-        std::uint16_t            prescaler;
+        std::uint8_t             prescaler;
         bool                     stim;
         bool                     enable_timestamps;
         std::vector<McObject>    measurements;
@@ -1114,6 +1114,9 @@ class DaqListState {
                         if (offset + size > payload_size) {
                             throw std::runtime_error("Packed ELEMENT_GROUPED offset out of range!");
                         }
+                        if (m_current_idx >= m_total_entries) {
+                            throw std::runtime_error("Packed ELEMENT_GROUPED measurement index out of range!");
+                        }
                         m_buffer[static_cast<std::size_t>(sample_idx) * sample_size + m_current_idx] = m_getter.reader(type_index, payload_data, offset);
                         offset += size;
                     }
@@ -1127,6 +1130,9 @@ class DaqListState {
                         const auto& [name, address, ext, size, type_index] = param;
                         if (offset + size > payload_size) {
                             throw std::runtime_error("Packed EVENT_GROUPED offset out of range!");
+                        }
+                        if (m_current_idx >= m_total_entries) {
+                            throw std::runtime_error("Packed EVENT_GROUPED measurement index out of range!");
                         }
                         m_buffer[static_cast<std::size_t>(sample_idx) * sample_size + m_current_idx] = m_getter.reader(type_index, payload_data, offset);
                         offset += size;
@@ -1144,6 +1150,9 @@ class DaqListState {
                     );
                 }
 
+                if (m_current_idx >= m_total_entries) {
+                    throw std::runtime_error("Measurement index out of range!");
+                }
                 m_buffer[m_current_idx++] = m_getter.reader(type_index, payload_data, offset);
                 offset += size;
             }
@@ -1158,7 +1167,7 @@ class DaqListState {
     bool                             m_enable_timestamps = false;
     std::uint16_t                    m_initial_offset;
     std::uint16_t                    m_next_odt    = 0;
-    std::uint16_t                    m_current_idx = 0;
+    std::size_t                      m_current_idx = 0;
     std::uint64_t                    m_timestamp0  = 0ULL;
     std::uint64_t                    m_timestamp1  = 0ULL;
     state_t                          m_state       = state_t::IDLE;
