@@ -194,6 +194,8 @@ PYBIND11_MODULE(transport_ext, m) {
         .def_property("ptp_timestamping", [](const EthConfig &self) { return self.m_ptp_timestamping; }, [](EthConfig &self, bool ptp_timestamping) { self.m_ptp_timestamping = ptp_timestamping; })
         .def_property("bind_to", [](const EthConfig &self) { return self.m_bind_to; }, [](EthConfig &self, const std::optional<std::tuple<std::string, std::uint16_t>> &bind_to) { self.m_bind_to = bind_to; })
         .def_property("multicast_enabled", [](const EthConfig &self) { return self.m_multicast_enabled; }, [](EthConfig &self, bool multicast_enabled) { self.m_multicast_enabled = multicast_enabled; })
+        .def_property("iocp_buffer_size", [](const EthConfig &self) { return self.m_iocp_buffer_size; }, [](EthConfig &self, const std::optional<std::uint16_t> &iocp_buffer_size) { self.m_iocp_buffer_size = iocp_buffer_size; })
+        .def_property("iocp_receive_queue_depth", [](const EthConfig &self) { return self.m_iocp_receive_queue_depth; }, [](EthConfig &self, const std::optional<std::uint16_t> &iocp_receive_queue_depth) { self.m_iocp_receive_queue_depth = iocp_receive_queue_depth; })
         .def("__repr__", [](const EthConfig &e) {
             return "<EthConfig host='" + e.m_host + "' port=" + std::to_string(e.m_port) + " protocol=" + std::to_string(static_cast<int>(e.m_protocol)) + " ipv6=" + (e.m_ipv6 ? "true" : "false") + " use_tcp_no_delay=" + (e.m_use_tcp_no_delay ? "true" : "false") + " multicast_enabled=" + (e.m_multicast_enabled ? "true" : "false") + ">";
         });
