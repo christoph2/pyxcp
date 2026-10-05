@@ -11,15 +11,12 @@
 #include <utility>
 #include <vector>
 
+#include "eth_config.hpp"
+
 enum class FramingError : std::uint8_t {
     TruncatedHeader,
     TruncatedPayload,
     PayloadTooLarge
-};
-
-enum class EthProtocol : std::uint8_t {
-    UDP,
-    TCP
 };
 
 class EthReceiver {
