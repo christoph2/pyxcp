@@ -10,6 +10,10 @@ from can.bus import BusABC
 
 import pyxcp.transport.base as tr
 from pyxcp import types
+from pyxcp.transport.eth_backend import IocpSocketBackend
+from pyxcp.transport.transport_ext import EthIoBackend
+
+IOCP_AVAILABLE = IocpSocketBackend.available
 
 
 class MockSocket(mock.MagicMock):
@@ -137,6 +141,7 @@ def create_config():
             self.ipv6 = False
             self.tcp_nodelay = False
             self.ptp_timestamping = False
+            self.experimental_backend = False
 
     class SxiConfig:
         def __init__(self):
@@ -268,8 +273,8 @@ def test_transport_classes():
     assert issubclass(transports.get("sxi"), tr.BaseTransport)
 
 
-@mock.patch("pyxcp.transport.eth.socket.socket")
-@mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+@mock.patch("pyxcp.transport.eth_backend.socket.socket")
+@mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
 def test_eth_request(mock_selector, mock_socket):
     ms = MockSocket()
     mock_socket.return_value = ms
@@ -294,8 +299,8 @@ def test_eth_request(mock_selector, mock_socket):
     transport.close()
 
 
-@mock.patch("pyxcp.transport.eth.socket.socket")
-@mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+@mock.patch("pyxcp.transport.eth_backend.socket.socket")
+@mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
 def test_eth_request_timeout(mock_selector, mock_socket):
     ms = MockSocket()
     mock_socket.return_value = ms
@@ -357,8 +362,8 @@ def test_can_request(mock_can_interface_map, mock_detect_configs):
     assert sent_msg.data == b"\xff\x00"
 
 
-@mock.patch("pyxcp.transport.eth.socket.socket")
-@mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+@mock.patch("pyxcp.transport.eth_backend.socket.socket")
+@mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
 def test_request_optional_response(mock_selector, mock_socket):
     ms = MockSocket()
     mock_socket.return_value = ms
@@ -381,8 +386,8 @@ def test_request_optional_response(mock_selector, mock_socket):
     transport.close()
 
 
-@mock.patch("pyxcp.transport.eth.socket.socket")
-@mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+@mock.patch("pyxcp.transport.eth_backend.socket.socket")
+@mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
 def test_block_receive(mock_selector, mock_socket):
     ms = MockSocket()
     mock_socket.return_value = ms
@@ -400,8 +405,8 @@ def test_block_receive(mock_selector, mock_socket):
     transport.close()
 
 
-@mock.patch("pyxcp.transport.eth.socket.socket")
-@mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+@mock.patch("pyxcp.transport.eth_backend.socket.socket")
+@mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
 def test_block_receive_timeout(mock_selector, mock_socket):
     ms = MockSocket()
     mock_socket.return_value = ms
@@ -427,8 +432,8 @@ def test_parse_header_format():
         tr.parse_header_format("INVALID")
 
 
-@mock.patch("pyxcp.transport.eth.socket.socket")
-@mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+@mock.patch("pyxcp.transport.eth_backend.socket.socket")
+@mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
 def test_eth_process_response_daq(mock_selector, mock_socket):
     ms = MockSocket()
     mock_socket.return_value = ms
@@ -446,8 +451,8 @@ def test_eth_process_response_daq(mock_selector, mock_socket):
     transport.close()
 
 
-@mock.patch("pyxcp.transport.eth.socket.socket")
-@mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+@mock.patch("pyxcp.transport.eth_backend.socket.socket")
+@mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
 def test_eth_process_response_serv(mock_selector, mock_socket):
     ms = MockSocket()
     mock_socket.return_value = ms
@@ -465,8 +470,8 @@ def test_eth_process_response_serv(mock_selector, mock_socket):
     transport.close()
 
 
-@mock.patch("pyxcp.transport.eth.socket.socket")
-@mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
+@mock.patch("pyxcp.transport.eth_backend.socket.socket")
+@mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
 def test_eth_process_response_event(mock_selector, mock_socket):
     ms = MockSocket()
     mock_socket.return_value = ms
@@ -483,3 +488,151 @@ def test_eth_process_response_event(mock_selector, mock_socket):
 
     assert transport.timer_restart_event.is_set()
     transport.close()
+
+
+def test_create_eth_backend_invalid_name_raises():
+    from pyxcp.transport.eth_backend import create_eth_backend
+
+    with pytest.raises(ValueError):
+        create_eth_backend("does-not-exist", eth=mock.MagicMock())
+
+
+@pytest.mark.skipif(IOCP_AVAILABLE, reason="IOCP backend is available on this platform")
+@mock.patch("pyxcp.transport.eth_backend.socket.socket")
+@mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
+def test_eth_experimental_backend_not_available_raises(mock_selector, mock_socket):
+    ms = MockSocket()
+    mock_socket.return_value = ms
+    mock_selector.return_value = ms
+
+    config = create_config()
+    config.eth.experimental_backend = True
+
+    with pytest.raises(RuntimeError, match="not available"):
+        tr.create_transport("eth", config=config)
+
+
+@mock.patch("pyxcp.transport.eth_backend.socket.socket")
+@mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
+def test_eth_default_backend_is_legacy(mock_selector, mock_socket):
+    from pyxcp.transport.eth_backend import LegacySocketBackend
+
+    ms = MockSocket()
+    mock_socket.return_value = ms
+    mock_selector.return_value = ms
+
+    config = create_config()
+    transport = tr.create_transport("eth", config=config)
+
+    assert isinstance(transport._backend, LegacySocketBackend)
+    transport.close()
+
+
+class _DummyBackend(EthIoBackend):
+    def __init__(self, eth):
+        super().__init__(eth)
+        self._status = 0
+        self.sent = []
+
+    def setup(self):
+        pass
+
+    def connect(self):
+        self._status = 1
+
+    def send(self, frame):
+        self.sent.append(frame)
+
+    @property
+    def status(self):
+        return self._status
+
+    @status.setter
+    def status(self, value):
+        self._status = value
+
+    @property
+    def invalid_socket(self):
+        return self.sock is None
+
+
+def test_cpp_eth_io_backend_python_subclass():
+    eth = mock.MagicMock()
+    backend = _DummyBackend(eth)
+    assert backend.eth is eth
+    assert backend.logger is eth.logger
+    assert backend.sock is None
+    assert backend.invalid_socket
+    assert EthIoBackend.available is True
+    backend.connect()
+    backend.send(b"\x01\x02")
+    assert backend.sent == [b"\x01\x02"]
+    assert backend.status == 1
+
+
+def test_cpp_eth_io_backend_unimplemented_method_raises():
+    backend = _DummyBackend(mock.MagicMock())
+    with pytest.raises(RuntimeError):
+        EthIoBackend.close_connection(backend)
+
+
+def _echo_server(sock_type, stop):
+    """Answers every XCP request frame with a positive CONNECT-style response (ctr=0)."""
+    srv = socket.socket(socket.AF_INET, sock_type)
+    srv.bind(("127.0.0.1", 0))
+    srv.settimeout(0.1)
+    response = b"\x02\x00\x00\x00\xff\x00"
+    if sock_type == socket.SOCK_STREAM:
+        srv.listen(1)
+
+    def run():
+        peer = None
+        while not stop.is_set():
+            try:
+                if sock_type == socket.SOCK_STREAM:
+                    if peer is None:
+                        peer, _ = srv.accept()
+                        peer.settimeout(0.1)
+                    if peer.recv(1024):
+                        peer.sendall(response)
+                else:
+                    _, addr = srv.recvfrom(1024)
+                    srv.sendto(response, addr)
+            except TimeoutError:
+                continue
+            except OSError:
+                break
+        if peer is not None:
+            peer.close()
+        srv.close()
+
+    thread = threading.Thread(target=run, daemon=True)
+    thread.start()
+    return srv.getsockname()[1], thread
+
+
+@pytest.mark.skipif(not IOCP_AVAILABLE, reason="IOCP backend not available")
+@pytest.mark.parametrize("protocol", ["UDP", "TCP"])
+def test_eth_iocp_backend_roundtrip(protocol):
+    stop = threading.Event()
+    port, thread = _echo_server(socket.SOCK_DGRAM if protocol == "UDP" else socket.SOCK_STREAM, stop)
+    config = create_config()
+    config.eth.experimental_backend = True
+    config.eth.host = "127.0.0.1"
+    config.eth.port = port
+    config.eth.protocol = protocol
+    transport = tr.create_transport("eth", config=config)
+    try:
+        assert isinstance(transport._backend, IocpSocketBackend)
+        transport.parent = mock.MagicMock()
+        transport.connect()
+        assert transport.status == 1
+        assert not transport.invalidSocket
+        assert transport.request(types.Command.CONNECT, 0x00) == b"\x00"
+    finally:
+        stop.set()
+        transport.close()
+        thread.join(timeout=2.0)
+    assert transport.status == 0
+    assert transport.invalidSocket
+    transport.close_connection()  # idempotent

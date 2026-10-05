@@ -1,3 +1,5 @@
+import pytest
+
 from pyxcp.transport.base import XcpFraming, XcpFramingConfig, XcpTransportLayerType, ChecksumType
 
 
@@ -260,3 +262,33 @@ def test_prepare_request_sxiL2C2CW_2():
     cmd = 0xFF
     request = framing.prepare_request(cmd, 0x00, 0x55)
     assert list(request) == [0x03, 0x00, 0x03, 0x00, 0xFF, 0x00, 0x55, 0x00, 0x5A, 0x01]
+
+
+def test_prepare_request_rejects_packet_exceeding_byte_length():
+    config = XcpFramingConfig(
+        transport_layer_type=XcpTransportLayerType.SXI,
+        header_len=1,
+        header_ctr=0,
+        header_fill=0,
+        tail_fill=False,
+        tail_cs=ChecksumType.NO_CHECKSUM,
+    )
+    framing = XcpFraming(config)
+
+    with pytest.raises(ValueError, match="8-bit length field"):
+        framing.prepare_request(0xFF, *([0x00] * 255))
+
+
+def test_prepare_request_rejects_frame_exceeding_send_buffer():
+    config = XcpFramingConfig(
+        transport_layer_type=XcpTransportLayerType.SXI,
+        header_len=2,
+        header_ctr=0,
+        header_fill=0,
+        tail_fill=False,
+        tail_cs=ChecksumType.NO_CHECKSUM,
+    )
+    framing = XcpFraming(config)
+
+    with pytest.raises(ValueError, match="send buffer capacity"):
+        framing.prepare_request(0xFF, *([0x00] * 263))
