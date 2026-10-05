@@ -732,6 +732,28 @@ class Eth(Configurable):
     bind_to_address = Unicode(default_value=None, allow_none=True, help="Bind to specific local address.").tag(config=True)
     bind_to_port = Integer(default_value=None, allow_none=True, help="Bind to specific local port.").tag(config=True)
     ptp_timestamping = Bool(False, help="Enable IEEE 1588/PTP hardware timestamping.").tag(config=True)
+    experimental_backend = Bool(
+        False,
+        help=(
+            "*** Experimental *** -- Use the experimental IOCP-based Ethernet I/O backend "
+            "instead of the proven, selectors-based implementation. Windows only; currently "
+            "a non-functional placeholder and will raise `RuntimeError` until a working "
+            "implementation is provided. Leave `False` for production use."
+        ),
+    ).tag(config=True)
+    iocp_receive_queue_depth = Integer(
+        default_value=64,
+        help=(
+            "Depth of the receive queue for the IOCP-based Ethernet I/O backend."
+        ),
+    ).tag(config=True)
+    iocp_buffer_size = Integer(
+        default_value=None, 
+        allow_none=True,
+        help=(
+            "Size of one receive buffer for the IOCP-based Ethernet I/O backend. Windows only; if `None`, 1472 (IPv4) or  1452 (IPv6) are choosen.."
+        ),
+    ).tag(config=True)
 
 
 class SxI(Configurable):
