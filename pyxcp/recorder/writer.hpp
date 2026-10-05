@@ -1,6 +1,10 @@
 #ifndef RECORDER_WRITER_HPP
 #define RECORDER_WRITER_HPP
 
+#include <cstddef>
+#include <limits>
+#include <stdexcept>
+
 constexpr std::uint64_t MASK32 = (1ULL << 32) - 1;
 
 class XcpLogFileWriter {
@@ -116,11 +120,15 @@ class XcpLogFileWriter {
         }
     }
 
-    void add_frame(uint8_t category, uint16_t counter, std::uint64_t timestamp, uint16_t length, char const *data) {
+    void add_frame(uint8_t category, uint16_t counter, std::uint64_t timestamp, std::size_t length, char const *data) {
+        if (length > (std::numeric_limits<std::uint16_t>::max)()) {
+            throw std::length_error("XCP log frame payload exceeds the 16-bit length field");
+        }
+
         auto payload = new char[length];
 
         _fcopy(payload, data, length);
-        my_queue.put(std::make_tuple(category, counter, timestamp, length, payload));
+        my_queue.put(std::make_tuple(category, counter, timestamp, static_cast<std::uint16_t>(length), payload));
     }
 
    protected:
