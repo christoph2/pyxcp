@@ -56,6 +56,8 @@ class Eth(BaseTransport):
         eth_config.protocol = EthProtocol.UDP if self.config.protocol.upper() == "UDP" else EthProtocol.TCP
         eth_config.ipv6 = self.config.ipv6
         eth_config.use_tcp_no_delay = self.config.tcp_nodelay
+        eth_config.iocp_buffer_size = self.config.iocp_buffer_size
+        eth_config.iocp_receive_queue_depth = self.config.iocp_receive_queue_depth
         eth_config.ptp_timestamping = self.config.ptp_timestamping
         address_to_bind: str = self.config.bind_to_address
         bind_to_port: int = self.config.bind_to_port
