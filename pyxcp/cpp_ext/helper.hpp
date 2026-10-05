@@ -247,6 +247,8 @@ class Timestamp {
             return absolute();
         } else if (m_type == TimestampType::RELATIVE_TS) {
             return relative();
+        } else {
+            return absolute();
         }
     }
 
