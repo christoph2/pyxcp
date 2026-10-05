@@ -9,6 +9,7 @@
 #include <cstdint>
 
 #include "eth_framing.hpp"
+#include "eth_io_backend.hpp"
 #include "framing.hpp"
 #include "sxi_framing.hpp"
 #include "transport_ext.hpp"
@@ -54,6 +55,47 @@ class PyFrameAcquisitionPolicy : public FrameAcquisitionPolicy {
     }
 };
 
+class PyEthIoBackend : public EthIoBackend {
+   public:
+
+    using EthIoBackend::EthIoBackend;
+
+    void setup(const EthConfig& eth_config) override { PYBIND11_OVERRIDE_PURE(void, EthIoBackend, setup, eth_config); }
+
+    void connect() override { PYBIND11_OVERRIDE_PURE(void, EthIoBackend, connect); }
+
+    void send(std::string_view frame) override {
+        py::gil_scoped_acquire gil;
+        py::function override = py::get_override(static_cast<const EthIoBackend *>(this), "send");
+        if (!override) {
+            py::pybind11_fail("Tried to call pure virtual function \"EthIoBackend::send\"");
+        }
+        override(py::bytes(frame.data(), frame.size()));
+    }
+
+    void close_connection() override { PYBIND11_OVERRIDE_PURE(void, EthIoBackend, close_connection); }
+
+    void start_listening() override { PYBIND11_OVERRIDE_PURE(void, EthIoBackend, start_listening); }
+
+    void stop_listening() override { PYBIND11_OVERRIDE_PURE(void, EthIoBackend, stop_listening); }
+
+    // Python subclasses implement these as properties, so they are resolved as attributes.
+    int get_status() const override {
+        py::gil_scoped_acquire gil;
+        return py::cast(static_cast<const EthIoBackend *>(this)).attr("status").cast<int>();
+    }
+
+    void set_status(int value) override {
+        py::gil_scoped_acquire gil;
+        py::cast(static_cast<const EthIoBackend *>(this)).attr("status") = value;
+    }
+
+    bool invalid_socket() const override {
+        py::gil_scoped_acquire gil;
+        return py::cast(static_cast<const EthIoBackend *>(this)).attr("invalid_socket").cast<bool>();
+    }
+};
+
 PYBIND11_MODULE(transport_ext, m) {
     m.doc() = "pyXCP transport-layer base classes.";
 
@@ -75,6 +117,21 @@ PYBIND11_MODULE(transport_ext, m) {
     py::enum_<EthProtocol>(m, "EthProtocol")
         .value("UDP", EthProtocol::UDP)
         .value("TCP", EthProtocol::TCP);
+
+    // No `status` / `invalid_socket` properties on the base: Python subclasses define them, native ones bind their own.
+    py::class_<EthIoBackend, PyEthIoBackend> eth_io_backend(m, "EthIoBackend", py::dynamic_attr());
+    eth_io_backend.def(py::init<py::object>(), py::arg("eth"))
+        .def_readwrite("eth", &EthIoBackend::m_eth)
+        .def_readwrite("logger", &EthIoBackend::m_logger)
+        .def_readwrite("sock", &EthIoBackend::m_sock)
+        .def("setup", &EthIoBackend::setup)
+        .def("connect", &EthIoBackend::connect)
+        .def("send", &EthIoBackend::send, py::arg("frame"))
+        .def("close_connection", &EthIoBackend::close_connection)
+        .def("start_listening", &EthIoBackend::start_listening)
+        .def("stop_listening", &EthIoBackend::stop_listening);
+    // True if the backend can be used on this platform/build; checked by create_eth_backend().
+    eth_io_backend.attr("available") = true;
 
     py::class_<FrameAcquisitionPolicy, PyFrameAcquisitionPolicy>(m, "FrameAcquisitionPolicy", py::dynamic_attr())
         .def(py::init<const std::optional<FrameAcquisitionPolicy::filter_t> &>(), py::arg("filtered_out") = std::nullopt)
@@ -124,6 +181,22 @@ PYBIND11_MODULE(transport_ext, m) {
         .value("NO_CHECKSUM", ChecksumType::NO_CHECKSUM)
         .value("BYTE_CHECKSUM", ChecksumType::BYTE_CHECKSUM)
         .value("WORD_CHECKSUM", ChecksumType::WORD_CHECKSUM);
+
+    // XCPonEth Configuration Values.
+    py::class_<EthConfig>(m, "EthConfig")
+        .def(py::init<>())
+        .def_property("host", [](const EthConfig &self) { return self.m_host; }, [](EthConfig &self, const std::string& host) { self.m_host = host;})
+        .def_property("port", [](const EthConfig &self) { return self.m_port; }, [](EthConfig &self, uint16_t port) { self.m_port = port; })
+        .def_property("protocol", [](const EthConfig &self) { return self.m_protocol; }, [](EthConfig &self, EthProtocol protocol) { self.m_protocol = protocol; })
+        .def_property_readonly("use_tcp", [](const EthConfig &self) { return self.use_tcp(); })
+        .def_property("ipv6", [](const EthConfig &self) { return self.m_ipv6; }, [](EthConfig &self, bool ipv6) { self.m_ipv6 = ipv6; })
+        .def_property("use_tcp_no_delay", [](const EthConfig &self) { return self.m_use_tcp_no_delay; }, [](EthConfig &self, bool use_tcp_no_delay) { self.m_use_tcp_no_delay = use_tcp_no_delay; })
+        .def_property("ptp_timestamping", [](const EthConfig &self) { return self.m_ptp_timestamping; }, [](EthConfig &self, bool ptp_timestamping) { self.m_ptp_timestamping = ptp_timestamping; })
+        .def_property("bind_to", [](const EthConfig &self) { return self.m_bind_to; }, [](EthConfig &self, const std::optional<std::tuple<std::string, std::uint16_t>> &bind_to) { self.m_bind_to = bind_to; })
+        .def_property("multicast_enabled", [](const EthConfig &self) { return self.m_multicast_enabled; }, [](EthConfig &self, bool multicast_enabled) { self.m_multicast_enabled = multicast_enabled; })
+        .def("__repr__", [](const EthConfig &e) {
+            return "<EthConfig host='" + e.m_host + "' port=" + std::to_string(e.m_port) + " protocol=" + std::to_string(static_cast<int>(e.m_protocol)) + " ipv6=" + (e.m_ipv6 ? "true" : "false") + " use_tcp_no_delay=" + (e.m_use_tcp_no_delay ? "true" : "false") + " multicast_enabled=" + (e.m_multicast_enabled ? "true" : "false") + ">";
+        });
 
     // XCP framing configuration and helper
     py::class_<XcpFramingConfig>(m, "XcpFramingConfig")
