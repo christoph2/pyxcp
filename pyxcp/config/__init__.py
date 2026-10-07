@@ -736,9 +736,7 @@ class Eth(Configurable):
         False,
         help=(
             "*** Experimental *** -- Use the experimental IOCP-based Ethernet I/O backend "
-            "instead of the proven, selectors-based implementation. Windows only; currently "
-            "a non-functional placeholder and will raise `RuntimeError` until a working "
-            "implementation is provided. Leave `False` for production use."
+            "instead of the proven, selectors-based implementation. Windows only"
         ),
     ).tag(config=True)
     iocp_receive_queue_depth = Integer(

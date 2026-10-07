@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import socket
 import struct
+import threading
 
 from pyxcp import types
 from pyxcp.cpp_ext.cpp_ext import init_networking
@@ -56,16 +57,13 @@ class Eth(BaseTransport):
         eth_config.protocol = EthProtocol.UDP if self.config.protocol.upper() == "UDP" else EthProtocol.TCP
         eth_config.ipv6 = self.config.ipv6
         eth_config.use_tcp_no_delay = self.config.tcp_nodelay
-        eth_config.iocp_buffer_size = self.config.iocp_buffer_size
-        eth_config.iocp_receive_queue_depth = self.config.iocp_receive_queue_depth
+        eth_config.iocp_buffer_size = getattr(self.config, "iocp_buffer_size", None)
+        eth_config.iocp_receive_queue_depth = getattr(self.config, "iocp_receive_queue_depth", None)
         eth_config.ptp_timestamping = self.config.ptp_timestamping
         address_to_bind: str = self.config.bind_to_address
         bind_to_port: int = self.config.bind_to_port
         eth_config.bind_to = (address_to_bind, bind_to_port) if address_to_bind else None
 
-        # Initialized early so close_connection()/__del__ are safe even if
-        # backend creation below fails (e.g. invalid/unavailable
-        # experimental_backend selection).
         self._multicast_sock: socket.socket | None = None
         self._multicast_enabled = False
 
@@ -97,15 +95,15 @@ class Eth(BaseTransport):
     def close(self) -> None:
         """Close the transport-layer connection and event-loop."""
         self.finish_listener()
-        # Optimized: reduced from 2.0s to 0.5s timeout since listener now uses
-        # 0.1s recv() timeout and should exit quickly when closeEvent is set
+        listener = getattr(self, "listener", None)
+        if listener is not None and listener.is_alive() and listener is not threading.current_thread():
+            listener.join(timeout=0.5)
+        backend = getattr(self, "_backend", None)
         try:
-            if self.listener.is_alive():
-                self.listener.join(timeout=0.5)
-        except Exception:  # nosec
-            pass  # Listener thread cleanup failure is non-critical
-        self._backend.stop_listening()
-        self.close_connection()
+            if backend is not None:
+                backend.stop_listening()
+        finally:
+            self.close_connection()
 
     def send(self, frame) -> None:
         self.pre_send_timestamp = self.timestamp.value
@@ -113,14 +111,13 @@ class Eth(BaseTransport):
         self.post_send_timestamp = self.timestamp.value
 
     def close_connection(self) -> None:
-        if not hasattr(self, "_backend"):
-            # __init__ failed before the backend was created (e.g. invalid/
-            # unavailable experimental_backend selection); nothing to close.
-            return
-        self._backend.close_connection()
-        # XCP 1.5: Close multicast socket if enabled
-        if self._multicast_enabled:
-            self.disable_multicast()
+        backend = getattr(self, "_backend", None)
+        try:
+            if backend is not None:
+                backend.close_connection()
+        finally:
+            if getattr(self, "_multicast_sock", None) is not None:
+                self.disable_multicast()
 
     @property
     def status(self) -> int:
@@ -168,8 +165,10 @@ class Eth(BaseTransport):
         Returns:
             IPv4 multicast address (e.g., "239.255.0.1" for cluster_id=0x0001)
         """
-        high_byte = (cluster_id >> 8) & 0xFF
-        low_byte = cluster_id & 0xFF
+        if isinstance(cluster_id, bool) or not isinstance(cluster_id, int) or not 0 <= cluster_id <= 0xFFFF:
+            raise ValueError("cluster_id must be an integer in the range 0..65535")
+
+        high_byte, low_byte = divmod(cluster_id, 0x100)
         return f"239.255.{high_byte}.{low_byte}"
 
     def enable_multicast(self, cluster_id: int = 0x0001) -> None:
@@ -178,60 +177,41 @@ class Eth(BaseTransport):
 
         Creates a separate UDP socket for sending multicast commands.
         Responses (EV_TIME_SYNC events) come back on the regular connection.
+        The XCP cluster-address mapping is IPv4, independently of the main
+        transport's address family.
 
         Args:
             cluster_id: CLUSTER_AFFILIATION parameter (default: 0x0001 → 239.255.0.1)
         """
+        address = self.cluster_id_to_multicast_address(cluster_id)
         if self._multicast_enabled:
             self.logger.warning("Multicast already enabled")
             return
 
-        if self.protocol != "UDP":
+        if self.config.protocol.upper() != "UDP":
             self.logger.warning("GET_DAQ_CLOCK_MULTICAST requires UDP protocol (current: TCP)")
             # Still create the socket - it might work for mixed mode slaves
 
+        # XCP maps the cluster ID to an IPv4 multicast group, independently of
+        # the address family used by the regular transport connection.
+        multicast_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         try:
-            # Create UDP socket for multicast transmission
-            address_family = socket.AF_INET6 if self.ipv6 else socket.AF_INET
-            self._multicast_sock = socket.socket(address_family, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-
-            # Set TTL for multicast (site-local scope)
-            if self.ipv6:
-                # IPv6: Set multicast hop limit
-                self._multicast_sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_MULTICAST_HOPS, 2)
-            else:
-                # IPv4: Set TTL
-                self._multicast_sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
-
-            # Allow address reuse (multiple XCP masters on same host)
-            self._multicast_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            if hasattr(socket, "SO_REUSEPORT"):
-                self._multicast_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-
-            # Store multicast address
-            self._multicast_address = self.cluster_id_to_multicast_address(cluster_id)
-            self._multicast_port = DEFAULT_XCP_MULTICAST_PORT
-            self._cluster_id = cluster_id
-
-            self._multicast_enabled = True
-            self.logger.info(f"Multicast enabled: cluster_id={cluster_id:#06x} → {self._multicast_address}:{self._multicast_port}")
-
-        except Exception as e:
-            self.logger.error(f"Failed to enable multicast: {e}", exc_info=True)
-            if self._multicast_sock:
-                self._multicast_sock.close()
-                self._multicast_sock = None
+            multicast_sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+        except BaseException:
+            multicast_sock.close()
+            raise
+        self._multicast_sock = multicast_sock
+        self._multicast_enabled = True
+        self._multicast_enabled = True
+        self.logger.info(f"Multicast enabled: cluster_id={cluster_id:#06x} -> {address}:{DEFAULT_XCP_MULTICAST_PORT}")
 
     def disable_multicast(self) -> None:
         """Disable multicast and close the multicast socket."""
-        if self._multicast_sock:
-            try:
-                self._multicast_sock.close()
-            except Exception as e:  # nosec B110
-                # Ignore errors during cleanup - socket may already be closed
-                self.logger.debug(f"Error closing multicast socket (ignored): {e}")
-            self._multicast_sock = None
+        multicast_sock = getattr(self, "_multicast_sock", None)
+        self._multicast_sock = None
         self._multicast_enabled = False
+        if multicast_sock is not None:
+            multicast_sock.close()
         self.logger.info("Multicast disabled")
 
     def send_multicast(self, cluster_id: int, counter: int) -> None:
@@ -248,6 +228,10 @@ class Eth(BaseTransport):
             cluster_id: 16-bit cluster identifier (Intel byte order)
             counter: 8-bit counter for consistency checks
         """
+        multicast_addr = self.cluster_id_to_multicast_address(cluster_id)
+        if isinstance(counter, bool) or not isinstance(counter, int) or not 0 <= counter <= 0xFF:
+            raise ValueError("counter must be an integer in the range 0..255")
+
         if not self._multicast_enabled:
             # Auto-enable if not already enabled
             self.enable_multicast(cluster_id)
@@ -257,23 +241,17 @@ class Eth(BaseTransport):
 
         # Build GET_DAQ_CLOCK_MULTICAST packet with proper XCP framing
         # Transport Layer Command (0xF2) + Subcommand 0xFA + CLUSTER_ID (LE) + Counter (BYTE)
-        cluster_id_le = cluster_id & 0xFFFF
         packet = self.framing.prepare_request(
             types.Command.TRANSPORT_LAYER_CMD,
             0xFA,
-            cluster_id_le & 0xFF,
-            (cluster_id_le >> 8) & 0xFF,
-            counter & 0xFF,
+            cluster_id & 0xFF,
+            cluster_id >> 8,
+            counter,
         )
 
         # Send to multicast address
-        multicast_addr = self.cluster_id_to_multicast_address(cluster_id)
-        try:
-            self._multicast_sock.sendto(packet, (multicast_addr, DEFAULT_XCP_MULTICAST_PORT))
-            self.logger.debug(
-                f"GET_DAQ_CLOCK_MULTICAST sent: cluster={cluster_id:#06x}, counter={counter} → "
-                f"{multicast_addr}:{DEFAULT_XCP_MULTICAST_PORT}"
-            )
-        except Exception as e:
-            self.logger.error(f"Failed to send multicast: {e}", exc_info=True)
-            raise
+        self._multicast_sock.sendto(packet, (multicast_addr, DEFAULT_XCP_MULTICAST_PORT))
+        self.logger.debug(
+            f"GET_DAQ_CLOCK_MULTICAST sent: cluster={cluster_id:#06x}, counter={counter} -> "
+            f"{multicast_addr}:{DEFAULT_XCP_MULTICAST_PORT}"
+        )
