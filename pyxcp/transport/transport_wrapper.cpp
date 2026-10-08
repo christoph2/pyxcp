@@ -10,12 +10,18 @@
 
 #include "eth_framing.hpp"
 #include "eth_io_backend.hpp"
+#include "eth_multicast.hpp"
 #include "framing.hpp"
 #include "sxi_framing.hpp"
 #include "transport_ext.hpp"
 
 namespace py = pybind11;
 using namespace pybind11::literals;
+
+[[noreturn]] static void raise_os_error(const std::system_error& error) {
+    PyErr_SetObject(PyExc_OSError, py::make_tuple(error.code().value(), error.what()).ptr());
+    throw py::error_already_set();
+}
 
 using SxiFrLBCN  = SxiReceiver< SxiHeaderFormat::LenByte, SxiChecksumType::None>;
 using SxiFrLBC8  = SxiReceiver< SxiHeaderFormat::LenByte, SxiChecksumType::Sum8>;
@@ -132,6 +138,39 @@ PYBIND11_MODULE(transport_ext, m) {
         .def("stop_listening", &EthIoBackend::stop_listening);
     // True if the backend can be used on this platform/build; checked by create_eth_backend().
     eth_io_backend.attr("available") = true;
+
+    py::class_<EthMulticastSender>(m, "EthMulticastSender")
+        .def(py::init<>())
+        .def_static("address", [](py::object cluster_id) {
+            return EthMulticastSender::address(EthMulticastSender::validate_cluster_id(cluster_id));
+        }, py::arg("cluster_id"))
+        .def_static("validate_counter", [](py::object counter) {
+            return EthMulticastSender::validate_counter(counter);
+        }, py::arg("counter"))
+        .def_static("build_packet", [](py::object framing, py::object cluster_id, py::object counter) {
+            const auto cluster = EthMulticastSender::validate_cluster_id(cluster_id);
+            const auto sequence = EthMulticastSender::validate_counter(counter);
+            return EthMulticastSender::build_packet(framing, cluster, sequence);
+        }, py::arg("framing"), py::arg("cluster_id"), py::arg("counter"))
+        .def_property_readonly("enabled", &EthMulticastSender::enabled)
+        .def("enable", [](EthMulticastSender& self) {
+            try {
+                self.enable();
+            } catch (const std::system_error& error) {
+                raise_os_error(error);
+            }
+        })
+        .def("disable", &EthMulticastSender::disable)
+        .def("send", [](EthMulticastSender& self, py::object framing, py::object cluster_id, py::object counter,
+                        std::uint16_t port) {
+            const auto cluster = EthMulticastSender::validate_cluster_id(cluster_id);
+            const auto sequence = EthMulticastSender::validate_counter(counter);
+            try {
+                self.send(framing, cluster, sequence, port);
+            } catch (const std::system_error& error) {
+                raise_os_error(error);
+            }
+        }, py::arg("framing"), py::arg("cluster_id"), py::arg("counter"), py::arg("port"));
 
     py::class_<FrameAcquisitionPolicy, PyFrameAcquisitionPolicy>(m, "FrameAcquisitionPolicy", py::dynamic_attr())
         .def(py::init<const std::optional<FrameAcquisitionPolicy::filter_t> &>(), py::arg("filtered_out") = std::nullopt)
