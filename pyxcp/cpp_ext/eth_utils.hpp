@@ -303,7 +303,7 @@ TimestampingInfo check_timestamping_support(const std::string &host_name) {
     result.interface_name = host_route->name;
     //if (GetInterfaceSupportedTimestampCapabilities(&luid, &caps) == NO_ERROR) {
     try {
-        if ((get_interface_supported_timestamp_capabilities)(&luid, &caps) == NO_ERROR) {
+        if ((*get_interface_supported_timestamp_capabilities)(&luid, &caps) == NO_ERROR) {
             result.timestamping_supported = hw_timestamping_on_ipv4(&caps) || hw_timestamping_on_ipv6(&caps);
         } else {
             std::cout << "GetInterfaceSupportedTimestampCapabilities failed." << std::endl;
