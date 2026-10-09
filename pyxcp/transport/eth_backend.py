@@ -15,9 +15,9 @@ Abstract methods that are not overridden raise on call.
 
 This indirection exists so that the proven, selectors-based implementation
 (:class:`LegacySocketBackend`) can keep running unchanged in production while
-an experimental, higher-performance native backend (IOCP on Windows or epoll
-on Linux) can be developed and swapped in without touching
-``Eth``, ``BaseTransport`` or the C++ XCP framing/dispatch logic
+an experimental, higher-performance native backend (IOCP on Windows, epoll
+on Linux, or kqueue on macOS and FreeBSD) can be developed and swapped in
+without touching ``Eth``, ``BaseTransport`` or the C++ XCP framing/dispatch logic
 (``EthReceiver.feed_frame``), which is shared by every backend.
 """
 
@@ -341,6 +341,7 @@ class _UnavailableNativeBackend(EthIoBackend):
 
 IocpSocketBackend: type[EthIoBackend] = _UnavailableNativeBackend
 EpollSocketBackend: type[EthIoBackend] = _UnavailableNativeBackend
+KqueueSocketBackend: type[EthIoBackend] = _UnavailableNativeBackend
 
 if sys.platform == "win32":
     try:
@@ -352,6 +353,11 @@ elif sys.platform.startswith("linux"):
         from pyxcp.transport.eth_ext import EpollBackend as EpollSocketBackend
     except ImportError:
         pass
+elif sys.platform == "darwin" or sys.platform.startswith("freebsd"):
+    try:
+        from pyxcp.transport.eth_ext import KqueueBackend as KqueueSocketBackend
+    except ImportError:
+        pass
 
 #: Registry of known Ethernet I/O backends, keyed by the name used in
 #: ``Eth.experimental_backend``-driven selection (see ``create_eth_backend``).
@@ -359,6 +365,7 @@ _ETH_BACKENDS: dict[str, type[EthIoBackend]] = {
     "legacy": LegacySocketBackend,
     "iocp": IocpSocketBackend,
     "epoll": EpollSocketBackend,
+    "kqueue": KqueueSocketBackend,
 }
 
 
@@ -369,7 +376,8 @@ def create_eth_backend(name: str, eth: "Eth") -> EthIoBackend:
     ----------
     name: str
         ``"legacy"`` (default, proven ``selectors``-based implementation) or
-        ``"iocp"`` (Windows) or ``"epoll"`` (Linux), both experimental native backends.
+        ``"iocp"`` (Windows), ``"epoll"`` (Linux), or ``"kqueue"`` (macOS/FreeBSD),
+        all experimental native backends.
     eth: :class:`pyxcp.transport.eth.Eth`
         The owning transport instance.
 

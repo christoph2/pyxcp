@@ -32,6 +32,8 @@
 
 #if defined(_WIN32)
     #include "iocp.hpp"
+#elif defined(__APPLE__) || defined(__FreeBSD__)
+    #include "kqueue.hpp"
 #else
     #include "epoll.hpp"
 #endif
@@ -41,6 +43,8 @@ inline std::unique_ptr<IAsyncIoService> createAsyncIoService(IoCallbacks callbac
 {
 #if defined(_WIN32)
     return std::make_unique<IOCP>(std::move(callbacks), 1, 1, readQueueDepth, bufferSize);
+#elif defined(__APPLE__) || defined(__FreeBSD__)
+    return std::make_unique<Kqueue>(std::move(callbacks), readQueueDepth, std::move(bufferSize));
 #else
     return std::make_unique<Epoll>(std::move(callbacks), readQueueDepth, std::move(bufferSize));
 #endif

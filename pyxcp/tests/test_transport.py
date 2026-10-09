@@ -11,10 +11,15 @@ from can.bus import BusABC
 
 import pyxcp.transport.base as tr
 from pyxcp import types
-from pyxcp.transport.eth_backend import EpollSocketBackend, IocpSocketBackend
+from pyxcp.transport.eth_backend import EpollSocketBackend, IocpSocketBackend, KqueueSocketBackend
 from pyxcp.transport.transport_ext import EthIoBackend
 
-NATIVE_BACKEND = IocpSocketBackend if sys.platform == "win32" else EpollSocketBackend
+if sys.platform == "win32":
+    NATIVE_BACKEND = IocpSocketBackend
+elif sys.platform == "darwin" or sys.platform.startswith("freebsd"):
+    NATIVE_BACKEND = KqueueSocketBackend
+else:
+    NATIVE_BACKEND = EpollSocketBackend
 NATIVE_BACKEND_AVAILABLE = NATIVE_BACKEND.available
 
 
