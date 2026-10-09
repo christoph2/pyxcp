@@ -33,8 +33,8 @@ class Eth(BaseTransport):
     :class:`~pyxcp.transport.eth_backend.EthIoBackend` implementation,
     selected via ``config.experimental_backend`` -- this is the seam that
     allows switching between the proven, selectors-based implementation and
-    the platform's experimental native asynchronous backend (IOCP on Windows
-    or epoll on Linux) without touching this class.
+    the platform's experimental native asynchronous backend (IOCP on Windows,
+    epoll on Linux, or kqueue on macOS and FreeBSD) without touching this class.
     """
 
     MAX_DATAGRAM_SIZE = 65535
@@ -71,6 +71,8 @@ class Eth(BaseTransport):
             native_backend = "iocp"
         elif sys.platform.startswith("linux"):
             native_backend = "epoll"
+        elif sys.platform == "darwin" or sys.platform.startswith("freebsd"):
+            native_backend = "kqueue"
         else:
             native_backend = "iocp"
         backend_name = native_backend if self.config.experimental_backend else "legacy"
