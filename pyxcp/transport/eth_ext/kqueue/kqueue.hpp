@@ -47,7 +47,7 @@ class Kqueue : public IAsyncIoService {
     mutable std::atomic<bool> m_stopping{false};
     mutable std::mutex m_messages_mutex;
     mutable std::deque<UserMessage> m_messages;
-    std::jthread m_worker;
+    std::thread m_worker;
 };
 
 #endif  // __KQUEUE_HPP

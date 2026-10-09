@@ -57,7 +57,7 @@ Kqueue::Kqueue(IoCallbacks callbacks, std::uint16_t, std::optional<std::uint16_t
         throw;
     }
 
-    m_worker = std::jthread([this] { workerThreadMain(); });
+    m_worker = std::thread([this] { workerThreadMain(); });
 }
 
 Kqueue::~Kqueue() {
