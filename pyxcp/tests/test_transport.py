@@ -1,6 +1,7 @@
 import selectors
 import socket
 import struct
+import sys
 import threading
 from unittest import mock
 
@@ -10,10 +11,11 @@ from can.bus import BusABC
 
 import pyxcp.transport.base as tr
 from pyxcp import types
-from pyxcp.transport.eth_backend import IocpSocketBackend
+from pyxcp.transport.eth_backend import EpollSocketBackend, IocpSocketBackend
 from pyxcp.transport.transport_ext import EthIoBackend
 
-IOCP_AVAILABLE = IocpSocketBackend.available
+NATIVE_BACKEND = IocpSocketBackend if sys.platform == "win32" else EpollSocketBackend
+NATIVE_BACKEND_AVAILABLE = NATIVE_BACKEND.available
 
 
 class MockSocket(mock.MagicMock):
@@ -497,7 +499,7 @@ def test_create_eth_backend_invalid_name_raises():
         create_eth_backend("does-not-exist", eth=mock.MagicMock())
 
 
-@pytest.mark.skipif(IOCP_AVAILABLE, reason="IOCP backend is available on this platform")
+@pytest.mark.skipif(NATIVE_BACKEND_AVAILABLE, reason="Native backend is available on this platform")
 @mock.patch("pyxcp.transport.eth_backend.socket.socket")
 @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
 def test_eth_experimental_backend_not_available_raises(mock_selector, mock_socket):
@@ -611,9 +613,9 @@ def _echo_server(sock_type, stop):
     return srv.getsockname()[1], thread
 
 
-@pytest.mark.skipif(not IOCP_AVAILABLE, reason="IOCP backend not available")
+@pytest.mark.skipif(not NATIVE_BACKEND_AVAILABLE, reason="Native backend not available")
 @pytest.mark.parametrize("protocol", ["UDP", "TCP"])
-def test_eth_iocp_backend_roundtrip(protocol):
+def test_eth_native_backend_roundtrip(protocol):
     stop = threading.Event()
     port, thread = _echo_server(socket.SOCK_DGRAM if protocol == "UDP" else socket.SOCK_STREAM, stop)
     config = create_config()
@@ -623,7 +625,7 @@ def test_eth_iocp_backend_roundtrip(protocol):
     config.eth.protocol = protocol
     transport = tr.create_transport("eth", config=config)
     try:
-        assert isinstance(transport._backend, IocpSocketBackend)
+        assert isinstance(transport._backend, NATIVE_BACKEND)
         transport.parent = mock.MagicMock()
         transport.connect()
         assert transport.status == 1
