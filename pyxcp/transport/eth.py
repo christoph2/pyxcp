@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import socket
 import struct
+import sys
 import threading
 
 from pyxcp.cpp_ext.cpp_ext import init_networking
@@ -32,8 +33,8 @@ class Eth(BaseTransport):
     :class:`~pyxcp.transport.eth_backend.EthIoBackend` implementation,
     selected via ``config.experimental_backend`` -- this is the seam that
     allows switching between the proven, selectors-based implementation and
-    an experimental backend (e.g. a future IOCP-based implementation on
-    Windows) without touching this class.
+    the platform's experimental native asynchronous backend (IOCP on Windows
+    or epoll on Linux) without touching this class.
     """
 
     MAX_DATAGRAM_SIZE = 65535
@@ -66,7 +67,13 @@ class Eth(BaseTransport):
         init_networking()
         self._multicast_sender = EthMulticastSender()
 
-        backend_name = "iocp" if self.config.experimental_backend else "legacy"
+        if sys.platform == "win32":
+            native_backend = "iocp"
+        elif sys.platform.startswith("linux"):
+            native_backend = "epoll"
+        else:
+            native_backend = "iocp"
+        backend_name = native_backend if self.config.experimental_backend else "legacy"
         self._backend: EthIoBackend = create_eth_backend(backend_name, self)
         self._backend.setup(eth_config)
 

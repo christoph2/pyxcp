@@ -31,14 +31,8 @@
 #include <cstring>
 #include <memory_resource>
 #include "utils.hpp"
+#include "../io_types.hpp"
 #include <WinSock2.h>
-
-enum class IoType : std::uint8_t{
-    IO_ACCEPT,
-    IO_CONNECT,
-    IO_READ,
-    IO_WRITE
-};
 
 enum class RcvState : std::uint8_t{
     FREE,

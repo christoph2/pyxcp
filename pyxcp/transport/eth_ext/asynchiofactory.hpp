@@ -42,7 +42,7 @@ inline std::unique_ptr<IAsyncIoService> createAsyncIoService(IoCallbacks callbac
 #if defined(_WIN32)
     return std::make_unique<IOCP>(std::move(callbacks), 1, 1, readQueueDepth, bufferSize);
 #else
-    return std::make_unique<Epoll>(std::move(callbacks));
+    return std::make_unique<Epoll>(std::move(callbacks), readQueueDepth, std::move(bufferSize));
 #endif
 }
 

@@ -37,6 +37,7 @@
 #include <cstdint>
 #include <functional>
 
+#include "io_types.hpp"
 #include "socket.hpp"
 
 enum class MessageCode : uint64_t {
@@ -61,7 +62,7 @@ struct IoCallbacks {
     std::function<void(AsyncClientSocket & socket, std::size_t bytes)> on_send_complete;
     // Peer closed the connection (orderly shutdown, zero byte read).
     std::function<void(AsyncClientSocket & socket)> on_disconnect;
-    // Failed I/O operation; `socket` may be nullptr, `error` is the Windows error code.
+    // Failed I/O operation; `socket` may be nullptr, `error` is the platform error code.
     std::function<void(AsyncClientSocket * socket, IoType operation, unsigned long error)> on_error;
     std::function<void()> on_timeout;
 };

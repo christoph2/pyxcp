@@ -118,16 +118,25 @@ pybind11_add_module(cpp_ext pyxcp/cpp_ext/extension_wrapper.cpp)
 pybind11_add_module(stim pyxcp/daq_stim/stim_wrapper.cpp pyxcp/daq_stim/stim.cpp pyxcp/daq_stim/scheduler.cpp)
 pybind11_add_module(transport_ext pyxcp/transport/transport_wrapper.cpp pyxcp/recorder/lz4.c pyxcp/recorder/lz4hc.c)
 
-# The IOCP based Ethernet backend is Windows only.
-if (WIN32)
+# IOCP on Windows and epoll on Linux share the same Python extension module.
+if (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(PYXCP_ETH_EXT_DEFAULT ON)
 else()
     set(PYXCP_ETH_EXT_DEFAULT OFF)
 endif()
-option(PYXCP_BUILD_ETH_EXT "Build the IOCP Ethernet backend (eth_ext, Windows only)" ${PYXCP_ETH_EXT_DEFAULT})
+option(PYXCP_BUILD_ETH_EXT "Build the native asynchronous Ethernet backend (IOCP on Windows, epoll on Linux)" ${PYXCP_ETH_EXT_DEFAULT})
 if (PYXCP_BUILD_ETH_EXT)
-pybind11_add_module(eth_ext pyxcp/transport/eth_ext/ethernet_wrapper.cpp pyxcp/transport/eth_ext/win/iocp.cpp pyxcp/transport/eth_ext/poolmgr.cpp pyxcp/transport/eth_ext/utils.cpp)
-target_include_directories(eth_ext PRIVATE ${EXTENSION_INCS} ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/transport ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/transport/eth_ext ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/transport/eth_ext/win)
+    if (WIN32)
+        pybind11_add_module(eth_ext pyxcp/transport/eth_ext/ethernet_wrapper.cpp pyxcp/transport/eth_ext/win/iocp.cpp pyxcp/transport/eth_ext/poolmgr.cpp pyxcp/transport/eth_ext/utils.cpp)
+        target_include_directories(eth_ext PRIVATE ${EXTENSION_INCS} ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/transport ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/transport/eth_ext ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/transport/eth_ext/win)
+    elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        find_package(Threads REQUIRED)
+        pybind11_add_module(eth_ext pyxcp/transport/eth_ext/linux/ethernet_wrapper.cpp pyxcp/transport/eth_ext/linux/epoll.cpp pyxcp/transport/eth_ext/utils.cpp)
+        target_include_directories(eth_ext PRIVATE ${EXTENSION_INCS} ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/transport ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/transport/eth_ext ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/transport/eth_ext/linux)
+        target_link_libraries(eth_ext PRIVATE Threads::Threads)
+    else()
+        message(FATAL_ERROR "PYXCP_BUILD_ETH_EXT is supported only on Windows (IOCP) and Linux (epoll)")
+    endif()
 endif()
 
 target_include_directories(rekorder PRIVATE ${EXTENSION_INCS} ${CMAKE_CURRENT_SOURCE_DIR}/pyxcp/recorder)
@@ -137,6 +146,7 @@ target_include_directories(transport_ext PRIVATE ${EXTENSION_INCS} ${CMAKE_CURRE
 
 if (WIN32)
     target_link_libraries(cpp_ext PRIVATE Ws2_32.lib)
+    target_link_libraries(transport_ext PRIVATE Ws2_32.lib)
 endif()
 
 target_compile_options(rekorder PUBLIC "-DEXTENSION_NAME=pyxcp.recorder.rekorder")

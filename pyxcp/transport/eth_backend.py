@@ -15,8 +15,8 @@ Abstract methods that are not overridden raise on call.
 
 This indirection exists so that the proven, selectors-based implementation
 (:class:`LegacySocketBackend`) can keep running unchanged in production while
-an experimental, higher-performance backend (e.g. an IOCP-based
-implementation on Windows) can be developed and swapped in without touching
+an experimental, higher-performance native backend (IOCP on Windows or epoll
+on Linux) can be developed and swapped in without touching
 ``Eth``, ``BaseTransport`` or the C++ XCP framing/dispatch logic
 (``EthReceiver.feed_frame``), which is shared by every backend.
 """
@@ -24,6 +24,7 @@ implementation on Windows) can be developed and swapped in without touching
 import selectors
 import socket
 import struct
+import sys
 from collections import deque
 from typing import TYPE_CHECKING
 
@@ -332,23 +333,32 @@ class LegacySocketBackend(EthIoBackend):
             self.logger.info(f"Hardware timestamping NOT supported on interface {ts_info.interface_name!r}")
 
 
-class _UnavailableIocpBackend(EthIoBackend):
-    """Stand-in used where the compiled IOCP backend (``pyxcp.transport.eth_ext``) cannot be
-    imported, i.e. on non-Windows platforms or when the extension was not built."""
+class _UnavailableNativeBackend(EthIoBackend):
+    """Stand-in used when the platform's native extension cannot be imported."""
 
     available = False
 
 
-try:
-    from pyxcp.transport.eth_ext import IocpBackend as IocpSocketBackend  # Windows only (C++/IOCP).
-except ImportError:
-    IocpSocketBackend = _UnavailableIocpBackend
+IocpSocketBackend: type[EthIoBackend] = _UnavailableNativeBackend
+EpollSocketBackend: type[EthIoBackend] = _UnavailableNativeBackend
+
+if sys.platform == "win32":
+    try:
+        from pyxcp.transport.eth_ext import IocpBackend as IocpSocketBackend
+    except ImportError:
+        pass
+elif sys.platform.startswith("linux"):
+    try:
+        from pyxcp.transport.eth_ext import EpollBackend as EpollSocketBackend
+    except ImportError:
+        pass
 
 #: Registry of known Ethernet I/O backends, keyed by the name used in
 #: ``Eth.experimental_backend``-driven selection (see ``create_eth_backend``).
 _ETH_BACKENDS: dict[str, type[EthIoBackend]] = {
     "legacy": LegacySocketBackend,
     "iocp": IocpSocketBackend,
+    "epoll": EpollSocketBackend,
 }
 
 
@@ -359,7 +369,7 @@ def create_eth_backend(name: str, eth: "Eth") -> EthIoBackend:
     ----------
     name: str
         ``"legacy"`` (default, proven ``selectors``-based implementation) or
-        ``"iocp"`` (experimental, native I/O completion port backend; Windows only).
+        ``"iocp"`` (Windows) or ``"epoll"`` (Linux), both experimental native backends.
     eth: :class:`pyxcp.transport.eth.Eth`
         The owning transport instance.
 
@@ -378,7 +388,7 @@ def create_eth_backend(name: str, eth: "Eth") -> EthIoBackend:
     if not backend_class.available:
         raise RuntimeError(
             f"The {name!r} Ethernet backend is not available yet. "
-            "It requires Windows and the compiled ``pyxcp.transport.eth_ext`` extension. "
-            "Set `c.Eth.experimental_backend = False` to use the proven, selectors-based backend."
+            "Build the platform's native ``pyxcp.transport.eth_ext`` extension or "
+            "set `c.Eth.experimental_backend = False` to use the selectors-based backend."
         )
     return backend_class(eth)

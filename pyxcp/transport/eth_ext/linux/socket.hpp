@@ -27,7 +27,10 @@
 #define __SOCKET_HPP
 
 #include <array>
+#include <cstdint>
 #include <memory>
+#include <stdexcept>
+#include <string>
 
 #include "../isocket.hpp"
 #include "native_socket.hpp"
@@ -43,12 +46,12 @@
 class AsyncClientSocket : public IClientSocket {
 public:
     explicit AsyncClientSocket(int family = PF_INET, int socktype = SOCK_STREAM, int protocol = IPPROTO_TCP) :
-        m_native(family, socktype, protocol), m_socktype(socktype) {
+        m_native(family, socktype, protocol), m_socktype(socktype), m_family(family) {
         m_native.setBlocking(false);
     }
 
     explicit AsyncClientSocket(NativeSocket && native, int socktype) :
-        m_native(std::move(native)), m_socktype(socktype) {
+        m_native(std::move(native)), m_socktype(socktype), m_family(AF_UNSPEC) {
         m_native.setBlocking(false);
     }
 
@@ -86,6 +89,22 @@ public:
         return m_native.receive(data, length);
     }
 
+    int receiveFrom(void * data, std::size_t length, sockaddr * peer, socklen_t * peer_length) {
+        return m_native.receiveFrom(data, length, peer, peer_length);
+    }
+
+    int getSocketType() const {
+        return m_socktype;
+    }
+
+    void bind(const std::string& address, std::uint16_t port) {
+        SocketAddress local_address;
+        if (!SocketAddress::resolve(address.c_str(), port, local_address, m_family, m_socktype, 0, 0)) {
+            throw std::runtime_error("AsyncClientSocket::bind(): could not resolve address");
+        }
+        m_native.bind(local_address);
+    }
+
     template <typename T, size_t N>
     void write(std::array<T, N> & arr) {
         m_timeout.arm();
@@ -101,6 +120,7 @@ public:
 private:
     NativeSocket m_native;
     int m_socktype;
+    int m_family;
     TimeoutTimer m_timeout {150};
 };
 
@@ -138,6 +158,14 @@ public:
 
     void bind(const SocketAddress & address) override {
         m_native.bind(address);
+    }
+
+    void bind(const std::string& address, std::uint16_t port) {
+        SocketAddress local_address;
+        if (!SocketAddress::resolve(address.c_str(), port, local_address, AF_UNSPEC, m_socktype, 0, 0)) {
+            throw std::runtime_error("AsyncServerSocket::bind(): could not resolve address");
+        }
+        m_native.bind(local_address);
     }
 
     void listen(int backlog = 10) override {

@@ -66,7 +66,7 @@ using HANDLE = int;
  */
 class NativeSocket {
 public:
-    explicit NativeSocket(int family = PF_INET, int socktype = SOCK_STREAM, int protocol = IPPROTO_TCP) {
+    explicit NativeSocket(int family, int socktype, int protocol) {
         static Eth eth;  // No-op on Linux, kept for symmetry with the Windows backend.
         m_handle = ::socket(family, socktype, protocol);
         if (m_handle == INVALID_NATIVE_HANDLE) {
@@ -167,7 +167,7 @@ public:
     }
 
     int send(const void * data, std::size_t length) {
-        const int result = static_cast<int>(::send(m_handle, data, length, 0));
+        const int result = static_cast<int>(::send(m_handle, data, length, MSG_NOSIGNAL));
         if (result == SOCKET_ERROR) {
             SocketErrorExit("NativeSocket::send()");
         }
@@ -178,6 +178,14 @@ public:
         const int result = static_cast<int>(::recv(m_handle, data, length, 0));
         if (result == SOCKET_ERROR) {
             SocketErrorExit("NativeSocket::receive()");
+        }
+        return result;
+    }
+
+    int receiveFrom(void * data, std::size_t length, sockaddr * peer, socklen_t * peer_length) {
+        const int result = static_cast<int>(::recvfrom(m_handle, data, length, 0, peer, peer_length));
+        if (result == SOCKET_ERROR) {
+            SocketErrorExit("NativeSocket::receiveFrom()");
         }
         return result;
     }
