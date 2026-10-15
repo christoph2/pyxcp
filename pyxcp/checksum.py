@@ -5,9 +5,11 @@
 """
 
 import enum
+import logging
 import struct
 import zlib
 
+from pyxcp import dllif
 from pyxcp.types import BuildChecksumResponse
 
 
@@ -696,9 +698,38 @@ def CRC32(x) -> int:
     return zlib.crc32(x) & 0xFFFFFFFF
 
 
-def userDefined(x):
-    """User defined algorithms are not supported yet."""
-    raise NotImplementedError("Checksum method 'XCP_USER_DEFINED' not supported yet.")
+def userDefined(frame, master=None):
+    if master is None:
+        raise ValueError("User defined checksum requires a master instance for configuration.")
+
+    if not master.checksum_dll:
+        raise ValueError("User defined checksum selected, but no DLL specified in configuration.")
+
+    logger = logging.getLogger("pyxcp.checksum")
+    ret, result = dllif.calcChecksum(
+        logger,
+        master.config.custom_dll_loader,
+        master.checksum_dll,
+        frame,
+        master.checksum_dll_same_bit_width,
+    )
+
+    if not ret:
+        raise dllif.DllError(f"Checksum DLL {master.checksum_dll!r} failed or could not be loaded.")
+
+    # The result is already a bytes object from calcChecksum
+    # We return the integer representation if possible or the bytes themselves.
+    # XCP checksums in response are usually 1, 2 or 4 bytes.
+    if len(result) == 1:
+        return struct.unpack("B", result)[0]
+    elif len(result) == 2:
+        return struct.unpack("<H", result)[0]
+    elif len(result) == 4:
+        return struct.unpack("<I", result)[0]
+    elif len(result) == 8:
+        return struct.unpack("<Q", result)[0]
+
+    return result
 
 
 ALGO = {
@@ -715,13 +746,14 @@ ALGO = {
 }
 
 
-def check(frame: bytes, algo: str):
+def check(frame: bytes, algo: str, master=None):
     """Calculate checksum using given algorithm
 
     Parameters
     ----------
     frame : list of integers
     algo : `ALGO`
+    master : XcpMaster, optional
 
     Returns
     -------
@@ -729,6 +761,8 @@ def check(frame: bytes, algo: str):
     """
     fun = ALGO.get(algo)
     if fun:
+        if algo == "XCP_USER_DEFINED":
+            return fun(frame, master=master)
         return fun(frame)
     else:
         raise NotImplementedError(f"Invalid algorithm '{algo:d}'")
@@ -737,9 +771,13 @@ def check(frame: bytes, algo: str):
 calculate_checksum = check
 
 
-def validate_checksum(frame: bytes, slave_cs: BuildChecksumResponse) -> bool:
+def validate_checksum(frame: bytes, slave_cs: BuildChecksumResponse, master=None) -> bool:
     """Compare master- and slave-side checksums."""
     if not (hasattr(slave_cs, "checksumType") and hasattr(slave_cs, "checksum")):
         raise TypeError("paramter `cs` shall be the return value of buldChecksum().")
-    master_cs = calculate_checksum(frame, slave_cs.checksumType)
+
+    if master is None and hasattr(slave_cs, "master"):
+        master = slave_cs.master
+
+    master_cs = calculate_checksum(frame, slave_cs.checksumType, master=master)
     return slave_cs.checksum == master_cs

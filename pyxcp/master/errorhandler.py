@@ -7,7 +7,7 @@ import threading
 import time
 import types
 from collections import namedtuple
-from typing import Generic, List, Optional, TypeVar
+from typing import Generic, TypeVar
 
 import can
 
@@ -518,7 +518,7 @@ class HandlerStack(Generic[T]):
     """"""
 
     def __init__(self) -> None:
-        self._stack: List[T] = []
+        self._stack: list[T] = []
 
     def push(self, value: T):
         if value != self.tos():
@@ -528,7 +528,7 @@ class HandlerStack(Generic[T]):
         if len(self) > 0:
             self._stack.pop()
 
-    def tos(self) -> Optional[T]:
+    def tos(self) -> T | None:
         if len(self) > 0:
             return self._stack[-1]
         else:

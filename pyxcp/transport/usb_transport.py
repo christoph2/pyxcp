@@ -3,11 +3,10 @@
 import threading
 from array import array
 from collections import deque
-from typing import Optional
 
-import usb.backend.libusb0 as libusb0
-import usb.backend.libusb1 as libusb1
-import usb.backend.openusb as openusb
+from usb.backend import libusb0
+from usb.backend import libusb1
+from usb.backend import openusb
 import usb.core
 import usb.util
 from usb.core import USBError, USBTimeoutError
@@ -29,7 +28,7 @@ FIVE_MS = 5_000_000  # Five milliseconds in nanoseconds.
 class Usb(BaseTransport):
     """"""
 
-    def __init__(self, config=None, policy=None, transport_layer_interface: Optional[usb.core.Device] = None):
+    def __init__(self, config=None, policy=None, transport_layer_interface: usb.core.Device | None = None):
         self.load_config(config)
         header_len, header_ctr, header_fill = parse_header_format(self.config.header_format)
         framing_config = XcpFramingConfig(
@@ -62,7 +61,7 @@ class Usb(BaseTransport):
         ## OUT-EP (CMD and STIM) Parameters.
         self.out_ep_number: int = self.config.out_ep_number
 
-        self.device: Optional[usb.core.Device] = None
+        self.device: usb.core.Device | None = None
         self.status = 0
 
         self._packet_listener = threading.Thread(
@@ -183,7 +182,7 @@ class Usb(BaseTransport):
         process_response = self.process_response
         close_event_set = self.closeEvent.is_set
         _packets = self._packets
-        length: Optional[int] = None
+        length: int | None = None
         counter: int = 0
         data: bytearray = bytearray(b"")
         last_sleep: int = self.timestamp.value

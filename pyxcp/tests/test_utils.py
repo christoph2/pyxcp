@@ -64,7 +64,7 @@ def test_seconds_to_nanoseconds():
 
 def test_decode_bytes():
     assert decode_bytes(b"hello") == "hello"
-    assert decode_bytes("äöü".encode("utf-8")) == "äöü"
+    assert decode_bytes("äöü".encode()) == "äöü"
     # Test with invalid encoding that might be detected as something else or fail
     assert decode_bytes(b"\xff\xfeh\x00e\x00l\x00l\x00o\x00") == "hello"  # UTF-16 LE
 

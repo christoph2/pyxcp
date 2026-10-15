@@ -1,6 +1,14 @@
 #!/usr/bin/env python
 
-from pyxcp.daq_stim import DaqList
+from pyxcp.daq_stim import DaqList, event_channel_cycle_to_ns
+
+
+def test_event_channel_cycle_to_ns_uses_xcp_unit_table():
+    assert event_channel_cycle_to_ns(1, 0) == 1
+    assert event_channel_cycle_to_ns(2, 3) == 2_000
+    assert event_channel_cycle_to_ns(5, 6) == 5_000_000
+    assert event_channel_cycle_to_ns(1, 9) == 1_000_000_000
+    assert event_channel_cycle_to_ns(100, 10) == 1
 
 
 DAQ_INFO = {

@@ -76,13 +76,9 @@ class StandaloneTransportMock:
 class MockCanTransport(StandaloneTransportMock):
     """Mock CAN transport for testing."""
 
-    pass
-
 
 class MockEthTransport(StandaloneTransportMock):
     """Mock ETH transport for testing."""
-
-    pass
 
 
 class TestFrameCounters:
@@ -187,7 +183,7 @@ class TestBlockReceiveTimeout:
         """Test that block_receive timeout includes frame counts."""
         # This is more of an integration test - just verify the message format
         # The actual timeout behavior is tested in transport-specific tests
-        pass  # Covered by existing transport tests
+        # Covered by existing transport tests
 
 
 if __name__ == "__main__":

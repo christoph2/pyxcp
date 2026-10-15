@@ -3,7 +3,7 @@ import logging
 from array import array
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 
 import numpy as np
 from asammdf import MDF, Signal
@@ -61,8 +61,8 @@ class Storage:
 class StorageContainer:
     name: str
     arr: list[Storage] = field(default_factory=[])
-    ts0: List[int] = field(default_factory=lambda: array("Q"))
-    ts1: List[int] = field(default_factory=lambda: array("Q"))
+    ts0: list[int] = field(default_factory=lambda: array("Q"))
+    ts1: list[int] = field(default_factory=lambda: array("Q"))
 
 
 class Decoder(XcpLogFileDecoder):

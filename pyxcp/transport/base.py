@@ -3,9 +3,9 @@ import abc
 import logging
 import threading
 from collections import deque
-from typing import Any, Dict, Optional, Type
+from typing import Any
 from pyxcp.timing import Timing
-import pyxcp.types as types
+from pyxcp import types
 
 from pyxcp.cpp_ext.cpp_ext import Timestamp, TimestampType
 from pyxcp.transport.transport_ext import (
@@ -63,11 +63,11 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self,
         config,
         framing_config: XcpFramingConfig,
-        policy: Optional[FrameAcquisitionPolicy] = None,
-        transport_layer_interface: Optional[Any] = None,
+        policy: FrameAcquisitionPolicy | None = None,
+        transport_layer_interface: Any | None = None,
     ):
         self.has_user_supplied_interface: bool = transport_layer_interface is not None
-        self.transport_layer_interface: Optional[Any] = transport_layer_interface
+        self.transport_layer_interface: Any | None = transport_layer_interface
         self.parent = None
         self.framing = XcpFraming(framing_config)
         self.policy: FrameAcquisitionPolicy = policy or NoOpPolicy(filtered_out=None)
@@ -109,7 +109,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
             daemon=True,
         )
 
-        self.first_daq_timestamp: Optional[int] = None
+        self.first_daq_timestamp: int | None = None
         # self.timestamp_origin = self.timestamp.value
         # self.datetime_origin = datetime.fromtimestamp(self.timestamp_origin)
         self.pre_send_timestamp: int = self.timestamp.value
@@ -359,7 +359,6 @@ class BaseTransport(metaclass=abc.ABCMeta):
         """Does the actual connection shutdown.
         Needs to be implemented by any sub-class.
         """
-        pass
 
     @abc.abstractmethod
     def listen(self):
@@ -456,7 +455,7 @@ class BaseTransport(metaclass=abc.ABCMeta):
         counter: int,
         timestamp: int,
         payload: bytes,
-        length: Optional[int] = None,
+        length: int | None = None,
     ) -> None:
         try:
             entry = {
@@ -598,13 +597,13 @@ def create_transport(name: str, *args, **kws) -> BaseTransport:
     name = name.lower()
     transports = available_transports()
     if name in transports:
-        transport_class: Type[BaseTransport] = transports[name]
+        transport_class: type[BaseTransport] = transports[name]
     else:
         raise ValueError(f"{name!r} is an invalid transport -- please choose one of [{' | '.join(transports.keys())}].")
     return transport_class(*args, **kws)
 
 
-def available_transports() -> Dict[str, Type[BaseTransport]]:
+def available_transports() -> dict[str, type[BaseTransport]]:
     """List all subclasses of :class:`BaseTransport`.
 
     Returns

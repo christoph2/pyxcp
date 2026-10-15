@@ -8,7 +8,7 @@ Reliable Python tooling for the ASAM MCD-1 XCP protocol (measurement,
 calibration, flashing) with multiple transports (CAN, Ethernet, USB,
 Serial) and handy CLI utilities.
 
-|PyPI| |Python Versions| |License: LGPL v3+| |Code style: ruff| |Ask DeepWiki| |PDF Manual|
+|PyPI| |Python Versions| |License: LGPL v3+| |Code style: ruff| |Ask DeepWiki| Ask Zread |PDF Manual|
 
 ``pyXCP`` is a production-ready Python library for communicating with
 XCP-enabled devices, most commonly automotive ECUs. Use it to take
@@ -354,5 +354,7 @@ Further resources
    :alt: Ruff
 .. |Ask DeepWiki| image:: https://deepwiki.com/badge.svg
    :target: https://deepwiki.com/christoph2/pyxcp
+.. |Ask Zread| image:: https://img.shields.io/badge/Ask-Zread-blue.svg
+   :target: https://zread.ai/christoph2/pyxcp
 .. |PDF Manual| image:: https://img.shields.io/badge/docs-PDF%20manual-blue.svg
    :target: https://pyxcp.readthedocs.io/_/downloads/en/latest/pdf/

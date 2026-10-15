@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 """XCP DAQ list recorder."""
 
@@ -9,7 +8,7 @@ import time
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 from datetime import datetime
 
 from pyxcp.cmdline import ArgumentParser
@@ -17,7 +16,7 @@ from pyxcp.daq_stim import DaqList, DaqRecorder, DaqToCsv, load_daq_lists_from_j
 from pyxcp.types import XcpTimeoutError
 
 
-def _get_config(config_path: Path) -> Dict[str, Any]:
+def _get_config(config_path: Path) -> dict[str, Any]:
     """Load configuration from a JSON file.
 
     Reads the JSON file at the given path and returns the deserialized content.
@@ -38,7 +37,7 @@ def _get_config(config_path: Path) -> Dict[str, Any]:
         return {}
 
 
-def _parse_runtime(configuration: Dict[str, Any]) -> float:
+def _parse_runtime(configuration: dict[str, Any]) -> float:
     """Parse the runtime (runtime_seconds) from the configuration.
 
     If no value is present or the value is invalid, the default 60 seconds is returned.
@@ -58,7 +57,7 @@ def _parse_runtime(configuration: Dict[str, Any]) -> float:
         return 60.0
 
 
-def _create_daq_parser(configuration: Dict[str, Any], daq_lists: list) -> Any:
+def _create_daq_parser(configuration: dict[str, Any], daq_lists: list) -> Any:
     """Create the appropriate DAQ parser object based on the configuration.
 
     Args:

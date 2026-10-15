@@ -3,7 +3,8 @@
 import asyncio
 import functools
 from concurrent.futures import Executor, ThreadPoolExecutor
-from typing import Any, Callable, Iterable, Optional
+from typing import Any
+from collections.abc import Callable, Iterable
 
 from pyxcp.transport.async_policy import AsyncFrameSubscription
 from pyxcp.transport.transport_ext import FrameCategory
@@ -29,7 +30,7 @@ class AsyncTransport:
     def subscribe_frames(
         self,
         *,
-        categories: Optional[Iterable[FrameCategory]] = None,
+        categories: Iterable[FrameCategory] | None = None,
         maxsize: int = 0,
     ) -> AsyncFrameSubscription:
         policy = self._transport.policy
@@ -75,7 +76,7 @@ class AsyncMaster:
         policy: Any = None,
         transport_layer_interface: Any = None,
         *,
-        executor: Optional[Executor] = None,
+        executor: Executor | None = None,
     ) -> None:
         if isinstance(master_or_transport, str):
             if config is None:
@@ -131,7 +132,7 @@ class AsyncMaster:
     def subscribe_frames(
         self,
         *,
-        categories: Optional[Iterable[FrameCategory]] = None,
+        categories: Iterable[FrameCategory] | None = None,
         maxsize: int = 0,
     ) -> AsyncFrameSubscription:
         return self.transport.subscribe_frames(categories=categories, maxsize=maxsize)

@@ -24,7 +24,7 @@ with ap.run() as x:
 
     x.connect()
 
-    print("")
+    print()
     rps = x.getCurrentProtectionStatus()
     print("Protection before unlocking:", rps, end="\n\n")
 

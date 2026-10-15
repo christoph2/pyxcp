@@ -15,6 +15,7 @@
     #include <map>
     #include <utility>
     #include <variant>
+    #include <stdexcept>
 
     #if __has_include(<version>)
         #include <version>  // Needed for feature testing.
@@ -170,7 +171,11 @@ class TimestampInfo {
 
     explicit TimestampInfo(std::uint64_t timestamp_ns) : m_timestamp_ns(timestamp_ns) {
     #if defined(_WIN32) || defined(_WIN64)
-        m_timezone = std::chrono::current_zone()->name();
+        try {
+            m_timezone = std::chrono::current_zone()->name();
+        } catch (const std::runtime_error &) {
+            m_timezone = "UTC";
+        }
     #else
         tzset();
         m_timezone = tzname[0];
@@ -271,7 +276,7 @@ class Timestamp {
 
     TimestampType m_type;
     #if defined(_WIN32) || defined(_WIN64)
-    std::chrono::utc_clock m_clk;
+    std::chrono::system_clock m_clk;
     #else
 
     #endif  // _WIN32 || _WIN64

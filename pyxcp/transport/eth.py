@@ -4,11 +4,10 @@ import socket
 import struct
 import threading
 from collections import deque
-from typing import Optional
 
-import pyxcp.types as types
+from pyxcp import types
 from pyxcp.cpp_ext.cpp_ext import enable_ptp_timestamping, init_networking, receive_with_timestamp, check_timestamping_support
-from pyxcp.transport.transport_ext import EthReceiver
+from pyxcp.transport.transport_ext import EthReceiver, EthProtocol, FramingError
 
 from pyxcp.transport.base import (
     BaseTransport,
@@ -48,10 +47,10 @@ def socket_to_str(sock: socket.socket) -> str:
 class Eth(BaseTransport):
     """"""
 
-    MAX_DATAGRAM_SIZE = 512
+    MAX_DATAGRAM_SIZE = 65535
     HEADER = struct.Struct("<HH")
 
-    def __init__(self, config=None, policy=None, transport_layer_interface: Optional[socket.socket] = None) -> None:
+    def __init__(self, config=None, policy=None, transport_layer_interface: socket.socket | None = None) -> None:
         self.load_config(config)
         framing_config = XcpFramingConfig(
             transport_layer_type=XcpTransportLayerType.ETH,
@@ -129,10 +128,16 @@ class Eth(BaseTransport):
         )
         self._packets = deque()
         self._packets_condition = threading.Condition()
-        self._eth_receiver = EthReceiver(self.process_response)
+        proto = EthProtocol.TCP if self.use_tcp else EthProtocol.UDP
+        self._eth_receiver = EthReceiver(
+            proto=proto,
+            dispatch_handler=self.process_response,
+            error_handler=self.on_framing_error,
+            max_payload_size=Eth.MAX_DATAGRAM_SIZE,
+        )
 
         # XCP 1.5: Multicast socket for GET_DAQ_CLOCK_MULTICAST
-        self._multicast_sock: Optional[socket.socket] = None
+        self._multicast_sock: socket.socket | None = None
         self._multicast_enabled = False
 
     def connect(self) -> None:
@@ -243,11 +248,20 @@ class Eth(BaseTransport):
                                     with _packets_condition:
                                         _packets.append((bytes(response), recv_timestamp))
                                         _packets_condition.notify()
-            except BaseException:  # noqa: B036
+            except (OSError, ValueError) as ex:
                 self.status = 0  # disconnected
+                if close_event_set() or socket_fileno() == -1:
+                    self.logger.debug("Ethernet packet listener stopped during socket shutdown: %s", ex)
+                    break
+                else:
+                    self.logger.exception("Ethernet packet listener socket failure")
+                    continue
+            except Exception:
+                self.status = 0  # disconnected
+                self.logger.exception("Unexpected Ethernet packet listener failure")
                 break
 
-    def _extract_linux_timestamp(self, ancdata) -> Optional[int]:
+    def _extract_linux_timestamp(self, ancdata) -> int | None:
         # SO_TIMESTAMPING returns a struct scm_timestamping
         # which contains 3 timespecs: software, transformed, hardware.
         # We want the hardware one (index 2) if available, otherwise software (index 0).
@@ -321,6 +335,9 @@ class Eth(BaseTransport):
                 self.logger.error("Failed to enable PTP hardware timestamping")
         else:
             self.logger.info(f"Hardware timestamping NOT supported on interface {ts_info.interface_name!r}")
+
+    def on_framing_error(self, error: FramingError, offset: int) -> None:
+        self.logger.error(f"Ethernet framing error: {error!s} at offset {offset}")
 
     # =========================================================================
     # XCP 1.5: GET_DAQ_CLOCK_MULTICAST Support

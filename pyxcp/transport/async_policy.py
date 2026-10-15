@@ -3,7 +3,8 @@
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import Any, Iterable, Optional
+from typing import Any
+from collections.abc import Iterable
 
 from .transport_ext import FrameCategory
 
@@ -29,9 +30,9 @@ class AsyncFrameSubscription:
         self,
         adapter: "AsyncPolicyAdapter",
         *,
-        categories: Optional[Iterable[FrameCategory]] = None,
+        categories: Iterable[FrameCategory] | None = None,
         maxsize: int = 0,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
+        loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         self._adapter = adapter
         self._loop = loop or asyncio.get_running_loop()
@@ -125,9 +126,9 @@ class AsyncPolicyAdapter:
     def subscribe(
         self,
         *,
-        categories: Optional[Iterable[FrameCategory]] = None,
+        categories: Iterable[FrameCategory] | None = None,
         maxsize: int = 0,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
+        loop: asyncio.AbstractEventLoop | None = None,
     ) -> AsyncFrameSubscription:
         if self._finalized:
             raise RuntimeError("Cannot subscribe to a finalized async policy.")
@@ -135,14 +136,14 @@ class AsyncPolicyAdapter:
         self._subscriptions.add(subscription)
         return subscription
 
-    def subscribe_daq(self, *, maxsize: int = 0, loop: Optional[asyncio.AbstractEventLoop] = None) -> AsyncFrameSubscription:
+    def subscribe_daq(self, *, maxsize: int = 0, loop: asyncio.AbstractEventLoop | None = None) -> AsyncFrameSubscription:
         return self.subscribe(categories={FrameCategory.DAQ}, maxsize=maxsize, loop=loop)
 
     def subscribe_events(
         self,
         *,
         maxsize: int = 0,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
+        loop: asyncio.AbstractEventLoop | None = None,
     ) -> AsyncFrameSubscription:
         return self.subscribe(categories={FrameCategory.EVENT}, maxsize=maxsize, loop=loop)
 
@@ -150,7 +151,7 @@ class AsyncPolicyAdapter:
         self,
         *,
         maxsize: int = 0,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
+        loop: asyncio.AbstractEventLoop | None = None,
     ) -> AsyncFrameSubscription:
         return self.subscribe(categories={FrameCategory.RESPONSE}, maxsize=maxsize, loop=loop)
 

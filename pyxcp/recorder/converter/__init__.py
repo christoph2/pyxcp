@@ -94,9 +94,9 @@ class Storage:
 @dataclass
 class StorageContainer:
     name: str
-    arr: List[Storage] = field(default_factory=[])
-    timestamp0: List[int] = field(default_factory=lambda: array("Q"))
-    timestamp1: List[int] = field(default_factory=lambda: array("Q"))
+    arr: list[Storage] = field(default_factory=[])
+    timestamp0: list[int] = field(default_factory=lambda: array("Q"))
+    timestamp1: list[int] = field(default_factory=lambda: array("Q"))
 
 
 class XcpLogFileDecoder(_XcpLogFileDecoder):
@@ -410,7 +410,7 @@ class SqliteConverter(XcpLogFileDecoder):
         self.execute(ddl)
         self.execute("INSERT INTO table_names VALUES(?)", [sc.name])
 
-    def execute(self, *args: List[str]) -> None:
+    def execute(self, *args: list[str]) -> None:
         try:
             self.cursor.execute(*args)
         except Exception as e:

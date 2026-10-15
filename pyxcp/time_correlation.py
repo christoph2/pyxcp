@@ -25,7 +25,6 @@ import enum
 import logging
 import struct
 from dataclasses import dataclass, field
-from typing import Optional
 
 from pyxcp.events import ClockFormat, PayloadFormat, TriggerInfo
 
@@ -372,7 +371,7 @@ class ClockInformation:
     timestamp_unit: TimestampUnit  # BYTE
     stratum_level: int  # BYTE (255 if unknown)
     native_timestamp_size: NativeTimestampSize  # BYTE
-    epoch: Optional[Epoch]  # BYTE (only for GRANDM)
+    epoch: Epoch | None  # BYTE (only for GRANDM)
     max_timestamp_before_wrap: int  # DLONG
 
     @staticmethod
@@ -496,12 +495,12 @@ class GetDaqClockResponse:
     trigger_info: int
     payload_fmt: int
     timestamp: int
-    timestamp_grandm: Optional[int] = field(default=None)
-    timestamp_ecu: Optional[int] = field(default=None)
-    sync_state: Optional[SyncState] = field(default=None)
+    timestamp_grandm: int | None = field(default=None)
+    timestamp_ecu: int | None = field(default=None)
+    sync_state: SyncState | None = field(default=None)
 
     @staticmethod
-    def parse(response: bytes, byteOrder: str, properties: Optional[TimeCorrelationPropertiesResponse]) -> "GetDaqClockResponse":
+    def parse(response: bytes, byteOrder: str, properties: TimeCorrelationPropertiesResponse | None) -> "GetDaqClockResponse":
         frame_length = len(response)
         if properties is not None and properties.slave_config.response_fmt >= 1:
             extended = True

@@ -63,6 +63,17 @@ PYBIND11_MODULE(cpp_ext, m) {
 
     m.def("check_timestamping_support", &check_timestamping_support, "host_name"_a);
     m.def("init_networking", &init_networking);
+    m.def("get_ipv4_interfaces", []() {
+        auto interfaces = get_ipv4_interfaces();
+        py::list result;
+        for (const auto& iface : interfaces) {
+            py::list entry;
+            entry.append(iface.first);
+            entry.append(iface.second);
+            result.append(entry);
+        }
+        return result;
+    });
 
     py::class_<McObject>(m, "McObject")
         .def(

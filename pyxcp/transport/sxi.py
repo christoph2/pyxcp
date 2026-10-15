@@ -1,7 +1,7 @@
 import threading
 from collections import deque
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 import serial
 
@@ -61,7 +61,7 @@ def get_receiver_class(header_format: str, checksum_format: str) -> Any:
 class SxI(BaseTransport):
     """"""
 
-    def __init__(self, config=None, policy=None, transport_layer_interface: Optional[serial.Serial] = None) -> None:
+    def __init__(self, config=None, policy=None, transport_layer_interface: serial.Serial | None = None) -> None:
         self.load_config(config)
         self.port_name = self.config.port
         self.baudrate = self.config.bitrate

@@ -201,7 +201,7 @@ Three samples should only be used for relatively slow baudrates""",
     ).tag(config=True)
     driver_mode = Bool(default_value=None, allow_none=True, help="Silent or normal.").tag(config=True)
     single_handle = Bool(
-        default_value=None,
+        default_value=True,
         allow_none=True,
         help="""Use one Kvaser CANLIB bus handle for both reading and writing.
 This can be set if reading and/or writing is done from one thread. """,
@@ -614,6 +614,7 @@ class Can(Configurable):
     daq_identifier = List(trait=Integer(), default_value=[], allow_none=True, help="One CAN identifier per DAQ-list.").tag(
         config=True
     )
+    pid_off = Bool(False, help="Transmit DTOs without identification field").tag(config=True)
     bitrate = Integer(250000, help="CAN bitrate in bits/s (arbitration phase, if CAN FD).").tag(config=True)
     receive_own_messages = Bool(False, help="Enable self-reception of sent messages.").tag(config=True)
     poll_interval = Float(default_value=None, allow_none=True, help="Poll interval in seconds when reading messages.").tag(
@@ -858,8 +859,7 @@ class Transport(Configurable):
     create_daq_timestamps = Bool(True, help="Record time of frame reception or set timestamp to 0.").tag(config=True)
     timeout = Float(
         2.0,
-        help="""raise `XcpTimeoutError` after `timeout` seconds
-if there is no response to a command.""",
+        help="""raise `XcpTimeoutError` after `timeout` seconds if there is no response to a command.""",
     ).tag(config=True)
     alignment = Enum(values=[1, 2, 4, 8], default_value=1).tag(config=True)
 
@@ -904,14 +904,14 @@ class CustomArgs(Configurable):
 
         # Dynamically add a trait for this argument
         trait_type = Any()
-        # noqa: E721 - comparing types intentionally (traitlets pattern)
-        if type == bool or action == "store_true" or action == "store_false":  # noqa: E721
+
+        if type == bool or action == "store_true" or action == "store_false":
             trait_type = Bool(default)
-        elif type == int:  # noqa: E721
+        elif type == int:
             trait_type = Integer(default)
-        elif type == float:  # noqa: E721
+        elif type == float:
             trait_type = Float(default)
-        elif type == str:  # noqa: E721
+        elif type == str:
             trait_type = Unicode(default)
 
         # Add the trait to this instance
@@ -964,6 +964,10 @@ class General(Configurable):
         help="""Python function used for slave resource unlocking.
 Could be used if seed-and-key algorithm is known instead of `seed_n_key_dll`.""",
     ).tag(config=True)
+    checksum_dll = Unicode("", allow_none=False, help="Dynamic library used for user-defined checksum calculation.").tag(
+        config=True
+    )
+    checksum_dll_same_bit_width = Bool(False, help="Assume checksum DLL has same bit width as Python interpreter.").tag(config=True)
     stim_support = Bool(False, help="").tag(config=True)
 
 
@@ -1217,7 +1221,7 @@ class PyXCP(Application):
     def _default_value(self):
         return logging.INFO  # traitlets default is logging.WARN
 
-    def _find_config_file(self, file_name: str) -> typing.Optional[Path]:
+    def _find_config_file(self, file_name: str) -> Path | None:
         """Search for configuration file in multiple locations.
 
         Search order:
@@ -1275,7 +1279,7 @@ class PyXCP(Application):
         )
     )
 
-    def _iterate_config_class(self, klass, class_names: typing.List[str], config, out_file: io.IOBase = sys.stdout) -> None:
+    def _iterate_config_class(self, klass, class_names: list[str], config, out_file: io.IOBase = sys.stdout) -> None:
         sub_classes = []
         class_path = ".".join(class_names)
         print(
@@ -1328,10 +1332,10 @@ class PyXCP(Application):
             )
 
 
-application: typing.Optional[PyXCP] = None
+application: PyXCP | None = None
 
 
-def create_application(options: typing.Optional[typing.List[typing.Any]] = None, callout=None) -> PyXCP:
+def create_application(options: list[typing.Any] | None = None, callout=None) -> PyXCP:
     global application
     if options is None:
         options = []
@@ -1352,7 +1356,7 @@ def create_application(options: typing.Optional[typing.List[typing.Any]] = None,
     return application
 
 
-def get_application(options: typing.Optional[typing.List[typing.Any]] = None, callout=None) -> PyXCP:
+def get_application(options: list[typing.Any] | None = None, callout=None) -> PyXCP:
     """Get or create the global PyXCP application instance.
 
     Args:
@@ -1376,7 +1380,7 @@ def get_application(options: typing.Optional[typing.List[typing.Any]] = None, ca
 
 
 def create_application_from_config(
-    config_dict: typing.Optional[typing.Dict[str, typing.Any]] = None,
+    config_dict: dict[str, typing.Any] | None = None,
     log_level: int = logging.INFO,
 ) -> PyXCP:
     """Create a PyXCP application programmatically without config file.
@@ -1460,4 +1464,4 @@ def set_application(app: PyXCP) -> None:
 def reset_application() -> None:
     """Reset the global PyXCP application instance."""
     global application
-    application = None  # noqa: F841
+    application = None

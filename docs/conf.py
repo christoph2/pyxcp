@@ -17,7 +17,7 @@ def get_version():
     import re
     from pathlib import Path
 
-    VERSION = re.compile(r'version\s*=\s*"(?P<version>\d+\.\d+(\.\d+)?)\s*"', re.M)
+    VERSION = re.compile(r'version\s*=\s*"(?P<version>\d+\.\d+(\.\d+)?)\s*"', re.MULTILINE)
 
     try:
         cfg = Path(r"../pyproject.toml")

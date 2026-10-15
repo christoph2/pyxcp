@@ -12,7 +12,7 @@ import pytz
 from pyxcp.cpp_ext.cpp_ext import TimestampInfo
 
 
-def hexDump(arr: Union[bytes | bytearray]):
+def hexDump(arr: bytes | bytearray):
     if not isinstance(arr, (bytes, bytearray)):
         arr = bytes(arr)
 

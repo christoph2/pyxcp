@@ -55,7 +55,7 @@ def main():
                 daq_pro = daq_info["processor"]
                 daq_properties = daq_pro["properties"]
                 if x.slaveProperties.transport_layer == "CAN":
-                    print("")
+                    print()
                     if daq_properties["pidOffSupported"]:
                         print("*** pidOffSupported -- i.e. one CAN-ID per DAQ-list.")
                     else:

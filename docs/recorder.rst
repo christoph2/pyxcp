@@ -137,9 +137,12 @@ Setting up DAQ lists
 
 Users primarily define two data structures:
 
-- ``pyxcp.daq_stim.DaqList``: Corresponds to one XCP DAQ list.
-- ``measurements``: A list of tuples specifying the variables to
-  acquire.
+- ``pyxcp.daq_stim.DaqList``: Corresponds to one XCP DAQ list. Used for dynamic configuration.
+- ``pyxcp.daq_stim.PredefinedDaqList``: Corresponds to a fixed (predefined) XCP DAQ list on the slave.
+- ``measurements``: A list of tuples specifying the variables to acquire.
+
+Dynamic DAQ Lists (DaqList)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Conceptually, ``DaqList`` provides these fields:
 
@@ -152,6 +155,33 @@ Conceptually, ``DaqList`` provides these fields:
    measurements: list        # list[ (name, address, address_extension, datatype) ]
    priority: int             # optional
    prescaler: int            # optional
+
+Allocation and optimization of ODTs is handled automatically by pyXCP
+(using bin-packing and continuous block construction internally).
+
+Predefined DAQ Lists (PredefinedDaqList)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If the ECU already has a fixed ODT configuration (e.g., for static DAQ setups), use ``PredefinedDaqList``.
+In this case, pyXCP skips ``ALLOC_DAQ``, ``ALLOC_ODT``, and ``WRITE_DAQ`` steps and directly starts the acquisition.
+
+.. code:: python
+
+   from pyxcp.daq_stim import PredefinedDaqList
+
+   # Define the fixed ODT structure as expected by the slave
+   odts = [
+       [("EngineSpeed", "U16"), ("EngineTemp", "I8")], # ODT 0
+       [("ThrottlePos", "U8")]                         # ODT 1
+   ]
+
+   daq_list = PredefinedDaqList(
+       name="StaticList",
+       event_num=1,
+       stim=False,
+       enable_timestamps=True,
+       odts=odts
+   )
 
 Data types are given as mnemonics (e.g., U8, I16, F32, F64, F16, BF16).
 To see all supported mnemonics:

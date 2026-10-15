@@ -1,4 +1,5 @@
 import pytest
+from unittest import mock
 
 from pyxcp import checksum
 
@@ -91,5 +92,10 @@ def testCrc32():
 
 
 def testUserDefined():
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(ValueError, match="User defined checksum requires a master instance for configuration."):
         checksum.check(TEST, "XCP_USER_DEFINED")
+
+    mock_master = mock.Mock()
+    mock_master.checksum_dll = None
+    with pytest.raises(ValueError, match="User defined checksum selected, but no DLL specified in configuration."):
+        checksum.check(TEST, "XCP_USER_DEFINED", master=mock_master)

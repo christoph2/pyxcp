@@ -90,7 +90,7 @@ class XcpLogFileWriter:
         if not self._finalized:
             self.finalize()
 
-    def add_frame(self, category: FrameCategory, counter: int, timestamp: float, payload: Union[bytes, bytearray]):
+    def add_frame(self, category: FrameCategory, counter: int, timestamp: float, payload: bytes | bytearray):
         self._writer.add_frame(category, counter % (COUNTER_MAX + 1), timestamp, len(payload), payload)
 
     def finalize(self):

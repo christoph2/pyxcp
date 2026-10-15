@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-from typing import Optional
 
 import can
 
@@ -16,7 +15,7 @@ class CustomCANInterface(CanInterfaceBase):
         print(f"set_filters({filters})")
         self._filters = filters
 
-    def recv(self, timeout: Optional[float] = None) -> Optional[can.message.Message]:
+    def recv(self, timeout: float | None = None) -> can.message.Message | None:
         """Receive CAN frames."""
         return can.message.Message()
 

@@ -88,10 +88,12 @@ c.Transport.Eth.protocol = "TCP"
 # Option 1: DLL
 c.General.seed_n_key_dll = "SeedNKeyXcp.dll"
 
+
 # Option 2: Python function (preferred!)
 def my_seed_key(resource: int, seed: bytes) -> bytes:
     # Your algorithm here
     return key
+
 
 c.General.seed_n_key_function = my_seed_key
 ```

@@ -47,8 +47,6 @@ class XcpLogCategory(enum.IntEnum):
 class XcpLogFileParseError(Exception):
     """Log file is damaged is some way."""
 
-    pass
-
 
 class XcpLogFileCapacityExceededError(Exception):
     pass

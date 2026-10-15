@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import struct
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 
 PackerType = Callable[[int], bytes]

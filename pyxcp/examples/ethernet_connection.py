@@ -212,7 +212,7 @@ if __name__ == "__main__":
         sock.connect((ECU_IP, ECU_PORT))
         sock.close()
         print(f"✓ TCP port {ECU_PORT} is open")
-    except (socket.timeout, ConnectionRefusedError):
+    except (TimeoutError, ConnectionRefusedError):
         print(f"✗ TCP port {ECU_PORT} is closed or filtered")
         print("\nTroubleshooting:")
         print("1. Verify ECU IP address")

@@ -38,8 +38,11 @@ def create_config():
             self.seed_n_key_dll = None
             self.seed_n_key_function = None
             self.seed_n_key_dll_same_bit_width = False
+            self.checksum_dll = None
+            self.checksum_dll_same_bit_width = False
             self.disconnect_response_optional = False
             self.connect_retries = 0  # Disable connect retries for testing
+            self.custom_dll_loader = None
 
     class TransportConfig:
         def __init__(self):
@@ -84,10 +87,8 @@ class MockSocket(mock.MagicMock):
 
     # push packet, automatically add header (len + ctr)
     def push_packet(self, data):
-        try:
+        if isinstance(data, str):
             data = bytes.fromhex(data)
-        except TypeError:
-            pass
 
         # import inspect
 
@@ -161,10 +162,8 @@ class MockCanInterface:  # CanInterfaceBase
 
     # push packet
     def push_packet(self, data):
-        try:
+        if isinstance(data, str):
             data = bytes.fromhex(data)
-        except TypeError:
-            pass
         # no header on CAN
         self.push_frame(data)
 
@@ -1471,14 +1470,14 @@ class TestMaster:
 
             assert res == b""
 
-            ms.push_frame([0x03, 0x00, 0x15, 0x00, 0xFF, 0x00, 0x00])
+            ms.push_packet("FF 00 00 00 00")
 
             res = xm.getDaqPackedMode(258)
 
             ms._mock_send.assert_called_with(bytes([0x04, 0x00, 0x15, 0x00, 0xC0, 0x02, 0x02, 0x01]))
 
-            assert res.daqPackedMode == types.DaqPackedMode.NONE
-            assert res.dpmTimestampMode is None
+            assert res.daq_packed_mode == "NOT_PACKED"
+            assert res.timestamp_mode.ts_present is False
 
             ms.push_frame([0x01, 0x00, 0x16, 0x00, 0xFF])
 
@@ -1505,15 +1504,15 @@ class TestMaster:
 
             assert res == b""
 
-            ms.push_frame("06 00 17 00 FF 00 02 01 34 12")
+            ms.push_packet("FF 02 01 34 12")
 
             res = xm.getDaqPackedMode(258)
 
             ms._mock_send.assert_called_with(bytes([0x04, 0x00, 0x17, 0x00, 0xC0, 0x02, 0x02, 0x01]))
 
-            assert res.daqPackedMode == "EVENT_GROUPED"
-            assert res.dpmTimestampMode == 0x01
-            assert res.dpmSampleCount == 0x1234
+            assert res.daq_packed_mode == "EVENT_GROUPED"
+            assert res.timestamp_mode.ts_present is True
+            assert res.sample_count == 0x1234
 
     @mock.patch("pyxcp.transport.eth.socket.socket")
     @mock.patch("pyxcp.transport.eth.selectors.DefaultSelector")
@@ -2144,9 +2143,15 @@ class TestMaster:
 
             ms.push_packet("FF 15 25 01 1F 00 78 56")
 
-            res = xm.timeCorrelationProperties(0x15, 0x01, 0x1234)
+            res = xm.timeCorrelationProperties(
+                response_fmt=2,
+                get_clk_info=True,
+                cluster_id=0x1234,
+                time_sync_bridge=1,
+                set_cluster_id=True,
+            )
 
-            ms._mock_send.assert_called_with(bytes([0x06, 0x00, 0x01, 0x00, 0xC6, 0x15, 0x01, 0x00, 0x34, 0x12]))
+            ms._mock_send.assert_called_with(bytes([0x06, 0x00, 0x01, 0x00, 0xC6, 0x16, 0x01, 0x00, 0x34, 0x12]))
 
             assert res.slave_config.response_fmt == 0x15 & 0x03
             assert res.slave_config.daq_ts_relation == 0x25 & 0x01

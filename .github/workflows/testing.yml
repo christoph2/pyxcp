@@ -50,6 +50,11 @@ jobs:
         run: |
           poetry install --no-interaction --no-ansi --with dev
 
+      - name: Build C++ extensions
+        run: |
+          poetry run pip install scikit-build-core pybind11==2.13.6 --quiet
+          poetry run pip install --no-build-isolation -e .
+
       - name: Run tests
         run: |
           poetry run pytest -q --junitxml=result.xml

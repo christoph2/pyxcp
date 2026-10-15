@@ -10,10 +10,10 @@ from rich.traceback import install as tb_install
 
 pretty.install()
 
-from .master import Master  # noqa: F401, E402
-from .master.async_master import AsyncMaster  # noqa: F401, E402
-from .transport import Can, Eth, SxI, Usb  # noqa: F401, E402
-from .transport.async_policy import AsyncPolicyAdapter, AsyncFrameSubscription, FrameNotification  # noqa: F401, E402
+from .master import Master  # noqa: F401
+from .master.async_master import AsyncMaster  # noqa: F401
+from .transport import Can, Eth, SxI, Usb  # noqa: F401
+from .transport.async_policy import AsyncPolicyAdapter, AsyncFrameSubscription, FrameNotification  # noqa: F401
 
 
 console = Console()
@@ -21,7 +21,7 @@ tb_install(show_locals=True, max_frames=3)  # Install custom exception handler.
 
 # if you update this manually, do not forget to update
 # pyproject.toml.
-__version__ = "0.29.10"
+__version__ = "0.29.19"
 
 
 # Deprecation warning for TOML config

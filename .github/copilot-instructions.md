@@ -179,6 +179,7 @@ Each transport inherits from `base.BaseTransport`:
    Modern configuration uses traitlets (not TOML):
    ```python
    from pyxcp.config.models import XcpConfig
+
    config = XcpConfig(...)
    ```
 

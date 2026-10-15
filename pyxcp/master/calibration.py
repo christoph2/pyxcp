@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from pyxcp.types import PagePropertiesInfo
@@ -46,9 +46,9 @@ class Segment:
     max_mapping: int
     compression_method: int
     encryption_method: int
-    pages: Dict[int, Page]
-    address: Optional[int] = None
-    length: Optional[int] = None
+    pages: dict[int, Page]
+    address: int | None = None
+    length: int | None = None
     mode: int = 0  # Current segment mode (e.g., Freeze)
 
     def __repr__(self):
@@ -65,7 +65,7 @@ class Calibration:
 
     def __init__(self, master):
         self.master = master
-        self.segments: Dict[int, Segment] = {}
+        self.segments: dict[int, Segment] = {}
         self.max_segments: int = 0
         self.freeze_supported: bool = False
         self._initialized: bool = False
@@ -226,7 +226,7 @@ class Calibration:
         """
         return self.master.getCalPage(mode, segment)
 
-    def get_current_config(self) -> Dict[int, Dict[str, int]]:
+    def get_current_config(self) -> dict[int, dict[str, int]]:
         """Returns the current active pages for all discovered segments.
 
         Returns

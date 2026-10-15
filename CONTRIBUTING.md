@@ -144,13 +144,14 @@ All commits are automatically checked by pre-commit hooks.
    from pyxcp.config import get_config
 
    c = get_config()
-   c.Transport.layer = 'CAN'
-   c.Transport.Can.interface = 'vector'
+   c.Transport.layer = "CAN"
+   c.Transport.Can.interface = "vector"
    ```
 
 3. **Transport Layer** - inherit from `base.BaseTransport`:
    ```python
    from pyxcp.transport.base import BaseTransport
+
 
    class MyTransport(BaseTransport):
        def connect(self):

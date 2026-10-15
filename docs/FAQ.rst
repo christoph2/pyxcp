@@ -174,3 +174,8 @@ Config file search order (v0.26.5+):
 4. User home ``~/.pyxcp/pyxcp_conf.py``
 
 Related issues: #260
+
+How to use Predefined DAQ-Lists?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Predefined DAQ-lists (static DAQ) are supported via the ``PredefinedDaqList`` class. This is required when the slave has a fixed ODT configuration. For a detailed guide and examples, see :doc:`recorder` (section "Predefined DAQ Lists") and the example script ``pyxcp/examples/predefined_daq_example.py``.

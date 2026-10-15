@@ -8,7 +8,7 @@ from typing import List
 from pyxcp.cpp_ext.cpp_ext import McObject
 
 
-def make_continuous_blocks(chunks: List[McObject], upper_bound=None, upper_bound_initial=None) -> List[McObject]:
+def make_continuous_blocks(chunks: list[McObject], upper_bound=None, upper_bound_initial=None) -> list[McObject]:
     """Try to make continous blocks from a list of small, unordered `chunks`.
 
     Parameters

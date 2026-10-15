@@ -13,7 +13,8 @@ import struct
 import traceback
 import warnings
 from contextlib import suppress
-from typing import Any, Callable, Collection, Optional, TypeVar
+from typing import Any, TypeVar
+from collections.abc import Callable, Collection
 
 from pyxcp.daq_stim.stim import DaqEventInfo, Stim
 
@@ -183,7 +184,7 @@ class Master:
         # Policies may issue XCP commands on their own.
         self.transport.policy.xcp_master = self
 
-        self.time_correlation_properties: Optional[TimeCorrelationPropertiesResponse] = None
+        self.time_correlation_properties: TimeCorrelationPropertiesResponse | None = None
 
         # (D)Word (un-)packers are byte-order dependent
         # -- byte-order is returned by CONNECT_Resp (COMM_MODE_BASIC)
@@ -207,6 +208,8 @@ class Master:
         self.seed_n_key_dll: str | None = self.config.seed_n_key_dll
         self.seed_n_key_function: Callable | None = self.config.seed_n_key_function
         self.seed_n_key_dll_same_bit_width: bool = self.config.seed_n_key_dll_same_bit_width
+        self.checksum_dll: str | None = self.config.checksum_dll
+        self.checksum_dll_same_bit_width: bool = self.config.checksum_dll_same_bit_width
         self.disconnect_response_optional: bool = self.config.disconnect_response_optional
 
         # Initialize slave properties
@@ -785,7 +788,7 @@ class Master:
 
         # Check if the requested byte count exceeds the maximum
         if byte_count > max_byte_count:
-            self.logger.warn(f"SHORT_UPLOAD: {byte_count} bytes exceeds the maximum value of {max_byte_count}.")
+            self.logger.warning(f"SHORT_UPLOAD: {byte_count} bytes exceeds the maximum value of {max_byte_count}.")
 
         # Send SHORT_UPLOAD command to the slave
         response = self.transport.request(types.Command.SHORT_UPLOAD, length, 0, address_ext, *addr)
@@ -826,7 +829,9 @@ class Master:
         response = self.transport.request(types.Command.BUILD_CHECKSUM, 0, 0, 0, *bs)
 
         # Parse the response with the correct byte order
-        return types.BuildChecksumResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+        res = types.BuildChecksumResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
+        res.master = self
+        return res
 
     @wrapped
     def transportLayerCmd(self, sub_command: int, *data: bytes) -> bytes:
@@ -1797,6 +1802,8 @@ class Master:
         response_fmt: int = 0,
         get_clk_info: int = 0,
         cluster_id: int = 0x0000,
+        time_sync_bridge: int = 0,
+        set_cluster_id: bool = False,
     ):
         """Configure and query time correlation properties (XCP 1.3/1.5).
 
@@ -1827,6 +1834,12 @@ class Master:
             1 = Enable extended mode, EV_TIME_SYNC for TRIGGER_INITIATOR 0,2,3 only
             2 = Enable extended mode, EV_TIME_SYNC for all triggers
             3 = Reserved
+        get_clk_info : bool
+            If True, set MTA to clock information data block for UPLOAD
+        cluster_id : int
+            16-bit cluster identifier (Intel byte order)
+            Default: 0x0000
+            Used for GET_DAQ_CLOCK_MULTICAST routing
         time_sync_bridge : int
             Time Sync Bridge control:
             0 = Do not change (default)
@@ -1835,12 +1848,6 @@ class Master:
             3 = Reserved
         set_cluster_id : bool
             If True, assign slave to logical cluster specified by cluster_id
-        cluster_id : int
-            16-bit cluster identifier (Intel byte order)
-            Default: 0x0000
-            Used for GET_DAQ_CLOCK_MULTICAST routing
-        get_clk_info : bool
-            If True, set MTA to clock information data block for UPLOAD
 
         Returns
         -------
@@ -1899,12 +1906,19 @@ class Master:
         ----------
         XCP 1.5 Spec, Section 7.5.6.1: TIME_CORRELATION_PROPERTIES
         """
-        from pyxcp.time_correlation import TimeCorrelationPropertiesResponse
+        from pyxcp.time_correlation import GetPropertiesRequest, SetProperties, TimeCorrelationPropertiesResponse
+
+        set_properties = SetProperties.encode(
+            response_fmt=response_fmt & 0x03,
+            time_sync_bridge=time_sync_bridge & 0x03,
+            set_cluster_id=set_cluster_id,
+        )
+        get_properties = GetPropertiesRequest.encode(bool(get_clk_info))
 
         response = self.transport.request(
             types.Command.TIME_CORRELATION_PROPERTIES,
-            response_fmt & 0xFF,
-            get_clk_info & 0xFF,
+            set_properties,
+            get_properties,
             0x00,
             *self.WORD_pack(cluster_id),
         )

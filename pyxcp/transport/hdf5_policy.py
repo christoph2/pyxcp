@@ -2,7 +2,6 @@
 
 import datetime
 from pathlib import Path
-from typing import List, Dict
 
 import h5py
 import numpy as np
@@ -45,9 +44,9 @@ MAP_TO_ASAM_HO = {
 class BufferedDataset:
     def __init__(self, dataset: h5py.Dataset):
         self.dataset = dataset
-        self.buffer: List[int | float] = []
+        self.buffer: list[int | float] = []
 
-    def add_sample(self, sample: int | float):
+    def add_sample(self, sample: float):
         self.buffer.append(sample)
         if len(self.buffer) >= BATCH_SIZE:
             self.flush()
@@ -68,7 +67,7 @@ class DatasetGroup:
         self,
         ts0_ds: BufferedDataset,
         ts1_ds: BufferedDataset,
-        datasets: List[BufferedDataset],
+        datasets: list[BufferedDataset],
     ):
         self.ts0_ds = ts0_ds
         self.ts1_ds = ts1_ds
@@ -101,7 +100,7 @@ def create_timestamp_column(hdf_file: h5py.File, group_name: str, num: int) -> h
 
 
 class Hdf5OnlinePolicy(DaqOnlinePolicy):
-    def __init__(self, file_name: str | Path, daq_lists: List[DaqList], **metadata):
+    def __init__(self, file_name: str | Path, daq_lists: list[DaqList], **metadata):
         super().__init__(daq_lists=daq_lists)
         path = Path(file_name)
         if path.suffix != ".h5":
@@ -120,7 +119,7 @@ class Hdf5OnlinePolicy(DaqOnlinePolicy):
 
     def initialize(self):
         self.log.debug("Hdf5OnlinePolicy::Initialize()")
-        self.datasets: Dict[int, DatasetGroup] = {}
+        self.datasets: dict[int, DatasetGroup] = {}
         for num, daq_list in enumerate(self.daq_lists):
             if daq_list.stim:
                 continue
