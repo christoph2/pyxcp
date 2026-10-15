@@ -52,11 +52,11 @@ classifiers = [
     "Topic :: Software Development",
     "Topic :: Scientific/Engineering",
     "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
 ]
 build = "build_ext.py"
 include = [
@@ -82,7 +82,7 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = ">=3.11,<3.16"
 construct = ">=2.10.68,<3"
 pyserial = ">=3.5,<4"
 pyusb = ">=1.2,<2"
@@ -123,7 +123,7 @@ show_error_context = true
 
 [tool.ruff]
 line-length = 132
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 ignore = ["I001"]
@@ -131,7 +131,7 @@ unfixable = ["B"]
 
 [tool.cibuildwheel]
 build-verbosity = 3
-build = "cp3{10,11,12,13,14}-*"
+build = "cp3{11,12,13,14,15}-*"
 skip = ["*_i686", "*-musllinux*"]
 build-frontend = "build"
 

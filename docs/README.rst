@@ -42,7 +42,7 @@ To install from the main branch:
 Requirements
 ~~~~~~~~~~~~
 
-- Python >= 3.10
+- Python >= 3.11, < 3.16
 - Building from source requires a working C/C++ toolchain (native
   extensions are used for performance). Wheels are provided for common
   platforms and Python versions; if a wheel is not available, pip will
@@ -181,7 +181,7 @@ Compatibility
 -------------
 
 - Operating systems: Windows, Linux, macOS
-- Python: 3.10 - 3.14, CPython wheels where available
+- Python: 3.11 - 3.15, CPython wheels where available
 - CAN backends: python-can compatible drivers (see `howto_can_driver <howto_can_driver.rst>`__)
 
 Contributing

@@ -127,7 +127,7 @@ In `.github/workflows/build.yml`:
 Before releasing wheels:
 - [ ] Test on Ubuntu 20.04, 22.04, 24.04
 - [ ] Test on Debian 11, 12
-- [ ] Test with Python 3.10, 3.11, 3.12, 3.13, 3.14
+- [ ] Test with Python 3.11, 3.12, 3.13, 3.14, 3.15
 - [ ] Verify wheel contains all .so files
 - [ ] Test import in fresh virtualenv
 - [ ] Check wheel size (<5 MB per platform ideally)
