@@ -1,7 +1,7 @@
 Installation and Getting Started
 ================================
 
-**Pythons**: *Python* >= 3.10
+**Python**: *Python* >= 3.11, < 3.16
 
 **Platforms**: No platform-specific restrictions besides availability of
 communication drivers (CAN, Ethernet, USB, etc.).
@@ -43,7 +43,7 @@ Using pip with GitHub
 Requirements
 ------------
 
-- Python >= 3.10
+- Python >= 3.11, < 3.16
 - A running XCP slave (of course)
 - If you are using a 64-bit Windows version and want to use seed-and-key
   .dlls (to unlock resources), a GCC compiler capable of creating 32-bit

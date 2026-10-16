@@ -8,7 +8,7 @@ Quick Start by Platform
 
 Windows::
 
-   # Install Python 3.10+
+   # Install Python 3.11 through 3.15
    pip install pyxcp
    # For CAN: install vendor driver
    # For source builds: install Visual Studio Build Tools
@@ -32,7 +32,7 @@ macOS::
 Windows Setup
 -------------
 
-Python installation: use Python 3.10+ from python.org; add to PATH; enable pip; consider disabling path length limit.
+Python installation: use Python 3.11 through 3.15 from python.org; add to PATH; enable pip; consider disabling path length limit.
 
 Verify::
 
