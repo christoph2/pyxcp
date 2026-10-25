@@ -45,7 +45,7 @@ else ()
 
 
 if (CMAKE_SYSTEM_NAME STREQUAL  "Darwin")
-    set(ENV{MACOSX_DEPLOYMENT_TARGET}  "11.0")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0")
 	SET(GCC_N_CLANG_EXTRA_OPTIONS "-stdlib=libc++")
 	message("Platform is Darwin")
 elseif (CMAKE_SYSTEM_NAME STREQUAL  "Windows")
