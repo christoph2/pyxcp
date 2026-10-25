@@ -33,6 +33,8 @@
 
 #if defined(_WIN32)
     #include "win/native_socket.hpp"
+#elif defined(__APPLE__) || defined(__FreeBSD__)
+    #include "kqueue/native_socket.hpp"
 #else
     #include "linux/native_socket.hpp"
 #endif
