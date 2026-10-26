@@ -736,17 +736,15 @@ class Eth(Configurable):
         False,
         help=(
             "*** Experimental *** -- Use the native asynchronous Ethernet I/O backend "
-            "(IOCP on Windows, epoll on Linux) instead of the selectors-based backend."
+            "(IOCP on Windows, epoll on Linux, kqueue on macOS/FreeBSD) instead of the selectors-based backend."
         ),
     ).tag(config=True)
     iocp_receive_queue_depth = Integer(
         default_value=64,
-        help=(
-            "Depth of the receive queue for the IOCP-based Ethernet I/O backend (Windows only)."
-        ),
+        help=("Depth of the receive queue for the IOCP-based Ethernet I/O backend (Windows only)."),
     ).tag(config=True)
     iocp_buffer_size = Integer(
-        default_value=None, 
+        default_value=None,
         allow_none=True,
         help=(
             "Size of one receive buffer for the IOCP-based Ethernet I/O backend (Windows only); if `None`, 1472 (IPv4) or 1452 (IPv6) are chosen."
