@@ -55,6 +55,7 @@ xmraw-converter = "pyxcp.scripts.xmraw_converter:main"
 cmake.build-type = "Release"
 wheel.packages = ["pyxcp"]
 editable.mode = "inplace"
+sdist.include = ["pyxcp/asamkeydll.c", "pyxcp/asamkeydll.sh"]
 
 [tool.poetry.group.dev.dependencies]
 Pygments = ">=2.10.0"
