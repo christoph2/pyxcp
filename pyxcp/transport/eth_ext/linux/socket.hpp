@@ -93,6 +93,18 @@ public:
         return m_native.receiveFrom(data, length, peer, peer_length);
     }
 
+    int receiveFromTimestamped(void * data, std::size_t length, sockaddr * peer, socklen_t * peer_length, std::uint64_t & timestamp_ns) {
+        return m_native.receiveFromTimestamped(data, length, peer, peer_length, timestamp_ns);
+    }
+
+    void setPtpEnabled(bool enabled) {
+        m_ptp_enabled = enabled;
+    }
+
+    bool ptpEnabled() const {
+        return m_ptp_enabled;
+    }
+
     int getSocketType() const {
         return m_socktype;
     }
@@ -121,6 +133,7 @@ private:
     NativeSocket m_native;
     int m_socktype;
     int m_family;
+    bool m_ptp_enabled {false};
     TimeoutTimer m_timeout {150};
 };
 

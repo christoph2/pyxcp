@@ -33,6 +33,8 @@
 #include "utils.hpp"
 #include "../io_types.hpp"
 #include <WinSock2.h>
+#include <Ws2tcpip.h>
+#include <Mstcpip.h>
 
 enum class RcvState : std::uint8_t{
     FREE,
@@ -125,6 +127,31 @@ public:
         return &m_overlapped;
     }
 
+    // Prepares the WSAMSG used by WSARecvMsg (PTP timestamping) from the current buffer/peer/control state.
+    WSAMSG * prepare_msg() {
+        ZeroOut(&m_msg, sizeof(m_msg));
+        m_msg.name = reinterpret_cast<LPSOCKADDR>(&m_peerAddress);
+        m_msg.namelen = m_peerAddressLength;
+        m_msg.lpBuffers = &m_wsabuf;
+        m_msg.dwBufferCount = 1;
+        m_msg.Control.buf = m_control;
+        m_msg.Control.len = static_cast<ULONG>(sizeof(m_control));
+        m_msg.dwFlags = 0;
+        return &m_msg;
+    }
+
+    // Receive timestamp (ns) from the SO_TIMESTAMP control message of the last WSARecvMsg; 0 if absent.
+    std::uint64_t get_timestamp_ns() {
+        for (WSACMSGHDR * cmsg = WSA_CMSG_FIRSTHDR(&m_msg); cmsg != nullptr; cmsg = WSA_CMSG_NXTHDR(&m_msg, cmsg)) {
+            if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SO_TIMESTAMP) {
+                std::uint64_t ticks = 0;
+                std::memcpy(&ticks, WSA_CMSG_DATA(cmsg), sizeof(ticks));
+                return ticks * 100;  // 100 ns resolution
+            }
+        }
+        return 0;
+    }
+
     void reset() {
         ZeroOut(&m_overlapped, sizeof(OVERLAPPED));
         m_wsabuf.buf = m_xferBuffer.data();
@@ -133,6 +160,7 @@ public:
         m_bytes_to_xfer = 0;
         ZeroOut(&m_peerAddress, sizeof(m_peerAddress));
         m_peerAddressLength = sizeof(m_peerAddress);
+        ZeroOut(&m_msg, sizeof(m_msg));
     }
 
 private:
@@ -144,6 +172,8 @@ private:
     size_t m_bytesRemaining;
     sockaddr_storage m_peerAddress {};
     int m_peerAddressLength {sizeof(sockaddr_storage)};
+    WSAMSG m_msg {};
+    alignas(8) char m_control[128] {};
 };
 
 #endif // __PERIODATA_HPP

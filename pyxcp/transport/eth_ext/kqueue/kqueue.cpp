@@ -216,7 +216,7 @@ void Kqueue::processSocketEvent(AsyncClientSocket& socket, const struct kevent& 
             if (m_callbacks.on_receive) {
                 try {
                     const sockaddr* address = socket.getSocketType() == SOCK_DGRAM ? reinterpret_cast<sockaddr*>(&peer) : nullptr;
-                    m_callbacks.on_receive(socket, buffer.data(), static_cast<std::size_t>(received), address);
+                    m_callbacks.on_receive(socket, buffer.data(), static_cast<std::size_t>(received), address, 0);
                 } catch (...) {
                 }
             }

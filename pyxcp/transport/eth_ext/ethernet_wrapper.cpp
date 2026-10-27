@@ -22,6 +22,8 @@
 
 #include "asynchiofactory.hpp"
 #include "eth_io_backend.hpp"
+#include "eth_utils.hpp"
+#include "eth_ptp.hpp"
 #include "socket.hpp"
 #include "concurrent_queue.hpp"
 
@@ -46,6 +48,7 @@ struct Message {
     MessageTypeCode type;
     IoType operation;
     std::variant<std::string, std::uint32_t, std::monostate> payload;
+    std::uint64_t timestamp_ns{0};
 };
 
 class IocpBackend : public EthIoBackend {
@@ -94,7 +97,7 @@ class IocpBackend : public EthIoBackend {
                     Message msg;
                     if (m_messages.dequeue(msg, 100)) {
                         if ((msg.type == MessageTypeCode::RECEIVED) && (std::holds_alternative<std::string>(msg.payload))) {
-                            onReceive(std::get<std::string>(msg.payload).data(), std::get<std::string>(msg.payload).size());
+                            onReceive(std::get<std::string>(msg.payload).data(), std::get<std::string>(msg.payload).size(), msg.timestamp_ns);
                         } else if (msg.type == MessageTypeCode::IO_ERROR) {
                             // printf("Listener thread: received error: %s\n", msg.error_message.c_str());
                         }
@@ -175,7 +178,11 @@ class IocpBackend : public EthIoBackend {
             m_socket->setOption(IPPROTO_TCP, TCP_NODELAY, 1);
         }
         if (m_eth_config.m_ptp_timestamping) {
-            m_logger.attr("warning")("PTP hardware timestamping is not supported by the IOCP backend.");
+            if (use_tcp) {
+                m_logger.attr("warning")("PTP hardware timestamping is typically not supported for TCP. Only UDP will be attempted.");
+            } else {
+                setupPtp();
+            }
         }
 
         if (m_eth_config.m_bind_to.has_value()) {
@@ -188,6 +195,25 @@ class IocpBackend : public EthIoBackend {
                 m_logger.attr("critical")(msg);
                 throw std::runtime_error(msg);
             }
+        }
+    }
+
+    void setupPtp() {
+        try {
+            const TimestampingInfo info = check_timestamping_support(m_eth_config.m_host);
+            if (!info.timestamping_supported) {
+                m_logger.attr("info")("Hardware timestamping NOT supported on interface '" + info.interface_name + "'");
+                return;
+            }
+            m_logger.attr("info")("Hardware timestamping is supported on interface '" + info.interface_name + "'");
+            if (EthPtp::enable_timestamping(static_cast<int>(m_socket->getHandle()))) {
+                m_socket->setPtpEnabled(true);
+                m_logger.attr("info")("PTP hardware timestamping enabled");
+            } else {
+                m_logger.attr("error")("Failed to enable PTP hardware timestamping");
+            }
+        } catch (const std::exception & ex) {
+            m_logger.attr("error")(std::string("PTP timestamping setup failed: ") + ex.what());
         }
     }
 
@@ -209,8 +235,8 @@ class IocpBackend : public EthIoBackend {
         m_stream = m_socket->getSocketType() == SOCK_STREAM;
 
         IoCallbacks callbacks;
-        callbacks.on_receive = [this](AsyncClientSocket &, const char * data, std::size_t length, const sockaddr *) {
-            m_messages.enqueue(Message{MessageTypeCode::RECEIVED, IoType::IO_READ, std::string(data, length)});
+        callbacks.on_receive = [this](AsyncClientSocket &, const char * data, std::size_t length, const sockaddr *, std::uint64_t timestamp_ns) {
+            m_messages.enqueue(Message{MessageTypeCode::RECEIVED, IoType::IO_READ, std::string(data, length), timestamp_ns});
         };
         callbacks.on_disconnect = [this](AsyncClientSocket &) { m_status.store(0); };
         callbacks.on_error = [this](AsyncClientSocket *, IoType operation, unsigned long error) { onError(operation, error); };
@@ -221,7 +247,7 @@ class IocpBackend : public EthIoBackend {
         }
         m_status.store(1);
         std::string proto_str = m_stream ? "TCP" : "UDP";
-        m_logger.attr("info")("XCPonEth - Connected to: " + describe(m_peer) + " [" + proto_str + " / experimental]");
+        m_logger.attr("info")("XCPonEth - Connected to: " + describe(m_peer) + " [" + proto_str + " / IOCP]");
         m_logger.attr("info")("XCPonEth - IOCP receive queue depth: " +         std::to_string(m_eth_config.m_iocp_receive_queue_depth.value_or(64)) +
                     ", buffer size: " +
                     (m_eth_config.m_iocp_buffer_size ? std::to_string(*m_eth_config.m_iocp_buffer_size) : std::string("default")));
@@ -236,13 +262,17 @@ class IocpBackend : public EthIoBackend {
         return std::string(host) + ":" + service;
     }
 
-    void onReceive(const char * data, std::size_t length) {
+    void onReceive(const char * data, std::size_t length, std::uint64_t timestamp_ns) {
         py::gil_scoped_acquire gil;
         if (m_closing.load()) {
             return;
         }
         try {
-            m_feed_frame(py::bytes(data, length), m_timestamp.attr("value"));
+            if (timestamp_ns != 0) {
+                m_feed_frame(py::bytes(data, length), timestamp_ns);
+            } else {
+                m_feed_frame(py::bytes(data, length), m_timestamp.attr("value"));
+            }
         } catch (py::error_already_set & ex) {
             m_logger.attr("error")(std::string("XCPonEth - IOCP receive handler failed: ") + ex.what());
         }

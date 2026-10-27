@@ -35,6 +35,9 @@
 #include <unistd.h>
 
 #include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <ctime>
 #include <utility>
 
 #include "../eth.hpp"
@@ -186,6 +189,37 @@ public:
         const int result = static_cast<int>(::recvfrom(m_handle, data, length, 0, peer, peer_length));
         if (result == SOCKET_ERROR) {
             SocketErrorExit("NativeSocket::receiveFrom()");
+        }
+        return result;
+    }
+
+    // Like receiveFrom(), but also extracts the SO_TIMESTAMPING receive timestamp
+    // (hardware if available, otherwise software) in ns; 0 if none was delivered.
+    int receiveFromTimestamped(void * data, std::size_t length, sockaddr * peer, socklen_t * peer_length, std::uint64_t & timestamp_ns) {
+        iovec iov{data, length};
+        alignas(cmsghdr) char control[256];
+        msghdr msg{};
+        msg.msg_name = peer;
+        msg.msg_namelen = *peer_length;
+        msg.msg_iov = &iov;
+        msg.msg_iovlen = 1;
+        msg.msg_control = control;
+        msg.msg_controllen = sizeof(control);
+        const int result = static_cast<int>(::recvmsg(m_handle, &msg, 0));
+        if (result == SOCKET_ERROR) {
+            SocketErrorExit("NativeSocket::receiveFromTimestamped()");
+        }
+        *peer_length = msg.msg_namelen;
+        timestamp_ns = 0;
+        for (cmsghdr * cmsg = CMSG_FIRSTHDR(&msg); cmsg != nullptr; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+            if (cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type == SCM_TIMESTAMPING && cmsg->cmsg_len >= CMSG_LEN(3 * sizeof(timespec))) {
+                timespec ts[3];
+                std::memcpy(ts, CMSG_DATA(cmsg), sizeof(ts));
+                // ts[0]: software, ts[2]: raw hardware
+                const timespec & chosen = (ts[2].tv_sec != 0 || ts[2].tv_nsec != 0) ? ts[2] : ts[0];
+                timestamp_ns = static_cast<std::uint64_t>(chosen.tv_sec) * 1000000000ULL + static_cast<std::uint64_t>(chosen.tv_nsec);
+                break;
+            }
         }
         return result;
     }

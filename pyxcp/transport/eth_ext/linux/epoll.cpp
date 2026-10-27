@@ -142,10 +142,16 @@ void Epoll::processSocketEvent(AsyncClientSocket& socket, std::uint32_t events) 
         for (;;) {
             sockaddr_storage peer{};
             socklen_t peer_length = sizeof(peer);
+            std::uint64_t timestamp_ns = 0;
             int received;
             try {
                 if (socket.getSocketType() == SOCK_DGRAM) {
-                    received = socket.receiveFrom(buffer.data(), buffer.size(), reinterpret_cast<sockaddr*>(&peer), &peer_length);
+                    if (socket.ptpEnabled()) {
+                        received = socket.receiveFromTimestamped(
+                            buffer.data(), buffer.size(), reinterpret_cast<sockaddr*>(&peer), &peer_length, timestamp_ns);
+                    } else {
+                        received = socket.receiveFrom(buffer.data(), buffer.size(), reinterpret_cast<sockaddr*>(&peer), &peer_length);
+                    }
                 } else {
                     received = socket.receive(buffer.data(), buffer.size());
                 }
@@ -177,7 +183,7 @@ void Epoll::processSocketEvent(AsyncClientSocket& socket, std::uint32_t events) 
             if (m_callbacks.on_receive) {
                 try {
                     const sockaddr* address = socket.getSocketType() == SOCK_DGRAM ? reinterpret_cast<sockaddr*>(&peer) : nullptr;
-                    m_callbacks.on_receive(socket, buffer.data(), static_cast<std::size_t>(received), address);
+                    m_callbacks.on_receive(socket, buffer.data(), static_cast<std::size_t>(received), address, timestamp_ns);
                 } catch (...) {
                 }
             }

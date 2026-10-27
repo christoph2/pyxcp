@@ -13,6 +13,8 @@
 
 #include "asynchiofactory.hpp"
 #include "eth_io_backend.hpp"
+#include "eth_utils.hpp"
+#include "eth_ptp.hpp"
 #include "socket.hpp"
 
 namespace py = pybind11;
@@ -55,7 +57,11 @@ class EpollBackend : public EthIoBackend {
                 m_socket->setOption(IPPROTO_TCP, TCP_NODELAY, 1);
             }
             if (config.m_ptp_timestamping) {
-                m_logger.attr("warning")("PTP hardware timestamping is not supported by the epoll backend.");
+                if (use_tcp) {
+                    m_logger.attr("warning")("PTP hardware timestamping is typically not supported for TCP. Only UDP will be attempted.");
+                } else {
+                    setup_ptp(config.m_host);
+                }
             }
             if (config.m_bind_to.has_value()) {
                 const auto& [address, port] = *config.m_bind_to;
@@ -116,8 +122,8 @@ class EpollBackend : public EthIoBackend {
             return;
         }
         IoCallbacks callbacks;
-        callbacks.on_receive = [this](AsyncClientSocket&, const char* data, std::size_t length, const sockaddr*) {
-            on_receive(data, length);
+        callbacks.on_receive = [this](AsyncClientSocket&, const char* data, std::size_t length, const sockaddr*, std::uint64_t timestamp_ns) {
+            on_receive(data, length, timestamp_ns);
         };
         callbacks.on_disconnect = [this](AsyncClientSocket&) { m_status.store(0); };
         callbacks.on_error = [this](AsyncClientSocket*, IoType operation, unsigned long error) { on_error(operation, error); };
@@ -167,13 +173,36 @@ class EpollBackend : public EthIoBackend {
         return std::string(host) + ":" + service;
     }
 
-    void on_receive(const char* data, std::size_t length) {
+    void setup_ptp(const std::string& host) {
+        try {
+            const TimestampingInfo info = check_timestamping_support(host);
+            if (!info.timestamping_supported) {
+                m_logger.attr("info")("Hardware timestamping NOT supported on interface '" + info.interface_name + "'");
+                return;
+            }
+            m_logger.attr("info")("Hardware timestamping is supported on interface '" + info.interface_name + "'");
+            if (EthPtp::enable_timestamping(m_socket->getHandle())) {
+                m_socket->setPtpEnabled(true);
+                m_logger.attr("info")("PTP hardware timestamping enabled");
+            } else {
+                m_logger.attr("error")("Failed to enable PTP hardware timestamping");
+            }
+        } catch (const std::exception& error) {
+            m_logger.attr("error")(std::string("PTP timestamping setup failed: ") + error.what());
+        }
+    }
+
+    void on_receive(const char* data, std::size_t length, std::uint64_t timestamp_ns) {
         py::gil_scoped_acquire gil;
         if (m_closing.load()) {
             return;
         }
         try {
-            m_feed_frame(py::bytes(data, length), m_timestamp.attr("value"));
+            if (timestamp_ns != 0) {
+                m_feed_frame(py::bytes(data, length), timestamp_ns);
+            } else {
+                m_feed_frame(py::bytes(data, length), m_timestamp.attr("value"));
+            }
         } catch (py::error_already_set& error) {
             m_logger.attr("error")(std::string("XCPonEth - epoll receive handler failed: ") + error.what());
         }

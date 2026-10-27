@@ -57,8 +57,9 @@ enum class MessageCode : uint64_t {
 struct IoCallbacks {
     // Data is only valid for the duration of the call (zero-copy);
     // copy or enqueue it if it is needed afterwards. `peer` is only
-    // set for datagram sockets (nullptr for streams).
-    std::function<void(AsyncClientSocket & socket, const char * data, std::size_t length, const sockaddr * peer)> on_receive;
+    // set for datagram sockets (nullptr for streams). `timestamp_ns` is the
+    // PTP/kernel receive timestamp in nanoseconds, 0 if unavailable.
+    std::function<void(AsyncClientSocket & socket, const char * data, std::size_t length, const sockaddr * peer, std::uint64_t timestamp_ns)> on_receive;
     std::function<void(AsyncClientSocket & socket, std::size_t bytes)> on_send_complete;
     // Peer closed the connection (orderly shutdown, zero byte read).
     std::function<void(AsyncClientSocket & socket)> on_disconnect;

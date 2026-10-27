@@ -118,7 +118,7 @@ class KqueueBackend : public EthIoBackend {
             return;
         }
         IoCallbacks callbacks;
-        callbacks.on_receive = [this](AsyncClientSocket&, const char* data, std::size_t length, const sockaddr*) {
+        callbacks.on_receive = [this](AsyncClientSocket&, const char* data, std::size_t length, const sockaddr*, std::uint64_t) {
             on_receive(data, length);
         };
         callbacks.on_disconnect = [this](AsyncClientSocket&) { m_status.store(0); };

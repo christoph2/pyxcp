@@ -485,6 +485,21 @@ Symptom: DAQ timestamps are wrong or overflow
 
 ----
 
+Symptom: Which Ethernet backend is used?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Background:** The Ethernet transport's byte-level I/O (connect/send/receive)
+is performed by native C++ backends: IOCP on Windows, epoll on Linux, and
+kqueue on macOS/FreeBSD. The backend is selected automatically by platform;
+there is no configuration flag (the former ``experimental_backend`` option
+and the Python ``selectors`` implementation have been removed).
+
+The backends (``pyxcp.transport.eth_ext``) support UDP and TCP. If the
+extension was not built, creating an Ethernet transport raises ``RuntimeError``.
+PTP timestamping support depends on the platform (see the PTP section above).
+
+----
+
 CAN Problems
 ------------
 

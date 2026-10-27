@@ -228,8 +228,9 @@ void IOCP::workerThreadMain() {
                 if (m_callbacks.on_receive && socket != nullptr) {
                     // Zero-copy: the buffer is handed out as-is and recycled right after the call.
                     const sockaddr * peer = (socket->getSocketType() == SOCK_DGRAM) ? iod->get_peer_address() : nullptr;
+                    const std::uint64_t timestamp_ns = socket->ptpEnabled() ? iod->get_timestamp_ns() : 0;
                     try {
-                        m_callbacks.on_receive(*socket, iod->get_buffer()->buf, bytesTransferred, peer);
+                        m_callbacks.on_receive(*socket, iod->get_buffer()->buf, bytesTransferred, peer, timestamp_ns);
                     } catch (...) {
                     }
                 }
@@ -272,10 +273,30 @@ int AsyncClientSocket::tryTriggerRead(unsigned int len) noexcept {
     if (m_socktype == SOCK_STREAM) {
         result = ::WSARecv(getHandle(), iod->get_buffer(), 1, &numReceived, &flags, (LPWSAOVERLAPPED)iod, nullptr);
     } else if (m_socktype == SOCK_DGRAM) {
-        result = ::WSARecvFrom(
-            getHandle(), iod->get_buffer(), 1, &numReceived, &flags, iod->get_peer_address(), iod->get_peer_address_length(),
-            (LPWSAOVERLAPPED)iod, nullptr
-        );
+        if (m_ptp_enabled) {
+            static const LPFN_WSARECVMSG recvMsg = [](SOCKET s) -> LPFN_WSARECVMSG {
+                LPFN_WSARECVMSG fn = nullptr;
+                GUID guid = WSAID_WSARECVMSG;
+                DWORD bytes = 0;
+                if (::WSAIoctl(s, SIO_GET_EXTENSION_FUNCTION_POINTER, &guid, sizeof(guid), &fn, sizeof(fn), &bytes, nullptr, nullptr) != 0) {
+                    return nullptr;
+                }
+                return fn;
+            }(getHandle());
+            if (recvMsg != nullptr) {
+                result = recvMsg(getHandle(), iod->prepare_msg(), &numReceived, (LPWSAOVERLAPPED)iod, nullptr);
+            } else {
+                result = ::WSARecvFrom(
+                    getHandle(), iod->get_buffer(), 1, &numReceived, &flags, iod->get_peer_address(), iod->get_peer_address_length(),
+                    (LPWSAOVERLAPPED)iod, nullptr
+                );
+            }
+        } else {
+            result = ::WSARecvFrom(
+                getHandle(), iod->get_buffer(), 1, &numReceived, &flags, iod->get_peer_address(), iod->get_peer_address_length(),
+                (LPWSAOVERLAPPED)iod, nullptr
+            );
+        }
     }
     if (result == SOCKET_ERROR) {
         const int err = ::WSAGetLastError();
@@ -286,7 +307,6 @@ int AsyncClientSocket::tryTriggerRead(unsigned int len) noexcept {
     }
     return 0;
 }
-
 
 int AsyncClientSocket::postWrite(PerIoData * iod) noexcept {
     DWORD bytesWritten = 0;

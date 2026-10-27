@@ -29,7 +29,6 @@ def create_config():
             self.ipv6 = False
             self.tcp_nodelay = False
             self.ptp_timestamping = False
-            self.experimental_backend = False
             self.timeout = 1.0
 
     class GeneralConfig:

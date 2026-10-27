@@ -148,7 +148,6 @@ def create_config():
             self.ipv6 = False
             self.tcp_nodelay = False
             self.ptp_timestamping = False
-            self.experimental_backend = False
 
     class SxiConfig:
         def __init__(self):
@@ -504,34 +503,12 @@ def test_create_eth_backend_invalid_name_raises():
         create_eth_backend("does-not-exist", eth=mock.MagicMock())
 
 
-@pytest.mark.skipif(NATIVE_BACKEND_AVAILABLE, reason="Native backend is available on this platform")
-@mock.patch("pyxcp.transport.eth_backend.socket.socket")
-@mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
-def test_eth_experimental_backend_not_available_raises(mock_selector, mock_socket):
-    ms = MockSocket()
-    mock_socket.return_value = ms
-    mock_selector.return_value = ms
-
-    config = create_config()
-    config.eth.experimental_backend = True
-
-    with pytest.raises(RuntimeError, match="not available"):
-        tr.create_transport("eth", config=config)
-
-
-@mock.patch("pyxcp.transport.eth_backend.socket.socket")
-@mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
-def test_eth_default_backend_is_legacy(mock_selector, mock_socket):
-    from pyxcp.transport.eth_backend import LegacySocketBackend
-
-    ms = MockSocket()
-    mock_socket.return_value = ms
-    mock_selector.return_value = ms
-
+@pytest.mark.skipif(not NATIVE_BACKEND_AVAILABLE, reason="Native backend not available")
+def test_eth_default_native_backend():
     config = create_config()
     transport = tr.create_transport("eth", config=config)
 
-    assert isinstance(transport._backend, LegacySocketBackend)
+    assert isinstance(transport._backend, NATIVE_BACKEND)
     transport.close()
 
 
@@ -624,7 +601,6 @@ def test_eth_native_backend_roundtrip(protocol):
     stop = threading.Event()
     port, thread = _echo_server(socket.SOCK_DGRAM if protocol == "UDP" else socket.SOCK_STREAM, stop)
     config = create_config()
-    config.eth.experimental_backend = True
     config.eth.host = "127.0.0.1"
     config.eth.port = port
     config.eth.protocol = protocol

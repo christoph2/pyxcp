@@ -162,6 +162,14 @@ public:
         return m_family;
     }
 
+    void setPtpEnabled(bool enabled) {
+        m_ptp_enabled = enabled;
+    }
+
+    bool ptpEnabled() const {
+        return m_ptp_enabled;
+    }
+
     const TimeoutTimer & getTimeoutTimer() const {
         return m_timeout;
     }
@@ -181,6 +189,7 @@ private:
     int m_family;
     SOCKADDR_STORAGE m_peerAddress;
     int m_peerAddressLength = 0;
+    bool m_ptp_enabled = false;
     TimeoutTimer m_timeout {150};
     IOCP * m_iocp = nullptr;
     PerHandleData m_handleData;

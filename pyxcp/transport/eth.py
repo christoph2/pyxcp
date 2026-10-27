@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import socket
 import struct
-import sys
 import threading
 
 from pyxcp.cpp_ext.cpp_ext import init_networking
@@ -31,10 +30,8 @@ class Eth(BaseTransport):
     trigger, GET_DAQ_CLOCK_MULTICAST). The actual byte-level network I/O
     (connect / send / receive-loop) is delegated to an
     :class:`~pyxcp.transport.eth_backend.EthIoBackend` implementation,
-    selected via ``config.experimental_backend`` -- this is the seam that
-    allows switching between the proven, selectors-based implementation and
-    the platform's experimental native asynchronous backend (IOCP on Windows,
-    epoll on Linux, or kqueue on macOS and FreeBSD) without touching this class.
+    the platform's native asynchronous backend (IOCP on Windows, epoll on
+    Linux, or kqueue on macOS and FreeBSD).
     """
 
     MAX_DATAGRAM_SIZE = 65535
@@ -67,16 +64,7 @@ class Eth(BaseTransport):
         init_networking()
         self._multicast_sender = EthMulticastSender()
 
-        if sys.platform == "win32":
-            native_backend = "iocp"
-        elif sys.platform.startswith("linux"):
-            native_backend = "epoll"
-        elif sys.platform == "darwin" or sys.platform.startswith("freebsd"):
-            native_backend = "kqueue"
-        else:
-            native_backend = "iocp"
-        backend_name = native_backend if self.config.experimental_backend else "legacy"
-        self._backend: EthIoBackend = create_eth_backend(backend_name, self)
+        self._backend: EthIoBackend = create_eth_backend(None, self)
         self._backend.setup(eth_config)
 
         self._eth_receiver = EthReceiver(

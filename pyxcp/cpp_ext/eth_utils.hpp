@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <cstring>
+#include <iostream>
 #include <optional>
 #include <string>
 
