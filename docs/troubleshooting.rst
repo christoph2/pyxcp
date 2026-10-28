@@ -500,6 +500,52 @@ PTP timestamping support depends on the platform (see the PTP section above).
 
 ----
 
+Symptom: Sporadic timeouts over Wi-Fi (Linux), fine over cable or on Windows
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Typical log:** Random ``XcpTimeoutError`` (e.g. during ``upload`` or
+``writeDaq``), followed by ``SYNCH`` retries. A packet capture shows the
+slave's responses arriving late and in bursts (several packets within the
+same microsecond), e.g. ~2 s after the request.
+
+**Cause:** Wi-Fi power saving. The access point buffers downlink frames while
+the adapter sleeps, so XCP responses are delayed beyond the transport timeout.
+This is not a pyXCP or backend (epoll) problem; the packets simply reach the
+kernel late. Weak signal strength makes it worse.
+
+**Diagnosis:**
+
+.. code:: bash
+
+   # Is power saving enabled? ("Power save: on" is the culprit)
+   iw dev <wlan_if> get power_save
+
+   # Check signal quality
+   iw dev <wlan_if> link
+
+   # Look for delayed / bursty responses
+   sudo tcpdump -i <wlan_if> -nn udp port 5555
+
+**Solution:**
+
+.. code:: bash
+
+   # Disable Wi-Fi power saving (until reboot / reconnect)
+   sudo iw dev <wlan_if> set power_save off
+
+To make it persistent with NetworkManager, create
+``/etc/NetworkManager/conf.d/wifi-powersave.conf``:
+
+.. code:: ini
+
+   [connection]
+   wifi.powersave = 2
+
+Preferably use a wired connection for measurement and calibration; Wi-Fi
+latency is not deterministic.
+
+----
+
 CAN Problems
 ------------
 
