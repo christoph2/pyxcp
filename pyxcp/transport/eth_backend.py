@@ -90,5 +90,7 @@ def create_eth_backend(name: str | None, eth: "Eth") -> EthIoBackend:
         raise ValueError(f"{name!r} is an invalid Ethernet backend -- please choose one of [{' | '.join(_ETH_BACKENDS.keys())}].")
     backend_class = _ETH_BACKENDS[key]
     if not backend_class.available:
-        raise RuntimeError(f"The {name!r} Ethernet backend is not available. Build the platform's native ``pyxcp.transport.eth_ext`` extension.")
+        raise RuntimeError(
+            f"The {name!r} Ethernet backend is not available. Build the platform's native ``pyxcp.transport.eth_ext`` extension."
+        )
     return backend_class(eth)
