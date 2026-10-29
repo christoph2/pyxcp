@@ -521,6 +521,21 @@ ERROR_MATRIX = {
             Action.REPEAT,
         ),
     },
+    Command.SET_DAQ_PACKED_MODE: {
+        XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
+        XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
+        XcpError.ERR_DAQ_ACTIVE: ((PreAction.START_STOP_X), Action.REPEAT_2_TIMES),
+        XcpError.ERR_PGM_ACTIVE: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),
+        XcpError.ERR_CMD_SYNTAX: ((PreAction.NONE), Action.RETRY_SYNTAX),
+        XcpError.ERR_CMD_UNKNOWN: ((PreAction.NONE), Action.DISPLAY_ERROR),
+        XcpError.ERR_OUT_OF_RANGE: ((PreAction.NONE), Action.RETRY_PARAM),
+        XcpError.ERR_ACCESS_LOCKED: ((PreAction.UNLOCK_SLAVE), Action.REPEAT_2_TIMES),
+        XcpError.ERR_MODE_NOT_VALID: ((PreAction.NONE), Action.RETRY_PARAM),
+        XcpError.ERR_RESOURCE_TEMPORARY_NOT_ACCESSIBLE: (
+            PreAction.DISPLAY_ERROR,
+            Action.REPEAT,
+        ),
+    },
     Command.START_STOP_DAQ_LIST: {
         XcpError.ERR_TIMEOUT: ((PreAction.SYNCH,), Action.REPEAT_2_TIMES),
         XcpError.ERR_CMD_BUSY: ((PreAction.WAIT_T7), Action.REPEAT_INF_TIMES),

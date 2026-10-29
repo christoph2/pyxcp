@@ -371,14 +371,19 @@ class DaqProcessor:
             # Packed DAQ support
             if hasattr(daq_list, "packed_mode") and daq_list.packed_mode != types.DaqPackedModeType.NOT_PACKED:
                 self.log.debug("Packed DAQ support enabled for DAQ list %s", i)
-                self.xcp_master.setDaqPackedMode(
+                status, result = self.xcp_master.try_command(
+                    self.xcp_master.setDaqPackedMode,
                     daq_list_number=i,
                     daq_packed_mode=daq_list.packed_mode,
                     dpm_timestamp_mode=daq_list.packed_ts_mode,
                     dpm_sample_count=daq_list.packed_sample_count,
+                    extra_msg="slave does not support packed DAQ, continuing without it",
                 )
+                packed_ok = status == types.TryCommandResult.OK
+                if status not in (types.TryCommandResult.OK, types.TryCommandResult.NOT_IMPLEMENTED):
+                    raise result
                 # Read the event cycle for timestamp reconstruction if not already set.
-                if event_cycle_ns == 0:
+                if packed_ok and event_cycle_ns == 0:
                     channels = self.daq_info.get("channels", [])
                     if 0 <= daq_list.event_num < len(channels):
                         event_channel = channels[daq_list.event_num]

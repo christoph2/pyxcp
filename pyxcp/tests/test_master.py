@@ -1514,6 +1514,19 @@ class TestMaster:
             assert res.timestamp_mode.ts_present is True
             assert res.sample_count == 0x1234
 
+    def testPackedModeHasErrorHandler(self):
+        from pyxcp.errormatrix import ERROR_MATRIX
+
+        handlers = ERROR_MATRIX[types.Command.SET_DAQ_PACKED_MODE]
+        assert "ERR_CMD_UNKNOWN" in {str(k) for k in handlers}
+
+    def testPackedModeNotImplemented(self):
+        from pyxcp.master.errorhandler import getActions
+
+        # Must resolve to actions (DISPLAY_ERROR -> SystemExit in the executor) and not raise InternalError.
+        preActions, actions = getActions(types.Command.SET_DAQ_PACKED_MODE, types.XcpError.ERR_CMD_UNKNOWN)
+        assert actions is not None
+
     @mock.patch("pyxcp.transport.eth_backend.socket.socket")
     @mock.patch("pyxcp.transport.eth_backend.selectors.DefaultSelector")
     def testPgmCommands(self, mock_selector, mock_socket):
