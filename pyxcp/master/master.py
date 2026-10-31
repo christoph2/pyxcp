@@ -1643,6 +1643,9 @@ class Master:
         for daq_element in daq_elements:
             data.extend(types.DaqElement.build(daq_element, byteOrder=self.slaveProperties.byteOrder))
 
+        self.stim.writeDaqMultiple(
+            [(e.get("bitOffset", 0), e["size"], e["addressExt"], e["address"]) for e in daq_elements]
+        )
         return self.transport.request(types.Command.WRITE_DAQ_MULTIPLE, *data)
 
     # optional
@@ -2010,6 +2013,7 @@ class Master:
         data.extend(self.WORD_pack(related_event_channel))
         data.append(mode)
         response = self.transport.request(types.Command.DTO_CTR_PROPERTIES, *data)
+        self.stim.dtoCtrProperties(modifier, event_channel, related_event_channel, mode)
         return types.DtoCtrPropertiesResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
 
     def daqListSupportsPacked(self, daq_list_number: int) -> bool:
@@ -2054,7 +2058,9 @@ class Master:
             dsc = self.WORD_pack(dpm_sample_count)
             params.extend(dsc)
 
-        return self.transport.request(types.Command.SET_DAQ_PACKED_MODE, *params)
+        response = self.transport.request(types.Command.SET_DAQ_PACKED_MODE, *params)
+        self.stim.setDaqPackedMode(daq_list_number, int(daq_packed_mode), dpm_timestamp_mode, dpm_sample_count)
+        return response
 
     @wrapped
     def getDaqPackedMode(self, daq_list_number: int):
