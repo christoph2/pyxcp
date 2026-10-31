@@ -182,7 +182,8 @@ class XcpEthDiscovery:
         return results
 
     def frame_it(self, cmd, *payload):
-        length = struct.pack("<H", len(payload))
+        # LEN counts everything after the 4-byte header, i.e. the command byte plus payload.
+        length = struct.pack("<H", 1 + len(payload))
         counter = struct.pack("<H", 0)
         frame = length + counter + bytes([cmd]) + bytes(payload)
         return frame
