@@ -4,7 +4,7 @@ import socket
 import pytest
 
 import pyxcp.transport.eth as eth_module
-import pyxcp.transport.eth_backend as eth_backend
+from pyxcp.transport import eth_backend
 from pyxcp.tests.fake_eth_backend import FakeSocketBackend
 
 # Tests patch ``pyxcp.transport.eth_backend.socket.socket`` / ``...selectors.DefaultSelector``

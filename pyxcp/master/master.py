@@ -1643,9 +1643,7 @@ class Master:
         for daq_element in daq_elements:
             data.extend(types.DaqElement.build(daq_element, byteOrder=self.slaveProperties.byteOrder))
 
-        self.stim.writeDaqMultiple(
-            [(e.get("bitOffset", 0), e["size"], e["addressExt"], e["address"]) for e in daq_elements]
-        )
+        self.stim.writeDaqMultiple([(e.get("bitOffset", 0), e["size"], e["addressExt"], e["address"]) for e in daq_elements])
         return self.transport.request(types.Command.WRITE_DAQ_MULTIPLE, *data)
 
     # optional
