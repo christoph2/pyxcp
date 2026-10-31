@@ -27,6 +27,7 @@
 #define __ASYNCHIOFACTORY_HPP
 
 #include <memory>
+#include <optional>
 
 #include "iasyncioservice.hpp"
 
@@ -41,6 +42,10 @@
 
 inline std::unique_ptr<IAsyncIoService> createAsyncIoService(IoCallbacks callbacks = {}, std::uint16_t readQueueDepth = 64, std::optional<std::uint16_t> bufferSize = std::nullopt)
 {
+    // A buffer size of 0 means "use defaults", same as std::nullopt.
+    if (bufferSize && *bufferSize == 0) {
+        bufferSize = std::nullopt;
+    }
 #if defined(_WIN32)
     return std::make_unique<IOCP>(std::move(callbacks), 1, 1, readQueueDepth, bufferSize);
 #elif defined(__APPLE__) || defined(__FreeBSD__)

@@ -130,9 +130,7 @@ class Eth(BaseTransport):
         """Underlying Python socket of the active backend, if any.
 
         ``None`` for backends that are not based on a plain Python socket.
-        Exposed for diagnostics/advanced use (e.g. ``examples/bryan_lieblick.py``,
-        which wraps it to observe ``recvfrom()``).
-        """
+        Exposed for diagnostics/advanced use"""
         return self._backend.sock
 
     @sock.setter
