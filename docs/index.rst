@@ -23,7 +23,7 @@ Welcome to pyXCP’s documentation
    howto_cli_tools
    cli_tools
    recorder
-   troubleshooting
+   stim   troubleshooting
    pyxcp
 
 Indices and tables

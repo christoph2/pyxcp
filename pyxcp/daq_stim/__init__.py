@@ -11,6 +11,7 @@ from pyxcp.config import get_application
 from pyxcp.cpp_ext.cpp_ext import DaqList, PredefinedDaqList
 from pyxcp.daq_stim.optimize import make_continuous_blocks
 from pyxcp.daq_stim.optimize.binpacking import first_fit_decreasing
+from pyxcp.daq_stim.stim import StimParameters
 from pyxcp.recorder import DaqOnlinePolicy as _DaqOnlinePolicy
 from pyxcp.recorder import DaqRecorderPolicy as _DaqRecorderPolicy
 from pyxcp.recorder import EventInfo, MeasurementParameters
@@ -175,11 +176,15 @@ class DaqProcessor:
         # Flag indicating a fatal OS-level error occurred during DAQ (e.g., disk full, out-of-memory)
         self._fatal_os_error: bool = False
 
+    def set_master(self, xcp_master):
+        self.xcp_master = xcp_master
+
     def setup(
         self,
         start_datetime: CurrentDatetime | None = None,
         write_multiple: bool = True,
         daq_info_override: dict[str, Any] | None = None,
+        min_st_stim: int = 0,
     ):
         if not self.xcp_master.slaveProperties.supportsDaq:
             raise RuntimeError("DAQ functionality is not supported.")
@@ -307,10 +312,17 @@ class DaqProcessor:
                     container_first = max_odt_container_size
             # Per-entry merge cap uses max_entry_size (unaffected by timestamp/PID_OFF); the ODT
             # bin capacity uses the container size.
-            ttt = make_continuous_blocks(daq_list.measurements, max_entry_size, max_entry_size)
+            list_entry_size = max_entry_size
+            if daq_list.stim:
+                stim_entry_size = resolution.get("maxOdtEntrySizeStim") or max_entry_size
+                list_entry_size = min(max_entry_size, stim_entry_size)
+            ttt = make_continuous_blocks(daq_list.measurements, list_entry_size, list_entry_size)
             daq_list.measurements_opt = first_fit_decreasing(ttt, max_odt_container_size, container_first)
         byte_order = 0 if self.xcp_master.slaveProperties.byteOrder == "INTEL" else 1
         self._first_pids = []
+        self.stim_lists = [i for i, d in enumerate(self.daq_lists, self.min_daq) if d.stim]
+        if self.stim_lists:
+            self._configure_stim(key_byte, byte_order, max_dto, min_st_stim)
         daq_count = len(self.daq_lists)
 
         # Decide whether DAQ allocation must be performed.
@@ -359,7 +371,9 @@ class DaqProcessor:
                 mode = 0x10
             if daq_list.stim:
                 mode |= 0x02
-            if switch_pid_off:
+                if (i - first_daq_list) in self.dto_ctr_lists:
+                    mode |= 0x08
+            if switch_pid_off and not daq_list.stim:
                 mode |= 0x20
             self.xcp_master.setDaqListMode(
                 daq_list_number=i,
@@ -390,6 +404,8 @@ class DaqProcessor:
                         event_cycle_ns = event_channel_cycle_to_ns(event_channel["cycle"], event_channel["unit"])
             res = self.xcp_master.startStopDaqList(0x02, i)
             self._first_pids.append(res.firstPid)
+            if daq_list.stim and not isinstance(daq_list, PredefinedDaqList):
+                self.xcp_master.stim.setFieldTypes(i, [t for _, t in daq_list.headers])
 
         self.measurement_params = MeasurementParameters(
             byte_order,
@@ -407,6 +423,28 @@ class DaqProcessor:
             self._first_pids,
         )
         self.set_parameters(self.measurement_params)
+
+    dto_ctr_lists: frozenset = frozenset()
+
+    def _configure_stim(self, key_byte, byte_order, max_dto, min_st_stim):
+        """Check STIM capabilities and configure the STIM mirror (frame layout, limits)."""
+        if not any(ch.get("stim") for ch in self.daq_info.get("channels", [])):
+            raise RuntimeError("STIM DAQ lists configured, but no event channel supports STIM.")
+        stim = self.xcp_master.stim
+        stim.activate(True)
+        params = StimParameters()
+        params.id_field = {
+            "IDF_ABS_ODT_NUMBER": 0,
+            "IDF_REL_ODT_NUMBER_ABS_DAQ_LIST_NUMBER_BYTE": 1,
+            "IDF_REL_ODT_NUMBER_ABS_DAQ_LIST_NUMBER_WORD": 2,
+            "IDF_REL_ODT_NUMBER_ABS_DAQ_LIST_NUMBER_WORD_ALIGNED": 3,
+        }.get(str(key_byte["identificationField"]), 0)
+        params.timestamp_size = self.ts_size
+        params.max_dto = max_dto
+        params.min_st_stim = min_st_stim
+        params.min_daq = self.min_daq
+        params.big_endian = bool(byte_order)
+        stim.setParameters(params)
 
     def start(self):
         self.xcp_master.startStopSynch(0x01)
