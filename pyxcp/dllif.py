@@ -20,7 +20,7 @@ class DllResult(enum.IntEnum):
 
 
 class DllError(Exception):
-    """"""
+    """Wrap error codes"""
 
 
 # Keep aliases for backward compatibility
@@ -28,7 +28,16 @@ SeedNKeyResult = DllResult
 SeedNKeyError = DllError
 
 
-LOADER = Path(str(sys.modules["pyxcp"].__file__)).parent / "cpp_ext" / "asamkeydll"  # Absolute path to DLL loader.
+_LOADER_NAME = "asamkeydll.exe" if sys.platform == "win32" else "asamkeydll"
+LOADER = Path(str(sys.modules["pyxcp"].__file__)).parent / "cpp_ext" / _LOADER_NAME  # Absolute path to DLL loader.
+
+
+def _resolve_loader(loader_cfg):
+    loader = Path(loader_cfg) if loader_cfg else LOADER
+    if sys.platform == "win32" and not loader.suffix:
+        loader = loader.with_suffix(".exe")
+    return str(loader)
+
 
 bwidth, _ = platform.architecture()
 
@@ -44,10 +53,7 @@ else:
 def getKey(logger, loader_cfg: str, dllName: str, privilege: int, seed: bytes, assume_same_bit_width: bool):
     dllName = str(Path(dllName).absolute())  # Fix loader issues.
 
-    if loader_cfg is not None:
-        loader_exe = loader_cfg
-    else:
-        loader_exe = LOADER
+    loader_exe = _resolve_loader(loader_cfg)
 
     use_ctypes: bool = False
     if assume_same_bit_width:
@@ -83,7 +89,7 @@ def getKey(logger, loader_cfg: str, dllName: str, privilege: int, seed: bytes, a
                 [loader_exe, dllName, str(privilege), binascii.hexlify(seed).decode("ascii")],
                 stdout=subprocess.PIPE,
                 shell=False,
-            )  # nosec
+            )  # nosec B603
         except FileNotFoundError as exc:
             logger.error(f"Could not find executable {loader_exe!r} -- {exc}")
             return (SeedNKeyResult.ERR_COULD_NOT_LOAD_DLL, None)
@@ -121,10 +127,7 @@ class TRange(ctypes.Structure):
 def calcChecksum(logger, loader_cfg, dllName, data, assume_same_bit_width):
     dllName = str(Path(dllName).absolute())
 
-    if loader_cfg is not None:
-        loader_exe = loader_cfg
-    else:
-        loader_exe = LOADER
+    loader_exe = _resolve_loader(loader_cfg)
 
     use_ctypes = False
     if assume_same_bit_width:
