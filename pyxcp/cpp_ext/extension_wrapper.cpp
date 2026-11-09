@@ -240,13 +240,16 @@ PYBIND11_MODULE(cpp_ext, m) {
         .def_property_readonly("initial_value", &Timestamp::get_initial_value);
 
     py::class_<TimestampInfo, PyTimestampInfo>(m, "TimestampInfo", py::dynamic_attr())
-        .def(py::init<std::uint64_t>())
-        .def(py::init<std::uint64_t, const std::string&, std::int16_t, std::int16_t>())
-
-        .def_property_readonly("timestamp_ns", &TimestampInfo::get_timestamp_ns)
+        .def(py::init<>())
+        .def(
+            py::init<std::uint64_t, const std::string&, std::int16_t, std::int16_t>(),
+            py::arg("timestamp_ns") = 0, py::arg("timezone") = "", py::arg("utc_offset") = 0, py::arg("dst_offset") = 0
+        )
+        .def_property("timestamp_ns", &TimestampInfo::get_timestamp_ns, &TimestampInfo::set_timestamp_ns)
         .def_property("utc_offset", &TimestampInfo::get_utc_offset, &TimestampInfo::set_utc_offset)
         .def_property("dst_offset", &TimestampInfo::get_dst_offset, &TimestampInfo::set_dst_offset)
-        .def_property("timezone", &TimestampInfo::get_timezone, &TimestampInfo::set_timezone);
+        .def_property("timezone", &TimestampInfo::get_timezone, &TimestampInfo::set_timezone)
+        .def("__repr__", &TimestampInfo::to_string);
 
     py::class_<PtpCapabilities>(m, "PtpCapabilities")
         .def_readonly("hw_transmit", &PtpCapabilities::hw_transmit)

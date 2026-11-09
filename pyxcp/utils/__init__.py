@@ -8,7 +8,6 @@ from time import perf_counter, sleep
 from typing import Union
 
 import chardet
-import pytz
 from pyxcp.cpp_ext.cpp_ext import TimestampInfo
 
 
@@ -72,11 +71,13 @@ def delay(amount: float):
 
 class CurrentDatetime(TimestampInfo):
     def __init__(self, timestamp_ns: int):
-        TimestampInfo.__init__(self, timestamp_ns)
-        timezone = pytz.timezone(self.timezone)
-        dt = datetime.datetime.fromtimestamp(timestamp_ns / 1_000_000_000.0)
-        self.utc_offset = int(timezone.utcoffset(dt).total_seconds() / 60)
-        self.dst_offset = int(timezone.dst(dt).total_seconds() / 60)
+        dt = datetime.datetime.fromtimestamp(timestamp_ns / 1_000_000_000.0).astimezone()
+        tz_name = dt.tzname() or ""
+        utc_delta = dt.utcoffset()
+        utc_offset = int(utc_delta.total_seconds() // 60) if utc_delta is not None else 0
+        dst_delta = dt.dst()
+        dst_offset = int(dst_delta.total_seconds() // 60) if dst_delta is not None else 0
+        super().__init__(timestamp_ns, tz_name, utc_offset, dst_offset)
 
     def __str__(self):
         return f"""CurrentDatetime(
@@ -86,6 +87,9 @@ class CurrentDatetime(TimestampInfo):
     utc_offset={self.utc_offset},
     dst_offset={self.dst_offset}
 )"""
+
+    def __repr__(self):
+        return self.__str__()
 
 
 def enum_from_str(enum_class: IntEnum, enumerator: str) -> IntEnum:

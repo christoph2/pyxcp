@@ -169,20 +169,6 @@ class TimestampInfo {
         m_timestamp_ns(timestamp_ns), m_timezone(timezone), m_utc_offset(utc_offset), m_dst_offset(dst_offset) {
     }
 
-    explicit TimestampInfo(std::uint64_t timestamp_ns) : m_timestamp_ns(timestamp_ns) {
-    #if defined(_WIN32) || defined(_WIN64)
-        try {
-            m_timezone = std::chrono::current_zone()->name();
-        } catch (const std::runtime_error &) {
-            m_timezone = "UTC";
-        }
-    #else
-        tzset();
-        m_timezone = tzname[0];
-
-    #endif  // _WIN32 || _WIN64
-    }
-
     std::string get_timezone() const noexcept {
         return m_timezone;
     }
@@ -193,6 +179,10 @@ class TimestampInfo {
 
     std::uint64_t get_timestamp_ns() const noexcept {
         return m_timestamp_ns;
+    }
+
+    void set_timestamp_ns(std::uint64_t value) noexcept {
+        m_timestamp_ns = value;
     }
 
     void set_utc_offset(std::int16_t value) noexcept {
@@ -213,7 +203,7 @@ class TimestampInfo {
 
     std::string to_string() const noexcept {
         std::stringstream ss;
-        ss << "TimestamInfo(\n";
+        ss << "TimestampInfo(\n";
         ss << "\ttimestamp_ns=" << m_timestamp_ns << ",\n";
         ss << "\ttimezone=\"" << m_timezone << "\",\n";
         ss << "\tutc_offset=" << m_utc_offset << ",\n";
@@ -226,7 +216,7 @@ class TimestampInfo {
 
    private:
 
-    std::uint64_t m_timestamp_ns;
+    std::uint64_t m_timestamp_ns{ 0 };
     std::string   m_timezone{};
     std::int16_t  m_utc_offset{ 0 };
     std::int16_t  m_dst_offset{ 0 };
