@@ -34,7 +34,6 @@ dependencies = [
     "chardet>=7.0.0",
     "traitlets>=5.9,<6",
     "toml>=0.10,<1",
-    "pytz>=2024.1",
     "pydantic>=2.5,<3",
 ]
 
@@ -125,7 +124,6 @@ rich = ">=13.0,<15"
 chardet = ">=7.0.0"
 traitlets = ">=5.9,<6"
 toml = ">=0.10,<1"
-pytz = ">=2024.1"
 pydantic = ">=2.5,<3"
 
 [tool.poetry.scripts]
