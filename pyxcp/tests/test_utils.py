@@ -1,5 +1,8 @@
 import enum
+import time
 from sys import version_info
+
+import pytest
 
 from pyxcp.utils import (
     PYTHON_VERSION,
@@ -105,3 +108,29 @@ def test_current_datetime():
     s = str(cd)
     assert "CurrentDatetime" in s
     assert str(ts_ns) in s
+
+
+@pytest.mark.skipif(not hasattr(time, "tzset"), reason="time.tzset() is not available on this platform")
+@pytest.mark.parametrize(
+    "tz, ts_ns, utc_offset, dst_offset",
+    [
+        # 2026-07-15 12:00 UTC and 2026-01-15 12:00 UTC
+        ("Asia/Tokyo", 1784116800_000_000_000, 540, 0),
+        ("Asia/Kolkata", 1784116800_000_000_000, 330, 0),
+        ("America/New_York", 1784116800_000_000_000, -240, 60),
+        ("America/New_York", 1768478400_000_000_000, -300, 0),
+        ("Europe/Berlin", 1784116800_000_000_000, 120, 60),
+        ("Europe/Berlin", 1768478400_000_000_000, 60, 0),
+        ("UTC", 1784116800_000_000_000, 0, 0),
+    ],
+)
+def test_current_datetime_offsets_follow_local_time_zone(monkeypatch, tz, ts_ns, utc_offset, dst_offset):
+    monkeypatch.setenv("TZ", tz)
+    time.tzset()
+    try:
+        cd = CurrentDatetime(ts_ns)
+    finally:
+        monkeypatch.undo()
+        time.tzset()
+    assert cd.utc_offset == utc_offset
+    assert cd.dst_offset == dst_offset

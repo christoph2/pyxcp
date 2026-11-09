@@ -3,12 +3,12 @@ import datetime
 import functools
 import operator
 import sys
+import time
 from enum import IntEnum
 from time import perf_counter, sleep
 from typing import Union
 
 import chardet
-import pytz
 from pyxcp.cpp_ext.cpp_ext import TimestampInfo
 
 
@@ -73,10 +73,11 @@ def delay(amount: float):
 class CurrentDatetime(TimestampInfo):
     def __init__(self, timestamp_ns: int):
         TimestampInfo.__init__(self, timestamp_ns)
-        timezone = pytz.timezone(self.timezone)
-        dt = datetime.datetime.fromtimestamp(timestamp_ns / 1_000_000_000.0)
-        self.utc_offset = int(timezone.utcoffset(dt).total_seconds() / 60)
-        self.dst_offset = int(timezone.dst(dt).total_seconds() / 60)
+        # Read the offsets from the local time zone directly: on Linux `timezone` is an
+        # abbreviation such as "JST", which is not a valid IANA zone name.
+        local_time = time.localtime(timestamp_ns // 1_000_000_000)
+        self.utc_offset = local_time.tm_gmtoff // 60
+        self.dst_offset = (local_time.tm_gmtoff + time.timezone) // 60 if local_time.tm_isdst > 0 else 0
 
     def __str__(self):
         return f"""CurrentDatetime(
