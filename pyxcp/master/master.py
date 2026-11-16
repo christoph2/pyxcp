@@ -2828,10 +2828,11 @@ class Master:
             "calpag": protection.calpag,
         }
 
-    def cond_unlock(self, resources=None):
+    def cond_unlock(self, resources=None, seed_n_key_function: Callable[[str, int, bytes], bytes] | None = None):
         """Conditionally unlock resources, i.e. only unlock locked resources.
 
-        Precondition: Parameter "SEED_N_KEY_DLL" must be present and point to a valid DLL/SO.
+        Precondition: Parameter "SEED_N_KEY_DLL" must be present and point to a valid DLL/SO,
+        or a seed_n_key_function must be provided.
 
         Parameters
         ----------
@@ -2841,6 +2842,11 @@ class Master:
             Valid identifiers are: "calpag", "daq", "dbg", "pgm", "stim".
 
             If omitted, try to unlock every available resource.
+        seed_n_key_function : Callable[[str, int, bytes], bytes] | None
+            Optional callback function with signature:
+                def SeedKeyXCP(transport: str, resource: int, seed: bytes) -> bytes
+            If provided, this function takes priority over self.seed_n_key_function
+            and self.seed_n_key_dll for this call.
 
         Raises
         ------
@@ -2857,7 +2863,7 @@ class Master:
         MAX_PAYLOAD = self.slaveProperties["maxCto"] - 2
 
         protection_status = self.getCurrentProtectionStatus()
-        if any(protection_status.values()) and (not (self.seed_n_key_dll or self.seed_n_key_function)):
+        if any(protection_status.values()) and not (seed_n_key_function or self.seed_n_key_dll or self.seed_n_key_function):
             raise RuntimeError("Neither seed-and-key DLL nor function specified, cannot proceed.")  # TODO: ConfigurationError
         if resources is None:
             result = []
@@ -2889,7 +2895,12 @@ class Master:
                     seed.extend(list(result.seed))
                     remaining -= result.length
             self.logger.debug(f"Got seed {seed!r} for resource {resource_value!r}.")
-            if self.seed_n_key_function:
+            if seed_n_key_function is not None:
+                transport_name = self.config.transport if hasattr(self.config, 'transport') else "CAN"
+                key = seed_n_key_function(transport_name, resource_value, bytes(seed))
+                self.logger.debug(f"Using seed and key function {seed_n_key_function.__name__!r}().")
+                result = SeedNKeyResult.ACK
+            elif self.seed_n_key_function:
                 key = self.seed_n_key_function(resource_value, bytes(seed))
                 self.logger.debug(f"Using seed and key function {self.seed_n_key_function.__name__!r}().")
                 result = SeedNKeyResult.ACK
