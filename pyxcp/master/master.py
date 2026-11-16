@@ -2896,7 +2896,7 @@ class Master:
                     remaining -= result.length
             self.logger.debug(f"Got seed {seed!r} for resource {resource_value!r}.")
             if seed_n_key_function is not None:
-                transport_name = self.config.transport if hasattr(self.config, 'transport') else "CAN"
+                transport_name = self.config.transport if hasattr(self.config, "transport") else "CAN"
                 key = seed_n_key_function(transport_name, resource_value, bytes(seed))
                 self.logger.debug(f"Using seed and key function {seed_n_key_function.__name__!r}().")
                 result = SeedNKeyResult.ACK
