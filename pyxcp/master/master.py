@@ -1352,7 +1352,7 @@ class Master:
         Parameters
         ----------
         data : bytes
-        remainingBlockLength : int
+        remaining_block_length : int
             This parameter has to be given the remaining length in the block
         last : bool
             The block mode implementation shall indicate the last packet in the block with this parameter, because
@@ -1403,8 +1403,8 @@ class Master:
             - 0x01 - The given page will be used by the slave device application.
             - 0x02 - The slave device XCP driver will access the given page.
             - 0x80 - The logical segment number is ignored. The command applies to all segments
-        logicalDataSegment : int
-        logicalDataPage : int
+        logical_data_segment : int
+        logical_data_page : int
         """
         return self.transport.request(types.Command.SET_CAL_PAGE, mode, logical_data_segment, logical_data_page)
 
@@ -1415,7 +1415,7 @@ class Master:
         Parameters
         ----------
         mode : int
-        logicalDataSegment : int
+        logical_data_segment : int
         """
         response = self.transport.request(types.Command.GET_CAL_PAGE, mode, logical_data_segment)
         return response[2]
@@ -1442,8 +1442,8 @@ class Master:
             - 1 = get standard info for this segment
             - 2 = get address mapping info for this segment
 
-        segmentNumber : int
-        segmentInfo : int
+        segment_number : int
+        segment_info : int
             Mode 0:
                 - 0 = address
                 - 1 = length
@@ -1456,7 +1456,7 @@ class Master:
                 - 1 = destination address
                 - 2 = length address
 
-        mappingIndex : int
+        mapping_index : int
             - Mode 0: don't care
             - Mode 1: don't care
             - Mode 2: identifier for address mapping range that mapping_info belongs to.
@@ -1482,8 +1482,8 @@ class Master:
 
         Parameters
         ----------
-        segmentNumber : int
-        pageNumber : int
+        segment_number : int
+        page_number : int
         """
         response = self.transport.request(types.Command.GET_PAGE_INFO, 0, segment_number, page_number)
         raw = types.GetPageInfoResponse.parse(response, byteOrder=self.slaveProperties.byteOrder)
@@ -1500,7 +1500,7 @@ class Master:
         ----------
         mode : int (bitfield)
             1 = enable FREEZE Mode
-        segmentNumber : int
+        segment_number : int
         """
         return self.transport.request(types.Command.SET_SEGMENT_MODE, mode, segment_number)
 
@@ -1510,7 +1510,7 @@ class Master:
 
         Parameters
         ----------
-        segmentNumber : int
+        segment_number : int
         """
         response = self.transport.request(types.Command.GET_SEGMENT_MODE, 0, segment_number)
         if response:
@@ -1522,10 +1522,10 @@ class Master:
 
         Parameters
         ----------
-        srcSegment : int
-        srcPage : int
-        dstSegment : int
-        dstPage : int
+        src_segment : int
+        src_page : int
+        dst_segment : int
+        dst_page : int
         """
         return self.transport.request(types.Command.COPY_CAL_PAGE, src_segment, src_page, dst_segment, dst_page)
 
@@ -1545,7 +1545,7 @@ class Master:
 
         Parameters
         ----------
-        daqListNumber : int
+        daq_list_number : int
         """
         daq_list = self.WORD_pack(daq_list_number)
         result = self.transport.request(types.Command.CLEAR_DAQ_LIST, 0, *daq_list)
@@ -1558,11 +1558,11 @@ class Master:
 
         Parameters
         ----------
-        bitOffset : int
+        bit_offset : int
             Position of bit in 32-bit variable referenced by the address and
             extension below
-        entrySize : int
-        addressExt : int
+        entry_size : int
+        address_ext : int
         address : int
         """
         addr = self.DWORD_pack(address)
@@ -1583,7 +1583,7 @@ class Master:
 
         Parameters
         ----------
-        daqListNumber : int
+        daq_list_number : int
 
         Returns
         -------
@@ -1603,7 +1603,7 @@ class Master:
             0 = stop
             1 = start
             2 = select
-        daqListNumber : int
+        daq_list_number : int
         """
         dln = self.WORD_pack(daq_list_number)
         response = self.transport.request(types.Command.START_STOP_DAQ_LIST, mode, *dln)
@@ -1968,7 +1968,7 @@ class Master:
 
         Parameters
         ----------
-        daqListNumber : int
+        daq_list_number : int
         """
         dln = self.WORD_pack(daq_list_number)
         response = self.transport.request(types.Command.GET_DAQ_LIST_INFO, 0, *dln)
@@ -1980,7 +1980,7 @@ class Master:
 
         Parameters
         ----------
-        eventChannelNumber : int
+        event_channel_number : int
 
         Returns
         -------
@@ -1997,8 +1997,8 @@ class Master:
         Parameters
         ----------
         modifier :
-        eventChannel : int
-        relatedEventChannel : int
+        event_channel : int
+        related_event_channel : int
         mode :
 
         Returns
@@ -2019,7 +2019,7 @@ class Master:
 
         Parameters
         ----------
-        daqListNumber : int
+        daq_list_number : int
 
         Returns
         -------
@@ -2069,7 +2069,7 @@ class Master:
 
         Parameters
         ----------
-        daqListNumber : int
+        daq_list_number : int
         """
         dln = self.WORD_pack(daq_list_number)
         response = self.transport.request(types.Command.GET_DAQ_PACKED_MODE, *dln)
@@ -2089,7 +2089,7 @@ class Master:
 
         Parameters
         ----------
-        daqCount : int
+        daq_count : int
             number of DAQ lists to be allocated
         """
         dq = self.WORD_pack(daq_count)
@@ -2141,7 +2141,7 @@ class Master:
         mode : int
             0x00 = the absolute access mode is active (default)
             0x01 = the functional access mode is active
-        clearRange : int
+        clear_range : int
         """
         cr = self.DWORD_pack(clear_range)
         response = self.transport.request(types.Command.PROGRAM_CLEAR, mode, 0, 0, *cr)
@@ -2154,7 +2154,7 @@ class Master:
         ----------
         data : bytes
             Data to send to slave.
-        block_mode_length : int
+        block_length : int
             the program request must contain the length of the whole block, not just the length
             in the current packet.
         last : bool
@@ -3109,7 +3109,7 @@ def ticks_to_seconds(ticks, resolution):
     ----------
     ticks: int
 
-    unit: `GetDaqResolutionInfoResponse` as returned by :meth:`getDaqResolutionInfo`
+    resolution: `GetDaqResolutionInfoResponse` as returned by :meth:`getDaqResolutionInfo`
     """
     warnings.warn(
         "ticks_to_seconds() deprecated, use factory :func:`make_tick_converter` instead.",
