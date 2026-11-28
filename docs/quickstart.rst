@@ -29,6 +29,7 @@ Optional dependencies::
    pip install pyxcp python-can[pcan]
    pip install pyxcp python-can[vector]
    pip install pyxcp python-can[ixxat]
+   pip install pyxcp python-can-cansub
 
 Your First XCP Connection
 -------------------------
