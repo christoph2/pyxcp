@@ -66,6 +66,7 @@ pyXCP uses python-can backends.
 - PEAK PCAN: install driver + PCAN-View; ``pip install python-can[pcan]``.
 - Kvaser: install CANlib SDK; ``pip install python-can[kvaser]``.
 - IXXAT: install VCI; ``pip install python-can[ixxat]``.
+- CSS Electronics CANsub: ``pip install python-can-cansub``.
 - Virtual CAN: use python-can virtual backend.
 
 Example config factory::
