@@ -1,0 +1,25 @@
+{
+    "TRANSPORT": "CAN",
+    "CAN_DRIVER": "SlCan",
+    "CAN_USE_DEFAULT_LISTENER": true,
+    "CHANNEL": "COM5",
+    "ACCEPT_VIRTUAL": false,
+    "CAN_ID_MASTER": 3,
+    "CAN_ID_SLAVE": 4,
+    "CAN_ID_BROADCAST": 256,
+    "MAX_DLC_REQUIRED": false,
+    "BITRATE": 500000,
+    "BTL_CYCLES": 20,
+    "SAMPLE_RATE": 1,
+    "SAMPLE_POINT": 87.5,
+    "SJW": 4,
+    "TSEG1": 8,
+    "TSEG2": 4,
+    "CREATE_DAQ_TIMESTAMPS": false,
+    "LOGLEVEL": "DEBUG",
+    "ALIGNMENT": 8,
+    "TIMEOUT": 4.0,
+    "DISCONNECT_RESPONSE_OPTIONAL": false,
+    "DAQ_IDENTIFIER": [5, 6, 7]
+  }
+  
