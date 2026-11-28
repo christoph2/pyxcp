@@ -183,3 +183,8 @@ pyxcp/gui/
 pyxcp/policy_sdk/
 pyxcp/testing/
 pyxcp/pyxcp/
+
+# Ninja build files (SaxElectronics fork)
+build.ninja
+.ninja_deps
+.ninja_log

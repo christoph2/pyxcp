@@ -1,0 +1,67 @@
+name: Build Dev Wheel
+
+on:
+  push:
+    branches:
+    - master  # Trigger when the fork's master branch is updated
+    - rebase-on-upstream  # Regression-test branch (fork changes on top of upstream)
+  workflow_dispatch:
+    inputs:
+      label:
+        description: 'Label (e.g. dev, debug, development)'
+        required: true
+        default: 'dev'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    env:
+      LABEL: ${{ github.event.inputs.label || 'dev' }}
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install build dependencies
+      run: pip install build
+
+    - name: Set dynamic version in pyproject.toml
+      shell: pwsh
+      run: |
+        $pyproject = Get-Content pyproject.toml
+        # Take the upstream base version (first 'version = "x.y.z"' line) and add a local fork label.
+        $base = ($pyproject | Select-String -Pattern '^version = "(.*)"' | Select-Object -First 1).Matches[0].Groups[1].Value
+        $newVersion = "$base+fork.$env:LABEL"
+        $updated = $pyproject -replace '^version = ".*"', "version = `"$newVersion`""
+        $updated | Set-Content pyproject.toml
+        echo "PACKAGE_VERSION=$newVersion" >> $env:GITHUB_ENV
+
+    - name: Build wheel
+      run: python -m build --wheel
+
+    - name: Get built wheel name
+      shell: pwsh
+      run: |
+        $wheel = Get-ChildItem -Path dist/*.whl | Select-Object -First 1
+        echo "RELEASE_WHEEL_NAME=$($wheel.Name)" >> $env:GITHUB_ENV
+
+    - name: Upload wheel artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: pyxcp-${{ env.LABEL }}-${{ github.ref_name }}-wheel
+        path: dist/${{ env.RELEASE_WHEEL_NAME }}
+
+    - name: Update GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.ref_name == 'master' && 'dev' || format('dev-{0}', github.ref_name) }}
+        files: dist/${{ env.RELEASE_WHEEL_NAME }}
+        prerelease: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
