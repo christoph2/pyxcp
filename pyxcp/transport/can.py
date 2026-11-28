@@ -588,10 +588,13 @@ class Can(BaseTransport):
                 frame = can_interface_read()
                 if frame:
                     # Process the frame if one was received
-                    pid = self.can_id_pid_map.get(frame.id.raw_id)
-                    if pid is not None:
-                        # Translate CAN-ID to ODT number in PID_OFF mode.
-                        frame.data = pid + frame.data
+                    if self.pid_off:
+                        # Translate CAN-ID to ODT number in PID_OFF mode only.
+                        # With PID on, the frame already carries its PID; prepending
+                        # another byte would shift the DTO and break DAQ decoding.
+                        pid = self.can_id_pid_map.get(frame.id.raw_id)
+                        if pid is not None:
+                            frame.data = pid + frame.data
                     data_received(frame.data, frame.timestamp)
                 # If no frame (None), recv() already waited 100ms, so loop immediately
             except Exception as e:
