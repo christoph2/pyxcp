@@ -35,6 +35,7 @@ LEGACY_KEYWORDS = {
     "CAN_DRIVER": "Transport.Can.interface",
     "CHANNEL": "Transport.Can.channel",
     "MAX_DLC_REQUIRED": "Transport.Can.max_dlc_required",
+    "DAQ_IDENTIFIER": "Transport.Can.daq_identifier",
     #   "MAX_CAN_FD_DLC": "Transport.Can.max_can_fd_dlc",
     "PADDING_VALUE": "Transport.Can.padding_value",
     "CAN_USE_DEFAULT_LISTENER": "Transport.Can.use_default_listener",

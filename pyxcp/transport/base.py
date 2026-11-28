@@ -24,6 +24,8 @@ from pyxcp.utils import (
     seconds_to_nanoseconds,
 )
 
+from pyxcp.custom_patches.daqlist import DaqDataHandler  # SaxElectronics fork: DAQ sample handling
+
 
 class EmptyFrameError(Exception):
     """Raised when an empty frame is received."""
@@ -104,6 +106,11 @@ class BaseTransport(metaclass=abc.ABCMeta):
         self.timing: Timing = Timing()
         self.resQueue: deque = deque()
         self.resQueue_condition: threading.Condition = threading.Condition()
+        # SaxElectronics fork: raw DAQ frame queue + per-DAQ-list sample handler.
+        self.daqQueue: deque = deque()
+        self.evQueue: deque = deque()
+        self.servQueue: deque = deque()
+        self.daq_data_handler = DaqDataHandler()
         self.listener: threading.Thread = threading.Thread(
             target=self.listen,
             args=(),
@@ -447,6 +454,9 @@ class BaseTransport(metaclass=abc.ABCMeta):
             self.timer_restart_event.set()
             with self.policy_lock:
                 self.policy.feed(FrameCategory.DAQ, self.counter_received, timestamp, response[:length])
+                # SaxElectronics fork: keep raw DAQ frames and sort them per DAQ list.
+                self.daqQueue.append((response[:length], self.counter_received, length, timestamp))
+                self.daq_data_handler._process_daq_data_simple(response[:length])
 
     def _build_diagnostics_dump(self) -> str:
         import json as _json

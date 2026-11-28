@@ -475,6 +475,8 @@ class Can(BaseTransport):
             for idx, daq_id in enumerate(self.config.daq_identifier):
                 self.daq_identifier.append(Identifier(daq_id))
                 self.can_id_pid_map[daq_id] = bytes([idx])
+        # SaxElectronics fork: backward-compatible alias used by fork code.
+        self.daq_list_can_ids = self.daq_identifier
         self.max_dlc_required = self.config.max_dlc_required
         self.padding_value = self.config.padding_value
         if transport_layer_interface is None:
